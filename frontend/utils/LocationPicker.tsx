@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, ActivityIndicator, Alert, TouchableOpacity, Text } from "react-native";
+import { View, ActivityIndicator, Alert, TouchableOpacity, Text, Platform } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import * as Location from "expo-location";
 
@@ -74,7 +74,7 @@ function LocationPicker({ onPick }: LocationPickerProps) {
           : "";
       setAddress(addr);
       onPick(marker.latitude, marker.longitude, addr);
-    } catch (err) {
+    } catch  {
       Alert.alert("Error", "Could not fetch address.");
       onPick(marker.latitude, marker.longitude);
     }
@@ -84,6 +84,16 @@ function LocationPicker({ onPick }: LocationPickerProps) {
     return (
       <View style={{ height: 300, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (Platform.OS === "web") {
+    return (
+      <View style={{ height: 300, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "#333" }}>
+          Map location picker is only available on mobile devices.
+        </Text>
       </View>
     );
   }

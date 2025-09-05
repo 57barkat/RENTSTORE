@@ -11,8 +11,8 @@ import { SignupThrottleMiddleware } from "./middleware/signup-throttle.middlewar
 import { ScheduleModule } from "@nestjs/schedule";
 import { PropertyModule } from "./modules/property/property.module";
 import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.module";
+import { AuthModule } from "./services/auth.module";
  
-
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -41,6 +41,7 @@ import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.modul
     ServiceModule,
     PropertyModule,
     CloudinaryModule,
+    AuthModule,
   ],
 })
 export class AppModule {

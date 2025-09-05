@@ -1,23 +1,22 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
- 
-import { CreatePropertyDto } from './dto/create-property.dto';
-import { CloudinaryService } from 'src/services/Cloudinary Service/cloudinary.service';
-import { Property } from './property.schema';
- 
+import { Injectable } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model, Types } from "mongoose";
+
+import { CreatePropertyDto } from "./dto/create-property.dto";
+import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
+import { Property } from "./property.schema";
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
-    private readonly cloudinary: CloudinaryService,
+    private readonly cloudinary: CloudinaryService
   ) {}
 
   async create(
     dto: CreatePropertyDto,
     files: Express.Multer.File[],
-    userId: string,
+    userId: string
   ) {
     let imageUrls: string[] = [];
 
@@ -26,7 +25,7 @@ export class PropertyService {
         files.map(async (file) => {
           const uploaded = await this.cloudinary.uploadFile(file);
           return uploaded.secure_url;
-        }),
+        })
       );
     }
 
@@ -40,10 +39,12 @@ export class PropertyService {
   }
 
   async findAll() {
-    return this.propertyModel.find().populate('ownerId', 'name email');
+    return this.propertyModel.find().populate("ownerId", "name email");
   }
 
   async findMyProperties(userId: string) {
-    return this.propertyModel.find({ ownerId: userId });
-  }
+  return this.propertyModel.find({
+    ownerId: new Types.ObjectId(userId),
+  }).exec();
+}
 }

@@ -6,7 +6,7 @@ import { Colors } from "../../constants/Colors";
 export default function TabLayout() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const activeTabColor = theme === "light" ? "#e54646" : currentTheme.tabIconSelected;
+  const activeTabColor = theme === "light" ? "#4CC9F0" : currentTheme.tabIconSelected;
 
   return (
     <Tabs

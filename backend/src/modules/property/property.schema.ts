@@ -27,10 +27,6 @@ export class Property extends Document {
   @Prop() maintenanceCharges?: number;
   @Prop() utilitiesIncluded?: boolean;
 
-  @Prop({ required: true }) ownerName: string;
-  @Prop({ required: true }) phone: string;
-  @Prop() email?: string;
-
   @Prop([String]) images?: string[];
   @Prop([String]) videos?: string[];
   @Prop([String]) amenities?: string[];

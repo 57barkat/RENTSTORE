@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   activeDot: {
-    backgroundColor: "#e54646",  
+    backgroundColor: "#4CC9F0",  
     width: 16,
   },
 });

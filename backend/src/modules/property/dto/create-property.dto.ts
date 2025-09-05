@@ -25,10 +25,6 @@ export class CreatePropertyDto {
   @IsOptional() @IsNumber() maintenanceCharges?: number;
   @IsOptional() @IsBoolean() utilitiesIncluded?: boolean;
 
-  @IsString() ownerName: string;
-  @IsString() phone: string;
-  @IsOptional() @IsString() email?: string;
-
   @IsOptional() @IsArray() images?: string[];
   @IsOptional() @IsArray() videos?: string[];
   @IsOptional() @IsArray() amenities?: string[];

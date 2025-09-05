@@ -6,7 +6,7 @@ import { Colors } from "../constants/Colors";
 export default function Header() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const headerBg = theme === "light" ? "#e54646" : currentTheme.primary;
+  const headerBg = theme === "light" ? "#4CC9F0" : currentTheme.primary;
 
   return (
     <View style={[styles.container, { backgroundColor: headerBg }]}>
