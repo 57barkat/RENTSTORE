@@ -3,13 +3,11 @@ import { View, Image, Dimensions, FlatList, StyleSheet } from "react-native";
 
 const { width } = Dimensions.get("window");
 
-const images = [
-  { uri: "https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" },
-  { uri: "https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" },
-  { uri: "https://images.pexels.com/photos/3935316/pexels-photo-3935316.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" },
-];
+interface ImageCarouselProps {
+  images: { uri: string }[];
+}
 
-export default function ImageCarousel() {
+export default function ImageCarousel({ images }: ImageCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleScroll = (event: any) => {
@@ -18,6 +16,17 @@ export default function ImageCarousel() {
     );
     if (slide !== activeIndex) setActiveIndex(slide);
   };
+
+  if (!images || images.length === 0) {
+    return (
+      <Image
+        source={{
+          uri: "https://via.placeholder.com/400x200?text=No+Image",
+        }}
+        style={styles.image}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -28,19 +37,14 @@ export default function ImageCarousel() {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={handleScroll}
-        renderItem={({ item }) => (
-          <Image source={item} style={styles.image} />
-        )}
+        renderItem={({ item }) => <Image source={item} style={styles.image} />}
       />
 
       <View style={styles.dotContainer}>
         {images.map((_, index) => (
           <View
             key={index}
-            style={[
-              styles.dot,
-              index === activeIndex ? styles.activeDot : null,
-            ]}
+            style={[styles.dot, index === activeIndex ? styles.activeDot : null]}
           />
         ))}
       </View>
@@ -50,13 +54,14 @@ export default function ImageCarousel() {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: 10,
     height: 200,
   },
   image: {
     width: width,
     height: 200,
     resizeMode: "cover",
+    borderRadius: 8,
   },
   dotContainer: {
     flexDirection: "row",
@@ -73,8 +78,7 @@ const styles = StyleSheet.create({
     margin: 5,
   },
   activeDot: {
-    backgroundColor: "#4CC9F0",  
+    backgroundColor: "#4F46E5",
     width: 16,
   },
 });
- 

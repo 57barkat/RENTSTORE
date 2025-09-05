@@ -72,7 +72,10 @@ export default function RootLayout() {
                 name="choose-role"
                 options={{ headerShown: false }}
               />
-
+              <Stack.Screen
+                name="MyListingsScreen"
+                options={{ headerShown: false }}
+              />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
               <Stack.Screen name="+not-found" />

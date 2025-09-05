@@ -41,6 +41,13 @@ export default function PropertyForm({
         quality: 1,
       });
       if (!result.canceled && result.assets) {
+        if (type === "photo") {
+          // Log image file names or URIs for debugging
+          console.log(
+            "FormData: images",
+            result.assets.map((img: any) => img.fileName || img.uri)
+          );
+        }
         onChange(type === "photo" ? "images" : "videos", [
           ...formData[type === "photo" ? "images" : "videos"],
           ...result.assets,
@@ -148,8 +155,8 @@ export default function PropertyForm({
         value={formData.city}
         onChangeText={(val) => handleChange("city", val)}
       />
+      {errors.city && <Text style={{ color: "red" }}>{errors.city}</Text>}
 
-      {errors.address && <Text style={{ color: "red" }}>{errors.address}</Text>}
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Bathrooms"
@@ -384,7 +391,6 @@ export default function PropertyForm({
           handleChange("address", address); // auto-set address from picker
         }}
       />
-      {errors.city && <Text style={{ color: "red" }}>{errors.city}</Text>}
       {/* Address Field */}
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
@@ -393,6 +399,7 @@ export default function PropertyForm({
         value={formData.address}
         onChangeText={(val) => handleChange("address", val)}
       />
+      {errors.address && <Text style={{ color: "red" }}>{errors.address}</Text>}
     </View>
   );
 }

@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
-import { FilesInterceptor } from "@nestjs/platform-express";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
 
 @UseGuards(AuthGuard("jwt"))
@@ -20,10 +20,13 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post("create")
-  @UseInterceptors(FilesInterceptor("files"))
+  @UseInterceptors(
+    FileFieldsInterceptor([{ name: "images", maxCount: 10 }])
+  )
   async createProperty(
     @Body() dto: CreatePropertyDto,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles()
+    files: { images?: Express.Multer.File[] },
     @Req() req: any
   ) {
     if (!req.user || !req.user.userId) {
@@ -32,7 +35,8 @@ export class PropertyController {
     console.log("Received property data from frontend:", dto);
     console.log("Received files:", files);
     const userId = req.user.userId; // Use authenticated user's ID
-    const property = await this.propertyService.create(dto, files, userId);
+    const imageFiles = files.images || [];
+    const property = await this.propertyService.create(dto, imageFiles, userId);
     console.log("Property created:", property);
     return property;
   }
