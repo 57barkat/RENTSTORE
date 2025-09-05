@@ -13,7 +13,14 @@ export const api = createApi({
         body,
       }),
     }),
+    login: builder.mutation<any, { emailOrPhone: string; password: string }>({
+      query: (body) => ({
+        url: "/api/v1/users/login",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useCreateUserMutation } = api;
+export const { useCreateUserMutation, useLoginMutation } = api;

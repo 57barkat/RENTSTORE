@@ -6,21 +6,19 @@ import {
 import { useFonts } from "expo-font";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import { store } from "../services/store";
-import { useColorScheme } from "@/hooks/useColorScheme";
-
-
-function useAuth() {
-  // Replace with real authentication logic
-  return false;
-}
+import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
+import Header from "@/components/Header";
+import {
+  ThemeProvider as CustomThemeProvider,
+  useTheme,
+} from "@/contextStore/ThemeContext";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
@@ -28,6 +26,7 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const isLoggedIn = useAuth();
+  const { theme } = useTheme?.() ?? { theme: "light" };
 
   useEffect(() => {
     if (!loaded) return;
@@ -39,9 +38,6 @@ export default function RootLayout() {
 
     if (!isLoggedIn && !inAuthGroup) {
       router.replace("/signin");
-    } else if (isLoggedIn && inAuthGroup) {
-      // If logged in, redirect away from auth screens if needed
-      // router.replace("/home");
     }
   }, [isLoggedIn, loaded, segments, router]);
 
@@ -53,26 +49,40 @@ export default function RootLayout() {
     );
   }
 
+  // const currentSegment = segments[segments.length - 1];
+  // const inAuthGroup =
+  //   currentSegment === "signin" ||
+  //   currentSegment === "signup" ||
+  //   currentSegment === "choose-role";
+
+  // const hideHeader = inAuthGroup;
+  // || currentSegment === "profile";
+
   return (
     <Provider store={store}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          {/* Auth flow */}
-          <Stack.Screen name="signin" options={{ headerShown: false }} />
-          <Stack.Screen name="signup" options={{ headerShown: false }} />
-          <Stack.Screen name="choose-role" options={{ headerShown: false }} />
+      <AuthProvider>
+        <CustomThemeProvider>
+          <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+            {/* {!hideHeader && <Header />} */}
+            <Header />
+            <Stack>
+              <Stack.Screen name="signin" options={{ headerShown: false }} />
+              <Stack.Screen name="signup" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="choose-role"
+                options={{ headerShown: false }}
+              />
 
-          {/* App flow */}
-          <Stack.Screen name="home" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-          {/* Catch-all */}
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
 
-        {/* 🔥 Global Toast Provider */}
-        <Toast />
-      </ThemeProvider>
+            <StatusBar style="auto" />
+            <Toast />
+          </ThemeProvider>
+        </CustomThemeProvider>
+      </AuthProvider>
     </Provider>
   );
 }

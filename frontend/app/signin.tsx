@@ -1,24 +1,46 @@
 import { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Text } from "react-native";
-import { Link } from "expo-router";
-import Logo from "@/components/logo";
+import { View, TextInput, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Link, useRouter } from "expo-router";
+import { useLoginMutation } from "@/services/api";
+import { useAuth } from "@/contextStore/AuthContext";
+import Toast from "react-native-toast-message";
 
 export default function SignInScreen() {
-  const [email, setEmail] = useState("");
+  const [emailOrPhone, setEmailOrPhone] = useState("");
   const [password, setPassword] = useState("");
 
-  // Add your sign-in logic here
+  const [login, { isLoading }] = useLoginMutation();
+  const { login: saveToken } = useAuth();
+  const router = useRouter();
+
+  const handleSignIn = async () => {
+    try {
+      const res = await login({ emailOrPhone, password }).unwrap();
+
+      await saveToken(res.accessToken);
+      Toast.show({
+        type: "success",
+        text1: "Login successful!",
+        text2: "Welcome back to RentStore.",
+      });
+      router.replace("/homePage");
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Login failed",
+        text2: err?.data?.message || "Please try again.",
+      });
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Logo />
-      {/* <Text style={styles.title}>Sign In</Text> */}
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Email or Phone"
         autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
+        value={emailOrPhone}
+        onChangeText={setEmailOrPhone}
       />
       <TextInput
         style={styles.input}
@@ -27,12 +49,15 @@ export default function SignInScreen() {
         value={password}
         onChangeText={setPassword}
       />
-      <Button
-        title="Sign In"
-        onPress={() => {
-          /* handle sign in */
-        }}
-      />
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSignIn}
+        disabled={isLoading}
+      >
+        <Text style={styles.buttonText}>
+          {isLoading ? "Signing In..." : "Sign In"}
+        </Text>
+      </TouchableOpacity>
       <Link href="/choose-role" style={styles.link}>
         <Text style={styles.linkText}>Don&apos;t have an account? Sign Up</Text>
       </Link>
@@ -48,6 +73,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: "center",
   },
+  button: {
+    backgroundColor: "#e54646",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 18 },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -56,5 +89,5 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   link: { marginTop: 16, alignSelf: "center" },
-  linkText: { color: "#007AFF" },
+  linkText: { color: "#302424" },
 });

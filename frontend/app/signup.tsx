@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   TextInput,
   StyleSheet,
@@ -6,26 +6,19 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Logo from "@/components/logo";
 import { useCreateUserMutation } from "@/services/api";
 import Toast from "react-native-toast-message";
+import { Formik } from "formik";
+import { signupValidationSchema } from "@/utils/signupValidation";
+import { useAuth } from "@/contextStore/AuthContext";
 
 export default function SignUpScreen() {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    phone: "",
-    cnic: "",
-    agencyName: "",
-    agencyLicense: "",
-    preferences: "",
-  });
-
   const [role, setRole] = useState<string | null>(null);
   const [createUser, { isLoading }] = useCreateUserMutation();
+  const { login } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const loadRole = async () => {
@@ -35,23 +28,31 @@ export default function SignUpScreen() {
     loadRole();
   }, []);
 
-  const handleChange = (key: string, value: string) => {
-    setForm({ ...form, [key]: value });
+  const initialValues = {
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    cnic: "",
+    agencyName: "",
+    agencyLicense: "",
+    preferences: "",
   };
 
-  const handleSignUp = async () => {
-    const payload = { ...form, role };
-    console.log("Submitting signup:", payload);
+  const handleSignUp = async (values: typeof initialValues) => {
+    const payload = { ...values, role };
     try {
       const result = await createUser(payload).unwrap();
-      console.log("Signup result:", result?.isPhoneVerified);
+      if (result.accessToken) {
+        await login(result.accessToken);
+      }
+      router.replace("/homePage");
       Toast.show({
         type: "success",
         text1: "Account created!",
         text2: "Welcome to RentStore.",
       });
     } catch (err: any) {
-      console.log("Signup error:", err);
       Toast.show({
         type: "error",
         text1: "Signup failed",
@@ -63,78 +64,125 @@ export default function SignUpScreen() {
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
-        <Logo />
-        {/* <Text style={styles.title}>Create Account</Text> */}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          value={form.name}
-          onChangeText={(v) => handleChange("name", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={form.email}
-          onChangeText={(v) => handleChange("email", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={form.password}
-          onChangeText={(v) => handleChange("password", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Phone"
-          keyboardType="phone-pad"
-          value={form.phone}
-          onChangeText={(v) => handleChange("phone", v)}
-        />
-
-        {role === "agency" && (
-          <>
-            <TextInput
-              style={styles.input}
-              placeholder="Agency Name"
-              value={form.agencyName}
-              onChangeText={(v) => handleChange("agencyName", v)}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Agency License"
-              value={form.agencyLicense}
-              onChangeText={(v) => handleChange("agencyLicense", v)}
-            />
-          </>
-        )}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Preferences (optional)"
-          value={form.preferences}
-          onChangeText={(v) => handleChange("preferences", v)}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="CNIC"
-          value={form.cnic}
-          onChangeText={(v) => handleChange("cnic", v)}
-        />
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleSignUp}
-          disabled={isLoading}
+        <Formik
+          initialValues={initialValues}
+          validationSchema={signupValidationSchema(role)}
+          onSubmit={handleSignUp}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? "Signing Up..." : "Sign Up"}
-          </Text>
-        </TouchableOpacity>
+          {({
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            values,
+            errors,
+            touched,
+          }) => (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Full Name"
+                value={values.name}
+                onChangeText={handleChange("name")}
+                onBlur={handleBlur("name")}
+              />
+              {touched.name && errors.name ? (
+                <Text style={styles.error}>{errors.name}</Text>
+              ) : null}
 
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={values.email}
+                onChangeText={handleChange("email")}
+                onBlur={handleBlur("email")}
+              />
+              {touched.email && errors.email ? (
+                <Text style={styles.error}>{errors.email}</Text>
+              ) : null}
+
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry
+                value={values.password}
+                onChangeText={handleChange("password")}
+                onBlur={handleBlur("password")}
+              />
+              {touched.password && errors.password ? (
+                <Text style={styles.error}>{errors.password}</Text>
+              ) : null}
+
+              <TextInput
+                style={styles.input}
+                placeholder="Phone"
+                keyboardType="phone-pad"
+                value={values.phone}
+                onChangeText={handleChange("phone")}
+                onBlur={handleBlur("phone")}
+              />
+              {touched.phone && errors.phone ? (
+                <Text style={styles.error}>{errors.phone}</Text>
+              ) : null}
+
+              {role === "agency" && (
+                <>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Agency Name"
+                    value={values.agencyName}
+                    onChangeText={handleChange("agencyName")}
+                    onBlur={handleBlur("agencyName")}
+                  />
+                  {touched.agencyName && errors.agencyName ? (
+                    <Text style={styles.error}>{errors.agencyName}</Text>
+                  ) : null}
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Agency License"
+                    value={values.agencyLicense}
+                    onChangeText={handleChange("agencyLicense")}
+                    onBlur={handleBlur("agencyLicense")}
+                  />
+                  {touched.agencyLicense && errors.agencyLicense ? (
+                    <Text style={styles.error}>{errors.agencyLicense}</Text>
+                  ) : null}
+                </>
+              )}
+
+              <TextInput
+                style={styles.input}
+                placeholder="Preferences (optional)"
+                value={values.preferences}
+                onChangeText={handleChange("preferences")}
+                onBlur={handleBlur("preferences")}
+              />
+              {/* No error for preferences since it's optional */}
+
+              <TextInput
+                style={styles.input}
+                placeholder="CNIC"
+                value={values.cnic}
+                onChangeText={handleChange("cnic")}
+                onBlur={handleBlur("cnic")}
+              />
+              {touched.cnic && errors.cnic ? (
+                <Text style={styles.error}>{errors.cnic}</Text>
+              ) : null}
+
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => handleSubmit()}
+                disabled={isLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? "Signing Up..." : "Sign Up"}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </Formik>
         <Link href="/signin" style={styles.link}>
           <Text style={styles.linkText}>Already have an account? Sign In</Text>
         </Link>
@@ -173,7 +221,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   button: {
-    backgroundColor: "#4F46E5",
+    backgroundColor: "#e54646",
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -181,5 +229,11 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 18 },
   link: { marginTop: 20, alignSelf: "center" },
-  linkText: { color: "#4F46E5", fontSize: 15 },
+  linkText: { color: "#302424", fontSize: 15 },
+  error: {
+    color: "red",
+    fontSize: 13,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
 });

@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from "@expo/vector-icons"; 
-import LOGO from "@/components/logo";
+
 
 export default function ChooseRoleScreen() {
   const router = useRouter();
@@ -14,7 +14,6 @@ export default function ChooseRoleScreen() {
 
   return (
     <View style={styles.container}>
-      <LOGO />
       <Text style={styles.title}>What are you here for?</Text>
 
       <TouchableOpacity
@@ -22,7 +21,7 @@ export default function ChooseRoleScreen() {
         onPress={() => handleSelect("user")}
       >
         <MaterialCommunityIcons name="magnify" size={22} color="#fff" />
-        <Text style={styles.buttonText}>Looking for a Home</Text>
+        <Text style={styles.buttonText}>Looking for a Property</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -55,7 +54,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",  
     alignItems: "center",
-    backgroundColor: "#4F46E5",
+    backgroundColor: "#e54646",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
