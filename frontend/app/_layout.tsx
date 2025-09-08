@@ -73,6 +73,14 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="property/[id]"
+                options={{ headerShown: false }}
+              />
+               <Stack.Screen
+                name="property/edit/[id]"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="MyListingsScreen"
                 options={{ headerShown: false }}
               />

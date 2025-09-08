@@ -57,6 +57,7 @@ export default function PropertyForm({
       setMediaLoading(null);
     }
   };
+ 
 
   // Helper to parse numbers or null
   function parseNumber(val: string) {
@@ -133,7 +134,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Property Type (House, Apartment...)"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.propertyType}
         onChangeText={(val) => handleChange("propertyType", val)}
       />
@@ -143,7 +144,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Title"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.title}
         onChangeText={(val) => handleChange("title", val)}
       />
@@ -151,7 +152,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="City"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.city}
         onChangeText={(val) => handleChange("city", val)}
       />
@@ -160,7 +161,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Bathrooms"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.bathrooms?.toString() ?? ""}
         onChangeText={(val) => handleChange("bathrooms", val)}
         keyboardType="numeric"
@@ -168,7 +169,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Kitchens"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.kitchens?.toString() ?? ""}
         onChangeText={(val) => handleChange("kitchens", val)}
         keyboardType="numeric"
@@ -176,7 +177,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Living Rooms"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.livingRooms?.toString() ?? ""}
         onChangeText={(val) => handleChange("livingRooms", val)}
         keyboardType="numeric"
@@ -184,7 +185,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Balconies"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.balconies?.toString() ?? ""}
         onChangeText={(val) => handleChange("balconies", val)}
         keyboardType="numeric"
@@ -272,7 +273,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Floor"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.floor?.toString() ?? ""}
         onChangeText={(val) => handleChange("floor", val)}
         keyboardType="numeric"
@@ -280,7 +281,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Area (sq ft)"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.area?.toString() ?? ""}
         onChangeText={(val) => handleChange("area", val)}
         keyboardType="numeric"
@@ -288,7 +289,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Rent Price"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.rentPrice?.toString() ?? ""}
         onChangeText={(val) => handleChange("rentPrice", val)}
         keyboardType="numeric"
@@ -296,7 +297,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Security Deposit"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.securityDeposit?.toString() ?? ""}
         onChangeText={(val) => handleChange("securityDeposit", val)}
         keyboardType="numeric"
@@ -304,7 +305,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Maintenance Charges"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.maintenanceCharges?.toString() ?? ""}
         onChangeText={(val) => handleChange("maintenanceCharges", val)}
         keyboardType="numeric"
@@ -313,7 +314,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Preferences (comma separated, e.g. Family, Students)"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.preferences}
         onChangeText={(val) => handleChange("preferences", val)}
       />
@@ -372,7 +373,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, styles.textarea, themeStyle(currentTheme)]}
         placeholder="Description"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.description}
         onChangeText={(val) => handleChange("description", val)}
         multiline
@@ -395,7 +396,7 @@ export default function PropertyForm({
       <TextInput
         style={[styles.input, themeStyle(currentTheme)]}
         placeholder="Address"
-        placeholderTextColor={currentTheme.muted}
+        placeholderTextColor={theme === "dark" ? "#9BA1A6" : "#6B7280"}
         value={formData.address}
         onChangeText={(val) => handleChange("address", val)}
       />

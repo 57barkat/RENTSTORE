@@ -37,7 +37,7 @@ export const api = createApi({
     createProperty: builder.mutation<any, any>({
       query: (body) => {
         const formData = new FormData();
- 
+
         Object.entries(body).forEach(([key, value]) => {
           if (key === "photos" || key === "videos" || key === "images") return; // exclude media keys here
           if (value !== undefined && value !== null) {
@@ -45,7 +45,6 @@ export const api = createApi({
           }
         });
 
-     
         if (body.images && Array.isArray(body.images)) {
           body.images.forEach((img: any, idx: number) => {
             if (img?.uri) {
@@ -58,7 +57,6 @@ export const api = createApi({
           });
         }
 
-  
         if (body.videos && Array.isArray(body.videos)) {
           body.videos.forEach((video: any, idx: number) => {
             if (video?.uri) {
@@ -93,6 +91,28 @@ export const api = createApi({
         method: "GET",
       }),
     }),
+
+    findPropertyById: builder.query<any, string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}`,
+        method: "GET",
+      }),
+    }),
+    findPropertyByIdAndUpdate: builder.mutation<any, { id: string; data: any }>(
+      {
+        query: ({ id, data }) => ({
+          url: `/api/v1/properties/${id}`,
+          method: "PATCH",
+          body: data,
+        }),
+      }
+    ),
+    findPropertyByIdAndDelete: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -101,4 +121,7 @@ export const {
   useLoginMutation,
   useCreatePropertyMutation,
   useFindMyPropertiesQuery,
+  useFindPropertyByIdQuery,
+  useFindPropertyByIdAndUpdateMutation,
+  useFindPropertyByIdAndDeleteMutation,
 } = api;

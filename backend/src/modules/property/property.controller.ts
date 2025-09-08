@@ -8,6 +8,9 @@ import {
   Req,
   UseGuards,
   UnauthorizedException,
+  Param,
+  Patch,
+  Delete,
 } from "@nestjs/common";
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
@@ -20,9 +23,7 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post("create")
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: "images", maxCount: 10 }])
-  )
+  @UseInterceptors(FileFieldsInterceptor([{ name: "images", maxCount: 10 }]))
   async createProperty(
     @Body() dto: CreatePropertyDto,
     @UploadedFiles()
@@ -34,7 +35,7 @@ export class PropertyController {
     }
     console.log("Received property data from frontend:", dto);
     console.log("Received files:", files);
-    const userId = req.user.userId; // Use authenticated user's ID
+    const userId = req.user.userId;
     const imageFiles = files.images || [];
     const property = await this.propertyService.create(dto, imageFiles, userId);
     console.log("Property created:", property);
@@ -57,5 +58,26 @@ export class PropertyController {
     const result = await this.propertyService.findMyProperties(req.user.userId);
     console.log(result);
     return result;
+  }
+
+  @Get(":id")
+  async findById(@Param("id") id: string) {
+    return this.propertyService.findPropertyById(id);
+  }
+  @Patch(":id")
+  async updateProperty(
+    @Param("id") id: string,
+    @Body() dto: Partial<CreatePropertyDto>,
+    @Req() req: any
+  ) {
+    if (!req.user || !req.user.userId) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+    console.log("dataforupdate", dto);
+    return this.propertyService.updateProperty(id, dto, req.user.userId);
+  }
+  @Delete(":id")
+  async deleteProperty(@Param('id') id: string){
+  return this.propertyService.findPropertyByIdAndDelete(id)
   }
 }

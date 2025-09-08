@@ -46,7 +46,6 @@ export default function Upload() {
   };
 
   const handleSubmit = async () => {
-    console.log("Submitting property:", formData); // Debug log
     try {
       await createProperty(formData).unwrap();
       Toast.show({ type: "success", text1: "Property uploaded successfully!" });
@@ -80,7 +79,7 @@ export default function Upload() {
         longitude: null,
       });
     } catch (err) {
-      console.error("Property upload error:", err); // Debug log
+      console.error("Property upload error:", err);  
       Toast.show({ type: "error", text1: "Failed to upload property" });
     }
   };

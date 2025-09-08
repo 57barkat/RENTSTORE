@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 
@@ -43,8 +47,37 @@ export class PropertyService {
   }
 
   async findMyProperties(userId: string) {
-  return this.propertyModel.find({
-    ownerId: new Types.ObjectId(userId),
-  }).exec();
-}
+    return this.propertyModel
+      .find({
+        ownerId: new Types.ObjectId(userId),
+      })
+      .exec();
+  }
+  async findPropertyById(propertyId: string) {
+    return this.propertyModel.findById(new Types.ObjectId(propertyId)).exec();
+  }
+  async updateProperty(
+    id: string,
+    dto: Partial<CreatePropertyDto>,
+    userId: string,
+    updatedAt : Number = Date.now()
+  ) {
+    const property = await this.propertyModel.findById(id);
+
+    if (!property) {
+      throw new NotFoundException("Property not found");
+    }
+
+    if (property.ownerId.toString() !== userId.toString()) {
+      throw new UnauthorizedException(
+        "You are not allowed to edit this property"
+      );
+    }
+
+    Object.assign(property, dto);
+    return property.save();
+  }
+  async findPropertyByIdAndDelete(propertyId: string) {
+    return this.propertyModel.findByIdAndDelete(new Types.ObjectId(propertyId)).exec();
+  }
 }
