@@ -11,6 +11,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from "@nestjs/common";
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
@@ -33,30 +34,52 @@ export class PropertyController {
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException("User not authenticated");
     }
-    console.log("Received property data from frontend:", dto);
-    console.log("Received files:", files);
+
     const userId = req.user.userId;
     const imageFiles = files.images || [];
     const property = await this.propertyService.create(dto, imageFiles, userId);
-    console.log("Property created:", property);
+
     return property;
   }
 
   @Get()
-  async getAll() {
-    return this.propertyService.findAll();
+  async getAll(@Query("page") page?: number, @Query("limit") limit?: number) {
+    return this.propertyService.findAll(Number(page) || 1, Number(limit) || 10);
+  }
+  @Get("search")
+  async searchProperties(
+    @Query("page") page?: number,
+    @Query("limit") limit?: number,
+    @Query("city") city?: string,
+    @Query("minRent") minRent?: number,
+    @Query("maxRent") maxRent?: number,
+    @Query("bedrooms") bedrooms?: number,
+    @Query("propertyType") propertyType?: string
+  ) {
+    return this.propertyService.findFiltered(
+      Number(page) || 1,
+      Number(limit) || 10,
+      city,
+      minRent ? Number(minRent) : undefined,
+      maxRent ? Number(maxRent) : undefined,
+      bedrooms ? Number(bedrooms) : undefined,
+      propertyType
+    );
+  }
+  @Get("filters")
+  async getFilterOptions() {
+    return this.propertyService.getFilterOptions();
   }
 
   @Get("my-listings")
   async getMyProperties(@Req() req: any) {
-    console.log(req.user, req.user.userId, "<<<<<<<<>>>>>>>>>>>>>>>");
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException(
         "User not authenticated not a valid user"
       );
     }
     const result = await this.propertyService.findMyProperties(req.user.userId);
-    console.log(result);
+    // console.log(result);
     return result;
   }
 
@@ -73,11 +96,11 @@ export class PropertyController {
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException("User not authenticated");
     }
-    console.log("dataforupdate", dto);
+    // console.log("dataforupdate", dto);
     return this.propertyService.updateProperty(id, dto, req.user.userId);
   }
   @Delete(":id")
-  async deleteProperty(@Param('id') id: string){
-  return this.propertyService.findPropertyByIdAndDelete(id)
+  async deleteProperty(@Param("id") id: string) {
+    return this.propertyService.findPropertyByIdAndDelete(id);
   }
 }

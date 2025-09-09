@@ -23,7 +23,7 @@ export class UserController {
   async signup(
     @Body() createUserDto: CreateUserDto
   ): Promise<UserResponseDto & { accessToken: string }> {
-    console.log(`Signup request received: ${JSON.stringify(createUserDto)}`);
+    // console.log(`Signup request received: ${JSON.stringify(createUserDto)}`);
     const user = await this.userService.create(createUserDto);
 
     if (typeof user === "string") {
@@ -81,7 +81,7 @@ export class UserController {
       password: string;
     }
   ): Promise<UserResponseDto & { accessToken: string }> {
-    console.log(`Login request received: ${JSON.stringify(body)}`);
+    // console.log(`Login request received: ${JSON.stringify(body)}`);
 
     const emailOrPhone = body.emailOrPhone || body.email || body.phone;
     const { password } = body;
@@ -91,7 +91,7 @@ export class UserController {
     }
 
     const user = await this.userService.validateUser(emailOrPhone, password);
-    console.log("Validated user:", user);
+    // console.log("Validated user:", user);
 
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");

@@ -21,7 +21,7 @@ const MyListingProperties = () => {
     data: myProperties,
     isLoading,
     error,
-    refetch, // ✅ get refetch from query
+    refetch,
   } = useFindMyPropertiesQuery();
 
   const { theme } = useTheme();
@@ -42,7 +42,7 @@ const MyListingProperties = () => {
     try {
       await deleteProperty(id).unwrap();
       Alert.alert("Deleted!", "Property has been removed.");
-      refetch(); // ✅ refresh list after delete
+      refetch();
     } catch (err) {
       console.error("Delete failed:", err);
       Alert.alert("Error", "Failed to delete property.");
@@ -63,7 +63,7 @@ const MyListingProperties = () => {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: "red" }}>Failed to load properties.</Text>
+        <Text style={{ color: currentTheme.error }}>Failed to load properties.</Text>
       </View>
     );
   }
@@ -100,19 +100,19 @@ const MyListingProperties = () => {
           {/* Buttons Row */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: "#22c55e" }]}
+              style={[styles.button, { backgroundColor: currentTheme.success }]}
               onPress={() => handleOpenDetails(item._id)}
             >
               <Text style={styles.buttonText}>View</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: "#3b82f6" }]}
+              style={[styles.button, { backgroundColor: currentTheme.info }]}
               onPress={() => handleEdit(item._id)}
             >
               <Text style={styles.buttonText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: "#ef4444" }]}
+              style={[styles.button, { backgroundColor: currentTheme.danger }]}
               onPress={() => handleDelete(item._id)}
             >
               <Text style={styles.buttonText}>Delete</Text>

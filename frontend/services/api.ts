@@ -18,6 +18,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 export const api = createApi({
   reducerPath: "api",
   baseQuery: customBaseQuery,
+
   endpoints: (builder) => ({
     createUser: builder.mutation<any, any>({
       query: (body) => ({
@@ -73,7 +74,7 @@ export const api = createApi({
         if (__DEV__) {
           // @ts-ignore
           for (let pair of formData._parts || []) {
-            console.log("FormData:", pair[0], pair[1]);
+            // console.log("FormData:", pair[0], pair[1]);
           }
         }
 
@@ -113,6 +114,54 @@ export const api = createApi({
         method: "DELETE",
       }),
     }),
+    getAllProperties: builder.query<any, string>({
+      query: (params) => ({
+        url: `/api/v1/properties${params || ""}`,
+        method: "GET",
+      }),
+    }),
+    getFilterOptions: builder.query<any, void>({
+      query: () => "/api/v1/properties/filters",
+    }),
+
+    getFilteredProperties: builder.query<
+      any,
+      {
+        page?: number;
+        limit?: number;
+        city?: string;
+        minRent?: number;
+        maxRent?: number;
+        bedrooms?: number;
+        propertyType?: string;
+      }
+    >({
+      query: ({
+        page = 1,
+        limit = 10,
+        city,
+        minRent,
+        maxRent,
+        bedrooms,
+        propertyType,
+      }) => {
+        const params = new URLSearchParams();
+
+        params.append("page", String(page));
+        params.append("limit", String(limit));
+
+        if (city) params.append("city", city);
+        if (minRent) params.append("minRent", String(minRent));
+        if (maxRent) params.append("maxRent", String(maxRent));
+        if (bedrooms) params.append("bedrooms", String(bedrooms));
+        if (propertyType) params.append("propertyType", propertyType);
+
+        return {
+          url: `/api/v1/properties/search?${params.toString()}`,
+          method: "GET",
+        };
+      },
+    }),
   }),
 });
 
@@ -124,4 +173,7 @@ export const {
   useFindPropertyByIdQuery,
   useFindPropertyByIdAndUpdateMutation,
   useFindPropertyByIdAndDeleteMutation,
+  useGetAllPropertiesQuery,
+  useGetFilteredPropertiesQuery,
+  useGetFilterOptionsQuery,
 } = api;

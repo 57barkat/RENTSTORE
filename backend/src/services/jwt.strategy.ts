@@ -5,7 +5,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   constructor() {
-    console.log("================ Auth JWT")
+    // console.log("================ Auth JWT")
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -14,14 +14,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   }
 
   async validate(payload: any) {
-    console.log("Raw JWT payload:", payload);
+    // console.log("Raw JWT payload:", payload);
     if (!payload || !payload.sub || !payload.email) {
       console.error("Invalid JWT payload:", payload);
       throw new UnauthorizedException(
         "Invalid token payload: " + JSON.stringify(payload)
       );
     }
-    console.log("JWT payload received:", payload);
+    // console.log("JWT payload received:", payload);
     return {
       userId: payload.sub,
     };

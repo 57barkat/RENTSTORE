@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { View, Image, Dimensions, FlatList, StyleSheet } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, Image, Dimensions, FlatList, StyleSheet, TouchableOpacity } from "react-native";
+import ImageViewing from "react-native-image-viewing";
 
 const { width } = Dimensions.get("window");
 
@@ -7,37 +8,27 @@ interface ImageCarouselProps {
   images: { uri: string }[];
 }
 
-export default function ImageCarousel({ images }: ImageCarouselProps) {
+export default function ImageCarousel({ images = [] }: ImageCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const flatListRef = useRef<FlatList<any>>(null);
 
-  const handleScroll = (event: any) => {
-    const slide = Math.ceil(
-      event.nativeEvent.contentOffset.x / event.nativeEvent.layoutMeasurement.width
-    );
-    if (slide !== activeIndex) setActiveIndex(slide);
-  };
-
-  if (!images || images.length === 0) {
-    return (
-      <Image
-        source={{
-          uri: "https://via.placeholder.com/400x200?text=No+Image",
-        }}
-        style={styles.image}
-      />
-    );
-  }
+  if (!images || images.length === 0) return null;
 
   return (
     <View style={styles.container}>
       <FlatList
+        ref={flatListRef}
         data={images}
         keyExtractor={(_, index) => index.toString()}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        renderItem={({ item }) => <Image source={item} style={styles.image} />}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity onPress={() => { setActiveIndex(index); setVisible(true); }}>
+            <Image source={item} style={styles.image} />
+          </TouchableOpacity>
+        )}
       />
 
       <View style={styles.dotContainer}>
@@ -48,21 +39,20 @@ export default function ImageCarousel({ images }: ImageCarouselProps) {
           />
         ))}
       </View>
+
+      <ImageViewing
+        images={images}
+        imageIndex={activeIndex}
+        visible={visible}
+        onRequestClose={() => setVisible(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 10,
-    height: 200,
-  },
-  image: {
-    width: width,
-    height: 200,
-    resizeMode: "cover",
-    borderRadius: 8,
-  },
+  container: { marginTop: 10, height: 200 },
+  image: { width, height: 200, resizeMode: "cover", borderRadius: 8 },
   dotContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -70,15 +60,6 @@ const styles = StyleSheet.create({
     bottom: 10,
     width: "100%",
   },
-  dot: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    backgroundColor: "#ccc",
-    margin: 5,
-  },
-  activeDot: {
-    backgroundColor: "#4F46E5",
-    width: 16,
-  },
+  dot: { height: 8, width: 8, borderRadius: 4, backgroundColor: "#ccc", margin: 5 },
+  activeDot: { backgroundColor: "#4F46E5", width: 16 },
 });

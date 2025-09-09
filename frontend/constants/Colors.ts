@@ -14,6 +14,7 @@ export const Colors = {
     primary: "#4CC9F0",
     secondary: "#6366F1",
     accent: "#F59E0B",
+    danger: "#DC2626",
 
  
     success: "#22C55E",
@@ -46,6 +47,7 @@ export const Colors = {
     error: "#F87171",
     warning: "#FB923C",
     info: "#60A5FA",
+    danger: "#EF4444",
 
  
     icon: "#9BA1A6",
