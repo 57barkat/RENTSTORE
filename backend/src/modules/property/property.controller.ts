@@ -79,14 +79,18 @@ export class PropertyController {
       );
     }
     const result = await this.propertyService.findMyProperties(req.user.userId);
-    // console.log(result);
     return result;
   }
 
+  @Get("featured")
+  async getFeaturedProperties() {
+    return this.propertyService.getFeaturedProperties();
+  }
   @Get(":id")
   async findById(@Param("id") id: string) {
     return this.propertyService.findPropertyById(id);
   }
+
   @Patch(":id")
   async updateProperty(
     @Param("id") id: string,
@@ -96,7 +100,6 @@ export class PropertyController {
     if (!req.user || !req.user.userId) {
       throw new UnauthorizedException("User not authenticated");
     }
-    // console.log("dataforupdate", dto);
     return this.propertyService.updateProperty(id, dto, req.user.userId);
   }
   @Delete(":id")

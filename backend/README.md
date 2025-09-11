@@ -69,6 +69,80 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+RentStore Property Seeder
+
+This script generates dummy property data and inserts it into your MongoDB RentStore database. It supports batch inserts and automatically converts \_id and ownerId to ObjectId.
+
+Prerequisites
+
+Node.js installed (v18+ recommended).
+
+MongoDB running locally (or remote connection).
+
+dummy_30k_properties.json file generated (or you can generate it using the provided generator script).
+
+Setup
+
+Clone or copy the project folder.
+
+Install dependencies (only mongodb required):
+
+npm install mongodb
+
+Place dummy_30k_properties.json in the project root (same folder as insert_properties.js).
+
+Generate Dummy Data (Optional)
+
+If you don’t have the JSON file yet, you can generate it using Node.js:
+
+node generate_dummy_properties.js
+
+This creates dummy_30k_properties.json with 30,000 properties.
+
+Insert Properties into MongoDB
+
+Run the insert script:
+
+node insert_properties.js
+
+The script reads the JSON file.
+
+Converts \_id and ownerId to proper ObjectId.
+
+Inserts in batches of 1,000 to avoid memory issues.
+
+Skips duplicates if \_id already exists (upsert).
+
+Configuration
+
+Database name: Make sure to match your existing DB name (RentStore) in the script:
+
+const db = client.db('RentStore');
+
+MongoDB URI: Default is local:
+
+const client = new MongoClient('mongodb://localhost:27017');
+
+Change it if you are using a remote MongoDB instance.
+
+Batch size: Change this if you want smaller or larger batches:
+
+const batchSize = 1000;
+
+Verify Inserted Data
+
+You can verify using Mongo shell:
+
+mongo
+use RentStore
+db.properties.count()
+db.properties.findOne()
+
+Notes
+
+The JSON file uses 24-character hex strings for \_id and ownerId. These are automatically converted to ObjectId when inserted.
+
+You can safely re-run the script multiple times without duplicating documents.
 
 ## Resources
 

@@ -14,6 +14,5 @@ export function signupValidationSchema(role?: string | null) {
     agencyLicense: role === "agency"
       ? Yup.string().required("Agency License is required")
       : Yup.string(),
-    preferences: Yup.string().required("Preferences are required"),
   });
 }

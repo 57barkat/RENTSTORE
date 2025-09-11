@@ -23,6 +23,7 @@ export default function SignUpScreen() {
   useEffect(() => {
     const loadRole = async () => {
       const storedRole = await AsyncStorage.getItem("userRole");
+      console.log("Loaded role from AsyncStorage:", storedRole); // 🔍 Debug log
       setRole(storedRole);
     };
     loadRole();
@@ -41,8 +42,10 @@ export default function SignUpScreen() {
 
   const handleSignUp = async (values: typeof initialValues) => {
     const payload = { ...values, role };
+    console.log("📤 Calling signup with payload:", payload); // 🔍 Debug log
     try {
       const result = await createUser(payload).unwrap();
+      console.log("✅ Signup successful:", result);
       if (result.accessToken) {
         await login(result.accessToken);
       }
@@ -53,6 +56,7 @@ export default function SignUpScreen() {
         text2: "Welcome to RentStore.",
       });
     } catch (err: any) {
+      console.log("❌ Signup failed:", err); // 🔍 Debug log
       Toast.show({
         type: "error",
         text1: "Signup failed",
@@ -61,13 +65,25 @@ export default function SignUpScreen() {
     }
   };
 
+  // 🚨 Wait until role is loaded to render Formik
+  if (!role) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Loading...</Text>
+      </ScrollView>
+    );
+  }
+
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
         <Formik
           initialValues={initialValues}
           validationSchema={signupValidationSchema(role)}
-          onSubmit={handleSignUp}
+          onSubmit={(values) => {
+            console.log("🚀 Form submitted with values:", values); 
+            handleSignUp(values);
+          }}
         >
           {({
             handleChange,
@@ -158,7 +174,6 @@ export default function SignUpScreen() {
                 onChangeText={handleChange("preferences")}
                 onBlur={handleBlur("preferences")}
               />
-              {/* No error for preferences since it's optional */}
 
               <TextInput
                 style={styles.input}
@@ -173,7 +188,13 @@ export default function SignUpScreen() {
 
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => handleSubmit()}
+                onPress={() => {
+                  console.log("👆 Button pressed, submitting...");
+                  handleSubmit();
+                  console.log("📌 Current values:", values);
+                  console.log("📌 Current errors:", errors);
+                  console.log("📌 Current touched:", touched);
+                }}  
                 disabled={isLoading}
               >
                 <Text style={styles.buttonText}>

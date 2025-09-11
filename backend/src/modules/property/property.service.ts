@@ -71,8 +71,15 @@ export class PropertyService {
       .exec();
   }
   async findPropertyById(propertyId: string) {
-    return this.propertyModel.findById(new Types.ObjectId(propertyId)).exec();
+    return this.propertyModel
+      .findByIdAndUpdate(propertyId, { $inc: { views: 1 } }, { new: true })
+      .exec();
   }
+
+  async getFeaturedProperties() {
+    return this.propertyModel.find().sort({ views: -1 }).limit(5).exec();
+  }
+
   async updateProperty(
     id: string,
     dto: Partial<CreatePropertyDto>,
@@ -108,51 +115,47 @@ export class PropertyService {
     propertyType?: string
   ) {
     const skip = (page - 1) * limit;
-
     const filter: any = {};
 
-    if (city) {
-      filter.city = { $regex: city, $options: "i" };
-    }
+    if (city) filter.city = { $regex: city, $options: "i" };
 
-    if (minRent || maxRent) {
+    if (minRent !== undefined || maxRent !== undefined) {
       filter.rentPrice = {};
-      if (minRent) filter.rentPrice.$gte = minRent;
-      if (maxRent) filter.rentPrice.$lte = maxRent;
+      if (minRent !== undefined) filter.rentPrice.$gte = minRent;
+      if (maxRent !== undefined) filter.rentPrice.$lte = maxRent;
     }
 
-    if (bedrooms) {
-      filter.bedrooms = bedrooms;
+    if (bedrooms !== undefined) filter.bedrooms = bedrooms;
+    if (propertyType) filter.propertyType = propertyType;
+
+    try {
+      const [data, total] = await Promise.all([
+        this.propertyModel
+          .find(filter)
+          .skip(skip)
+          .limit(limit)
+          .populate("ownerId", "name email")
+          .lean(),
+        this.propertyModel.countDocuments(filter),
+      ]);
+
+      return {
+        data: data || [],
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      };
+    } catch (err) {
+      console.error("Error in findFiltered:", err);
+      throw new Error("Internal server error");
     }
-
-    if (propertyType) {
-      filter.propertyType = propertyType;
-    }
-
-    const [data, total] = await Promise.all([
-      this.propertyModel
-        .find(filter)
-        .skip(skip)
-        .limit(limit)
-        .populate("ownerId", "name email"),
-      this.propertyModel.countDocuments(filter),
-    ]);
-
-    return {
-      data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
+
   async getFilterOptions() {
     const cities = await this.propertyModel.distinct("city");
 
-    // Filter out null bedrooms
-    const bedrooms = (await this.propertyModel.distinct("bedrooms")).filter(
-      (b) => b !== null && b !== undefined
-    );
+    const bedrooms = await this.propertyModel.distinct("bedrooms");
 
     const rents = await this.propertyModel.aggregate([
       {

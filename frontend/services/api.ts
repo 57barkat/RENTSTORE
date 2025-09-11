@@ -121,7 +121,10 @@ export const api = createApi({
       }),
     }),
     getFilterOptions: builder.query<any, void>({
-      query: () => "/api/v1/properties/filters",
+      query: () => ({
+        url: "/api/v1/properties/filters",
+        method: "GET",
+      }),
     }),
 
     getFilteredProperties: builder.query<
@@ -162,6 +165,12 @@ export const api = createApi({
         };
       },
     }),
+    getFeaturedProperties: builder.query<any , void>({
+      query:()=>({
+        url:`/api/v1/properties/featured`,
+        method:"GET"
+      })
+    })
   }),
 });
 
@@ -176,4 +185,5 @@ export const {
   useGetAllPropertiesQuery,
   useGetFilteredPropertiesQuery,
   useGetFilterOptionsQuery,
+  useGetFeaturedPropertiesQuery
 } = api;

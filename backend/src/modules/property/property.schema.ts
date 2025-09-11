@@ -1,8 +1,10 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document, Types } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Property extends Document {
+  @Prop({ default: 0 })
+  views: number;
   @Prop({ required: true }) propertyType: string;
   @Prop({ required: true }) title: string;
   @Prop({ required: true }) description: string;
@@ -31,8 +33,7 @@ export class Property extends Document {
   @Prop([String]) amenities?: string[];
   @Prop([String]) preferences?: string[];
 
-  // 🔑 Who uploaded it
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: "User", required: true })
   ownerId: Types.ObjectId;
 }
 
