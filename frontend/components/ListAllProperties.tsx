@@ -30,6 +30,7 @@ export default function ListAllProperties() {
   const [page, setPage] = useState(1);
   const limit = 5;
 
+
   const [cityInput, setCityInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [debouncedCity] = useDebounce(cityInput, 500);

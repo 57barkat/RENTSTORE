@@ -1,3 +1,4 @@
+import { AddToFav } from "./../../backend/src/modules/addToFav/favorite.entity";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -165,12 +166,27 @@ export const api = createApi({
         };
       },
     }),
-    getFeaturedProperties: builder.query<any , void>({
-      query:()=>({
-        url:`/api/v1/properties/featured`,
-        method:"GET"
-      })
-    })
+    getFeaturedProperties: builder.query<any, void>({
+      query: () => ({
+        url: `/api/v1/properties/featured`,
+        method: "GET",
+      }),
+    }),
+    AddToFav: builder.mutation<any, { propertyId: string }>({
+      query: ({ propertyId }) => ({
+        url: `/api/v1/favorites/${propertyId}`,
+        method: "POST",
+      }),
+    }),
+    getUserFavorites: builder.query<{ property: { _id: string }[] }, void>({
+      query: () => "/api/v1/favorites",
+    }),
+    removeUserFavorite: builder.mutation<any, { propertyId: string }>({
+      query: ({ propertyId }) => ({
+        url: `/api/v1/favorites/${propertyId}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -185,5 +201,8 @@ export const {
   useGetAllPropertiesQuery,
   useGetFilteredPropertiesQuery,
   useGetFilterOptionsQuery,
-  useGetFeaturedPropertiesQuery
+  useGetFeaturedPropertiesQuery,
+  useAddToFavMutation,
+  useGetUserFavoritesQuery,
+  useRemoveUserFavoriteMutation,
 } = api;

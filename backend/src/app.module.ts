@@ -12,6 +12,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { PropertyModule } from "./modules/property/property.module";
 import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.module";
 import { AuthModule } from "./services/auth.module";
+import { AddToFavModule } from "./modules/addToFav/favorite.module";
  
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AuthModule } from "./services/auth.module";
     PropertyModule,
     CloudinaryModule,
     AuthModule,
+    AddToFavModule
   ],
 })
 export class AppModule {
