@@ -5,19 +5,46 @@ import {
   Image,
   TouchableOpacity,
   FlatList,
+  Alert,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../../constants/Colors";
 import { useNavigation } from "@react-navigation/native";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useDeleteUserMutation } from "@/services/api";
+import { router } from "expo-router";
 
 export default function Profile() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const navigation = useNavigation();
 
-  // Dummy data for FlatList (since MyListingProperties is rendered inside header)
   const data = [{ key: "dummy" }];
+  const [name, setName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
 
+  useEffect(() => {
+    const loadUser = async () => {
+      const storedName = await AsyncStorage.getItem("userName");
+      const storedEmail = await AsyncStorage.getItem("userEmail");
+      setName(storedName);
+      setEmail(storedEmail);
+    };
+    loadUser();
+  }, []);
+
+  const [deleteUser] = useDeleteUserMutation();
+  const handleDelete = async () => {
+    try {
+      await deleteUser().unwrap();
+      Alert.alert("Deleted!", "Your account has been removed.");
+      router.push("signin" as never);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      Alert.alert("Error", "Failed to delete your account.");
+    }
+  };
   return (
     <FlatList
       data={data}
@@ -27,20 +54,19 @@ export default function Profile() {
       contentContainerStyle={styles.container}
       ListHeaderComponent={
         <>
-          {/* Profile Header */}
           <View style={styles.header}>
             <Image
               source={{ uri: "https://via.placeholder.com/100" }}
               style={styles.avatar}
             />
             <Text style={[styles.name, { color: currentTheme.text }]}>
-              John Doe
+              {name || "Guest"}
             </Text>
             <Text style={[styles.email, { color: currentTheme.muted }]}>
-              johndoe@example.com
+              {email || "guest@example.com"}
             </Text>
           </View>
-          {/* My Listings Button */}
+
           <View style={styles.section}>
             <TouchableOpacity
               style={[
@@ -56,12 +82,22 @@ export default function Profile() {
       }
       ListFooterComponent={
         <TouchableOpacity
-          style={[
-            styles.logoutButton,
-            { backgroundColor: currentTheme.primary },
-          ]}
+          onPress={() => {
+            Alert.alert(
+              "Confirm Deletion",
+              "Are you sure you want to delete your account?",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => handleDelete(),
+                },
+              ]
+            );
+          }}
         >
-          <Text style={styles.logoutText}>Delete my account</Text>
+          <Text style={{ color: "red" }}>Delete Account</Text>
         </TouchableOpacity>
       }
       showsVerticalScrollIndicator={false}

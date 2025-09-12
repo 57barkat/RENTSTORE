@@ -4,6 +4,7 @@ import { Link, useRouter } from "expo-router";
 import { useLoginMutation } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignInScreen() {
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -18,10 +19,14 @@ export default function SignInScreen() {
       const res = await login({ emailOrPhone, password }).unwrap();
 
       await saveToken(res.accessToken);
+      if (res.name && res.email) {
+      await AsyncStorage.setItem("userName", res.name);
+      await AsyncStorage.setItem("userEmail", res.email);
+    }
       Toast.show({
         type: "success",
         text1: "Login successful!",
-        text2: "Welcome back to RentStore.",
+        text2: `Welcome back ${res.name}.`,
       });
       router.replace("/homePage");
     } catch (err: any) {

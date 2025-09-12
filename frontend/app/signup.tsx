@@ -23,7 +23,7 @@ export default function SignUpScreen() {
   useEffect(() => {
     const loadRole = async () => {
       const storedRole = await AsyncStorage.getItem("userRole");
-      console.log("Loaded role from AsyncStorage:", storedRole); // 🔍 Debug log
+   
       setRole(storedRole);
     };
     loadRole();
@@ -40,32 +40,37 @@ export default function SignUpScreen() {
     preferences: "",
   };
 
-  const handleSignUp = async (values: typeof initialValues) => {
-    const payload = { ...values, role };
-    console.log("📤 Calling signup with payload:", payload); // 🔍 Debug log
-    try {
-      const result = await createUser(payload).unwrap();
-      console.log("✅ Signup successful:", result);
-      if (result.accessToken) {
-        await login(result.accessToken);
-      }
-      router.replace("/homePage");
-      Toast.show({
-        type: "success",
-        text1: "Account created!",
-        text2: "Welcome to RentStore.",
-      });
-    } catch (err: any) {
-      console.log("❌ Signup failed:", err); // 🔍 Debug log
-      Toast.show({
-        type: "error",
-        text1: "Signup failed",
-        text2: err?.data?.message || "Please try again.",
-      });
-    }
-  };
+ const handleSignUp = async (values: typeof initialValues) => {
+  const payload = { ...values, role };
 
-  // 🚨 Wait until role is loaded to render Formik
+  try {
+    const result = await createUser(payload).unwrap();
+
+    if (result.accessToken) {
+      await login(result.accessToken);
+
+    
+      await AsyncStorage.setItem("userName", values.name);
+      await AsyncStorage.setItem("userEmail", values.email);
+    }
+
+    router.replace("/homePage");
+    Toast.show({
+      type: "success",
+      text1: "Account created!",
+      text2: `Welcome to RentStore ${values.name}.`,
+    });
+  } catch (err: any) {
+    Toast.show({
+      type: "error",
+      text1: "Signup failed",
+      text2: err?.data?.message || "Please try again.",
+    });
+  }
+};
+
+
+ 
   if (!role) {
     return (
       <ScrollView contentContainerStyle={styles.container}>

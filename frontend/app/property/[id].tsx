@@ -34,28 +34,27 @@ export default function PropertyDetails() {
     error,
     refetch,
   } = useFindPropertyByIdQuery(id!, { skip: !id });
+  // console.log("Property Data:", property);
 
-  const { data: userFavs, refetch: refetchFavorites } = useGetUserFavoritesQuery();
+  const { data: userFavs, refetch: refetchFavorites } =
+    useGetUserFavoritesQuery();
+  // console.log("User Favorites:", userFavs);
 
- 
   const favIds = useMemo(() => {
-    if (!userFavs || !Array.isArray(userFavs.property)) return [];
-    return userFavs.property.map((f: any) => f._id).filter(Boolean);
+    if (!userFavs || !Array.isArray(userFavs)) return [];
+    return userFavs.map((fav: any) => fav.property?._id).filter(Boolean);
   }, [userFavs]);
-
-   
 
   const [localFav, setLocalFav] = useState(false);
 
- 
   useEffect(() => {
     if (property?._id && userFavs) {
       setLocalFav(favIds.includes(property._id));
     }
   }, [property, userFavs, favIds]);
-
   const [addToFav, { isLoading: isFavLoading }] = useAddToFavMutation();
-  const [removeUserFavorite, { isLoading: isRemoveLoading }] = useRemoveUserFavoriteMutation();
+  const [removeUserFavorite, { isLoading: isRemoveLoading }] =
+    useRemoveUserFavoriteMutation();
 
   useFocusEffect(
     useCallback(() => {
@@ -77,7 +76,9 @@ export default function PropertyDetails() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: currentTheme.error }}>Error loading property.</Text>
+        <Text style={{ color: currentTheme.error }}>
+          Error loading property.
+        </Text>
       </View>
     );
   }
@@ -95,16 +96,19 @@ export default function PropertyDetails() {
       style={[styles.container, { backgroundColor: currentTheme.background }]}
     >
       {property.images?.length > 0 && (
-        <ImageCarousel images={property.images.map((uri: string) => ({ uri }))} />
+        <ImageCarousel
+          images={property.images.map((uri: string) => ({ uri }))}
+        />
       )}
 
       <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.title, { color: currentTheme.primary }]}>{property.title}</Text>
+        <Text style={[styles.title, { color: currentTheme.primary }]}>
+          {property.title}
+        </Text>
         <Text style={[styles.price, { color: currentTheme.secondary }]}>
           Rs. {property.rentPrice?.toLocaleString()}
         </Text>
 
- 
         <TouchableOpacity
           style={[
             styles.button,
@@ -119,24 +123,25 @@ export default function PropertyDetails() {
             try {
               if (localFav) {
                 await removeUserFavorite({ propertyId: property._id }).unwrap();
-                setLocalFav(false);  
+                setLocalFav(false);
               } else {
                 await addToFav({ propertyId: property._id }).unwrap();
-                setLocalFav(true);  
+                setLocalFav(true);
               }
-              await refetchFavorites();  
+              await refetchFavorites();
             } catch (err) {
               console.log(err);
             }
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "600", marginRight: 6 }}>
-            {localFav ? "❤️ Favorited" : "🤍 Add to Favorites"}
+            {localFav ? "❤️ Added to Favorites" : "🤍 Add to Favorites"}
           </Text>
-          {(isFavLoading || isRemoveLoading) && <ActivityIndicator size="small" color="#fff" />}
+          {(isFavLoading || isRemoveLoading) && (
+            <ActivityIndicator size="small" color="#fff" />
+          )}
         </TouchableOpacity>
 
- 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: currentTheme.secondary }]}
           onPress={() => {
@@ -153,33 +158,81 @@ export default function PropertyDetails() {
             }
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>📍 View on Map</Text>
+          <Text style={{ color: "#fff", fontWeight: "600" }}>
+            📍 View on Map
+          </Text>
         </TouchableOpacity>
       </View>
 
       {property.description && (
         <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>Description</Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>{property.description}</Text>
+          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+            Description
+          </Text>
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            {property.description}
+          </Text>
         </View>
       )}
 
       <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>Property Details</Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>Type: {property.propertyType}</Text>
-        {property.area && <Text style={[styles.text, { color: currentTheme.text }]}>Area: {property.area} sq.ft</Text>}
-        {property.totalArea && <Text style={[styles.text, { color: currentTheme.text }]}>Total Area: {property.totalArea}</Text>}
-        {property.bedrooms !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Bedrooms: {property.bedrooms}</Text>}
-        {property.bathrooms !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Bathrooms: {property.bathrooms}</Text>}
-        {property.kitchens !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Kitchens: {property.kitchens}</Text>}
-        {property.livingRooms !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Living Rooms: {property.livingRooms}</Text>}
-        {property.balconies !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Balconies: {property.balconies}</Text>}
-        {property.furnished !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Furnished: {property.furnished ? "Yes" : "No"}</Text>}
-        {property.floor !== undefined && <Text style={[styles.text, { color: currentTheme.text }]}>Floor: {property.floor}</Text>}
+        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+          Property Details
+        </Text>
+        <Text style={[styles.text, { color: currentTheme.text }]}>
+          Type: {property.propertyType}
+        </Text>
+        {property.area && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Area: {property.area} sq.ft
+          </Text>
+        )}
+        {property.totalArea && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Total Area: {property.totalArea}
+          </Text>
+        )}
+        {property.bedrooms !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Bedrooms: {property.bedrooms}
+          </Text>
+        )}
+        {property.bathrooms !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Bathrooms: {property.bathrooms}
+          </Text>
+        )}
+        {property.kitchens !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Kitchens: {property.kitchens}
+          </Text>
+        )}
+        {property.livingRooms !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Living Rooms: {property.livingRooms}
+          </Text>
+        )}
+        {property.balconies !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Balconies: {property.balconies}
+          </Text>
+        )}
+        {property.furnished !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Furnished: {property.furnished ? "Yes" : "No"}
+          </Text>
+        )}
+        {property.floor !== undefined && (
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Floor: {property.floor}
+          </Text>
+        )}
       </View>
 
       <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>Financial Info</Text>
+        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+          Financial Info
+        </Text>
         {property.securityDeposit !== undefined && (
           <Text style={[styles.text, { color: currentTheme.text }]}>
             Security Deposit: Rs. {property.securityDeposit?.toLocaleString()}
@@ -199,28 +252,52 @@ export default function PropertyDetails() {
 
       {property.amenities?.length > 0 && (
         <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>Amenities</Text>
+          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+            Amenities
+          </Text>
           <View style={styles.amenitiesContainer}>
-            {property.amenities[0].split(",").map((amenity: string, idx: number) => (
-              <View key={idx} style={[styles.amenityTag, { backgroundColor: currentTheme.border }]}>
-                <Text style={[styles.amenityText, { color: currentTheme.text }]}>{amenity.trim()}</Text>
-              </View>
-            ))}
+            {property.amenities[0]
+              .split(",")
+              .map((amenity: string, idx: number) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.amenityTag,
+                    { backgroundColor: currentTheme.border },
+                  ]}
+                >
+                  <Text
+                    style={[styles.amenityText, { color: currentTheme.text }]}
+                  >
+                    {amenity.trim()}
+                  </Text>
+                </View>
+              ))}
           </View>
         </View>
       )}
 
       {property.preferences?.length > 0 && (
         <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>Preferences</Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>{property.preferences.join(", ")}</Text>
+          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+            Preferences
+          </Text>
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            {property.preferences.join(", ")}
+          </Text>
         </View>
       )}
 
       <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>Location</Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>Address: {property.address}</Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>City: {property.city}</Text>
+        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+          Location
+        </Text>
+        <Text style={[styles.text, { color: currentTheme.text }]}>
+          Address: {property.address}
+        </Text>
+        <Text style={[styles.text, { color: currentTheme.text }]}>
+          City: {property.city}
+        </Text>
         {property.latitude && property.longitude && (
           <Text style={[styles.text, { color: currentTheme.text }]}>
             Coordinates: {property.latitude}, {property.longitude}
@@ -230,19 +307,33 @@ export default function PropertyDetails() {
 
       {property.ownerId && (
         <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>Listed By</Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>Name: {property.ownerId.name}</Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>Email: {property.ownerId.email}</Text>
+          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+            Listed By
+          </Text>
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Name: {property.ownerId.name}
+          </Text>
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Email: {property.ownerId.email}
+          </Text>
         </View>
       )}
 
       <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>Listing Info</Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          Created: {property.createdAt ? new Date(property.createdAt).toLocaleString() : "N/A"}
+        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+          Listing Info
         </Text>
         <Text style={[styles.text, { color: currentTheme.text }]}>
-          Updated: {property.updatedAt ? new Date(property.updatedAt).toLocaleString() : "N/A"}
+          Created:{" "}
+          {property.createdAt
+            ? new Date(property.createdAt).toLocaleString()
+            : "N/A"}
+        </Text>
+        <Text style={[styles.text, { color: currentTheme.text }]}>
+          Updated:{" "}
+          {property.updatedAt
+            ? new Date(property.updatedAt).toLocaleString()
+            : "N/A"}
         </Text>
       </View>
     </ScrollView>

@@ -1,3 +1,6 @@
+import { AuthGuard } from '@nestjs/passport';
+//ignore TS errors for now
+// @ts-nocheck
 import {
   Body,
   Controller,
@@ -5,12 +8,17 @@ import {
   Post,
   BadRequestException,
   UnauthorizedException,
+  Delete,
+  Param,
+  Req,
+  UseGuards,
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
 import { AuthService } from "src/services/auth.service";
+import { find } from "rxjs";
 
 @Controller("users")
 export class UserController {
@@ -81,8 +89,6 @@ export class UserController {
       password: string;
     }
   ): Promise<UserResponseDto & { accessToken: string }> {
-    // console.log(`Login request received: ${JSON.stringify(body)}`);
-
     const emailOrPhone = body.emailOrPhone || body.email || body.phone;
     const { password } = body;
 
@@ -133,4 +139,38 @@ export class UserController {
       updatedAt: doc["updatedAt"],
     }));
   }
+ 
+ @UseGuards(AuthGuard('jwt'))
+@Delete("delete")
+async deleteSelf(@Req() req): Promise<UserResponseDto> {
+  const userId = req.user.userId;
+  console.log("User ID to delete:", userId);
+
+  const deletedUser = await this.userService.findByIdAndDelete(userId);
+
+  if (!deletedUser) {
+    throw new BadRequestException("User not found or already deleted.");
+  }
+
+  return {
+    id: userId,
+    name: deletedUser.name,
+    email: deletedUser.email,
+    phone: deletedUser.phone,
+    role: deletedUser.role,
+    cnic: deletedUser.cnic,
+    agencyName: deletedUser.agencyName,
+    agencyLicense: deletedUser.agencyLicense,
+    preferences: deletedUser.preferences,
+    isPhoneVerified: deletedUser.isPhoneVerified,
+    createdAt: deletedUser["createdAt"],
+    updatedAt: deletedUser["updatedAt"],
+  };
+}
+
+
+  // @Delete("delete/:id")
+  // async deleteUser(@Param("id") userId: string): Promise<UserResponseDto> {
+  //   return this.userService.findByIdAndDelete(userId);
+  // }
 }

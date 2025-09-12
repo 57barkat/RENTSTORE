@@ -1,4 +1,3 @@
-import { AddToFav } from "./../../backend/src/modules/addToFav/favorite.entity";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -33,6 +32,13 @@ export const api = createApi({
         url: "/api/v1/users/login",
         method: "POST",
         body,
+      }),
+    }),
+
+    deleteUser: builder.mutation<any, void>({
+      query: () => ({
+        url: `/api/v1/users/delete`,
+        method: "DELETE",
       }),
     }),
 
@@ -193,6 +199,7 @@ export const api = createApi({
 export const {
   useCreateUserMutation,
   useLoginMutation,
+  useDeleteUserMutation,
   useCreatePropertyMutation,
   useFindMyPropertiesQuery,
   useFindPropertyByIdQuery,
