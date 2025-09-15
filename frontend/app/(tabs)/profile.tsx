@@ -82,6 +82,10 @@ export default function Profile() {
       }
       ListFooterComponent={
         <TouchableOpacity
+          style={[
+            styles.listingsButton,
+            { backgroundColor: currentTheme.primary },
+          ]}
           onPress={() => {
             Alert.alert(
               "Confirm Deletion",
@@ -97,7 +101,7 @@ export default function Profile() {
             );
           }}
         >
-          <Text style={{ color: "red" }}>Delete Account</Text>
+          <Text style={styles.listingsButtonText}>Delete Account</Text>
         </TouchableOpacity>
       }
       showsVerticalScrollIndicator={false}
