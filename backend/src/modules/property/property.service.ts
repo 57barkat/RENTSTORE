@@ -40,7 +40,7 @@ export class PropertyService {
       images: imageUrls,
       ownerId: new Types.ObjectId(userId),
     });
-
+console.log(property);
     return property.save();
   }
 

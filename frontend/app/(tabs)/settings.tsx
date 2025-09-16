@@ -38,9 +38,9 @@ export default function Settings() {
       </View>
 
       {/* Change Password */}
-      <TouchableOpacity style={styles.option}>
+      {/* <TouchableOpacity style={styles.option}>
         <Text style={[styles.optionText, { color: currentTheme.text }]}>Change Password</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {/* Privacy Policy */}
       <TouchableOpacity style={styles.option} onPress={() => router.push('/PrivacyPolicyScreen')}>

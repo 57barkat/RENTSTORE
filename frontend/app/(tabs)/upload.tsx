@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../../constants/Colors";
 import { useCreatePropertyMutation } from "@/services/api";
@@ -33,8 +39,29 @@ export default function Upload() {
     amenities: [],
     preferences: "",
     petsAllowed: false,
-    latitude: null,
-    longitude: null,
+    latitude: "",
+    longitude: "",
+  });
+  const requiredFields = [
+    "propertyType",
+    "title",
+    "description",
+    "address",
+    "city",
+    "bedrooms",
+    "bathrooms",
+    "kitchens",
+    "livingRooms",
+    "floor",
+    "area",
+    "rentPrice",
+  ];
+
+  const isFormValid = requiredFields.every((field) => {
+    const value = formData[field];
+    if (typeof value === "number") return value > 0;
+    if (typeof value === "string") return value.trim() !== "";
+    return !!value; 
   });
 
   const { theme } = useTheme();
@@ -42,7 +69,35 @@ export default function Upload() {
   const [createProperty, { isLoading }] = useCreatePropertyMutation();
 
   const handleChange = (key: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
+    const numericFields = [
+      "bedrooms",
+      "bathrooms",
+      "kitchens",
+      "livingRooms",
+      "balconies",
+      "floor",
+      "area",
+      "rentPrice",
+      "securityDeposit",
+      "maintenanceCharges",
+      "latitude",
+      "longitude",
+    ];
+    const booleanFields = ["furnished", "utilitiesIncluded", "petsAllowed"];
+    const arrayFields = ["images", "videos", "amenities"];
+
+    let parsedValue = value;
+
+    if (numericFields.includes(key)) {
+      const num = Number(value);
+      parsedValue = isNaN(num) ? 0 : num;
+    } else if (booleanFields.includes(key)) {
+      parsedValue = !!value;
+    } else if (arrayFields.includes(key)) {
+      parsedValue = Array.isArray(value) ? value : [];
+    }
+
+    setFormData((prev: any) => ({ ...prev, [key]: parsedValue }));
   };
 
   const handleSubmit = async () => {
@@ -55,17 +110,17 @@ export default function Upload() {
         description: "",
         address: "",
         city: "",
-        bedrooms: "",
-        bathrooms: "",
-        kitchens: "",
-        livingRooms: "",
-        balconies: "",
+        bedrooms: 0,
+        bathrooms: 0,
+        kitchens: 0,
+        livingRooms: 0,
+        balconies: 0,
         furnished: false,
-        floor: "",
-        area: "",
-        rentPrice: "",
-        securityDeposit: "",
-        maintenanceCharges: "",
+        floor: 0,
+        area: 0,
+        rentPrice: 0,
+        securityDeposit: 0,
+        maintenanceCharges: 0,
         utilitiesIncluded: false,
         ownerName: "",
         phone: "",
@@ -75,15 +130,15 @@ export default function Upload() {
         amenities: [],
         preferences: "",
         petsAllowed: false,
-        latitude: null,
-        longitude: null,
+        latitude: 0,
+        longitude: 0,
       });
-    } catch (err) {
-      console.error("Property upload error:", err);  
-      Toast.show({ type: "error", text1: "Failed to upload property" });
+    } catch (err: any) {
+      console.error("Error uploading property:", err);
+      Toast.show({ text1: err.message });
     }
   };
- 
+
   return (
     <ScrollView
       contentContainerStyle={[
@@ -98,9 +153,12 @@ export default function Upload() {
       <PropertyForm formData={formData} onChange={handleChange} />
 
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: currentTheme.primary }]}
+        style={[
+          styles.button,
+          { backgroundColor: isFormValid ? currentTheme.primary : "#ccc" },
+        ]}
         onPress={handleSubmit}
-        disabled={isLoading}
+        disabled={isLoading || !isFormValid}
       >
         {isLoading ? (
           <ActivityIndicator color="#fff" />
