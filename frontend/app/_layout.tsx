@@ -84,6 +84,10 @@ export default function RootLayout() {
                 name="MyListingsScreen"
                 options={{ headerShown: false }}
               />
+               <Stack.Screen
+                name="favorites"
+                options={{ headerShown: false }}
+              />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
               <Stack.Screen name="+not-found" />

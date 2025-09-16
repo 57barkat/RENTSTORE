@@ -34,11 +34,11 @@ export default function PropertyDetails() {
     error,
     refetch,
   } = useFindPropertyByIdQuery(id!, { skip: !id });
-  // console.log("Property Data:", property);
+ 
 
   const { data: userFavs, refetch: refetchFavorites } =
     useGetUserFavoritesQuery();
-  // console.log("User Favorites:", userFavs);
+ 
 
   const favIds = useMemo(() => {
     if (!userFavs || !Array.isArray(userFavs)) return [];

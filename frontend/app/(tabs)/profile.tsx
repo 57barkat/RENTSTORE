@@ -77,6 +77,17 @@ export default function Profile() {
             >
               <Text style={styles.listingsButtonText}>View My Listings</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+               style={[
+                styles.listingsButton,
+                { backgroundColor: currentTheme.primary },
+              ]}
+              onPress={() => router.push("/favorites")}
+            >
+              <Text style={styles.listingsButtonText}>
+                ⭐ See My Favorite Properties
+              </Text>
+            </TouchableOpacity>
           </View>
         </>
       }
