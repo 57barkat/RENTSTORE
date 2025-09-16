@@ -11,11 +11,10 @@ import {
 import {
   useFindPropertyByIdQuery,
   useAddToFavMutation,
-  useGetUserFavoritesQuery,
   useRemoveUserFavoriteMutation,
 } from "@/services/api";
 import { Colors } from "@/constants/Colors";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback } from "react";
 import ImageCarousel from "@/utils/Carousel";
 import { useTheme } from "@/contextStore/ThemeContext";
 
@@ -34,24 +33,7 @@ export default function PropertyDetails() {
     error,
     refetch,
   } = useFindPropertyByIdQuery(id!, { skip: !id });
- 
 
-  const { data: userFavs, refetch: refetchFavorites } =
-    useGetUserFavoritesQuery();
- 
-
-  const favIds = useMemo(() => {
-    if (!userFavs || !Array.isArray(userFavs)) return [];
-    return userFavs.map((fav: any) => fav.property?._id).filter(Boolean);
-  }, [userFavs]);
-
-  const [localFav, setLocalFav] = useState(false);
-
-  useEffect(() => {
-    if (property?._id && userFavs) {
-      setLocalFav(favIds.includes(property._id));
-    }
-  }, [property, userFavs, favIds]);
   const [addToFav, { isLoading: isFavLoading }] = useAddToFavMutation();
   const [removeUserFavorite, { isLoading: isRemoveLoading }] =
     useRemoveUserFavoriteMutation();
@@ -113,7 +95,9 @@ export default function PropertyDetails() {
           style={[
             styles.button,
             {
-              backgroundColor: localFav ? "red" : currentTheme.secondary,
+              backgroundColor: property.isFav
+                ? "red"
+                : currentTheme.secondary,
               flexDirection: "row",
               alignItems: "center",
             },
@@ -121,21 +105,21 @@ export default function PropertyDetails() {
           onPress={async () => {
             if (!property?._id) return;
             try {
-              if (localFav) {
+              if (property.isFav) {
                 await removeUserFavorite({ propertyId: property._id }).unwrap();
-                setLocalFav(false);
               } else {
                 await addToFav({ propertyId: property._id }).unwrap();
-                setLocalFav(true);
               }
-              await refetchFavorites();
+              await refetch(); // 👈 refresh property to update isFav
             } catch (err) {
               console.log(err);
             }
           }}
         >
           <Text style={{ color: "#fff", fontWeight: "600", marginRight: 6 }}>
-            {localFav ? "❤️ Added to Favorites" : "🤍 Add to Favorites"}
+            {property.isFav
+              ? "❤️ Added to Favorites"
+              : "🤍 Add to Favorites"}
           </Text>
           {(isFavLoading || isRemoveLoading) && (
             <ActivityIndicator size="small" color="#fff" />

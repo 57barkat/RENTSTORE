@@ -27,8 +27,7 @@ export class PropertyController {
   @UseInterceptors(FileFieldsInterceptor([{ name: "images", maxCount: 10 }]))
   async createProperty(
     @Body() dto: CreatePropertyDto,
-    @UploadedFiles()
-    files: { images?: Express.Multer.File[] },
+    @UploadedFiles() files: { images?: Express.Multer.File[] },
     @Req() req: any
   ) {
     if (!req.user || !req.user.userId) {
@@ -37,17 +36,26 @@ export class PropertyController {
 
     const userId = req.user.userId;
     const imageFiles = files.images || [];
-    const property = await this.propertyService.create(dto, imageFiles, userId);
-
-    return property;
+    return this.propertyService.create(dto, imageFiles, userId);
   }
 
   @Get()
-  async getAll(@Query("page") page?: number, @Query("limit") limit?: number) {
-    return this.propertyService.findAll(Number(page) || 1, Number(limit) || 10);
+  async getAll(
+    @Req() req: any,
+    @Query("page") page?: number,
+    @Query("limit") limit?: number
+  ) {
+    const userId = req.user?.userId;
+    return this.propertyService.findAll(
+      Number(page) || 1,
+      Number(limit) || 10,
+      userId
+    );
   }
+
   @Get("search")
   async searchProperties(
+    @Req() req: any,
     @Query("page") page?: number,
     @Query("limit") limit?: number,
     @Query("city") city?: string,
@@ -56,6 +64,7 @@ export class PropertyController {
     @Query("bedrooms") bedrooms?: number,
     @Query("propertyType") propertyType?: string
   ) {
+    const userId = req.user?.userId;
     return this.propertyService.findFiltered(
       Number(page) || 1,
       Number(limit) || 10,
@@ -63,9 +72,11 @@ export class PropertyController {
       minRent ? Number(minRent) : undefined,
       maxRent ? Number(maxRent) : undefined,
       bedrooms ? Number(bedrooms) : undefined,
-      propertyType
+      propertyType,
+      userId
     );
   }
+
   @Get("filters")
   async getFilterOptions() {
     return this.propertyService.getFilterOptions();
@@ -78,17 +89,20 @@ export class PropertyController {
         "User not authenticated not a valid user"
       );
     }
-    const result = await this.propertyService.findMyProperties(req.user.userId);
-    return result;
+    const userId = req.user.userId;
+    return this.propertyService.findMyProperties(userId);
   }
 
   @Get("featured")
-  async getFeaturedProperties() {
-    return this.propertyService.getFeaturedProperties();
+  async getFeaturedProperties(@Req() req: any) {
+    const userId = req.user?.userId;
+    return this.propertyService.getFeaturedProperties(userId);
   }
+
   @Get(":id")
-  async findById(@Param("id") id: string) {
-    return this.propertyService.findPropertyById(id);
+  async findById(@Param("id") id: string, @Req() req: any) {
+    const userId = req.user?.userId;
+    return this.propertyService.findPropertyById(id, userId);
   }
 
   @Patch(":id")
@@ -102,6 +116,7 @@ export class PropertyController {
     }
     return this.propertyService.updateProperty(id, dto, req.user.userId);
   }
+
   @Delete(":id")
   async deleteProperty(@Param("id") id: string) {
     return this.propertyService.findPropertyByIdAndDelete(id);

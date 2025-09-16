@@ -1,4 +1,5 @@
 import { IsString, IsNumber, IsOptional, IsBoolean, IsArray } from 'class-validator';
+import { Property } from '../property.schema';
 
 export class CreatePropertyDto {
   @IsString() propertyType: string;
@@ -29,4 +30,9 @@ export class CreatePropertyDto {
   @IsOptional() @IsArray() videos?: string[];
   @IsOptional() @IsArray() amenities?: string[];
   @IsOptional() @IsArray() preferences?: string[];
+  
+}
+export interface PropertyWithFav extends Property {
+  _id: string;
+  isFav?: boolean;
 }

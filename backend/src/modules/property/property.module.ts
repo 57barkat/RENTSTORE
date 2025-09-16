@@ -5,6 +5,8 @@ import { PropertyController } from "./property.controller";
 import { Property, PropertySchema } from "./property.schema";
 import { CloudinaryModule } from "../../services/Cloudinary Service/cloudinary.module";
 import { AuthModule } from "../../services/auth.module";
+import { AddToFavModule } from "../addToFav/favorite.module";
+ 
 
 @Module({
   imports: [
@@ -13,6 +15,7 @@ import { AuthModule } from "../../services/auth.module";
     ]),
     CloudinaryModule,
     AuthModule,
+    AddToFavModule, 
   ],
   controllers: [PropertyController],
   providers: [PropertyService],

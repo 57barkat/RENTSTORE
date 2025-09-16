@@ -178,14 +178,15 @@ export const api = createApi({
         method: "GET",
       }),
     }),
-    AddToFav: builder.mutation<any, { propertyId: string }>({
+   
+    getUserFavorites: builder.query<{ property: { _id: string }[] }, void>({
+      query: () => "/api/v1/favorites",
+    }),
+     AddToFav: builder.mutation<any, { propertyId: string }>({
       query: ({ propertyId }) => ({
         url: `/api/v1/favorites/${propertyId}`,
         method: "POST",
       }),
-    }),
-    getUserFavorites: builder.query<{ property: { _id: string }[] }, void>({
-      query: () => "/api/v1/favorites",
     }),
     removeUserFavorite: builder.mutation<any, { propertyId: string }>({
       query: ({ propertyId }) => ({

@@ -42,4 +42,12 @@ export class AddToFavService {
       .populate("user", "email")
       .exec();
   }
+
+  async getUserFavoriteIds(userId: string) {
+    const favs = await this.favModel
+      .find({ user: new Types.ObjectId(userId) })
+      .select("property")
+      .lean();
+    return favs.map(f => f.property.toString());
+  }
 }

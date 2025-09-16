@@ -85,6 +85,10 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
                <Stack.Screen
+                name="PrivacyPolicyScreen"
+                options={{ headerShown: false }}
+              />
+               <Stack.Screen
                 name="favorites"
                 options={{ headerShown: false }}
               />

@@ -5,7 +5,6 @@ import { AddToFav, AddToFavSchema } from './favorite.entity';
 import { User, UserSchema } from '../user/user.entity';
 import { Property, PropertySchema } from '../property/property.schema';
 import { FavoritesController } from './favorites.controller';
- 
 
 @Module({
   imports: [
@@ -17,5 +16,6 @@ import { FavoritesController } from './favorites.controller';
   ],
   controllers: [FavoritesController],
   providers: [AddToFavService],
+  exports: [AddToFavService],  
 })
 export class AddToFavModule {}

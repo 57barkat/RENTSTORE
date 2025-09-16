@@ -1,6 +1,10 @@
 // @ts-ignore
-import { useGetFilteredPropertiesQuery } from "@/services/api";
-import React, { useState, useMemo } from "react";
+import {
+  useAddToFavMutation,
+  useGetFilteredPropertiesQuery,
+  useRemoveUserFavoriteMutation,
+} from "@/services/api";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   Text,
   View,
@@ -10,9 +14,10 @@ import {
   StyleSheet,
   TextInput,
 } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Slider from "@react-native-community/slider";
 import { useDebounce } from "use-debounce";
 import { pakistaniCities } from "@/utils/cities";
@@ -29,7 +34,6 @@ export default function ListAllProperties() {
 
   const [page, setPage] = useState(1);
   const limit = 5;
-
 
   const [cityInput, setCityInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -71,6 +75,29 @@ export default function ListAllProperties() {
   } = useGetFilteredPropertiesQuery(filteredPropertiesParams, {
     refetchOnMountOrArgChange: true,
   });
+
+  const [addToFav] = useAddToFavMutation();
+  const [removeUserFavorite] = useRemoveUserFavoriteMutation();
+
+ 
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  const handleToggleFav = async (propertyId: string, isFav: boolean) => {
+    try {
+      if (isFav) {
+        await removeUserFavorite({ propertyId });
+      } else {
+        await addToFav({ propertyId });
+      }
+      refetch();  
+    } catch (err) {
+      console.log("Fav error:", err);
+    }
+  };
 
   const handleOpenDetails = (id: string) => {
     router.push(`/property/${id}`);
@@ -124,7 +151,7 @@ export default function ListAllProperties() {
   }
 
   const totalPages = propertiesData.totalPages || 1;
-  const paginatedProperties = propertiesData.data;
+ 
 
   return (
     <View
@@ -246,12 +273,8 @@ export default function ListAllProperties() {
         <Text style={{ color: currentTheme.text }}>No properties found</Text>
       ) : (
         <FlatList
-          style={{ marginTop: 12 }}
-          data={paginatedProperties}
+          data={propertiesData?.data}
           keyExtractor={(item) => item._id}
-          initialNumToRender={5}
-          maxToRenderPerBatch={5}
-          windowSize={5}
           renderItem={({ item }) => (
             <View
               style={[
@@ -262,9 +285,28 @@ export default function ListAllProperties() {
                 },
               ]}
             >
-              <Text style={[styles.title, { color: currentTheme.text }]}>
-                {item.title}
-              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={[styles.title, { color: currentTheme.text }]}>
+                  {item.title}
+                </Text>
+
+                <TouchableOpacity
+                  onPress={() => handleToggleFav(item._id, item.isFav)}
+                >
+                  <FontAwesome
+                    name="heart"
+                    size={20}
+                    color={item.isFav ? "red" : "white"}
+                  />
+                </TouchableOpacity>
+              </View>
+
               <Text style={{ color: currentTheme.muted }}>
                 📍 {item.city} | 💰 Rent: Rs. {item.rentPrice}
               </Text>
@@ -272,6 +314,7 @@ export default function ListAllProperties() {
                 🛏️ Bedrooms: {item.bedrooms} | 🛋️ Furnished:{" "}
                 {item.furnished ? "Yes" : "No"}
               </Text>
+
               <TouchableOpacity
                 style={[
                   styles.viewButton,
@@ -285,7 +328,7 @@ export default function ListAllProperties() {
           )}
         />
       )}
- 
+
       <View style={styles.paginationRow}>
         <TouchableOpacity
           style={[

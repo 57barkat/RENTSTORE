@@ -43,7 +43,7 @@ export default function Settings() {
       </TouchableOpacity>
 
       {/* Privacy Policy */}
-      <TouchableOpacity style={styles.option}>
+      <TouchableOpacity style={styles.option} onPress={() => router.push('/PrivacyPolicyScreen')}>
         <Text style={[styles.optionText, { color: currentTheme.text }]}>Privacy Policy</Text>
       </TouchableOpacity>
 
