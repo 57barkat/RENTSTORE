@@ -30,9 +30,6 @@ export class User {
   @Prop({ required: true, unique: true })
   cnic: string;
 
-  @Prop({ unique: true, sparse: true })
-  agencyName?: string;
-
   @Prop()
   agencyLicense?: string;
 

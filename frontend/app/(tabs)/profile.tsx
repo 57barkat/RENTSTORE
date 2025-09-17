@@ -56,7 +56,7 @@ export default function Profile() {
         <>
           <View style={styles.header}>
             <Image
-              source={{ uri: "https://via.placeholder.com/100" }}
+              source={{ uri: "https://media.istockphoto.com/id/1171346911/photo/drawing-of-a-happy-smiling-emoticon-on-a-yellow-paper-and-white-background.jpg?b=1&s=612x612&w=0&k=20&c=5QekOSZckKrO6_bpz6l9awWGhC3_b7tXjRCFQMfaoaI=" }}
               style={styles.avatar}
             />
             <Text style={[styles.name, { color: currentTheme.text }]}>

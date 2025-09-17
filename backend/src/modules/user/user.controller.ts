@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { AuthGuard } from "@nestjs/passport";
-=======
-import { AuthGuard } from '@nestjs/passport';
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
 //ignore TS errors for now
 // @ts-nocheck
 import {
@@ -16,10 +12,7 @@ import {
   Param,
   Req,
   UseGuards,
-<<<<<<< HEAD
   Put,
-=======
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
@@ -78,7 +71,6 @@ export class UserController {
       phone: doc.phone,
       role: doc.role,
       cnic: doc.cnic,
-      agencyName: doc.agencyName,
       agencyLicense: doc.agencyLicense,
       preferences: doc.preferences,
       isPhoneVerified: doc.isPhoneVerified,
@@ -120,7 +112,6 @@ export class UserController {
       phone: user.phone,
       role: user.role,
       cnic: user.cnic,
-      agencyName: user.agencyName,
       agencyLicense: user.agencyLicense,
       preferences: user.preferences,
       isPhoneVerified: user.isPhoneVerified,
@@ -139,7 +130,6 @@ export class UserController {
       phone: doc.phone,
       role: doc.role,
       cnic: doc.cnic,
-      agencyName: doc.agencyName,
       agencyLicense: doc.agencyLicense,
       preferences: doc.preferences,
       isPhoneVerified: doc.isPhoneVerified,
@@ -147,7 +137,6 @@ export class UserController {
       updatedAt: doc["updatedAt"],
     }));
   }
-<<<<<<< HEAD
 
   @UseGuards(AuthGuard("jwt"))
   @Delete("delete")
@@ -168,7 +157,6 @@ export class UserController {
       phone: deletedUser.phone,
       role: deletedUser.role,
       cnic: deletedUser.cnic,
-      agencyName: deletedUser.agencyName,
       agencyLicense: deletedUser.agencyLicense,
       preferences: deletedUser.preferences,
       isPhoneVerified: deletedUser.isPhoneVerified,
@@ -195,7 +183,6 @@ export class UserController {
       phone: user.phone,
       role: user.role,
       cnic: user.cnic,
-      agencyName: user.agencyName,
       agencyLicense: user.agencyLicense,
       preferences: user.preferences,
       isPhoneVerified: true,
@@ -203,37 +190,6 @@ export class UserController {
       updatedAt: new Date(),
     };
   }
-=======
- 
- @UseGuards(AuthGuard('jwt'))
-@Delete("delete")
-async deleteSelf(@Req() req): Promise<UserResponseDto> {
-  const userId = req.user.userId;
-  console.log("User ID to delete:", userId);
-
-  const deletedUser = await this.userService.findByIdAndDelete(userId);
-
-  if (!deletedUser) {
-    throw new BadRequestException("User not found or already deleted.");
-  }
-
-  return {
-    id: userId,
-    name: deletedUser.name,
-    email: deletedUser.email,
-    phone: deletedUser.phone,
-    role: deletedUser.role,
-    cnic: deletedUser.cnic,
-    agencyName: deletedUser.agencyName,
-    agencyLicense: deletedUser.agencyLicense,
-    preferences: deletedUser.preferences,
-    isPhoneVerified: deletedUser.isPhoneVerified,
-    createdAt: deletedUser["createdAt"],
-    updatedAt: deletedUser["updatedAt"],
-  };
-}
-
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
 
   // @Delete("delete/:id")
   // async deleteUser(@Param("id") userId: string): Promise<UserResponseDto> {

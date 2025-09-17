@@ -20,16 +20,10 @@ export default function SignInScreen() {
 
       await saveToken(res.accessToken);
       if (res.name && res.email) {
-<<<<<<< HEAD
         await AsyncStorage.setItem("userName", res.name);
         await AsyncStorage.setItem("userEmail", res.email);
         await AsyncStorage.setItem("isVerified", res.isPhoneVerified ? "true" : "false");
       }
-=======
-      await AsyncStorage.setItem("userName", res.name);
-      await AsyncStorage.setItem("userEmail", res.email);
-    }
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
       Toast.show({
         type: "success",
         text1: "Login successful!",

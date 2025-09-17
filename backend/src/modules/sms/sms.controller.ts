@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {
   Controller,
   Post,
@@ -58,19 +57,5 @@ export class AuthController {
       success: true,
       message: "Phone verified successfully",
     };
-=======
-import { Controller, Post, Body } from '@nestjs/common';
-import { SmsService } from './sms.service';
-
-@Controller('auth')
-export class AuthController {
-  constructor(private readonly smsService: SmsService) {}
-
-  @Post('send-otp')
-  async sendOtp(@Body('phone') phone: string) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    await this.smsService.sendOtp(phone, otp);
-    return { success: true, otp };
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
   }
 }

@@ -73,10 +73,15 @@ export default function RootLayout() {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="Verification"
+                options={{ headerShown: false }}
+              />
+
+              <Stack.Screen
                 name="property/[id]"
                 options={{ headerShown: false }}
               />
-               <Stack.Screen
+              <Stack.Screen
                 name="property/edit/[id]"
                 options={{ headerShown: false }}
               />
@@ -84,14 +89,11 @@ export default function RootLayout() {
                 name="MyListingsScreen"
                 options={{ headerShown: false }}
               />
-               <Stack.Screen
+              <Stack.Screen
                 name="PrivacyPolicyScreen"
                 options={{ headerShown: false }}
               />
-               <Stack.Screen
-                name="favorites"
-                options={{ headerShown: false }}
-              />
+              <Stack.Screen name="favorites" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
               <Stack.Screen name="+not-found" />

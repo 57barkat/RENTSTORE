@@ -35,8 +35,6 @@ export class UserService {
       if (conflict.email === createUserDto.email) return "EMAIL_EXISTS";
       if (conflict.phone === createUserDto.phone) return "PHONE_EXISTS";
       if (conflict.cnic === createUserDto.cnic) return "CNIC_EXISTS";
-      if (conflict.agencyName === createUserDto.agencyName)
-        return "AGENCY_EXISTS";
     }
 
     const createdUser = new this.userModel({
@@ -91,7 +89,6 @@ export class UserService {
   async findByIdAndDelete(userId: string): Promise<User | null> {
     return this.userModel.findByIdAndDelete(userId).exec();
   }
-<<<<<<< HEAD
   async findByPhone(phone: string): Promise<UserDocument  | null> {
     return this.userModel.findOne({ phone }).exec();
   }
@@ -103,6 +100,4 @@ export class UserService {
     await this.userModel.updateOne({ _id: id }, data);
     return this.findById(id);
   }
-=======
->>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
 }

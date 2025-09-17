@@ -178,11 +178,11 @@ export const api = createApi({
         method: "GET",
       }),
     }),
-   
+
     getUserFavorites: builder.query<{ property: { _id: string }[] }, void>({
       query: () => "/api/v1/favorites",
     }),
-     AddToFav: builder.mutation<any, { propertyId: string }>({
+    AddToFav: builder.mutation<any, { propertyId: string }>({
       query: ({ propertyId }) => ({
         url: `/api/v1/favorites/${propertyId}`,
         method: "POST",
@@ -192,6 +192,27 @@ export const api = createApi({
       query: ({ propertyId }) => ({
         url: `/api/v1/favorites/${propertyId}`,
         method: "DELETE",
+      }),
+    }),
+    sendOtp: builder.mutation<
+      { success: boolean; message: string },
+      { phone: string }
+    >({
+      query: ({ phone }) => ({
+        url: "/api/v1/auth/send-otp",
+        method: "POST",
+        body: { phone },
+      }),
+    }),
+
+    verifyOtp: builder.mutation<
+      { success: boolean; message: string },
+      { phone: string; otp: string }
+    >({
+      query: ({ phone, otp }) => ({
+        url: "/api/v1/auth/verify-otp",
+        method: "POST",
+        body: { phone, otp },
       }),
     }),
   }),
@@ -213,4 +234,6 @@ export const {
   useAddToFavMutation,
   useGetUserFavoritesQuery,
   useRemoveUserFavoriteMutation,
+  useSendOtpMutation,
+  useVerifyOtpMutation,
 } = api;

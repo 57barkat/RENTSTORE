@@ -13,9 +13,8 @@ export default function Settings() {
 
   const handleLogout = async () => {
     await AsyncStorage.clear();
-    await AsyncStorage.removeItem("theme");
-    router.replace('/signin');
     setTheme("light"); 
+    router.replace('/signin');
     await logout();
   }
 
