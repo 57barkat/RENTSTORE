@@ -91,6 +91,7 @@ export class UserService {
   async findByIdAndDelete(userId: string): Promise<User | null> {
     return this.userModel.findByIdAndDelete(userId).exec();
   }
+<<<<<<< HEAD
   async findByPhone(phone: string): Promise<UserDocument  | null> {
     return this.userModel.findOne({ phone }).exec();
   }
@@ -102,4 +103,6 @@ export class UserService {
     await this.userModel.updateOne({ _id: id }, data);
     return this.findById(id);
   }
+=======
+>>>>>>> 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9
 }
