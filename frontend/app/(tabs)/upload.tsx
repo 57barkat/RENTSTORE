@@ -1,0 +1,185 @@
+import React, { useState } from "react";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "../../constants/Colors";
+import { useCreatePropertyMutation } from "@/services/api";
+import PropertyForm from "@/components/PropertyForm";
+import Toast from "react-native-toast-message";
+
+export default function Upload() {
+  const [formData, setFormData] = useState<any>({
+    propertyType: "",
+    title: "",
+    description: "",
+    address: "",
+    city: "",
+    bedrooms: "",
+    bathrooms: "",
+    kitchens: "",
+    livingRooms: "",
+    balconies: "",
+    furnished: false,
+    floor: "",
+    area: "",
+    rentPrice: "",
+    securityDeposit: "",
+    maintenanceCharges: "",
+    utilitiesIncluded: false,
+    ownerName: "",
+    phone: "",
+    email: "",
+    images: [],
+    videos: [],
+    amenities: [],
+    preferences: "",
+    petsAllowed: false,
+    latitude: "",
+    longitude: "",
+  });
+  const requiredFields = [
+    "propertyType",
+    "title",
+    "description",
+    "address",
+    "city",
+    "bedrooms",
+    "bathrooms",
+    "kitchens",
+    "livingRooms",
+    "floor",
+    "area",
+    "rentPrice",
+  ];
+
+  const isFormValid = requiredFields.every((field) => {
+    const value = formData[field];
+    if (typeof value === "number") return value > 0;
+    if (typeof value === "string") return value.trim() !== "";
+    return !!value; 
+  });
+
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+  const [createProperty, { isLoading }] = useCreatePropertyMutation();
+
+  const handleChange = (key: string, value: any) => {
+    const numericFields = [
+      "bedrooms",
+      "bathrooms",
+      "kitchens",
+      "livingRooms",
+      "balconies",
+      "floor",
+      "area",
+      "rentPrice",
+      "securityDeposit",
+      "maintenanceCharges",
+      "latitude",
+      "longitude",
+    ];
+    const booleanFields = ["furnished", "utilitiesIncluded", "petsAllowed"];
+    const arrayFields = ["images", "videos", "amenities"];
+
+    let parsedValue = value;
+
+    if (numericFields.includes(key)) {
+      const num = Number(value);
+      parsedValue = isNaN(num) ? 0 : num;
+    } else if (booleanFields.includes(key)) {
+      parsedValue = !!value;
+    } else if (arrayFields.includes(key)) {
+      parsedValue = Array.isArray(value) ? value : [];
+    }
+
+    setFormData((prev: any) => ({ ...prev, [key]: parsedValue }));
+  };
+
+  const handleSubmit = async () => {
+    try {
+      await createProperty(formData).unwrap();
+      Toast.show({ type: "success", text1: "Property uploaded successfully!" });
+      setFormData({
+        propertyType: "",
+        title: "",
+        description: "",
+        address: "",
+        city: "",
+        bedrooms: 0,
+        bathrooms: 0,
+        kitchens: 0,
+        livingRooms: 0,
+        balconies: 0,
+        furnished: false,
+        floor: 0,
+        area: 0,
+        rentPrice: 0,
+        securityDeposit: 0,
+        maintenanceCharges: 0,
+        utilitiesIncluded: false,
+        ownerName: "",
+        phone: "",
+        email: "",
+        images: [],
+        videos: [],
+        amenities: [],
+        preferences: "",
+        petsAllowed: false,
+        latitude: 0,
+        longitude: 0,
+      });
+    } catch (err: any) {
+      console.error("Error uploading property:", err);
+      Toast.show({ text1: err.message });
+    }
+  };
+
+  return (
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        { backgroundColor: currentTheme.background },
+      ]}
+    >
+      <Text style={[styles.header, { color: currentTheme.primary }]}>
+        Upload Property
+      </Text>
+
+      <PropertyForm formData={formData} onChange={handleChange} />
+
+      <TouchableOpacity
+        style={[
+          styles.button,
+          { backgroundColor: isFormValid ? currentTheme.primary : "#ccc" },
+        ]}
+        onPress={handleSubmit}
+        disabled={isLoading || !isFormValid}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Submit Property</Text>
+        )}
+      </TouchableOpacity>
+
+      <Toast />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { padding: 20 },
+  header: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
+  button: {
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    marginVertical: 20,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
+});

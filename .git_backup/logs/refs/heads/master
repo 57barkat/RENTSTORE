@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 83eab9f8229fa725af91c6b02c07e5cd639d59d9 57barkat <barkatullahkhan120136@gmail.com> 1756955644 +0500	commit (initial): signupform created for user signup
+83eab9f8229fa725af91c6b02c07e5cd639d59d9 340b2f39af6db773a7e8d48490dca8f657e21926 57barkat <barkatullahkhan120136@gmail.com> 1757044228 +0500	commit: created tabs now working on upload
+340b2f39af6db773a7e8d48490dca8f657e21926 9b76f5c33b07b7832d4ce1148aa57c3e8927a68a 57barkat <barkatullahkhan120136@gmail.com> 1757099964 +0500	commit: created upload property controller and UI
+9b76f5c33b07b7832d4ce1148aa57c3e8927a68a 73697b9c3aca3394302619591ac07b392143fa92 57barkat <barkatullahkhan120136@gmail.com> 1757105598 +0500	commit: property upload is complete now
+73697b9c3aca3394302619591ac07b392143fa92 75871ba36d925d1e6aea113a7bef433ec269f265 57barkat <barkatullahkhan120136@gmail.com> 1757364691 +0500	commit: created api for user that he can edit delete view his properties that he uploaded
+75871ba36d925d1e6aea113a7bef433ec269f265 a96a086379f3604580d72598b13b48ceba44f6d4 57barkat <barkatullahkhan120136@gmail.com> 1757451228 +0500	commit: added filter and implemented query to fetch properties data faster
+a96a086379f3604580d72598b13b48ceba44f6d4 8141dbe156cb86c4b1b56e5d51913b467bf33431 57barkat <barkatullahkhan120136@gmail.com> 1757603764 +0500	commit: added feature post functionality
+8141dbe156cb86c4b1b56e5d51913b467bf33431 6a9fbc5db03426e86174365fff49c4cdc21cc7a5 57barkat <barkatullahkhan120136@gmail.com> 1757623400 +0500	commit: working on addToFav property button backend stuff is created
+6a9fbc5db03426e86174365fff49c4cdc21cc7a5 3c285d25b9c43f4c544efef63a4c085d47a3da92 57barkat <barkatullahkhan120136@gmail.com> 1757691556 +0500	commit: added to fav is added
+3c285d25b9c43f4c544efef63a4c085d47a3da92 0596bf116033060c084dd28c2ceb0b28c2f0f5af 57barkat <barkatullahkhan120136@gmail.com> 1757950427 +0500	commit: added some stylings in profile page
+0596bf116033060c084dd28c2ceb0b28c2f0f5af 723f52fd9a5bcb2b62a08b1eff0f86112593c75e 57barkat <barkatullahkhan120136@gmail.com> 1758037796 +0500	commit: added my fav properties page
+723f52fd9a5bcb2b62a08b1eff0f86112593c75e 1b64532c1443ecf4fb340eb84f4251cb9e025f85 57barkat <barkatullahkhan120136@gmail.com> 1758052619 +0500	commit: add to fav api is created and now filters are created in backed directly
+1b64532c1443ecf4fb340eb84f4251cb9e025f85 59938e7d585bf5e46fc19a3042f7602d0aa8d9c9 57barkat <barkatullahkhan120136@gmail.com> 1758054711 +0500	commit: set upload bug
