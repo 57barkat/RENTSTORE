@@ -33,7 +33,7 @@ export default function PropertyDetails() {
     error,
     refetch,
   } = useFindPropertyByIdQuery(id!, { skip: !id });
-
+console.log(property)
   const [addToFav, { isLoading: isFavLoading }] = useAddToFavMutation();
   const [removeUserFavorite, { isLoading: isRemoveLoading }] =
     useRemoveUserFavoriteMutation();
@@ -296,6 +296,9 @@ export default function PropertyDetails() {
           </Text>
           <Text style={[styles.text, { color: currentTheme.text }]}>
             Name: {property.ownerId.name}
+          </Text>
+          <Text style={[styles.text, { color: currentTheme.text }]}>
+            Phone: {property.ownerId.phone}
           </Text>
           <Text style={[styles.text, { color: currentTheme.text }]}>
             Email: {property.ownerId.email}

@@ -137,7 +137,7 @@ console.log(property);
   async findPropertyById(propertyId: string, userId?: string) {
     const property = (await this.propertyModel
       .findByIdAndUpdate(propertyId, { $inc: { views: 1 } }, { new: true })
-      .populate("ownerId", "name email")
+      .populate("ownerId", "name email phone")
       .lean()) as unknown as PropertyWithFav;
 
     if (!property) {

@@ -97,7 +97,6 @@ export class UserController {
     }
 
     const user = await this.userService.validateUser(emailOrPhone, password);
-    // console.log("Validated user:", user);
 
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");

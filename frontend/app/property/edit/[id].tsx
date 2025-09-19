@@ -16,6 +16,7 @@ import {
 import { Colors } from "@/constants/Colors";
 import { useState, useEffect } from "react";
 import LocationPicker from "@/utils/LocationPicker";
+import { useTheme } from "@/contextStore/ThemeContext"; // 👈 import theme
 
 export const options = {
   headerShown: false,
@@ -23,6 +24,9 @@ export const options = {
 
 export default function EditProperty() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { theme } = useTheme(); // 👈 get current theme
+  const currentTheme = Colors[theme]; // 👈 map to Colors
+
   const {
     data: property,
     isLoading,
@@ -75,57 +79,94 @@ export default function EditProperty() {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text>Loading property...</Text>
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <ActivityIndicator size="large" color={currentTheme.primary} />
+        <Text style={{ color: currentTheme.text }}>Loading property...</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: "red" }}>Error loading property.</Text>
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={{ color: currentTheme.error }}>
+          Error loading property.
+        </Text>
       </View>
     );
   }
 
   if (!property) {
     return (
-      <View style={styles.center}>
-        <Text>No property found</Text>
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={{ color: currentTheme.text }}>No property found</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.heading}>Edit Property</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
+      <Text style={[styles.heading, { color: currentTheme.primary }]}>
+        Edit Property
+      </Text>
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: currentTheme.card,
+            color: currentTheme.text,
+            borderColor: currentTheme.border,
+          },
+        ]}
         placeholder="Title"
+        placeholderTextColor={currentTheme.muted}
         value={form.title}
         onChangeText={(t) => handleChange("title", t)}
       />
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: currentTheme.card,
+            color: currentTheme.text,
+            borderColor: currentTheme.border,
+          },
+        ]}
         placeholder="Rent Price"
+        placeholderTextColor={currentTheme.muted}
         value={form.rentPrice}
         keyboardType="numeric"
         onChangeText={(t) => handleChange("rentPrice", t)}
       />
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: currentTheme.card,
+            color: currentTheme.text,
+            borderColor: currentTheme.border,
+          },
+        ]}
         placeholder="City"
+        placeholderTextColor={currentTheme.muted}
         value={form.city}
         onChangeText={(t) => handleChange("city", t)}
       />
 
-      {/* Location Picker Integration */}
-      <Text style={styles.label}>Pick Location</Text>
+      <Text style={[styles.label, { color: currentTheme.text }]}>
+        Pick Location
+      </Text>
       <LocationPicker
         onPick={(lat, lng, address) => {
           handleChange("latitude", lat.toString());
@@ -135,22 +176,43 @@ export default function EditProperty() {
       />
 
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            backgroundColor: currentTheme.card,
+            color: currentTheme.text,
+            borderColor: currentTheme.border,
+          },
+        ]}
         placeholder="Address"
+        placeholderTextColor={currentTheme.muted}
         value={form.address}
         onChangeText={(t) => handleChange("address", t)}
       />
 
       <TextInput
-        style={[styles.input, { height: 100 }]}
+        style={[
+          styles.input,
+          {
+            height: 100,
+            backgroundColor: currentTheme.card,
+            color: currentTheme.text,
+            borderColor: currentTheme.border,
+          },
+        ]}
         placeholder="Description"
+        placeholderTextColor={currentTheme.muted}
         multiline
         value={form.description}
         onChangeText={(t) => handleChange("description", t)}
       />
 
       <TouchableOpacity
-        style={[styles.saveButton, isUpdating && { opacity: 0.6 }]}
+        style={[
+          styles.saveButton,
+          { backgroundColor: currentTheme.primary },
+          isUpdating && { opacity: 0.6 },
+        ]}
         onPress={handleSave}
         disabled={isUpdating}
       >
@@ -163,46 +225,16 @@ export default function EditProperty() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.light.background,
-    padding: 16,
-  },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 16,
-    color: Colors.light.primary,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 6,
-    color: "#444",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-    backgroundColor: "#fff",
-  },
+  container: { flex: 1, padding: 16 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  heading: { fontSize: 22, fontWeight: "700", marginBottom: 16 },
+  label: { fontSize: 16, fontWeight: "500", marginBottom: 6 },
+  input: { borderWidth: 1, padding: 12, borderRadius: 8, marginBottom: 12 },
   saveButton: {
-    backgroundColor: Colors.light.primary,
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
     marginTop: 12,
   },
-  saveText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  saveText: { color: "#fff", fontWeight: "700", fontSize: 16 },
 });

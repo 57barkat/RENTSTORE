@@ -1,4 +1,3 @@
-// @ts-ignore
 import {
   useAddToFavMutation,
   useGetFilteredPropertiesQuery,
@@ -24,7 +23,7 @@ import { pakistaniCities } from "@/utils/cities";
 
 const dummyFilterOptions = {
   cities: pakistaniCities,
-  bedrooms: [1, 2, 3, 4],
+  bedrooms: [1, 2, 3, 4 , 5 , 6 , 7],
   rentRange: { min: 0, max: 100000 },
 };
 
@@ -42,7 +41,7 @@ export default function ListAllProperties() {
   const [rentRange, setRentRange] = useState<{ min?: number; max?: number }>(
     {}
   );
-  const [bedrooms, setBedrooms] = useState<number | undefined>(undefined);
+  const [bedrooms, setBedrooms] = useState<number | null>(null);
 
   const filterOptions = dummyFilterOptions;
 
@@ -109,10 +108,11 @@ export default function ListAllProperties() {
     setPage(1);
   };
 
-  const handleBedroomsChange = (value: number) => {
-    setBedrooms(value);
-    setPage(1);
-  };
+ const handleBedroomsChange = (value: number) => {
+  setBedrooms(prev => (prev === value ? null : value));
+  setPage(1);
+};
+
   const handleSuggestionPress = (city: string) => {
     setCityInput(city);
     setShowSuggestions(false);

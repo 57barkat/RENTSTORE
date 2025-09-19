@@ -14,7 +14,7 @@ export default function ChooseRoleScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>What are you here for?</Text>
+      <Text style={styles.title}>What brings you here?</Text>
 
       <TouchableOpacity
         style={styles.button}
@@ -32,13 +32,13 @@ export default function ChooseRoleScreen() {
         <Text style={styles.buttonText}>Post My Property</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.button}
         onPress={() => handleSelect("agency")}
       >
         <MaterialCommunityIcons name="office-building" size={22} color="#fff" />
         <Text style={styles.buttonText}>Create an Agency</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </View>
   );
 }

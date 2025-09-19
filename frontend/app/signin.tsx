@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { View, TextInput, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useLoginMutation } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
@@ -11,24 +17,38 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
 
   const [login, { isLoading }] = useLoginMutation();
-  const { login: saveToken } = useAuth();
+
+  const { login: saveToken, token } = useAuth();
+  useEffect(() => {
+    if (token) {
+      router.replace("/homePage");
+    }
+  }, [token]);
+
   const router = useRouter();
 
   const handleSignIn = async () => {
     try {
       const res = await login({ emailOrPhone, password }).unwrap();
+console.log(res)
+      await saveToken(res.accessToken, res.isPhoneVerified);
 
-      await saveToken(res.accessToken);
       if (res.name && res.email) {
         await AsyncStorage.setItem("userName", res.name);
         await AsyncStorage.setItem("userEmail", res.email);
-        await AsyncStorage.setItem("isVerified", res.isPhoneVerified ? "true" : "false");
+        await AsyncStorage.setItem("userPhone" , res.phone)
+        await AsyncStorage.setItem(
+          "isVerified",
+          JSON.stringify(res.isPhoneVerified)
+        );
       }
+
       Toast.show({
         type: "success",
         text1: "Login successful!",
         text2: `Welcome back ${res.name}.`,
       });
+
       router.replace("/homePage");
     } catch (err: any) {
       Toast.show({
@@ -73,12 +93,6 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", padding: 24 },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 24,
-    textAlign: "center",
-  },
   button: {
     backgroundColor: "#4CC9F0",
     paddingVertical: 14,
