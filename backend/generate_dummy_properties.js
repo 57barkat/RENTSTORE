@@ -65,4 +65,4 @@ function generateProperties(count = 30000) {
 
 const properties = generateProperties(30000);
 fs.writeFileSync('dummy_30k_properties.json', JSON.stringify({ data: properties, total: properties.length }, null, 2));
-console.log('dummy_30k_properties.json generated successfully!');
+

@@ -43,7 +43,6 @@ async function insertProperties() {
     console.log(`Processed batch ${i / batchSize + 1}`);
   }
 
-  console.log('All properties inserted successfully!');
   await client.close();
 }
 

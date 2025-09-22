@@ -32,7 +32,6 @@ export class UserController {
   async signup(
     @Body() createUserDto: CreateUserDto
   ): Promise<UserResponseDto & { accessToken: string }> {
-    // console.log(`Signup request received: ${JSON.stringify(createUserDto)}`);
     const user = await this.userService.create(createUserDto);
 
     if (typeof user === "string") {

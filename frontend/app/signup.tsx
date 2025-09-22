@@ -86,7 +86,6 @@ export default function SignUpScreen() {
           initialValues={initialValues}
           validationSchema={signupValidationSchema(role)}
           onSubmit={(values) => {
-            console.log("🚀 Form submitted with values:", values); 
             handleSignUp(values);
           }}
         >
@@ -194,11 +193,7 @@ export default function SignUpScreen() {
               <TouchableOpacity
                 style={styles.button}
                 onPress={() => {
-                  console.log("👆 Button pressed, submitting...");
                   handleSubmit();
-                  console.log("📌 Current values:", values);
-                  console.log("📌 Current errors:", errors);
-                  console.log("📌 Current touched:", touched);
                 }}  
                 disabled={isLoading}
               >
