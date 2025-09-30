@@ -6,7 +6,7 @@
 ext {
     // This explicitly sets a stable Kotlin version (1.8.20) 
     // to override the problematic version (1.9.25) being injected by Expo plugins.
-    kotlinVersion = "1.8.20" 
+    kotlinVersion = "2.0.20" 
 }
 // =================================================================
 
