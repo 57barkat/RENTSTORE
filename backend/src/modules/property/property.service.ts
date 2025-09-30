@@ -21,14 +21,25 @@ export class PropertyService {
 
   async create(
     dto: CreatePropertyDto,
-    files: Express.Multer.File[],
+    imageFiles: Express.Multer.File[],
+    videoFiles: Express.Multer.File[],
     userId: string
   ) {
     let imageUrls: string[] = [];
+    let videoUrls: string[] = [];
 
-    if (files && files.length > 0) {
+    if (imageFiles && imageFiles.length > 0) {
       imageUrls = await Promise.all(
-        files.map(async (file) => {
+        imageFiles.map(async (file) => {
+          const uploaded = await this.cloudinary.uploadFile(file);
+          return uploaded.secure_url;
+        })
+      );
+    }
+
+    if (videoFiles && videoFiles.length > 0) {
+      videoUrls = await Promise.all(
+        videoFiles.map(async (file) => {
           const uploaded = await this.cloudinary.uploadFile(file);
           return uploaded.secure_url;
         })
@@ -38,6 +49,7 @@ export class PropertyService {
     const property = new this.propertyModel({
       ...dto,
       images: imageUrls,
+      videos: videoUrls,
       ownerId: new Types.ObjectId(userId),
     });
     return property.save();

@@ -17,6 +17,9 @@ import { Colors } from "@/constants/Colors";
 import { useCallback } from "react";
 import ImageCarousel from "@/utils/Carousel";
 import { useTheme } from "@/contextStore/ThemeContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const PADDING = 24;
 
 export const options = {
   headerShown: false,
@@ -33,73 +36,103 @@ export default function PropertyDetails() {
     error,
     refetch,
   } = useFindPropertyByIdQuery(id!, { skip: !id });
-console.log(property)
+
   const [addToFav, { isLoading: isFavLoading }] = useAddToFavMutation();
   const [removeUserFavorite, { isLoading: isRemoveLoading }] =
     useRemoveUserFavoriteMutation();
 
   useFocusEffect(
     useCallback(() => {
-      if (id) {
-        refetch();
-      }
+      if (id) refetch();
     }, [id, refetch])
   );
 
-  if (isLoading) {
+  // --- Render Loading, Error, and Not Found States ---
+  if (isLoading || error || !property) {
+    let message = "Loading property...";
+    if (error) message = "Error loading property.";
+    if (!property) message = "No property found.";
+
+    const messageColor = error ? currentTheme.error : currentTheme.text;
+
     return (
-      <View style={styles.center}>
+      <View
+        style={[
+          styles.centeredContainer,
+          { backgroundColor: currentTheme.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ color: currentTheme.text }}>Loading property...</Text>
+        <Text style={[styles.text, { color: messageColor }]}>{message}</Text>
       </View>
     );
   }
 
-  if (error) {
+  // --- Helper function to render label/value ---
+  const renderDetail = (
+    label: string,
+    value: string | number | null | undefined
+  ) => {
+    if (value === null || value === undefined) return null;
+
+    const displayValue = typeof value === "string" ? value.trim() : value;
+    if (!displayValue) return null;
+
     return (
-      <View style={styles.center}>
-        <Text style={{ color: currentTheme.error }}>
-          Error loading property.
+      <View style={styles.detailRow}>
+        <Text style={[styles.detailLabel, { color: currentTheme.secondary }]}>
+          {label}:
+        </Text>
+        <Text style={[styles.detailValue, { color: currentTheme.text }]}>
+          {displayValue}
         </Text>
       </View>
     );
-  }
-
-  if (!property) {
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: currentTheme.text }}>No property found</Text>
-      </View>
-    );
-  }
+  };
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: currentTheme.background }]}
+      contentContainerStyle={styles.contentContainer}
     >
+      {/* --- Image Carousel --- */}
       {property.images?.length > 0 && (
-        <ImageCarousel
-          images={property.images.map((uri: string) => ({ uri }))}
-        />
+        <View style={styles.carouselContainer}>
+          <ImageCarousel
+            media={[
+              ...(property.images?.map((uri: string) => ({
+                uri,
+                type: "image",
+              })) || []),
+              ...(property.videos?.map((uri: string) => ({
+                uri,
+                type: "video",
+              })) || []),
+            ]}
+          />
+        </View>
       )}
 
-      <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
+      {/* --- Property Main Info --- */}
+      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
         <Text style={[styles.title, { color: currentTheme.primary }]}>
           {property.title}
         </Text>
-        <Text style={[styles.price, { color: currentTheme.secondary }]}>
+        <Text style={[styles.price, { color: currentTheme.accent }]}>
           Rs. {property.rentPrice?.toLocaleString()}
         </Text>
+        <Text style={[styles.location, { color: currentTheme.secondary }]}>
+          {property.address}, {property.city}
+        </Text>
+      </View>
 
+      {/* --- Action Buttons --- */}
+      <View style={styles.actionButtonsContainer}>
         <TouchableOpacity
           style={[
             styles.button,
             {
-              backgroundColor: property.isFav
-                ? "red"
-                : currentTheme.secondary,
-              flexDirection: "row",
-              alignItems: "center",
+              backgroundColor: property.isFav ? "red" : currentTheme.secondary,
             },
           ]}
           onPress={async () => {
@@ -110,19 +143,26 @@ console.log(property)
               } else {
                 await addToFav({ propertyId: property._id }).unwrap();
               }
-              await refetch(); // 👈 refresh property to update isFav
+              await refetch();
             } catch (err) {
               console.log(err);
             }
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", marginRight: 6 }}>
-            {property.isFav
-              ? "❤️ Added to Favorites"
-              : "🤍 Add to Favorites"}
+          <MaterialCommunityIcons
+            name={property.isFav ? "heart" : "heart-outline"}
+            size={20}
+            color="#fff"
+          />
+          <Text style={styles.buttonText}>
+            {property.isFav ? "Saved" : "Save"}
           </Text>
           {(isFavLoading || isRemoveLoading) && (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator
+              size="small"
+              color="#fff"
+              style={{ marginLeft: 8 }}
+            />
           )}
         </TouchableOpacity>
 
@@ -131,112 +171,89 @@ console.log(property)
           onPress={() => {
             if (property.latitude && property.longitude) {
               Linking.openURL(
-                `https://www.google.com/maps?q=${property.latitude},${property.longitude}`
+                `http://maps.google.com/?q=${property.latitude},${property.longitude}`
               );
             } else {
               Linking.openURL(
-                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                `http://maps.google.com/?q=${encodeURIComponent(
                   `${property.address}, ${property.city}`
                 )}`
               );
             }
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600" }}>
-            📍 View on Map
-          </Text>
+          <MaterialCommunityIcons name="map-marker" size={20} color="#fff" />
+          <Text style={styles.buttonText}>Map</Text>
         </TouchableOpacity>
       </View>
 
-      {property.description && (
-        <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
-            Description
-          </Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            {property.description}
-          </Text>
-        </View>
-      )}
-
-      <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+      {/* --- Property & Financial Info --- */}
+      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+        <Text
+          style={[styles.sectionHeading, { color: currentTheme.secondary }]}
+        >
           Property Details
         </Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          Type: {property.propertyType}
-        </Text>
-        {property.area && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Area: {property.area} sq.ft
-          </Text>
+        {renderDetail("Type", property.propertyType)}
+        {renderDetail(
+          "Area",
+          property.area ? `${property.area.toLocaleString()} sq.ft` : null
         )}
-        {property.totalArea && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Total Area: {property.totalArea}
-          </Text>
+        {renderDetail(
+          "Total Area",
+          property.totalArea
+            ? `${property.totalArea.toLocaleString()} sq.ft`
+            : null
         )}
-        {property.bedrooms !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Bedrooms: {property.bedrooms}
-          </Text>
+        {renderDetail("Bedrooms", property.bedrooms)}
+        {renderDetail("Bathrooms", property.bathrooms)}
+        {renderDetail("Kitchens", property.kitchens)}
+        {renderDetail("Living Rooms", property.livingRooms)}
+        {renderDetail("Balconies", property.balconies)}
+        {renderDetail(
+          "Furnished",
+          property.furnished !== undefined
+            ? property.furnished
+              ? "Yes"
+              : "No"
+            : null
         )}
-        {property.bathrooms !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Bathrooms: {property.bathrooms}
-          </Text>
-        )}
-        {property.kitchens !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Kitchens: {property.kitchens}
-          </Text>
-        )}
-        {property.livingRooms !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Living Rooms: {property.livingRooms}
-          </Text>
-        )}
-        {property.balconies !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Balconies: {property.balconies}
-          </Text>
-        )}
-        {property.furnished !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Furnished: {property.furnished ? "Yes" : "No"}
-          </Text>
-        )}
-        {property.floor !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Floor: {property.floor}
-          </Text>
-        )}
-      </View>
 
-      <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+        <View style={styles.divider} />
+
+        <Text
+          style={[styles.sectionHeading, { color: currentTheme.secondary }]}
+        >
           Financial Info
         </Text>
-        {property.securityDeposit !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Security Deposit: Rs. {property.securityDeposit?.toLocaleString()}
-          </Text>
+        {renderDetail(
+          "Security Deposit",
+          property.securityDeposit
+            ? `Rs. ${property.securityDeposit.toLocaleString()}`
+            : null
         )}
-        {property.maintenanceCharges !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Maintenance: Rs. {property.maintenanceCharges?.toLocaleString()}
-          </Text>
+        {renderDetail(
+          "Maintenance",
+          property.maintenanceCharges
+            ? `Rs. ${property.maintenanceCharges.toLocaleString()}`
+            : null
         )}
-        {property.utilitiesIncluded !== undefined && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Utilities Included: {property.utilitiesIncluded ? "Yes" : "No"}
-          </Text>
+        {renderDetail(
+          "Utilities Included",
+          property.utilitiesIncluded !== undefined
+            ? property.utilitiesIncluded
+              ? "Yes"
+              : "No"
+            : null
         )}
       </View>
 
+      {/* --- Amenities --- */}
       {property.amenities?.length > 0 && (
-        <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+        <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+          <Text
+            style={[styles.sectionHeading, { color: currentTheme.secondary }]}
+          >
             Amenities
           </Text>
           <View style={styles.amenitiesContainer}>
@@ -247,11 +264,14 @@ console.log(property)
                   key={idx}
                   style={[
                     styles.amenityTag,
-                    { backgroundColor: currentTheme.border },
+                    { backgroundColor: currentTheme.background },
                   ]}
                 >
                   <Text
-                    style={[styles.amenityText, { color: currentTheme.text }]}
+                    style={[
+                      styles.amenityText,
+                      { color: currentTheme.secondary },
+                    ]}
                   >
                     {amenity.trim()}
                   </Text>
@@ -261,102 +281,71 @@ console.log(property)
         </View>
       )}
 
-      {property.preferences?.length > 0 && (
-        <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
-            Preferences
-          </Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            {property.preferences.join(", ")}
-          </Text>
-        </View>
-      )}
-
-      <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
-          Location
-        </Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          Address: {property.address}
-        </Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          City: {property.city}
-        </Text>
-        {property.latitude && property.longitude && (
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Coordinates: {property.latitude}, {property.longitude}
-          </Text>
-        )}
-      </View>
-
+      {/* --- Owner Info --- */}
       {property.ownerId && (
-        <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-          <Text style={[styles.heading, { color: currentTheme.secondary }]}>
+        <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+          <Text
+            style={[styles.sectionHeading, { color: currentTheme.secondary }]}
+          >
             Listed By
           </Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Name: {property.ownerId.name}
-          </Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Phone: {property.ownerId.phone}
-          </Text>
-          <Text style={[styles.text, { color: currentTheme.text }]}>
-            Email: {property.ownerId.email}
-          </Text>
+          {renderDetail("Name", property.ownerId.name)}
+          {renderDetail("Phone", property.ownerId.phone)}
+          {renderDetail("Email", property.ownerId.email)}
         </View>
       )}
-
-      <View style={[styles.section, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.heading, { color: currentTheme.secondary }]}>
-          Listing Info
-        </Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          Created:{" "}
-          {property.createdAt
-            ? new Date(property.createdAt).toLocaleString()
-            : "N/A"}
-        </Text>
-        <Text style={[styles.text, { color: currentTheme.text }]}>
-          Updated:{" "}
-          {property.updatedAt
-            ? new Date(property.updatedAt).toLocaleString()
-            : "N/A"}
-        </Text>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  section: {
-    margin: 12,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+  contentContainer: { paddingBottom: 24 },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
-  title: { fontSize: 24, fontWeight: "700" },
-  price: { fontSize: 20, fontWeight: "600", marginTop: 6 },
-  heading: { fontSize: 18, fontWeight: "600", marginBottom: 8 },
-  text: { fontSize: 15, lineHeight: 22, marginBottom: 4 },
-  button: {
-    marginTop: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    alignSelf: "flex-start",
-  },
-  amenitiesContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 6 },
-  amenityTag: {
+  card: {
+    marginHorizontal: PADDING,
+    marginTop: PADDING / 2,
+    padding: PADDING,
     borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    margin: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
+  carouselContainer: { width: "100%", height: 250 },
+  title: { fontSize: 28, fontWeight: "800", marginBottom: 4 },
+  price: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
+  location: { fontSize: 16, fontWeight: "500" },
+  text: { fontSize: 16, lineHeight: 24, textAlign: "center" },
+  sectionHeading: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
+  divider: { height: 1, backgroundColor: "#e0e0e0", marginVertical: 16 },
+  detailRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
+  detailLabel: { fontSize: 16, fontWeight: "500", minWidth: 120 },
+  detailValue: { fontSize: 16, fontWeight: "600", flex: 1, flexWrap: "wrap" },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: PADDING,
+    marginTop: PADDING,
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 30,
+    minWidth: 120,
+  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 15, marginLeft: 8 },
+  amenitiesContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  amenityTag: { borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
   amenityText: { fontSize: 14, fontWeight: "500" },
 });

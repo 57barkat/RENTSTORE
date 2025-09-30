@@ -30,6 +30,7 @@ export class Property extends Document {
   @Prop() utilitiesIncluded?: boolean;
 
   @Prop([String]) images?: string[];
+  @Prop([String]) videos?: string[];
   @Prop([String]) amenities?: string[];
   @Prop([String]) preferences?: string[];
 

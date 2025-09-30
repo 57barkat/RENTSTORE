@@ -12,6 +12,59 @@ import LocationPicker from "@/utils/LocationPicker";
 import * as ImagePicker from "expo-image-picker";
 import { propertyValidationSchema } from "@/utils/propertyValidator";
 import { Colors } from "@/constants/Colors";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const Section = ({ title, children, style }: any) => {
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+  return (
+    <View
+      style={[
+        styles.sectionContainer,
+        { backgroundColor: currentTheme.card },
+        style,
+      ]}
+    >
+      <Text style={[styles.sectionTitle, { color: currentTheme.secondary }]}>
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+};
+
+const FormInput = ({
+  label,
+  placeholder,
+  value,
+  onChangeText,
+  keyboardType = "default",
+  error,
+  multiline = false,
+  theme,
+}: any) => (
+  <View style={styles.inputGroup}>
+    <Text style={[styles.label, { color: theme.secondary }]}>{label}</Text>
+    <TextInput
+      style={[
+        styles.input,
+        {
+          borderColor: error ? "red" : theme.border,
+          color: theme.text,
+          backgroundColor: theme.card,
+        },
+        multiline && styles.textarea,
+      ]}
+      placeholder={placeholder}
+      placeholderTextColor={theme.muted}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      multiline={multiline}
+    />
+    {error && <Text style={styles.errorText}>{error}</Text>}
+  </View>
+);
 
 export default function PropertyForm({
   formData,
@@ -23,34 +76,38 @@ export default function PropertyForm({
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [mediaLoading, setMediaLoading] = useState<"photo" | null>(null);
+  const [mediaLoading, setMediaLoading] = useState<"photo" | "video" | null>(
+    null
+  );
+  const [locationLoading, setLocationLoading] = useState(false);
 
-  const pickMedia = async () => {
-    setMediaLoading("photo");
+  const pickMedia = async (type: "photo" | "video") => {
+    setMediaLoading(type);
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes:
+          type === "photo"
+            ? ImagePicker.MediaTypeOptions.Images
+            : ImagePicker.MediaTypeOptions.Videos,
         allowsMultipleSelection: true,
         quality: 1,
       });
       if (!result.canceled && result.assets) {
-        onChange("images", [...(formData.images || []), ...result.assets]);
+        const files = result.assets.map((asset) => ({
+          uri: asset.uri,
+          type: asset.type === "image" ? "image/jpeg" : "video/mp4",
+          name: asset.fileName || `${type}-${Date.now()}`,
+        }));
+        if (type === "photo") {
+          onChange("images", [...(formData.images || []), ...files]);
+        } else {
+          onChange("videos", [...(formData.videos || []), ...files]);
+        }
       }
     } finally {
       setMediaLoading(null);
     }
   };
-
-  function parseNumber(val: string) {
-    const num = Number(val);
-    return isNaN(num) ? 0 : num;  
-  }
-
-  function parseBoolean(val: any) {
-    if (typeof val === "boolean") return val;
-    if (typeof val === "string") return val === "true";
-    return Boolean(val);
-  }
 
   const handleChange = async (key: string, value: any) => {
     const numericFields = [
@@ -68,13 +125,10 @@ export default function PropertyForm({
       "longitude",
     ];
     const booleanFields = ["furnished", "utilitiesIncluded", "petsAllowed"];
-    const arrayFields = ["images", "amenities"];
-
     let parsedValue = value;
 
-    if (numericFields.includes(key)) parsedValue = parseNumber(value);
-    else if (booleanFields.includes(key)) parsedValue = parseBoolean(value);
-    else if (arrayFields.includes(key)) parsedValue = Array.isArray(value) ? value : [];
+    if (numericFields.includes(key)) parsedValue = Number(value) || 0;
+    else if (booleanFields.includes(key)) parsedValue = Boolean(value);
 
     onChange(key, parsedValue);
 
@@ -96,183 +150,366 @@ export default function PropertyForm({
   };
 
   return (
-    <View>
-      <TextInput
-        style={[styles.input, themeStyle(currentTheme)]}
-        placeholder="Property Type (House, Apartment...)"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.propertyType}
-        onChangeText={(val) => handleChange("propertyType", val)}
-      />
-      {errors.propertyType && <Text style={styles.error}>{errors.propertyType}</Text>}
-
-      <TextInput
-        style={[styles.input, themeStyle(currentTheme)]}
-        placeholder="Title"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.title}
-        onChangeText={(val) => handleChange("title", val)}
-      />
-      {errors.title && <Text style={styles.error}>{errors.title}</Text>}
-
-      <TextInput
-        style={[styles.input, themeStyle(currentTheme)]}
-        placeholder="City"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.city}
-        onChangeText={(val) => handleChange("city", val)}
-      />
-      {errors.city && <Text style={styles.error}>{errors.city}</Text>}
-
-      {[
-        { key: "bedrooms", label: "Bedrooms" },
-        { key: "bathrooms", label: "Bathrooms" },
-        { key: "kitchens", label: "Kitchens" },
-        { key: "livingRooms", label: "Living Rooms" },
-        { key: "balconies", label: "Balconies" },
-        { key: "floor", label: "Floor" },
-        { key: "area", label: "Area (sq ft)" },
-        { key: "rentPrice", label: "Rent Price" },
-        { key: "securityDeposit", label: "Security Deposit" },
-        { key: "maintenanceCharges", label: "Maintenance Charges" },
-      ].map(({ key, label }) => (
-        <TextInput
-          key={key}
-          style={[styles.input, themeStyle(currentTheme)]}
-          placeholder={label}
-          placeholderTextColor={currentTheme.muted}
-          value={formData[key]?.toString() ?? "0"}
-          onChangeText={(val) => handleChange(key, val)}
-          keyboardType="numeric"
+    <View style={styles.container}>
+      <Section title="Basic Information">
+        <FormInput
+          label="Property Type"
+          placeholder="House, Apartment..."
+          value={formData.propertyType}
+          onChangeText={(val: string) => handleChange("propertyType", val)}
+          error={errors.propertyType}
+          theme={currentTheme}
         />
-      ))}
+        <FormInput
+          label="Title"
+          placeholder="A catchy title for your property"
+          value={formData.title}
+          onChangeText={(val: string) => handleChange("title", val)}
+          error={errors.title}
+          theme={currentTheme}
+        />
+        <FormInput
+          label="City"
+          placeholder="e.g., New York"
+          value={formData.city}
+          onChangeText={(val: string) => handleChange("city", val)}
+          error={errors.city}
+          theme={currentTheme}
+        />
+        <FormInput
+          label="Description"
+          placeholder="Describe your property in detail"
+          value={formData.description}
+          onChangeText={(val: string) => handleChange("description", val)}
+          multiline
+          theme={currentTheme}
+        />
+      </Section>
 
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 10 }}>
-        {["furnished", "utilitiesIncluded", "petsAllowed"].map((key) => (
+      <Section title="Property Details">
+        <View style={styles.twoColumnContainer}>
+          <FormInput
+            label="Bedrooms"
+            value={formData.bedrooms?.toString() || ""}
+            onChangeText={(val: string) => handleChange("bedrooms", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+          <FormInput
+            label="Bathrooms"
+            value={formData.bathrooms?.toString() || ""}
+            onChangeText={(val: string) => handleChange("bathrooms", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+        </View>
+        <View style={styles.twoColumnContainer}>
+          <FormInput
+            label="Area (sq ft)"
+            value={formData.area?.toString() || ""}
+            onChangeText={(val: string) => handleChange("area", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+          <FormInput
+            label="Floor"
+            value={formData.floor?.toString() || ""}
+            onChangeText={(val: string) => handleChange("floor", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+        </View>
+        <View style={styles.twoColumnContainer}>
+          <FormInput
+            label="Kitchens"
+            value={formData.kitchens?.toString() || ""}
+            onChangeText={(val: string) => handleChange("kitchens", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+          <FormInput
+            label="Living Rooms"
+            value={formData.livingRooms?.toString() || ""}
+            onChangeText={(val: string) => handleChange("livingRooms", val)}
+            keyboardType="numeric"
+            theme={currentTheme}
+          />
+        </View>
+        <Text
+          style={[styles.subsectionTitle, { color: currentTheme.secondary }]}
+        >
+          Property Features
+        </Text>
+        <View style={styles.toggleGroup}>
+          {[
+            { key: "furnished", label: "Furnished" },
+            { key: "utilitiesIncluded", label: "Utilities Included" },
+            { key: "petsAllowed", label: "Pets Allowed" },
+          ].map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.toggleBtn,
+                {
+                  backgroundColor: !!formData[key]
+                    ? currentTheme.primary
+                    : currentTheme.background,
+                  borderColor: currentTheme.border,
+                },
+              ]}
+              onPress={() => handleChange(key, !formData[key])}
+            >
+              <Text
+                style={{
+                  color: !!formData[key] ? "#fff" : currentTheme.text,
+                  fontWeight: "600",
+                }}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Section>
+
+      <Section title="Financial Information">
+        <FormInput
+          label="Rent Price"
+          value={formData.rentPrice?.toString() || ""}
+          onChangeText={(val: string) => handleChange("rentPrice", val)}
+          keyboardType="numeric"
+          error={errors.rentPrice}
+          theme={currentTheme}
+        />
+        <FormInput
+          label="Security Deposit"
+          value={formData.securityDeposit?.toString() || ""}
+          onChangeText={(val: string) => handleChange("securityDeposit", val)}
+          keyboardType="numeric"
+          theme={currentTheme}
+        />
+        <FormInput
+          label="Maintenance Charges"
+          value={formData.maintenanceCharges?.toString() || ""}
+          onChangeText={(val: string) =>
+            handleChange("maintenanceCharges", val)
+          }
+          keyboardType="numeric"
+          theme={currentTheme}
+        />
+      </Section>
+
+      <Section title="Amenities">
+        <View style={styles.toggleGroup}>
+          {[
+            { key: "electricity", label: "Electricity" },
+            { key: "water", label: "Water" },
+            { key: "gas", label: "Gas" },
+            { key: "internet", label: "Internet" },
+            { key: "parking", label: "Parking" },
+            { key: "security", label: "Security" },
+            { key: "lift", label: "Lift" },
+          ].map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.toggleBtn,
+                {
+                  backgroundColor: formData.amenities?.includes(key)
+                    ? currentTheme.primary
+                    : currentTheme.background,
+                  borderColor: currentTheme.border,
+                },
+              ]}
+              onPress={() => {
+                const amenities = formData.amenities || [];
+                handleChange(
+                  "amenities",
+                  amenities.includes(key)
+                    ? amenities.filter((a: string) => a !== key)
+                    : [...amenities, key]
+                );
+              }}
+            >
+              <Text
+                style={{
+                  color: formData.amenities?.includes(key)
+                    ? "#fff"
+                    : currentTheme.text,
+                  fontWeight: "600",
+                }}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </Section>
+
+      <Section title="Media & Location">
+        <View style={{ flexDirection: "row", gap: 10 }}>
           <TouchableOpacity
-            key={key}
             style={[
-              styles.toggleBtn,
-              {
-                backgroundColor: !!formData[key] ? currentTheme.primary : currentTheme.card,
-                borderColor: currentTheme.border,
-              },
+              styles.uploadBtn,
+              { borderColor: currentTheme.primary, flex: 1 },
             ]}
-            onPress={() => handleChange(key, !formData[key])}
+            onPress={() => pickMedia("photo")}
+            disabled={mediaLoading === "photo"}
           >
-            <Text style={{ color: !!formData[key] ? "#fff" : currentTheme.text, fontSize: 13 }}>
-              {key.charAt(0).toUpperCase() + key.slice(1)}
-            </Text>
+            {mediaLoading === "photo" ? (
+              <ActivityIndicator color={currentTheme.primary} />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="image-plus"
+                  size={24}
+                  color={currentTheme.primary}
+                />
+                <Text
+                  style={[styles.uploadText, { color: currentTheme.primary }]}
+                >
+                  Add Photos
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Amenities */}
-      <Text style={[styles.subHeader, { color: currentTheme.text }]}>Amenities</Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 10 }}>
-        {["electricity", "water", "gas", "internet", "parking", "security", "lift"].map((key) => (
           <TouchableOpacity
-            key={key}
             style={[
-              styles.toggleBtn,
-              {
-                backgroundColor: formData.amenities?.includes(key)
-                  ? currentTheme.primary
-                  : currentTheme.card,
-                borderColor: currentTheme.border,
-              },
+              styles.uploadBtn,
+              { borderColor: currentTheme.primary, flex: 1 },
             ]}
-            onPress={() => {
-              const amenities = formData.amenities || [];
-              handleChange(
-                "amenities",
-                amenities.includes(key)
-                  ? amenities.filter((a: string) => a !== key)
-                  : [...amenities, key]
-              );
-            }}
+            onPress={() => pickMedia("video")}
+            disabled={mediaLoading === "video"}
           >
-            <Text style={{ color: formData.amenities?.includes(key) ? "#fff" : currentTheme.text, fontSize: 13 }}>
-              {key.charAt(0).toUpperCase() + key.slice(1)}
-            </Text>
+            {mediaLoading === "video" ? (
+              <ActivityIndicator color={currentTheme.primary} />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="video-plus"
+                  size={24}
+                  color={currentTheme.primary}
+                />
+                <Text
+                  style={[styles.uploadText, { color: currentTheme.primary }]}
+                >
+                  Add Videos
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Preferences */}
-      <TextInput
-        style={[styles.input, themeStyle(currentTheme)]}
-        placeholder="Preferences (comma separated)"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.preferences}
-        onChangeText={(val) => handleChange("preferences", val)}
-      />
-
-      {/* Media Upload */}
-      <TouchableOpacity
-        style={[styles.uploadBtn, { borderColor: currentTheme.primary }]}
-        onPress={pickMedia}
-        disabled={mediaLoading === "photo"}
-      >
-        {mediaLoading === "photo" ? (
-          <ActivityIndicator color={currentTheme.primary} />
-        ) : (
-          <Text style={[styles.uploadText, { color: currentTheme.primary }]}>+ Add Photos</Text>
+        </View>
+        {formData.images?.length > 0 && (
+          <View style={styles.imageGallery}>
+            {formData.images.map((img: any, idx: number) => (
+              <Text
+                key={idx}
+                style={[styles.imageName, { color: currentTheme.secondary }]}
+              >
+                <MaterialCommunityIcons name="image" size={16} />{" "}
+                {img.name || `Photo ${idx + 1}`}
+              </Text>
+            ))}
+          </View>
         )}
-      </TouchableOpacity>
-      {formData.images?.length > 0 &&
-        formData.images.map((img: any, idx: number) => (
-          <Text key={idx} style={{ color: currentTheme.text, fontSize: 13 }}>
-            {img.fileName || img.uri?.split("/").pop() || `Photo ${idx + 1}`}
-          </Text>
-        ))}
-
-      {/* Description */}
-      <TextInput
-        style={[styles.input, styles.textarea, themeStyle(currentTheme)]}
-        placeholder="Description"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.description}
-        onChangeText={(val) => handleChange("description", val)}
-        multiline
-      />
-
-      {/* Location */}
-      <Text style={[styles.subHeader, { color: currentTheme.text }]}>Select Location</Text>
-      <LocationPicker
-        onPick={(lat, lng, address) => {
-          handleChange("latitude", lat);
-          handleChange("longitude", lng);
-          handleChange("address", address);
-        }}
-      />
-
-      {/* Address */}
-      <TextInput
-        style={[styles.input, themeStyle(currentTheme)]}
-        placeholder="Address"
-        placeholderTextColor={currentTheme.muted}
-        value={formData.address}
-        onChangeText={(val) => handleChange("address", val)}
-      />
+        {formData.videos?.length > 0 && (
+          <View style={styles.imageGallery}>
+            {formData.videos.map((vid: any, idx: number) => (
+              <Text
+                key={idx}
+                style={[styles.imageName, { color: currentTheme.secondary }]}
+              >
+                <MaterialCommunityIcons name="video" size={16} />{" "}
+                {vid.name || `Video ${idx + 1}`}
+              </Text>
+            ))}
+          </View>
+        )}
+        <Text
+          style={[styles.subsectionTitle, { color: currentTheme.secondary }]}
+        >
+          Property Location
+        </Text>
+        {locationLoading && <ActivityIndicator color={currentTheme.primary} />}
+        <LocationPicker
+          onPick={(lat, lng, address) => {
+            setLocationLoading(true);
+            handleChange("latitude", lat);
+            handleChange("longitude", lng);
+            handleChange("address", address);
+            setLocationLoading(false);
+          }}
+        />
+        <FormInput
+          label="Address"
+          placeholder="Full address (Street, locality...)"
+          value={formData.address}
+          onChangeText={(val: string) => handleChange("address", val)}
+          theme={currentTheme}
+        />
+      </Section>
     </View>
   );
 }
 
-function themeStyle(currentTheme: any) {
-  return {
-    borderColor: currentTheme.border,
-    color: currentTheme.text,
-    backgroundColor: currentTheme.card,
-  };
-}
-
 const styles = StyleSheet.create({
-  subHeader: { fontSize: 18, fontWeight: "600", marginTop: 15, marginBottom: 10 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 15, fontSize: 16 },
+  container: { paddingHorizontal: 16, paddingVertical: 10 },
+  sectionContainer: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 15 },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: "500", marginBottom: 8 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 16 },
   textarea: { height: 100, textAlignVertical: "top" },
-  uploadBtn: { borderWidth: 1, borderRadius: 8, padding: 12, marginBottom: 10, alignItems: "center" },
-  uploadText: { fontWeight: "600" },
-  toggleBtn: { borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginRight: 8, marginBottom: 8 },
-  error: { color: "red" },
+  errorText: { color: "red", fontSize: 12, marginTop: 4, fontWeight: "500" },
+  toggleGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  toggleBtn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 15,
+    gap: 10,
+  },
+  uploadText: { fontWeight: "700", fontSize: 16 },
+  imageGallery: { marginBottom: 10 },
+  imageName: {
+    fontSize: 14,
+    marginBottom: 5,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  twoColumnContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+  },
 });

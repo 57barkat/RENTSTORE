@@ -1,0 +1,49 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+// =================================================================
+// FORCED KOTLIN VERSION FIX FOR 'Key 1.9.25 is missing' ERROR
+// =================================================================
+ext {
+    // This explicitly sets a stable Kotlin version (1.8.20) 
+    // to override the problematic version (1.9.25) being injected by Expo plugins.
+    kotlinVersion = "1.8.20" 
+}
+// =================================================================
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    // Note: The 'org.jetbrains.kotlin:kotlin-gradle-plugin' dependency 
+    // will now use the version defined in the 'ext' block above.
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}
+
+def reactNativeAndroidDir = new File(
+  providers.exec {
+    workingDir(rootDir)
+    commandLine("node", "--print", "require.resolve('react-native/package.json')")
+  }.standardOutput.asText.get().trim(),
+  "../android"
+)
+
+allprojects {
+  repositories {
+    maven {
+      // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+      url(reactNativeAndroidDir)
+    }
+
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"

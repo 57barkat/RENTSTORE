@@ -15,6 +15,7 @@ import {
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const MyListingProperties = () => {
   const {
@@ -51,9 +52,9 @@ const MyListingProperties = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
         <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ marginTop: 8, color: currentTheme.text }}>
+        <Text style={[styles.loadingText, { color: currentTheme.text }]}>
           Loading properties...
         </Text>
       </View>
@@ -62,21 +63,30 @@ const MyListingProperties = () => {
 
   if (error) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: currentTheme.error }}>Failed to load properties.</Text>
+      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
+        <Text style={[styles.errorText, { color: currentTheme.error }]}>
+          Failed to load properties.
+        </Text>
       </View>
     );
   }
 
   return (
     <FlatList
-      style={{ flex: 1, padding: 8, backgroundColor: currentTheme.background }}
+      style={{ flex: 1, backgroundColor: currentTheme.background }}
       data={myProperties ?? []}
       keyExtractor={(item, index) => item._id ?? index.toString()}
       ListHeaderComponent={
-        <View>
+        <View style={styles.headerContainer}>
           <Text style={[styles.header, { color: currentTheme.text }]}>
             My Listing Properties
+          </Text>
+        </View>
+      }
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+            You have no properties listed.
           </Text>
         </View>
       }
@@ -84,43 +94,66 @@ const MyListingProperties = () => {
         <View
           style={[
             styles.card,
-            { backgroundColor: currentTheme.card, width: width * 0.95 },
+            {
+              backgroundColor: currentTheme.card,
+              width: width * 0.9,
+              borderColor: currentTheme.border,
+            },
           ]}
         >
-          <Text style={[styles.title, { color: currentTheme.text }]}>
-            {item.title}
-          </Text>
-          <Text style={[styles.location, { color: currentTheme.muted }]}>
-            📍 {item.city} | {item.address}
-          </Text>
-          <Text style={[styles.price, { color: currentTheme.primary }]}>
-            💰 Rs. {item.rentPrice.toLocaleString()}
-          </Text>
+          <View style={styles.infoSection}>
+            <Text style={[styles.title, { color: currentTheme.text }]}>
+              {item.title}
+            </Text>
+            <View style={styles.row}>
+              <MaterialCommunityIcons name="map-marker-outline" size={16} color={currentTheme.muted} />
+              <Text style={[styles.location, { color: currentTheme.muted }]}>
+                {item.city} | {item.address}
+              </Text>
+            </View>
+            <View style={styles.row}>
+              <MaterialCommunityIcons name="currency-usd" size={16} color={currentTheme.primary} />
+              <Text style={[styles.price, { color: currentTheme.primary }]}>
+                Rs. {item.rentPrice.toLocaleString()}
+              </Text>
+            </View>
+          </View>
 
-          {/* Buttons Row */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.success }]}
               onPress={() => handleOpenDetails(item._id)}
             >
+              <MaterialCommunityIcons name="eye-outline" size={20} color="#fff" />
               <Text style={styles.buttonText}>View</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.info }]}
               onPress={() => handleEdit(item._id)}
             >
+              <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
               <Text style={styles.buttonText}>Edit</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.danger }]}
-              onPress={() => handleDelete(item._id)}
+              onPress={() =>
+                Alert.alert(
+                  "Confirm Deletion",
+                  "Are you sure you want to delete this property?",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    { text: "Delete", style: "destructive", onPress: () => handleDelete(item._id) },
+                  ]
+                )
+              }
             >
+              <MaterialCommunityIcons name="delete-outline" size={20} color="#fff" />
               <Text style={styles.buttonText}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
-      contentContainerStyle={{ alignItems: "center", paddingBottom: 40 }}
+      contentContainerStyle={{ alignItems: "center", paddingVertical: 10 }}
     />
   );
 };
@@ -131,46 +164,83 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  loadingText: {
+    marginTop: 8,
+  },
+  errorText: {
+    marginTop: 8,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  headerContainer: {
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e0e0e0',
+    marginBottom: 8,
+  },
   header: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: 'center',
   },
   card: {
-    padding: 14,
-    marginBottom: 20,
-    borderRadius: 10,
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  infoSection: {
+    marginBottom: 16,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
-    marginTop: 10,
+    marginBottom: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 4,
   },
   location: {
-    marginBottom: 2,
+    fontSize: 14,
   },
   price: {
-    fontWeight: "500",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 12,
+    gap: 10,
   },
   button: {
     flex: 1,
-    marginHorizontal: 4,
-    paddingVertical: 8,
-    borderRadius: 6,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
   },
   buttonText: {
     color: "#fff",
     fontWeight: "600",
+    fontSize: 14,
   },
 });
 

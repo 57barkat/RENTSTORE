@@ -114,26 +114,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContainer: {
-    padding: 20,
+    padding: 24,
   },
   heading: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "800",
     marginBottom: 5,
+    textAlign: "center",
   },
   date: {
     fontSize: 14,
-    marginBottom: 20,
+    marginBottom: 30,
+    textAlign: "center",
   },
   sectionHeading: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 15,
-    marginBottom: 5,
+    fontSize: 20,
+    fontWeight: "700",
+    marginTop: 20,
+    marginBottom: 8,
   },
   paragraph: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
     marginBottom: 10,
   },
 });

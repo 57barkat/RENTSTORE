@@ -24,10 +24,16 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post("create")
-  @UseInterceptors(FileFieldsInterceptor([{ name: "images", maxCount: 10 }]))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "images", maxCount: 10 },
+      { name: "videos", maxCount: 5 },  
+    ])
+  )
   async createProperty(
     @Body() dto: CreatePropertyDto,
-    @UploadedFiles() files: { images?: Express.Multer.File[] },
+    @UploadedFiles()
+    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
     @Req() req: any
   ) {
     if (!req.user || !req.user.userId) {
@@ -35,8 +41,15 @@ export class PropertyController {
     }
 
     const userId = req.user.userId;
-    const imageFiles = files.images || [];
-    return this.propertyService.create(dto, imageFiles, userId);
+    const uploadedImages = files.images || [];
+    const uploadedVideos = files.videos || [];
+
+    return this.propertyService.create(
+      dto,
+      uploadedImages,
+      uploadedVideos,
+      userId
+    );
   }
 
   @Get()

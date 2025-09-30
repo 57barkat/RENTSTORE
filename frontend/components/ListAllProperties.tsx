@@ -1,4 +1,3 @@
-
 import {
   useAddToFavMutation,
   useGetFilteredPropertiesQuery,
@@ -14,7 +13,7 @@ import {
   StyleSheet,
   TextInput,
 } from "react-native";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router, useFocusEffect } from "expo-router";
@@ -24,7 +23,7 @@ import { pakistaniCities } from "@/utils/cities";
 
 const dummyFilterOptions = {
   cities: pakistaniCities,
-  bedrooms: [1, 2, 3, 4 , 5 , 6 , 7],
+  bedrooms: [1, 2, 3, 4, 5, 6, 7],
   rentRange: { min: 0, max: 100000 },
 };
 
@@ -39,9 +38,7 @@ export default function ListAllProperties() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [debouncedCity] = useDebounce(cityInput, 500);
 
-  const [rentRange, setRentRange] = useState<{ min?: number; max?: number }>(
-    {}
-  );
+  const [rentRange, setRentRange] = useState<{ min?: number; max?: number }>({});
   const [bedrooms, setBedrooms] = useState<number | null>(null);
 
   const filterOptions = dummyFilterOptions;
@@ -79,7 +76,6 @@ export default function ListAllProperties() {
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
 
- 
   useFocusEffect(
     useCallback(() => {
       refetch();
@@ -93,7 +89,7 @@ export default function ListAllProperties() {
       } else {
         await addToFav({ propertyId });
       }
-      refetch();  
+      refetch();
     } catch (err) {
       console.log("Fav error:", err);
     }
@@ -109,10 +105,10 @@ export default function ListAllProperties() {
     setPage(1);
   };
 
- const handleBedroomsChange = (value: number) => {
-  setBedrooms(prev => (prev === value ? null : value));
-  setPage(1);
-};
+  const handleBedroomsChange = (value: number) => {
+    setBedrooms((prev) => (prev === value ? null : value));
+    setPage(1);
+  };
 
   const handleSuggestionPress = (city: string) => {
     setCityInput(city);
@@ -124,59 +120,21 @@ export default function ListAllProperties() {
     setPage(1);
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ marginTop: 8, color: currentTheme.text }}>
-          Loading properties...
-        </Text>
-      </View>
-    );
-  }
-
-  if (isError) {
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: currentTheme.error }}>
-          Error loading properties.
-        </Text>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: currentTheme.primary }]}
-          onPress={() => refetch()}
-        >
-          <Text style={styles.buttonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const totalPages = propertiesData.totalPages || 1;
- 
-
-  return (
-    <View
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
-    >
-      {/* Filters */}
-      <View
-        style={[
-          styles.filterCard,
-          {
-            backgroundColor: currentTheme.card,
-            borderColor: currentTheme.border,
-            marginBottom: 10,
-          },
-        ]}
-      >
-        {/* City Search */}
+  const renderHeader = () => (
+    <View style={styles.filterContainer}>
+      <Text style={[styles.filterTitle, { color: currentTheme.text }]}>Filters</Text>
+      <View style={styles.filterSection}>
         <TextInput
           placeholder="Search by city..."
           value={cityInput}
           onChangeText={handleCityChange}
           style={[
             styles.input,
-            { borderColor: currentTheme.border, color: currentTheme.text },
+            {
+              borderColor: currentTheme.border,
+              color: currentTheme.text,
+              backgroundColor: currentTheme.background,
+            },
           ]}
           placeholderTextColor={currentTheme.muted}
         />
@@ -206,208 +164,419 @@ export default function ListAllProperties() {
               ))}
           </View>
         )}
+      </View>
 
-        {/* Rent Range */}
-        <View style={{ marginVertical: 12 }}>
-          <Text style={{ color: currentTheme.text, marginBottom: 4 }}>
-            Rent Range: {rentRange.min ?? filterOptions.rentRange.min} -{" "}
-            {rentRange.max ?? filterOptions.rentRange.max}
-          </Text>
-
+      <View style={styles.filterSection}>
+        <Text style={[styles.filterLabel, { color: currentTheme.text }]}>
+          Rent Range:
+        </Text>
+        <Text style={[styles.filterValue, { color: currentTheme.text }]}>
+          Rs. {rentRange.min ?? filterOptions.rentRange.min} - Rs.{" "}
+          {rentRange.max ?? filterOptions.rentRange.max}
+        </Text>
+        <View>
           <Slider
             minimumValue={filterOptions.rentRange.min}
             maximumValue={filterOptions.rentRange.max}
             step={1000}
             value={rentRange.min ?? filterOptions.rentRange.min}
-            onValueChange={(min) => handleRentChange(min, rentRange.max)}
+            onSlidingComplete={(min) => handleRentChange(min, rentRange.max)}
             minimumTrackTintColor={currentTheme.primary}
             maximumTrackTintColor={currentTheme.border}
-            thumbTintColor={currentTheme.success}
+            thumbTintColor={currentTheme.primary}
           />
-
           <Slider
             minimumValue={filterOptions.rentRange.min}
             maximumValue={filterOptions.rentRange.max}
             step={1000}
             value={rentRange.max ?? filterOptions.rentRange.max}
-            onValueChange={(max) => handleRentChange(rentRange.min, max)}
+            onSlidingComplete={(max) => handleRentChange(rentRange.min, max)}
             minimumTrackTintColor={currentTheme.primary}
             maximumTrackTintColor={currentTheme.border}
-            thumbTintColor={currentTheme.success}
+            thumbTintColor={currentTheme.primary}
           />
         </View>
+      </View>
 
-        {/* Bedrooms */}
-        <View
-          style={{ flexDirection: "row", flexWrap: "wrap", marginVertical: 10 }}
-        >
+      <View style={styles.filterSection}>
+        <Text style={[styles.filterLabel, { color: currentTheme.text }]}>Bedrooms</Text>
+        <View style={styles.chipsContainer}>
           {filterOptions.bedrooms.map((b) => (
             <TouchableOpacity
               key={b}
               onPress={() => handleBedroomsChange(b)}
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 12,
-                margin: 4,
-                borderRadius: 20,
-                backgroundColor:
-                  bedrooms === b ? currentTheme.primary : currentTheme.card,
-                borderWidth: 1,
-                borderColor: currentTheme.border,
-              }}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    bedrooms === b ? currentTheme.primary : "transparent",
+                  borderColor:
+                    bedrooms === b ? currentTheme.primary : currentTheme.border,
+                },
+              ]}
             >
-              <Text
-                style={{ color: bedrooms === b ? "#fff" : currentTheme.text }}
-              >
-                Bedrooms: {b}
+              <Text style={[styles.chipText, { color: bedrooms === b ? "#fff" : currentTheme.text }]}>
+                {b}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
+    </View>
+  );
 
-      {/* Property List */}
-
-      {!propertiesData ||
-      !Array.isArray(propertiesData.data) ||
-      propertiesData.data.length === 0 ? (
-        <Text style={{ color: currentTheme.text }}>No properties found</Text>
-      ) : (
-        <FlatList
-          data={propertiesData?.data}
-          keyExtractor={(item) => item._id}
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.card,
-                {
-                  backgroundColor: currentTheme.card,
-                  borderColor: currentTheme.border,
-                },
-              ]}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Text style={[styles.title, { color: currentTheme.text }]}>
-                  {item.title}
-                </Text>
-
-                <TouchableOpacity
-                  onPress={() => handleToggleFav(item._id, item.isFav)}
-                >
-                  <FontAwesome
-                    name="heart"
-                    size={20}
-                    color={item.isFav ? "red" : "white"}
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <Text style={{ color: currentTheme.muted }}>
-                📍 {item.city} | 💰 Rent: Rs. {item.rentPrice}
-              </Text>
-              <Text style={{ color: currentTheme.text }}>
-                🛏️ Bedrooms: {item.bedrooms} | 🛋️ Furnished:{" "}
-                {item.furnished ? "Yes" : "No"}
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.viewButton,
-                  { backgroundColor: currentTheme.success },
-                ]}
-                onPress={() => handleOpenDetails(item._id)}
-              >
-                <Text style={styles.viewButtonText}>View Details</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+  const renderItem = ({ item }: { item: any }) => (
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: currentTheme.card,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.favButton}
+        onPress={() => handleToggleFav(item._id, item.isFav)}
+      >
+        <FontAwesome
+          name={item.isFav ? "heart" : "heart-o"}
+          size={24}
+          color={item.isFav ? currentTheme.danger : currentTheme.muted}
         />
-      )}
+      </TouchableOpacity>
 
-      <View style={styles.paginationRow}>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              backgroundColor:
-                page === 1 ? currentTheme.muted : currentTheme.primary,
-            },
-          ]}
-          onPress={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          <Text style={styles.buttonText}>Prev</Text>
-        </TouchableOpacity>
-
-        <Text style={{ color: currentTheme.text, fontWeight: "600" }}>
-          Page {page} of {totalPages}
+      <View style={styles.cardContent}>
+        <Text style={[styles.title, { color: currentTheme.text }]}>
+          {item.title}
         </Text>
 
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons
+            name="map-marker-outline"
+            size={16}
+            color={currentTheme.secondary}
+          />
+          <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
+            {item.city}
+          </Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons
+            name="currency-usd"
+            size={16}
+            color={currentTheme.secondary}
+          />
+          <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
+            Rent: Rs. {item.rentPrice}
+          </Text>
+        </View>
+
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <MaterialCommunityIcons
+              name="bed-outline"
+              size={16}
+              color={currentTheme.secondary}
+            />
+            <Text style={[styles.detailText, { color: currentTheme.secondary }]}>
+              {item.bedrooms}
+            </Text>
+          </View>
+          <View style={styles.detailItem}>
+            <MaterialCommunityIcons
+              name="sofa-outline"
+              size={16}
+              color={currentTheme.secondary}
+            />
+            <Text style={[styles.detailText, { color: currentTheme.secondary }]}>
+              {item.furnished ? "Furnished" : "Unfurnished"}
+            </Text>
+          </View>
+        </View>
+
         <TouchableOpacity
-          style={[
-            styles.button,
-            {
-              backgroundColor:
-                page >= totalPages ? currentTheme.muted : currentTheme.primary,
-            },
-          ]}
-          onPress={() => setPage((p) => (p < totalPages ? p + 1 : p))}
-          disabled={page >= totalPages}
+          style={[styles.viewButton, { backgroundColor: currentTheme.primary }]}
+          onPress={() => handleOpenDetails(item._id)}
         >
-          <Text style={styles.buttonText}>Next</Text>
+          <Text style={styles.viewButtonText}>View Details</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
+
+  const renderFooter = () => (
+    <View style={styles.paginationRow}>
+      <TouchableOpacity
+        style={[
+          styles.paginationButton,
+          {
+            backgroundColor: page === 1 ? currentTheme.muted : currentTheme.primary,
+          },
+        ]}
+        onPress={() => setPage((p) => Math.max(1, p - 1))}
+        disabled={page === 1}
+      >
+        <Text style={styles.paginationButtonText}>Previous</Text>
+      </TouchableOpacity>
+
+      <Text style={[styles.pageIndicator, { color: currentTheme.text }]}>
+        Page {page} of {propertiesData?.totalPages || 1}
+      </Text>
+
+      <TouchableOpacity
+        style={[
+          styles.paginationButton,
+          {
+            backgroundColor:
+              page >= (propertiesData?.totalPages || 1) ? currentTheme.muted : currentTheme.primary,
+          },
+        ]}
+        onPress={() => setPage((p) => (p < (propertiesData?.totalPages || 1) ? p + 1 : p))}
+        disabled={page >= (propertiesData?.totalPages || 1)}
+      >
+        <Text style={styles.paginationButtonText}>Next</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (isLoading) {
+    return (
+      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
+        <ActivityIndicator size="large" color={currentTheme.primary} />
+        <Text style={[styles.loadingText, { color: currentTheme.text }]}>
+          Loading properties...
+        </Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
+        <Text style={[styles.errorText, { color: currentTheme.error }]}>
+          Error loading properties.
+        </Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: currentTheme.primary }]}
+          onPress={() => refetch()}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.mainContainer, { backgroundColor: currentTheme.background }]}>
+      {renderHeader()}
+
+      <FlatList
+        data={propertiesData?.data}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        ListEmptyComponent={
+          <View style={styles.emptyList}>
+            <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+              No properties found matching your filters.
+            </Text>
+          </View>
+        }
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={renderFooter}
+      />
+    </View>
+  );
 }
 
-// Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  card: { marginBottom: 15, borderWidth: 1, padding: 14, borderRadius: 10 },
-  title: { fontWeight: "600", fontSize: 16, marginBottom: 4 },
+  mainContainer: {
+    flex: 1,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  retryButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  filterContainer: {
+    padding: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#ccc",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1,
+  },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  filterSection: {
+    marginBottom: 15,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  filterValue: {
+    fontSize: 14,
+    fontWeight: "400",
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    fontSize: 16,
+  },
+  suggestions: {
+    position: "absolute",
+    top: 50,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  chipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  listContent: {
+    padding: 16,
+    paddingBottom: 20,
+  },
+  card: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  favButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardContent: {
+    padding: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    gap: 5,
+  },
+  infoText: {
+    fontSize: 14,
+  },
+  detailsRow: {
+    flexDirection: "row",
+    gap: 20,
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  detailText: {
+    fontSize: 14,
+  },
+  viewButton: {
+    marginTop: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  viewButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
   paginationRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 12,
+    padding: 16,
   },
-  button: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
-  buttonText: { color: "#fff", fontWeight: "600" },
-  viewButton: {
-    marginTop: 10,
-    alignSelf: "flex-start",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+  paginationButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
-  viewButtonText: { color: "#fff", fontWeight: "600", fontSize: 13 },
-  filterCard: {
-    borderRadius: 12,
-    padding: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+  paginationButtonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
-  input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 8, height: 40 },
-  suggestions: {
-    position: "absolute",
-    top: 42,
-    left: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    zIndex: 10,
+  pageIndicator: {
+    fontWeight: "600",
   },
-  suggestionItem: { padding: 8, borderBottomWidth: 1, borderColor: "#eee" },
+  emptyList: {
+    flex: 1,
+    alignItems: "center",
+    marginTop: 50,
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
 });

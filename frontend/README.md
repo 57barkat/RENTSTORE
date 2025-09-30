@@ -48,3 +48,8 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+✅ For production
+
+Even though you’re on Windows for dev, in production you’ll almost certainly run Linux servers or cloud instances — so make sure NTP is enabled there too (using timedatectl set-ntp true).

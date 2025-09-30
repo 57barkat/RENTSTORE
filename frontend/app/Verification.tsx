@@ -1,9 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { useSendOtpMutation, useVerifyOtpMutation } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Verification() {
   const { theme } = useTheme();
@@ -13,11 +20,12 @@ export default function Verification() {
   const [otp, setOtp] = useState("");
   const [phoneSent, setPhoneSent] = useState(false);
   const [verified, setVerifiedState] = useState(false);
-
   const { setVerified } = useAuth();
 
   const [sendOtp, { isLoading: sending }] = useSendOtpMutation();
   const [verifyOtp, { isLoading: verifying }] = useVerifyOtpMutation();
+  const userPhone = AsyncStorage.getItem("userPhone");
+  console.log(userPhone)
 
   const handleSendOtp = async () => {
     if (!phone) return;
@@ -36,8 +44,8 @@ export default function Verification() {
       const res = await verifyOtp({ phone, otp }).unwrap();
       console.log("Verify OTP response:", res);
       if (res.success) {
-        await setVerified(true);  
-        setVerifiedState(true);   
+        await setVerified(true);
+        setVerifiedState(true);
       }
     } catch (err: any) {
       console.error("Verify OTP failed:", err.data || err);
@@ -45,14 +53,22 @@ export default function Verification() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
       {!verified && (
         <>
-          <Text style={[styles.label, { color: currentTheme.text }]}>Phone Number</Text>
+          <Text style={[styles.label, { color: currentTheme.text }]}>
+            Phone Number
+          </Text>
           <TextInput
             style={[
               styles.input,
-              { borderColor: currentTheme.border, color: currentTheme.text, backgroundColor: currentTheme.card },
+              {
+                borderColor: currentTheme.border,
+                color: currentTheme.text,
+                backgroundColor: currentTheme.card,
+              },
             ]}
             keyboardType="phone-pad"
             value={phone}
@@ -67,17 +83,30 @@ export default function Verification() {
               onPress={handleSendOtp}
               disabled={sending}
             >
-              <Text style={styles.buttonText}>{sending ? "Sending..." : "Send OTP"}</Text>
+              <Text style={styles.buttonText}>
+                {sending ? "Sending..." : "Send OTP"}
+              </Text>
             </TouchableOpacity>
           )}
 
           {phoneSent && (
             <>
-              <Text style={[styles.label, { color: currentTheme.text, marginTop: 20 }]}>Enter OTP</Text>
+              <Text
+                style={[
+                  styles.label,
+                  { color: currentTheme.text, marginTop: 20 },
+                ]}
+              >
+                Enter OTP
+              </Text>
               <TextInput
                 style={[
                   styles.input,
-                  { borderColor: currentTheme.border, color: currentTheme.text, backgroundColor: currentTheme.card },
+                  {
+                    borderColor: currentTheme.border,
+                    color: currentTheme.text,
+                    backgroundColor: currentTheme.card,
+                  },
                 ]}
                 keyboardType="number-pad"
                 value={otp}
@@ -87,11 +116,16 @@ export default function Verification() {
               />
               {otp.length > 0 && (
                 <TouchableOpacity
-                  style={[styles.button, { backgroundColor: currentTheme.success }]}
+                  style={[
+                    styles.button,
+                    { backgroundColor: currentTheme.success },
+                  ]}
                   onPress={handleVerifyOtp}
                   disabled={verifying}
                 >
-                  <Text style={styles.buttonText}>{verifying ? "Verifying..." : "Submit OTP"}</Text>
+                  <Text style={styles.buttonText}>
+                    {verifying ? "Verifying..." : "Submit OTP"}
+                  </Text>
                 </TouchableOpacity>
               )}
             </>
