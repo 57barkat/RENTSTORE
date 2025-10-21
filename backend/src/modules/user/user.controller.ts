@@ -27,7 +27,10 @@ export class UserController {
     private readonly userService: UserService,
     private readonly authService: AuthService
   ) {}
-
+  @Post("google")
+  async googleLogin(@Body("access_token") accessToken: string) {
+    return this.userService.googleLogin(accessToken);
+  }
   @Post("signup")
   async signup(
     @Body() createUserDto: CreateUserDto
@@ -73,6 +76,7 @@ export class UserController {
       agencyLicense: doc.agencyLicense,
       preferences: doc.preferences,
       isPhoneVerified: doc.isPhoneVerified,
+      TermsAndConditionsAccepted: doc.TermsAndConditionsAccepted,
       createdAt: doc["createdAt"],
       updatedAt: doc["updatedAt"],
       accessToken,
@@ -113,11 +117,13 @@ export class UserController {
       agencyLicense: user.agencyLicense,
       preferences: user.preferences,
       isPhoneVerified: user.isPhoneVerified,
+      TermsAndConditionsAccepted: user.TermsAndConditionsAccepted,
       createdAt: user["createdAt"],
       updatedAt: user["updatedAt"],
       accessToken,
     };
   }
+
   @Get()
   async getAll(): Promise<UserResponseDto[]> {
     const users = await this.userService.findAll();
@@ -131,6 +137,7 @@ export class UserController {
       agencyLicense: doc.agencyLicense,
       preferences: doc.preferences,
       isPhoneVerified: doc.isPhoneVerified,
+      TermsAndConditionsAccepted: doc.TermsAndConditionsAccepted,
       createdAt: doc["createdAt"],
       updatedAt: doc["updatedAt"],
     }));
@@ -158,6 +165,7 @@ export class UserController {
       agencyLicense: deletedUser.agencyLicense,
       preferences: deletedUser.preferences,
       isPhoneVerified: deletedUser.isPhoneVerified,
+      TermsAndConditionsAccepted: deletedUser.TermsAndConditionsAccepted,
       createdAt: deletedUser["createdAt"],
       updatedAt: deletedUser["updatedAt"],
     };
@@ -184,6 +192,7 @@ export class UserController {
       agencyLicense: user.agencyLicense,
       preferences: user.preferences,
       isPhoneVerified: true,
+      TermsAndConditionsAccepted: user.TermsAndConditionsAccepted,
       createdAt: user["createdAt"],
       updatedAt: new Date(),
     };

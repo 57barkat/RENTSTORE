@@ -46,6 +46,8 @@ export class User {
   subscriptions?: string[];
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Property' }], default: [] })
   favorites: Types.ObjectId[]
+  @Prop()
+  TermsAndConditionsAccepted: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

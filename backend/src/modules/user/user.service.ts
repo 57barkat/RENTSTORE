@@ -1,12 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { User, UserDocument } from "./user.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
+import { JwtService } from "@nestjs/jwt";
+import { OAuth2Client } from "google-auth-library";
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private jwtService: JwtService
+  ) {}
+  private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   private async cleanupUnverifiedUsers() {
     const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
 
@@ -15,7 +21,36 @@ export class UserService {
       createdAt: { $lt: fiveHoursAgo },
     });
   }
+  async googleLogin(accessToken: string) {
+    try {
+      const ticket = await this.client.verifyIdToken({
+        idToken: accessToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
 
+      const payload = ticket.getPayload();
+      if (!payload?.email)
+        throw new UnauthorizedException("Invalid Google token");
+
+      // find or create user
+      let user = await this.userModel.findOne({ email: payload.email });
+
+      if (!user) {
+        user = await this.userModel.create({
+          name: payload.name,
+          email: payload.email,
+          isPhoneVerified: true,
+          password: null, // Google users don't have password
+          picture: payload.picture,
+        });
+      }
+
+      const jwt = this.jwtService.sign({ email: user.email, sub: user._id });
+      return { accessToken: jwt, user };
+    } catch (error) {
+      throw new UnauthorizedException("Google login failed");
+    }
+  }
   async create(createUserDto: CreateUserDto): Promise<User | string> {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     await this.cleanupUnverifiedUsers();
@@ -41,6 +76,7 @@ export class UserService {
       ...createUserDto,
       password: hashedPassword,
       isPhoneVerified: false,
+      TermsAndConditionsAccepted: createUserDto.acceptedTerms,
     });
     return createdUser.save();
   }
