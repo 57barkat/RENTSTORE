@@ -17,6 +17,7 @@ import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
 } from "@/contextStore/ThemeContext";
+import { FormProvider } from "@/contextStore/FormContext";
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -62,46 +63,52 @@ export default function RootLayout() {
     <Provider store={store}>
       <AuthProvider>
         <CustomThemeProvider>
-          <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-            {/* {!hideHeader && <Header />} */}
-            <Header />
-            <Stack>
-              <Stack.Screen name="signin" options={{ headerShown: false }} />
-              <Stack.Screen name="signup" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="choose-role"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="Verification"
-                options={{ headerShown: false }}
-              />
+          <FormProvider>
+            <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+              {/* {!hideHeader && <Header />} */}
+              <Header />
+              <Stack>
+                <Stack.Screen name="signin" options={{ headerShown: false }} />
+                <Stack.Screen name="signup" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="choose-role"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Verification"
+                  options={{ headerShown: false }}
+                />
 
-              <Stack.Screen
-                name="property/[id]"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="property/edit/[id]"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="MyListingsScreen"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="PrivacyPolicyScreen"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="favorites" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="property/[id]"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="property/edit/[id]"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="MyListingsScreen"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="PrivacyPolicyScreen"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="favorites"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="upload" options={{ headerShown: false }} />
 
-              <Stack.Screen name="+not-found" />
-            </Stack>
+                <Stack.Screen name="+not-found" />
+              </Stack>
 
-            <StatusBar style="auto" />
-            <Toast />
-          </ThemeProvider>
+              <StatusBar style="auto" />
+              <Toast />
+            </ThemeProvider>
+          </FormProvider>
         </CustomThemeProvider>
       </AuthProvider>
     </Provider>

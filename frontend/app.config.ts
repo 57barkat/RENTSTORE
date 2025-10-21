@@ -1,4 +1,4 @@
-import { ConfigContext, ExpoConfig } from '@expo/config';
+import { ConfigContext, ExpoConfig } from "@expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -14,19 +14,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     ...config.ios,
     supportsTablet: true,
-    bundleIdentifier: "com.usmannaeem.rentstore",
+    bundleIdentifier: "com.usman_naeem.frontend",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
     ...config.android,
+    // [1] CORRECT LOCATION for templateDir override
+     ...(config.android as any),
+    templateDir: "./templates", 
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
-    package: "com.usmannaeem.rentstore",
+    package: "com.usman_naeem.frontend",
   },
   web: {
     ...config.web,
@@ -36,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     ...config.extra,
-    // The 'auth0' block has been removed as it conflicts with Google OAuth/Expo Auth
+    // [2] Cleaned up 'extra' block: Only keep generic metadata and EAS project ID
     eas: {
       projectId: "44299887-b9d1-4e31-8ce5-0b8686a8f699",
     },
@@ -44,6 +47,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     "expo-router",
+    // [3] Use expo-build-properties plugin to enforce Kotlin version
+    [
+      "expo-build-properties",
+      {
+        android: {
+          kotlinVersion: "2.0.21", // <--- CORRECT LOCATION for Kotlin version
+        },
+      },
+    ],
     [
       "expo-splash-screen",
       {
@@ -54,7 +66,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     "expo-video",
-    // The "react-native-auth0" plugin has been removed
     "expo-web-browser",
     "expo-secure-store",
   ],

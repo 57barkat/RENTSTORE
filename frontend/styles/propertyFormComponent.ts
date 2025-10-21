@@ -1,0 +1,63 @@
+import { StyleSheet } from "react-native";
+
+export const styles = StyleSheet.create({
+  container: { paddingHorizontal: 16, paddingVertical: 10 },
+  sectionContainer: {
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 15 },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  inputGroup: { marginBottom: 15 },
+  label: { fontSize: 14, fontWeight: "500", marginBottom: 8 },
+  input: { borderWidth: 1, borderRadius: 8, padding: 12, fontSize: 16 },
+  textarea: { height: 100, textAlignVertical: "top" },
+  errorText: { color: "red", fontSize: 12, marginTop: 4, fontWeight: "500" },
+  toggleGroup: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 10,
+  },
+  toggleBtn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  uploadBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 15,
+    gap: 10,
+  },
+  uploadText: { fontWeight: "700", fontSize: 16 },
+  imageGallery: { marginBottom: 10 },
+  imageName: {
+    fontSize: 14,
+    marginBottom: 5,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  twoColumnContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+  },
+});

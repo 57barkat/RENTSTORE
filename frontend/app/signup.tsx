@@ -7,6 +7,9 @@ import {
   ScrollView,
   View,
   ActivityIndicator,
+  Modal,
+  SafeAreaView,
+  Pressable,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,10 +19,14 @@ import { Formik } from "formik";
 import { signupValidationSchema } from "@/utils/signupValidation";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useTheme } from "@/contextStore/ThemeContext";
+import GoogleLoginButton from "./SignInScreenWithOauth";
 import { Colors } from "../constants/Colors";
+import { Checkbox } from "react-native-paper";
 
 export default function SignUpScreen() {
   const [role, setRole] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [createUser, { isLoading }] = useCreateUserMutation();
   const { login } = useAuth();
   const router = useRouter();
@@ -44,17 +51,26 @@ export default function SignUpScreen() {
     agencyName: "",
     agencyLicense: "",
     preferences: "",
+    acceptedTerms: true,
   };
 
   const handleSignUp = async (values: typeof initialValues) => {
-    const payload = { ...values, role };
+    if (!acceptedTerms) {
+      Toast.show({
+        type: "error",
+        text1: "Terms & Conditions",
+        text2: "You must accept the Terms and Conditions to continue.",
+      });
+      return;
+    }
+
+    const payload = { ...values, role, hasAcceptedTerms: acceptedTerms };
 
     try {
       const result = await createUser(payload).unwrap();
 
       if (result.accessToken) {
         await login(result.accessToken);
-
         await AsyncStorage.setItem("userName", values.name);
         await AsyncStorage.setItem("userEmail", values.email);
         await AsyncStorage.setItem("userPhone", values.phone);
@@ -106,6 +122,7 @@ export default function SignUpScreen() {
         <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
           Please fill out the form below
         </Text>
+
         <Formik
           initialValues={initialValues}
           validationSchema={signupValidationSchema(role)}
@@ -120,6 +137,7 @@ export default function SignUpScreen() {
             touched,
           }) => (
             <>
+              {/* Full Name */}
               <TextInput
                 style={[
                   styles.input,
@@ -157,7 +175,6 @@ export default function SignUpScreen() {
               {touched.email && errors.email && (
                 <Text style={styles.error}>{errors.email}</Text>
               )}
-
               <TextInput
                 style={[
                   styles.input,
@@ -177,6 +194,7 @@ export default function SignUpScreen() {
                 <Text style={styles.error}>{errors.password}</Text>
               )}
 
+              {/* Phone */}
               <TextInput
                 style={[
                   styles.input,
@@ -196,6 +214,7 @@ export default function SignUpScreen() {
                 <Text style={styles.error}>{errors.phone}</Text>
               )}
 
+              {/* Agency fields */}
               {role === "agency" && (
                 <>
                   <TextInput
@@ -235,6 +254,7 @@ export default function SignUpScreen() {
                 </>
               )}
 
+              {/* Preferences */}
               <TextInput
                 style={[
                   styles.input,
@@ -249,6 +269,8 @@ export default function SignUpScreen() {
                 onChangeText={handleChange("preferences")}
                 onBlur={handleBlur("preferences")}
               />
+
+              {/* CNIC */}
               <TextInput
                 style={[
                   styles.input,
@@ -266,6 +288,30 @@ export default function SignUpScreen() {
               {touched.cnic && errors.cnic && (
                 <Text style={styles.error}>{errors.cnic}</Text>
               )}
+
+              {/* Terms & Conditions */}
+              <TouchableOpacity
+                style={styles.termsContainer}
+                onPress={() => setShowTermsModal(true)}
+              >
+                <Checkbox
+                  status={acceptedTerms ? "checked" : "unchecked"}
+                  onPress={() => setAcceptedTerms(!acceptedTerms)}
+                  color={currentTheme.primary}
+                />
+                <Text style={[styles.termsText, { color: currentTheme.text }]}>
+                  I accept the{" "}
+                  <Text
+                    style={{
+                      color: currentTheme.primary,
+                      textDecorationLine: "underline",
+                    }}
+                    onPress={() => setShowTermsModal(true)}
+                  >
+                    Terms and Conditions
+                  </Text>
+                </Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
@@ -288,6 +334,7 @@ export default function SignUpScreen() {
             </>
           )}
         </Formik>
+
         <Link href="/signin" asChild>
           <TouchableOpacity style={styles.linkContainer}>
             <Text style={[styles.linkText, { color: currentTheme.text }]}>
@@ -298,7 +345,51 @@ export default function SignUpScreen() {
             </Text>
           </TouchableOpacity>
         </Link>
+
+        <GoogleLoginButton />
       </View>
+
+      {/* Terms & Conditions Modal */}
+      <Modal visible={showTermsModal} animationType="slide" transparent={true}>
+        <SafeAreaView style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: currentTheme.card },
+            ]}
+          >
+            <ScrollView style={{ padding: 16 }}>
+              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
+                RentStore Terms and Conditions
+              </Text>
+              <Text style={{ color: currentTheme.text, marginTop: 16 }}>
+                {/* Put your full T&C content here */}
+                1. RentStore is a platform that allows users to list and rent
+                properties.{"\n\n"}
+                2. Users and customers are independent contractors to each
+                other.{"\n\n"}
+                3. RentStore is not responsible for any disputes, scams, or
+                damages between users.{"\n\n"}
+                4. Users must accept these Terms and Conditions to create an
+                account.{"\n\n"}
+                5. Other rules and obligations applicable under Pakistan law for
+                rental agreements.
+              </Text>
+            </ScrollView>
+
+            <Pressable
+              style={[
+                styles.modalCloseButton,
+                { backgroundColor: currentTheme.primary },
+              ]}
+              onPress={() => setShowTermsModal(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       <Toast />
     </ScrollView>
   );
@@ -346,6 +437,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: -10,
   },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  termsText: {
+    fontSize: 14,
+    flexShrink: 1,
+  },
   button: {
     paddingVertical: 14,
     borderRadius: 10,
@@ -366,5 +466,25 @@ const styles = StyleSheet.create({
   },
   linkBold: {
     fontWeight: "bold",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalContent: {
+    margin: 24,
+    borderRadius: 16,
+    maxHeight: "80%",
+    overflow: "hidden",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  modalCloseButton: {
+    paddingVertical: 14,
+    alignItems: "center",
   },
 });

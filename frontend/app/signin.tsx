@@ -11,6 +11,7 @@ import { useLoginMutation } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import GoogleLoginButton from "./SignInScreenWithOauth";
 
 export default function SignInScreen() {
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -87,6 +88,7 @@ console.log(res)
       <Link href="/choose-role" style={styles.link}>
         <Text style={styles.linkText}>Don&apos;t have an account? Sign Up</Text>
       </Link>
+      <GoogleLoginButton />
     </View>
   );
 }

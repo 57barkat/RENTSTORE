@@ -1,185 +1,65 @@
-import React, { useState } from "react";
-import {
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
-} from "react-native";
-import { useTheme } from "@/contextStore/ThemeContext";
-import { Colors } from "../../constants/Colors";
-import { useCreatePropertyMutation } from "@/services/api";
-import PropertyForm from "@/components/PropertyForm";
-import Toast from "react-native-toast-message";
+import React, { useContext, useState } from "react";
+import { Text, TouchableOpacity } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import StepContainer from "@/app/upload/Welcome";
+import { styles } from "@/styles/upload";
+import { FormContext } from "@/contextStore/FormContext";
 
-export default function Upload() {
-  const [formData, setFormData] = useState<any>({
-    propertyType: "",
-    title: "",
-    description: "",
-    address: "",
-    city: "",
-    bedrooms: "",
-    bathrooms: "",
-    kitchens: "",
-    livingRooms: "",
-    balconies: "",
-    furnished: false,
-    floor: "",
-    area: "",
-    rentPrice: "",
-    securityDeposit: "",
-    maintenanceCharges: "",
-    utilitiesIncluded: false,
-    ownerName: "",
-    phone: "",
-    email: "",
-    images: [],
-    videos: [],
-    amenities: [],
-    preferences: "",
-    petsAllowed: false,
-    latitude: "",
-    longitude: "",
-  });
-  const requiredFields = [
-    "propertyType",
-    "title",
-    "description",
-    "address",
-    "city",
-    "bedrooms",
-    "bathrooms",
-    "kitchens",
-    "livingRooms",
-    "floor",
-    "area",
-    "rentPrice",
+const WelcomeScreen = () => {
+  const formContext = useContext(FormContext);
+  const router = useRouter();
+
+  if (!formContext) {
+    throw new Error(
+      "FormContext is missing! Make sure WelcomeScreen is wrapped in <FormProvider>."
+    );
+  }
+
+  const { updateForm, data } = formContext;
+
+  const [selectedType, setSelectedType] = useState<string | null>(
+    data.hostOption ?? null
+  );
+
+  const hostOptions = [
+    { title: "Home", value: "home", icon: "home-city-outline" },
+    { title: "Apartment", value: "apartment", icon: "office-building-outline" },
+    { title: "Hostel", value: "hostel", icon: "bed-empty" },
   ];
 
-  const isFormValid = requiredFields.every((field) => {
-    const value = formData[field];
-    if (typeof value === "number") return value > 0;
-    if (typeof value === "string") return value.trim() !== "";
-    return !!value; 
-  });
-
-  const { theme } = useTheme();
-  const currentTheme = Colors[theme ?? "light"];
-  const [createProperty, { isLoading }] = useCreatePropertyMutation();
-
-  const handleChange = (key: string, value: any) => {
-    const numericFields = [
-      "bedrooms",
-      "bathrooms",
-      "kitchens",
-      "livingRooms",
-      "balconies",
-      "floor",
-      "area",
-      "rentPrice",
-      "securityDeposit",
-      "maintenanceCharges",
-      "latitude",
-      "longitude",
-    ];
-    const booleanFields = ["furnished", "utilitiesIncluded", "petsAllowed"];
-    const arrayFields = ["images", "videos", "amenities"];
-
-    let parsedValue = value;
-
-    if (numericFields.includes(key)) {
-      const num = Number(value);
-      parsedValue = isNaN(num) ? 0 : num;
-    } else if (booleanFields.includes(key)) {
-      parsedValue = !!value;
-    } else if (arrayFields.includes(key)) {
-      parsedValue = Array.isArray(value) ? value : [];
-    }
-
-    setFormData((prev: any) => ({ ...prev, [key]: parsedValue }));
-  };
-
-  const handleSubmit = async () => {
-    try {
-      await createProperty(formData).unwrap();
-      Toast.show({ type: "success", text1: "Property uploaded successfully!" });
-      setFormData({
-        propertyType: "",
-        title: "",
-        description: "",
-        address: "",
-        city: "",
-        bedrooms: 0,
-        bathrooms: 0,
-        kitchens: 0,
-        livingRooms: 0,
-        balconies: 0,
-        furnished: false,
-        floor: 0,
-        area: 0,
-        rentPrice: 0,
-        securityDeposit: 0,
-        maintenanceCharges: 0,
-        utilitiesIncluded: false,
-        ownerName: "",
-        phone: "",
-        email: "",
-        images: [],
-        videos: [],
-        amenities: [],
-        preferences: "",
-        petsAllowed: false,
-        latitude: 0,
-        longitude: 0,
-      });
-    } catch (err: any) {
-      console.error("Error uploading property:", err);
-      Toast.show({ text1: err.message });
-    }
+  const handleNext = () => {
+    if (!selectedType) return;
+    updateForm("hostOption", selectedType);
+    router.push("/upload/IntroStep1");
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: currentTheme.background },
-      ]}
+    <StepContainer
+      title="What would you like to host?"
+      showBack={false}
+      onNext={handleNext}
+      isNextDisabled={!selectedType}
     >
-      <Text style={[styles.header, { color: currentTheme.primary }]}>
-        Upload Property
-      </Text>
-
-      <PropertyForm formData={formData} onChange={handleChange} />
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: isFormValid ? currentTheme.primary : "#ccc" },
-        ]}
-        onPress={handleSubmit}
-        disabled={isLoading || !isFormValid}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Submit Property</Text>
-        )}
-      </TouchableOpacity>
-
-      <Toast />
-    </ScrollView>
+      {hostOptions.map((option) => (
+        <TouchableOpacity
+          key={option.value}
+          onPress={() => setSelectedType(option.value)}
+          style={[
+            styles.card,
+            selectedType === option.value && styles.selectedCard,
+          ]}
+        >
+          <Text style={styles.cardTitle}>{option.title}</Text>
+          <MaterialCommunityIcons
+            name={option.icon as any}
+            size={60}
+            color="#333"
+          />
+        </TouchableOpacity>
+      ))}
+    </StepContainer>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: { padding: 20 },
-  header: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
-  button: {
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 16 },
-});
+export default WelcomeScreen;

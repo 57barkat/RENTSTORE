@@ -1,4 +1,4 @@
-package com.usmannaeem.rentstore
+package com.usman_naeem.frontend
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

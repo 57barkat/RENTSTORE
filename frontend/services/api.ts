@@ -215,6 +215,13 @@ export const api = createApi({
         body: { phone, otp },
       }),
     }),
+     loginWithGoogle: builder.mutation({
+      query: (body) => ({
+        url: "/api/v1/users/google",
+        method: "POST",
+        body,  
+      }),
+    }),
   }),
 });
 
@@ -236,4 +243,5 @@ export const {
   useRemoveUserFavoriteMutation,
   useSendOtpMutation,
   useVerifyOtpMutation,
+  useLoginWithGoogleMutation,
 } = api;

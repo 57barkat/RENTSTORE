@@ -1,23 +1,18 @@
 import React, { useEffect } from "react";
 import {
   View,
-  StyleSheet,
   Text,
   FlatList,
   Image,
   ActivityIndicator,
   TouchableOpacity,
-  Dimensions,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../../constants/Colors";
 import ListAllProperties from "@/components/ListAllProperties";
 import { useGetFeaturedPropertiesQuery } from "@/services/api";
 import { router } from "expo-router";
-
-// Get screen width for responsive image sizing
-const { width } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.6; // Card takes up 60% of the screen width
+import { styles } from "../../styles/homePage";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -42,7 +37,9 @@ const HomePage: React.FC = () => {
 
   const renderHeader = () => (
     <>
-      <View style={[styles.intro, { backgroundColor: currentTheme.background }]}>
+      <View
+        style={[styles.intro, { backgroundColor: currentTheme.background }]}
+      >
         <Text style={[styles.title, { color: currentTheme.primary }]}>
           Looking for Residence?
         </Text>
@@ -84,7 +81,12 @@ const HomePage: React.FC = () => {
                     style={styles.propertyImage}
                   />
                 ) : (
-                  <View style={[styles.imagePlaceholder, { backgroundColor: currentTheme.border }]}>
+                  <View
+                    style={[
+                      styles.imagePlaceholder,
+                      { backgroundColor: currentTheme.border },
+                    ]}
+                  >
                     <Text style={{ color: currentTheme.secondary }}>
                       No Image
                     </Text>
@@ -99,10 +101,18 @@ const HomePage: React.FC = () => {
                     {item.title}
                   </Text>
                   <View style={styles.priceAndLocation}>
-                    <Text style={[styles.priceText, { color: currentTheme.accent }]}>
-                      <Text style={{ fontSize: 16 }}>💰</Text> {item.rentPrice} /month
+                    <Text
+                      style={[styles.priceText, { color: currentTheme.accent }]}
+                    >
+                      <Text style={{ fontSize: 16 }}>💰</Text> {item.rentPrice}{" "}
+                      /month
                     </Text>
-                    <Text style={[styles.locationText, { color: currentTheme.secondary }]}>
+                    <Text
+                      style={[
+                        styles.locationText,
+                        { color: currentTheme.secondary },
+                      ]}
+                    >
                       <Text style={{ fontSize: 14 }}>📍</Text> {item.city}
                     </Text>
                   </View>
@@ -135,110 +145,5 @@ const HomePage: React.FC = () => {
     />
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  intro: {
-    padding: 24,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  featuredPropertiesSection: {
-    paddingVertical: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginLeft: 24,
-    marginBottom: 12,
-  },
-  loadingIndicator: {
-    marginTop: 20,
-  },
-  featuredList: {
-    paddingHorizontal: 16,
-    gap: 16,
-  },
-  propertyCard: {
-    width: CARD_WIDTH,
-    borderRadius: 16,
-    overflow: "hidden",
-    marginRight: 16, // Use marginRight instead of marginHorizontal
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
-  },
-  propertyImage: {
-    width: "100%",
-    height: CARD_WIDTH * 0.75,
-    resizeMode: "cover",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: CARD_WIDTH * 0.75,
-    justifyContent: "center",
-    alignItems: "center",
-    borderBottomWidth: 1,
-  },
-  propertyInfo: {
-    padding: 12,
-  },
-  propertyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  priceAndLocation: {
-    marginBottom: 8,
-  },
-  priceText: {
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  locationText: {
-    fontSize: 13,
-    marginTop: 4,
-  },
-  views: {
-    fontSize: 12,
-    color: "gray",
-    marginTop: 4,
-  },
-  viewButton: {
-    alignSelf: "stretch",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    marginTop: 8,
-  },
-  viewButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  filterCard: {
-    borderRadius: 12,
-    padding: 12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-});
 
 export default HomePage;

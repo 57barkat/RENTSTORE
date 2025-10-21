@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   Switch,
   TouchableOpacity,
   ScrollView,
@@ -13,8 +12,8 @@ import { useAuth } from "@/contextStore/AuthContext";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { styles } from "@/styles/settings";
 
-// Reusable component for a single setting item
 const SettingItem = ({
   label,
   icon,
@@ -106,12 +105,6 @@ export default function Settings() {
 
       {/* Account Settings Card */}
       <SettingCard theme={currentTheme}>
-        {/* <SettingItem
-          label="Change Password"
-          icon="lock-outline"
-          onPress={() => router.push('/ChangePasswordScreen')} // Add your navigation path here
-          theme={currentTheme}
-        /> */}
         <View style={styles.divider} />
         <SettingItem
           label="Privacy Policy"
@@ -132,63 +125,3 @@ export default function Settings() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    padding: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: "800",
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  card: {
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  settingItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  settingLabelGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  icon: {
-    marginRight: 15,
-  },
-  settingText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.1)", // Use a consistent divider color
-    marginVertical: 5,
-  },
-  logoutButton: {
-    marginTop: 30,
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  logoutText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 18,
-  },
-});
