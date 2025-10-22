@@ -3,8 +3,8 @@ import { BillType } from "@/app/upload/WeekendPricingScreen";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
 import { CapacityState } from "@/types/PropertyDetails.types";
-import React, { createContext, useState, ReactNode, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useState, ReactNode } from "react";
+import { useCreatePropertyMutation } from "@/services/api";
 
 export interface FormData {
   description?: Description;
@@ -24,6 +24,7 @@ export interface FormData {
 export interface FormContextType {
   data: FormData;
   updateForm: <K extends keyof FormData>(step: K, values: FormData[K]) => void;
+  submitData: () => Promise<void>;
 }
 
 export const FormContext = createContext<FormContextType | undefined>(
@@ -32,25 +33,25 @@ export const FormContext = createContext<FormContextType | undefined>(
 
 export const FormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<FormData>({});
-
-  // useEffect(() => {
-  //   console.log("Component was mounted or re-rendered"); // This will run on mount
-  //   return () => {
-  //     console.log("COmponent was unmounted")
-  //     setData({}); // REACT ANTI PATTERN / CONFLICT 
-  //   };
-  // }, []);
-
+  const [createProperty] = useCreatePropertyMutation();
   const updateForm: FormContextType["updateForm"] = async (step, values) => {
     setData((prev) => {
       const newData = { ...prev, [step]: values };
-      console.log(newData)
+      console.log(newData);
       return newData;
     });
   };
-
+  const submitData = async () => {
+    try {
+      console.log("Submitting property data:", data);
+      await createProperty(data).unwrap();
+      console.log("✅ Property created successfully!");
+    } catch (error) {
+      console.error("❌ Error submitting property:", error);
+    }
+  };
   return (
-    <FormContext.Provider value={{ data, updateForm }}>
+    <FormContext.Provider value={{ data, updateForm, submitData }}>
       {children}
     </FormContext.Provider>
   );

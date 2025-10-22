@@ -14,11 +14,12 @@ import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { InputField } from "@/components/UploadPropertyComponents/AdderssInputField";
 import { FormContext } from "@/contextStore/FormContext";
 import { validateAddresses, AddressErrors } from "@/utils/propertyValidator";
+import Toast from "react-native-toast-message";
 
 const COUNTRIES = ["PAKISTAN"];
 
 const FinalAddressDetailsScreen: FC = () => {
-  const { data, updateForm } = useContext(FormContext)!;
+  const { data, updateForm, submitData } = useContext(FormContext)!;
 
   const [addresses, setAddresses] = useState<Address[]>(
     data.address ?? [
@@ -51,7 +52,20 @@ const FinalAddressDetailsScreen: FC = () => {
     },
     []
   );
+  const handleFinish = async () => {
+    const { valid, errors } = validateAddresses(addresses);
+    setErrors(errors);
 
+    if (!valid) {
+      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      return;
+    }
+
+    updateForm("address", addresses);
+    await submitData();
+
+    Toast.show({ type: "success", text1: "Property uploaded successfully!" });
+  };
   const handleNext = () => {
     const { valid, errors } = validateAddresses(addresses);
     setErrors(errors);
@@ -62,7 +76,7 @@ const FinalAddressDetailsScreen: FC = () => {
     }
 
     updateForm("address", addresses);
-    Alert.alert("Success", "All addresses validated and saved!");
+    handleFinish();
   };
 
   return (
@@ -146,6 +160,7 @@ const FinalAddressDetailsScreen: FC = () => {
           >
             <Text>+ Add Another Address</Text>
           </TouchableOpacity>
+          <Toast />
         </ScrollView>
       </KeyboardAvoidingView>
     </StepContainer>
