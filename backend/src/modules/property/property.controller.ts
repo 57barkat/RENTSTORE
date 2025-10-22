@@ -22,34 +22,45 @@ import { AuthGuard } from "@nestjs/passport";
 @Controller("properties")
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
-
   @Post("create")
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: "images", maxCount: 10 },
-      { name: "videos", maxCount: 5 },  
-    ])
-  )
+  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
   async createProperty(
-    @Body() dto: CreatePropertyDto,
-    @UploadedFiles()
-    files: { images?: Express.Multer.File[]; videos?: Express.Multer.File[] },
+    @Body() dto: any,
+    @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any
   ) {
-    if (!req.user || !req.user.userId) {
-      throw new UnauthorizedException("User not authenticated");
-    }
+    const photos = files?.photos || [];
+    console.log("📸 Uploaded files:", photos.length);
 
-    const userId = req.user.userId;
-    const uploadedImages = files.images || [];
-    const uploadedVideos = files.videos || [];
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
 
-    return this.propertyService.create(
-      dto,
-      uploadedImages,
-      uploadedVideos,
-      userId
-    );
+    // 🧠 Parse any fields that might be JSON strings
+    const parsedDto = {
+      ...dto,
+      address:
+        typeof dto.address === "string" 
+          ? JSON.parse(dto.address) 
+          : dto.address,
+      capacityState:
+        typeof dto.capacityState === "string"
+          ? JSON.parse(dto.capacityState)
+          : dto.capacityState,
+      description:
+        typeof dto.description === "string"
+          ? JSON.parse(dto.description)
+          : dto.description,
+      safetyDetailsData:
+        typeof dto.safetyDetailsData === "string"
+          ? JSON.parse(dto.safetyDetailsData)
+          : dto.safetyDetailsData,
+      amenities:
+        typeof dto.amenities === "string"
+          ? JSON.parse(dto.amenities)
+          : dto.amenities,
+    };
+
+    return this.propertyService.create(parsedDto, photos, userId);
   }
 
   @Get()
@@ -67,27 +78,42 @@ export class PropertyController {
   }
 
   @Get("search")
-  async searchProperties(
-    @Req() req: any,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number,
-    @Query("city") city?: string,
-    @Query("minRent") minRent?: number,
-    @Query("maxRent") maxRent?: number,
-    @Query("bedrooms") bedrooms?: number,
-    @Query("propertyType") propertyType?: string
-  ) {
+  async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
-    return this.propertyService.findFiltered(
-      Number(page) || 1,
-      Number(limit) || 10,
-      city,
-      minRent ? Number(minRent) : undefined,
-      maxRent ? Number(maxRent) : undefined,
-      bedrooms ? Number(bedrooms) : undefined,
-      propertyType,
-      userId
-    );
+
+    // Convert numeric filters from string to number
+    const numericFields = [
+      "page",
+      "limit",
+      "minRent",
+      "maxRent",
+      "minSecurity",
+      "maxSecurity",
+      "bedrooms",
+      "bathrooms",
+      "guests",
+    ];
+    numericFields.forEach((field) => {
+      if (query[field] !== undefined) query[field] = Number(query[field]);
+    });
+
+    // Convert array filters (amenities, bills, highlighted, safety) from comma-separated string to array
+    const arrayFields = ["amenities", "bills", "highlighted", "safety"];
+    arrayFields.forEach((field) => {
+      if (query[field] && typeof query[field] === "string") {
+        query[field] = query[field].split(",").map((v) => v.trim());
+      }
+    });
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+
+    // Remove pagination params from query before sending to service
+    const filters = { ...query };
+    delete filters.page;
+    delete filters.limit;
+
+    return this.propertyService.findFiltered(page, limit, filters, userId);
   }
 
   @Get("filters")

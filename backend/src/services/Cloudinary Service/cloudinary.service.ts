@@ -24,33 +24,35 @@ export class CloudinaryService {
     });
   }
 
-  async uploadFile(file: Express.Multer.File): Promise<any> {
-    const isImage = file.mimetype.startsWith("image/");
+  async uploadFile(file: Express.Multer.File | any): Promise<any> {
+    if (!file) throw new Error("No file provided for upload");
 
-    // Cloudinary upload options
+    const mime = file.mimetype || "image/jpeg";
+    const isImage = mime.startsWith("image/");
+
     const uploadOptions: UploadApiOptions = {
       resource_type: isImage ? "image" : "video",
     };
 
     return new Promise(async (resolve, reject) => {
       try {
-        let fileBuffer = file.buffer;
+        let fileBuffer: Buffer;
 
-        // Use sharp for image compression
+        if (file.buffer) {
+          fileBuffer = file.buffer;
+        } else if (file.path) {
+          fileBuffer = require("fs").readFileSync(file.path);
+        } else {
+          throw new Error("File must contain buffer or path");
+        }
+
         if (isImage) {
-          fileBuffer = await sharp(file.buffer)
+          fileBuffer = await sharp(fileBuffer)
             .resize(800)
             .jpeg({ quality: 80 })
             .toBuffer();
         } else {
-          // For videos, use Cloudinary's built-in compression features.
-          // You can define a custom named transformation for video compression
-          // or use automatic settings.
-          // For this example, we'll use a simple `quality` parameter.
-          // Cloudinary automatically optimizes videos based on the `quality` setting.
-          // We can also set a max duration for the video.
           uploadOptions.quality = "auto:good";
-          uploadOptions.duration = "30"; // Max 30 seconds
         }
 
         const uploadStream = cloudinary.uploader.upload_stream(

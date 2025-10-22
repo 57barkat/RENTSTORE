@@ -22,50 +22,137 @@ export class PropertyService {
   async create(
     dto: CreatePropertyDto,
     imageFiles: Express.Multer.File[],
-    videoFiles: Express.Multer.File[],
     userId: string
-  ) {
-    let imageUrls: string[] = [];
-    let videoUrls: string[] = [];
-
-    if (imageFiles && imageFiles.length > 0) {
-      imageUrls = await Promise.all(
-        imageFiles.map(async (file) => {
-          const uploaded = await this.cloudinary.uploadFile(file);
-          return uploaded.secure_url;
-        })
-      );
-    }
-
-    if (videoFiles && videoFiles.length > 0) {
-      videoUrls = await Promise.all(
-        videoFiles.map(async (file) => {
-          const uploaded = await this.cloudinary.uploadFile(file);
-          return uploaded.secure_url;
-        })
-      );
-    }
-
+  ): Promise<Property> {
+    const photoUrls: string[] =
+      imageFiles?.length > 0
+        ? await Promise.all(
+            imageFiles.map(async (file) => {
+              const uploaded = await this.cloudinary.uploadFile(file);
+              return uploaded.secure_url;
+            })
+          )
+        : [];
+    console.log("Create property instance", imageFiles);
+    // Create property instance
     const property = new this.propertyModel({
       ...dto,
-      images: imageUrls,
-      videos: videoUrls,
+      photos: photoUrls,
       ownerId: new Types.ObjectId(userId),
     });
-    return property.save();
+    let a;
+    try {
+      a = await property.save();
+      console.log("THE ORIGINAL SAVED DOCUMENT");
+    } catch (error) {
+      console.log("ERROR DOCUMENT", error);
+    }
+    return a;
   }
 
-  async findAll(page: number = 1, limit: number = 10, userId?: string) {
+  async findAll(page = 1, limit = 10, ownerId?: string) {
+    const filter: any = {};
+    if (ownerId) {
+      filter.ownerId = ownerId;
+    }
+
     const skip = (page - 1) * limit;
+
+    const [properties, total] = await Promise.all([
+      this.propertyModel.find(filter).skip(skip).limit(limit).exec(),
+      this.propertyModel.countDocuments(filter).exec(),
+    ]);
+
+    return {
+      data: properties,
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findFiltered(
+    page = 1,
+    limit = 10,
+    filters: {
+      city?: string;
+      country?: string;
+      stateTerritory?: string;
+      minRent?: number;
+      maxRent?: number;
+      minSecurity?: number;
+      maxSecurity?: number;
+      bedrooms?: number;
+      bathrooms?: number;
+      guests?: number;
+      amenities?: string[];
+      bills?: string[];
+      hostOption?: string;
+      title?: string;
+      highlighted?: string[];
+      safety?: string[];
+    },
+    userId?: string
+  ) {
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+
+    if (filters.city)
+      filter["address.city"] = { $regex: filters.city, $options: "i" };
+    if (filters.country)
+      filter["address.country"] = { $regex: filters.country, $options: "i" };
+    if (filters.stateTerritory)
+      filter["address.stateTerritory"] = {
+        $regex: filters.stateTerritory,
+        $options: "i",
+      };
+    if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
+
+    if (filters.minRent !== undefined || filters.maxRent !== undefined) {
+      filter.monthlyRent = {};
+      if (filters.minRent !== undefined)
+        filter.monthlyRent.$gte = filters.minRent;
+      if (filters.maxRent !== undefined)
+        filter.monthlyRent.$lte = filters.maxRent;
+    }
+
+    if (
+      filters.minSecurity !== undefined ||
+      filters.maxSecurity !== undefined
+    ) {
+      filter.SecuritybasePrice = {};
+      if (filters.minSecurity !== undefined)
+        filter.SecuritybasePrice.$gte = filters.minSecurity;
+      if (filters.maxSecurity !== undefined)
+        filter.SecuritybasePrice.$lte = filters.maxSecurity;
+    }
+
+    if (filters.bedrooms !== undefined)
+      filter["capacityState.bedrooms"] = filters.bedrooms;
+    if (filters.bathrooms !== undefined)
+      filter["capacityState.bathrooms"] = filters.bathrooms;
+    if (filters.guests !== undefined)
+      filter["capacityState.guests"] = filters.guests;
+
+    if (filters.amenities?.length)
+      filter.amenities = { $all: filters.amenities };
+    if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
+    if (filters.highlighted?.length)
+      filter["description.highlighted"] = { $all: filters.highlighted };
+    if (filters.safety?.length)
+      filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
+
+    if (filters.hostOption) filter.hostOption = filters.hostOption;
 
     const [data, total] = await Promise.all([
       this.propertyModel
-        .find()
+        .find(filter)
         .skip(skip)
         .limit(limit)
         .populate("ownerId", "name email")
         .lean() as unknown as PropertyWithFav[],
-      this.propertyModel.countDocuments(),
+      this.propertyModel.countDocuments(filter),
     ]);
 
     if (userId) {
@@ -74,63 +161,12 @@ export class PropertyService {
     }
 
     return {
-      data,
+      data: data || [],
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit) || 1,
     };
-  }
-
-  async findFiltered(
-    page: number = 1,
-    limit: number = 10,
-    city?: string,
-    minRent?: number,
-    maxRent?: number,
-    bedrooms?: number,
-    propertyType?: string,
-    userId?: string
-  ) {
-    const skip = (page - 1) * limit;
-    const filter: any = {};
-
-    if (city) filter.city = { $regex: city, $options: "i" };
-    if (minRent !== undefined || maxRent !== undefined) {
-      filter.rentPrice = {};
-      if (minRent !== undefined) filter.rentPrice.$gte = minRent;
-      if (maxRent !== undefined) filter.rentPrice.$lte = maxRent;
-    }
-    if (bedrooms !== undefined) filter.bedrooms = bedrooms;
-    if (propertyType) filter.propertyType = propertyType;
-
-    try {
-      const [data, total] = await Promise.all([
-        this.propertyModel
-          .find(filter)
-          .skip(skip)
-          .limit(limit)
-          .populate("ownerId", "name email")
-          .lean() as unknown as PropertyWithFav[],
-        this.propertyModel.countDocuments(filter),
-      ]);
-
-      if (userId) {
-        const favIds = await this.favService.getUserFavoriteIds(userId);
-        data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
-      }
-
-      return {
-        data: data || [],
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit) || 1,
-      };
-    } catch (err) {
-      console.error("Error in findFiltered:", err);
-      throw new Error("Internal server error");
-    }
   }
 
   async findMyProperties(userId: string) {
