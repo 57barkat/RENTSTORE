@@ -12,6 +12,7 @@ export interface ChipProps {
   onToggle: (key: string) => void;
 }
 
-export interface description {
-  description: string;  
+export interface Description {
+  description?: string;
+  highlighted: string[];
 }

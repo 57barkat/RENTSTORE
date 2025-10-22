@@ -1,4 +1,4 @@
-import React, { FC, useState, useCallback, useContext } from "react";
+import React, { FC, useContext, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,44 +13,63 @@ import { styles } from "@/styles/FinalAddressDetailsScreen";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { InputField } from "@/components/UploadPropertyComponents/AdderssInputField";
 import { FormContext } from "@/contextStore/FormContext";
+import { validateAddresses, AddressErrors } from "@/utils/propertyValidator";
 
 const COUNTRIES = ["PAKISTAN"];
 
 const FinalAddressDetailsScreen: FC = () => {
-  const { updateForm, data } = useContext(FormContext)!;
+  const { data, updateForm } = useContext(FormContext)!;
 
-  const [address, setAddress] = useState<Address>(
-    data.address ?? {
-      country: "PAKISTAN",
-      street: "",
-      aptSuiteUnit: "",
-      city: "",
-      stateTerritory: "",
-      zipCode: "",
-    }
+  const [addresses, setAddresses] = useState<Address[]>(
+    data.address ?? [
+      {
+        country: "PAKISTAN",
+        street: "",
+        aptSuiteUnit: "",
+        city: "",
+        stateTerritory: "",
+        zipCode: "",
+      },
+    ]
   );
 
-  const handleChange = useCallback((field: keyof Address, value: string) => {
-    setAddress((prev) => ({ ...prev, [field]: value }));
-  }, []);
+  const [errors, setErrors] = useState<AddressErrors>({});
+
+  const handleChange = useCallback(
+    (index: number, field: keyof Address, value: string) => {
+      setAddresses((prev) =>
+        prev.map((addr, i) =>
+          i === index ? { ...addr, [field]: value } : addr
+        )
+      );
+
+      // Clear error on change
+      setErrors((prev: any) => ({
+        ...prev,
+        [index]: { ...prev[index], [field]: undefined },
+      }));
+    },
+    []
+  );
 
   const handleNext = () => {
-    updateForm("address", address);
-    Alert.alert("Success", "Address saved! Proceeding to final review.");
-  };
+    const { valid, errors } = validateAddresses(addresses);
+    setErrors(errors);
 
-  const isNextDisabled = !(
-    address.street.trim() &&
-    address.city.trim() &&
-    address.stateTerritory.trim() &&
-    address.zipCode.trim()
-  );
+    if (!valid) {
+      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      return;
+    }
+
+    updateForm("address", addresses);
+    Alert.alert("Success", "All addresses validated and saved!");
+  };
 
   return (
     <StepContainer
       title="Provide a few final details"
       onNext={handleNext}
-      isNextDisabled={isNextDisabled}
+      isNextDisabled={false}
       progress={100}
     >
       <KeyboardAvoidingView
@@ -58,63 +77,75 @@ const FinalAddressDetailsScreen: FC = () => {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-          <Text style={styles.sectionTitle}>
-            What&apos;s your residential address?
-          </Text>
-          <Text style={styles.sectionSubtitle}>
-            Guests won&apos;t see this information.
-          </Text>
+          <Text style={styles.sectionTitle}>Residential Addresses</Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Country / region</Text>
-            <View style={styles.countryPicker}>
-              {COUNTRIES.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => handleChange("country", c)}
-                  style={[
-                    styles.countryOption,
-                    address.country === c && styles.countrySelected,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.countryText,
-                      address.country === c && styles.countryTextSelected,
-                    ]}
-                  >
-                    {c}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+          {addresses.map((address, index) => (
+            <View key={index} style={{ marginBottom: 25 }}>
+              <Text style={styles.sectionSubtitle}>Address {index + 1}</Text>
+
+              <InputField
+                label="Street address"
+                value={address.street}
+                onChange={(text) => handleChange(index, "street", text)}
+              />
+              {errors[index]?.street && (
+                <Text style={styles.errorText}>{errors[index]?.street}</Text>
+              )}
+
+              <InputField
+                label="Apt, suite, unit (if applicable)"
+                value={address.aptSuiteUnit}
+                onChange={(text) => handleChange(index, "aptSuiteUnit", text)}
+              />
+
+              <InputField
+                label="City / town"
+                value={address.city}
+                onChange={(text) => handleChange(index, "city", text)}
+              />
+              {errors[index]?.city && (
+                <Text style={styles.errorText}>{errors[index]?.city}</Text>
+              )}
+
+              <InputField
+                label="State / territory"
+                value={address.stateTerritory}
+                onChange={(text) => handleChange(index, "stateTerritory", text)}
+              />
+              {errors[index]?.stateTerritory && (
+                <Text style={styles.errorText}>
+                  {errors[index]?.stateTerritory}
+                </Text>
+              )}
+
+              <InputField
+                label="ZIP code"
+                value={address.zipCode}
+                onChange={(text) => handleChange(index, "zipCode", text)}
+              />
+              {errors[index]?.zipCode && (
+                <Text style={styles.errorText}>{errors[index]?.zipCode}</Text>
+              )}
             </View>
-          </View>
+          ))}
 
-          <InputField
-            label="Street address"
-            value={address.street}
-            onChange={(text) => handleChange("street", text)}
-          />
-          <InputField
-            label="Apt, suite, unit (if applicable)"
-            value={address.aptSuiteUnit}
-            onChange={(text) => handleChange("aptSuiteUnit", text)}
-          />
-          <InputField
-            label="City / town"
-            value={address.city}
-            onChange={(text) => handleChange("city", text)}
-          />
-          <InputField
-            label="State / territory"
-            value={address.stateTerritory}
-            onChange={(text) => handleChange("stateTerritory", text)}
-          />
-          <InputField
-            label="ZIP code"
-            value={address.zipCode}
-            onChange={(text) => handleChange("zipCode", text)}
-          />
+          <TouchableOpacity
+            onPress={() =>
+              setAddresses((prev) => [
+                ...prev,
+                {
+                  country: "PAKISTAN",
+                  street: "",
+                  aptSuiteUnit: "",
+                  city: "",
+                  stateTerritory: "",
+                  zipCode: "",
+                },
+              ])
+            }
+          >
+            <Text>+ Add Another Address</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </StepContainer>

@@ -44,23 +44,24 @@ export const styles = StyleSheet.create({
   },
   priceInputRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    height:300,
+    alignItems: 'center', 
+    height: 120,  
     justifyContent: 'center',
     marginVertical: 15,
   },
-  currencySymbol: {
-    fontSize: 50,
+  currencySymbol: { 
+    fontSize: 36,  
     fontWeight: '700',
     marginRight: 10,
   },
   priceInput: {
-    fontSize: 50,
+     
+    fontSize: 36,  
     fontWeight: '700',
     minWidth: 150,
     textAlign: 'center',
-    paddingVertical: 0,
-    height: 90,
+    paddingVertical: 0, 
+    height: 60,  
     borderBottomWidth: 2,
     borderBottomColor: '#ccc',
   },

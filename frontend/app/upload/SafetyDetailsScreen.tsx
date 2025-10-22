@@ -1,4 +1,4 @@
-import React, { FC, useState, useCallback, useContext } from "react";
+import React, { FC, useState, useCallback, useContext, useEffect } from "react";
 import { View, Text, ScrollView } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { router } from "expo-router";
@@ -15,22 +15,37 @@ export interface SafetyDetailsData {
 
 const SafetyDetailsScreen: FC = () => {
   const formContext = useContext(FormContext);
-  // Optional: Add a check to ensure context is available
   if (!formContext) {
     throw new Error("SafetyDetailsScreen must be used within a FormProvider");
   }
-  const { updateForm } = formContext as FormContextType;
-  const [checkedDetails, setCheckedDetails] = useState<Set<string>>(new Set());
-  const [cameraDescription, setCameraDescription] = useState("");
+
+  const { data, updateForm } = formContext as FormContextType;
+
+  // ✅ Initialize state safely from persisted context
+  const [checkedDetails, setCheckedDetails] = useState<Set<string>>(
+    new Set(data.safetyDetailsData?.safetyDetails ?? [])
+  );
+  const [cameraDescription, setCameraDescription] = useState(
+    data.safetyDetailsData?.cameraDescription ?? ""
+  );
   const [isModalVisible, setIsModalVisible] = useState(false);
+
+  // ✅ Re-sync when context data changes (e.g. when restored from AsyncStorage)
+  useEffect(() => {
+    if (data.safetyDetailsData) {
+      setCheckedDetails(new Set(data.safetyDetailsData.safetyDetails ?? []));
+      setCameraDescription(data.safetyDetailsData.cameraDescription ?? "");
+    }
+  }, [data.safetyDetailsData]);
 
   const handleToggleDetail = useCallback(
     (key: string) => {
       const isChecked = checkedDetails.has(key);
 
       if (key === "exterior_camera") {
-        if (!isChecked) setIsModalVisible(true);
-        else {
+        if (!isChecked) {
+          setIsModalVisible(true);
+        } else {
           setCheckedDetails((prev) => {
             const newSet = new Set(prev);
             newSet.delete(key);
@@ -62,14 +77,16 @@ const SafetyDetailsScreen: FC = () => {
 
   const handleNext = () => {
     const detailsArray = Array.from(checkedDetails);
-    const finalData = {
+    const finalData: SafetyDetailsData = {
       safetyDetails: detailsArray,
       cameraDescription: detailsArray.includes("exterior_camera")
         ? cameraDescription
         : null,
     };
+
+    // ✅ Save to context (and persist via AsyncStorage)
     updateForm("safetyDetailsData", finalData);
-    // alert("Safety Details saved! Check console for data.");
+
     router.push("/upload/FinalAddressDetailsScreen");
   };
 
@@ -107,13 +124,8 @@ const SafetyDetailsScreen: FC = () => {
         <Text style={styles.sectionTitle}>Important things to know</Text>
         <Text style={styles.infoText}>
           Security cameras that monitor indoor spaces are not allowed even if
-          they&apos;re turned off. All exterior security cameras must be
-          disclosed.
+          they’re turned off. All exterior security cameras must be disclosed.
         </Text>
-        {/* <Text style={styles.infoText}>
-          Be sure to comply with your local laws and review Airbnb's anti-discrimination
-          policy and guest/host fees.
-        </Text> */}
       </ScrollView>
 
       <CameraModal

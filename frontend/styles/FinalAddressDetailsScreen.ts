@@ -6,6 +6,12 @@ export const styles = StyleSheet.create({
     fontWeight: "600",
     marginVertical: 12,
   },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: 4,
+  },
+
   sectionSubtitle: {
     fontSize: 14,
     color: "#555",
