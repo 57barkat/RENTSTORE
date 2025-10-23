@@ -1,8 +1,3 @@
-import {
-  useAddToFavMutation,
-  useGetFilteredPropertiesQuery,
-  useRemoveUserFavoriteMutation,
-} from "@/services/api";
 import React, { useState, useMemo, useCallback } from "react";
 import {
   Text,
@@ -12,14 +7,53 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  Image,
+  ScrollView,
 } from "react-native";
-import { FontAwesome, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  FontAwesome,
+  MaterialCommunityIcons,
+  Feather,
+} from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router, useFocusEffect } from "expo-router";
-import Slider from "@react-native-community/slider";
+import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import { useDebounce } from "use-debounce";
+import {
+  useAddToFavMutation,
+  useGetFilteredPropertiesQuery,
+  useRemoveUserFavoriteMutation,
+} from "@/services/api";
 import { pakistaniCities } from "@/utils/cities";
+import karachi from "../assets/images/karachi.jpg";
+import lahore from "../assets/images/lahore.jpg";
+import islamabad from "../assets/images/islamabad.jpg";
+import peshawer from "../assets/images/peshawer.jpg";
+
+// --- Types ---
+interface Property {
+  _id: string;
+  title: string;
+  monthlyRent: number;
+  photos?: string[];
+  isFav?: boolean;
+  address?: { city?: string; country?: string }[];
+  capacityState?: { guests?: number; beds?: number; bathrooms?: number };
+}
+
+interface RentRange {
+  min?: number;
+  max?: number;
+}
+
+// --- Constants ---
+const POPULAR_CITIES = [
+  { name: "Islamabad", image: islamabad },
+  { name: "Lahore", image: lahore },
+  { name: "Karachi", image: karachi },
+  { name: "Peshawer", image: peshawer },
+];
 
 const dummyFilterOptions = {
   cities: pakistaniCities,
@@ -27,6 +61,7 @@ const dummyFilterOptions = {
   rentRange: { min: 0, max: 100000 },
 };
 
+// --- Component ---
 export default function ListAllProperties() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -34,34 +69,25 @@ export default function ListAllProperties() {
   const [page, setPage] = useState(1);
   const limit = 5;
 
-  const [cityInput, setCityInput] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [debouncedCity] = useDebounce(cityInput, 500);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch] = useDebounce(searchInput, 500);
+  const [rentRange, setRentRange] = useState<RentRange>({
+    min: dummyFilterOptions.rentRange.min,
+    max: dummyFilterOptions.rentRange.max,
+  });
+  const [beds, setBeds] = useState<number | null>(null);
 
-  const [rentRange, setRentRange] = useState<{ min?: number; max?: number }>({});
-  const [bedrooms, setBedrooms] = useState<number | null>(null);
-
-  const filterOptions = dummyFilterOptions;
-
+  // ✅ Query parameters
   const filteredPropertiesParams = useMemo(
     () => ({
       page,
       limit,
-      city: debouncedCity || "",
-      minRent: rentRange.min ?? filterOptions.rentRange.min ?? 0,
-      maxRent: rentRange.max ?? filterOptions.rentRange.max ?? 9999999,
-      bedrooms: bedrooms ?? undefined,
+      city: debouncedSearch || "",
+      minRent: rentRange.min ?? dummyFilterOptions.rentRange.min,
+      maxRent: rentRange.max ?? dummyFilterOptions.rentRange.max,
+      beds: beds ?? undefined,
     }),
-    [
-      page,
-      limit,
-      debouncedCity,
-      rentRange.min,
-      rentRange.max,
-      bedrooms,
-      filterOptions.rentRange.min,
-      filterOptions.rentRange.max,
-    ]
+    [page, limit, debouncedSearch, rentRange.min, rentRange.max, beds]
   );
 
   const {
@@ -69,9 +95,7 @@ export default function ListAllProperties() {
     isError,
     isLoading,
     refetch,
-  } = useGetFilteredPropertiesQuery(filteredPropertiesParams, {
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetFilteredPropertiesQuery(filteredPropertiesParams);
 
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
@@ -82,236 +106,281 @@ export default function ListAllProperties() {
     }, [refetch])
   );
 
-  const handleToggleFav = async (propertyId: string, isFav: boolean) => {
+  // --- Handlers ---
+  const handleToggleFav = async (propertyId: string, isFav?: boolean) => {
     try {
-      if (isFav) {
-        await removeUserFavorite({ propertyId });
-      } else {
-        await addToFav({ propertyId });
-      }
+      if (isFav) await removeUserFavorite({ propertyId });
+      else await addToFav({ propertyId });
       refetch();
     } catch (err) {
       console.log("Fav error:", err);
     }
   };
 
-  const handleOpenDetails = (id: string) => {
-    router.push(`/property/${id}`);
-  };
+  const handleOpenDetails = (id: string) => router.push(`/property/${id}`);
 
-  const handleCityChange = (value: string) => {
-    setCityInput(value);
-    setShowSuggestions(true);
+  const handleCityPress = (city: string) => {
+    setSearchInput(city);
     setPage(1);
   };
 
-  const handleBedroomsChange = (value: number) => {
-    setBedrooms((prev) => (prev === value ? null : value));
+  const handleBedsChange = (value: number) => {
+    setBeds((prev) => (prev === value ? null : value));
     setPage(1);
   };
 
-  const handleSuggestionPress = (city: string) => {
-    setCityInput(city);
-    setShowSuggestions(false);
-    setPage(1);
-  };
-  const handleRentChange = (min?: number, max?: number) => {
-    setRentRange({ min, max });
+  const handleRentChange = (values: number[]) => {
+    setRentRange({ min: values[0], max: values[1] });
     setPage(1);
   };
 
-  const renderHeader = () => (
-    <View style={styles.filterContainer}>
-      <Text style={[styles.filterTitle, { color: currentTheme.text }]}>Filters</Text>
-      <View style={styles.filterSection}>
-        <TextInput
-          placeholder="Search by city..."
-          value={cityInput}
-          onChangeText={handleCityChange}
-          style={[
-            styles.input,
-            {
-              borderColor: currentTheme.border,
-              color: currentTheme.text,
-              backgroundColor: currentTheme.background,
-            },
-          ]}
-          placeholderTextColor={currentTheme.muted}
-        />
-        {showSuggestions && cityInput.length > 0 && (
+  // --- Header ---
+  const header = useMemo(
+    () => (
+      <View
+        style={[
+          styles.headerContainer,
+          { backgroundColor: currentTheme.background },
+        ]}
+      >
+        {/* --- Search --- */}
+        <View style={styles.searchRow}>
           <View
             style={[
-              styles.suggestions,
+              styles.searchInputContainer,
               {
-                backgroundColor: currentTheme.card,
                 borderColor: currentTheme.border,
+                backgroundColor: currentTheme.card,
               },
             ]}
           >
-            {filterOptions.cities
-              .filter((c) => c.toLowerCase().includes(cityInput.toLowerCase()))
-              .map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  onPress={() => handleSuggestionPress(c)}
-                  style={[
-                    styles.suggestionItem,
-                    { borderBottomColor: currentTheme.border },
-                  ]}
-                >
-                  <Text style={{ color: currentTheme.text }}>{c}</Text>
-                </TouchableOpacity>
-              ))}
+            <Feather name="search" size={20} color={currentTheme.primary} />
+            <TextInput
+              style={[styles.searchInput, { color: currentTheme.text }]}
+              placeholder="Search city, neighborhood..."
+              placeholderTextColor={currentTheme.muted}
+              value={searchInput}
+              onChangeText={setSearchInput}
+              autoCorrect={false}
+            />
           </View>
-        )}
-      </View>
+        </View>
 
-      <View style={styles.filterSection}>
-        <Text style={[styles.filterLabel, { color: currentTheme.text }]}>
-          Rent Range:
-        </Text>
-        <Text style={[styles.filterValue, { color: currentTheme.text }]}>
-          Rs. {rentRange.min ?? filterOptions.rentRange.min} - Rs.{" "}
-          {rentRange.max ?? filterOptions.rentRange.max}
-        </Text>
-        <View>
-          <Slider
-            minimumValue={filterOptions.rentRange.min}
-            maximumValue={filterOptions.rentRange.max}
-            step={1000}
-            value={rentRange.min ?? filterOptions.rentRange.min}
-            onSlidingComplete={(min) => handleRentChange(min, rentRange.max)}
-            minimumTrackTintColor={currentTheme.primary}
-            maximumTrackTintColor={currentTheme.border}
-            thumbTintColor={currentTheme.primary}
-          />
-          <Slider
-            minimumValue={filterOptions.rentRange.min}
-            maximumValue={filterOptions.rentRange.max}
-            step={1000}
-            value={rentRange.max ?? filterOptions.rentRange.max}
-            onSlidingComplete={(max) => handleRentChange(rentRange.min, max)}
-            minimumTrackTintColor={currentTheme.primary}
-            maximumTrackTintColor={currentTheme.border}
-            thumbTintColor={currentTheme.primary}
+        {/* --- Popular Cities --- */}
+        <View style={styles.popularCitiesContainer}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: currentTheme.text, marginBottom: 12 },
+            ]}
+          >
+            Explore Destinations
+          </Text>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={POPULAR_CITIES}
+            keyExtractor={(item) => item.name}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.cityImageCard,
+                  { backgroundColor: currentTheme.card },
+                ]}
+                onPress={() => handleCityPress(item.name)}
+              >
+                <Image
+                  source={item.image}
+                  style={styles.cityImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.cityTextOverlay}>
+                  <Text style={styles.cityOverlayName}>{item.name}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           />
         </View>
-      </View>
 
-      <View style={styles.filterSection}>
-        <Text style={[styles.filterLabel, { color: currentTheme.text }]}>Bedrooms</Text>
-        <View style={styles.chipsContainer}>
-          {filterOptions.bedrooms.map((b) => (
+        {/* --- Beds Filter --- */}
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: currentTheme.text, marginTop: 15, marginBottom: 8 },
+          ]}
+        >
+          Filter by Beds
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+        >
+          {dummyFilterOptions.bedrooms.map((b) => (
             <TouchableOpacity
               key={b}
-              onPress={() => handleBedroomsChange(b)}
               style={[
                 styles.chip,
                 {
                   backgroundColor:
-                    bedrooms === b ? currentTheme.primary : "transparent",
+                    beds === b ? currentTheme.primary : currentTheme.card,
                   borderColor:
-                    bedrooms === b ? currentTheme.primary : currentTheme.border,
+                    beds === b ? currentTheme.primary : currentTheme.border,
                 },
               ]}
+              onPress={() => handleBedsChange(b)}
             >
-              <Text style={[styles.chipText, { color: bedrooms === b ? "#fff" : currentTheme.text }]}>
-                {b}
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: beds === b ? "#fff" : currentTheme.text },
+                ]}
+              >
+                {b} {b > 1 ? "Beds" : "Bed"}
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+
+        {/* --- Rent Range --- */}
+        <View style={styles.rangeContainer}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { color: currentTheme.text, marginBottom: 8 },
+            ]}
+          >
+            Monthly Rent Range
+          </Text>
+          <Text
+            style={[styles.rangeValueText, { color: currentTheme.primary }]}
+          >
+            Rs. {rentRange.min?.toLocaleString()} - Rs.{" "}
+            {rentRange.max?.toLocaleString()}
+          </Text>
+
+          <MultiSlider
+            values={[rentRange.min ?? 0, rentRange.max ?? 100000]}
+            sliderLength={280}
+            min={dummyFilterOptions.rentRange.min}
+            max={dummyFilterOptions.rentRange.max}
+            step={5000}
+            onValuesChange={handleRentChange}
+            selectedStyle={{ backgroundColor: currentTheme.primary }}
+            unselectedStyle={{ backgroundColor: currentTheme.border }}
+            markerStyle={{
+              backgroundColor: currentTheme.primary,
+              height: 20,
+              width: 20,
+            }}
+            containerStyle={{ alignSelf: "center" }}
+          />
         </View>
+
+        <Text style={[styles.resultsTitle, { color: currentTheme.text }]}>
+          Available Listings ({propertiesData?.total || 0})
+        </Text>
       </View>
-    </View>
+    ),
+    [currentTheme, searchInput, beds, rentRange, propertiesData?.total]
   );
 
-  const renderItem = ({ item }: { item: any }) => (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: currentTheme.card,
-        },
-      ]}
-    >
+  // --- Property Card ---
+  const renderItem = ({ item }: { item: Property }) => {
+    const imageUri =
+      item.photos?.[0] ||
+      "https://images.unsplash.com/photo-1579737222180-863a35b1c97a?fit=crop&w=600&q=80";
+    const address = item.address?.[0];
+    const city = address?.city || "N/A";
+    const country = address?.country || "";
+    const guests = item.capacityState?.guests || "N/A";
+    const bedsCount = item.capacityState?.beds || "N/A";
+    const baths = item.capacityState?.bathrooms || "N/A";
+
+    return (
       <TouchableOpacity
-        style={styles.favButton}
-        onPress={() => handleToggleFav(item._id, item.isFav)}
+        style={[styles.propertyCard, { backgroundColor: currentTheme.card }]}
+        onPress={() => handleOpenDetails(item._id)}
       >
-        <FontAwesome
-          name={item.isFav ? "heart" : "heart-o"}
-          size={24}
-          color={item.isFav ? currentTheme.danger : currentTheme.muted}
-        />
-      </TouchableOpacity>
-
-      <View style={styles.cardContent}>
-        <Text style={[styles.title, { color: currentTheme.text }]}>
-          {item.title}
-        </Text>
-
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons
-            name="map-marker-outline"
-            size={16}
-            color={currentTheme.secondary}
-          />
-          <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
-            {item.city}
-          </Text>
-        </View>
-
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons
-            name="currency-usd"
-            size={16}
-            color={currentTheme.secondary}
-          />
-          <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
-            Rent: Rs. {item.rentPrice}
-          </Text>
-        </View>
-
-        <View style={styles.detailsRow}>
-          <View style={styles.detailItem}>
-            <MaterialCommunityIcons
-              name="bed-outline"
-              size={16}
-              color={currentTheme.secondary}
-            />
-            <Text style={[styles.detailText, { color: currentTheme.secondary }]}>
-              {item.bedrooms}
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
-            <MaterialCommunityIcons
-              name="sofa-outline"
-              size={16}
-              color={currentTheme.secondary}
-            />
-            <Text style={[styles.detailText, { color: currentTheme.secondary }]}>
-              {item.furnished ? "Furnished" : "Unfurnished"}
-            </Text>
-          </View>
-        </View>
+        <Image source={{ uri: imageUri }} style={styles.cardImage} />
 
         <TouchableOpacity
-          style={[styles.viewButton, { backgroundColor: currentTheme.primary }]}
-          onPress={() => handleOpenDetails(item._id)}
+          style={styles.favButton}
+          onPress={() => handleToggleFav(item._id, item.isFav)}
         >
-          <Text style={styles.viewButtonText}>View Details</Text>
+          <FontAwesome
+            name={item.isFav ? "heart" : "heart-o"}
+            size={20}
+            color={item.isFav ? currentTheme.danger : "#fff"}
+          />
         </TouchableOpacity>
-      </View>
-    </View>
-  );
 
+        <View style={styles.cardContent}>
+          <Text
+            style={[styles.cardTitle, { color: currentTheme.text }]}
+            numberOfLines={1}
+          >
+            {item.title}
+          </Text>
+          <Text
+            style={[styles.locationText, { color: currentTheme.muted }]}
+            numberOfLines={1}
+          >
+            <Feather name="map-pin" size={14} color={currentTheme.muted} />{" "}
+            {city}, {country}
+          </Text>
+
+          <View style={styles.capacityRowCard}>
+            <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
+              <MaterialCommunityIcons
+                name="account-group-outline"
+                size={14}
+                color={currentTheme.muted}
+              />{" "}
+              {guests} Guests
+            </Text>
+            <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
+              <MaterialCommunityIcons
+                name="bed-outline"
+                size={14}
+                color={currentTheme.muted}
+              />{" "}
+              {bedsCount} Beds
+            </Text>
+            <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
+              <MaterialCommunityIcons
+                name="bathtub-outline"
+                size={14}
+                color={currentTheme.muted}
+              />{" "}
+              {baths} Baths
+            </Text>
+          </View>
+
+          <View style={styles.priceContainerCard}>
+            <Text style={[styles.priceText, { color: currentTheme.primary }]}>
+              Rs. {item.monthlyRent?.toLocaleString()}
+            </Text>
+            <Text
+              style={[styles.priceDurationText, { color: currentTheme.muted }]}
+            >
+              / month
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // --- Pagination ---
   const renderFooter = () => (
     <View style={styles.paginationRow}>
       <TouchableOpacity
         style={[
           styles.paginationButton,
           {
-            backgroundColor: page === 1 ? currentTheme.muted : currentTheme.primary,
+            backgroundColor:
+              page === 1 ? currentTheme.border : currentTheme.primary,
           },
         ]}
         onPress={() => setPage((p) => Math.max(1, p - 1))}
@@ -321,7 +390,7 @@ export default function ListAllProperties() {
       </TouchableOpacity>
 
       <Text style={[styles.pageIndicator, { color: currentTheme.text }]}>
-        Page {page} of {propertiesData?.totalPages || 1}
+        {page} / {propertiesData?.totalPages || 1}
       </Text>
 
       <TouchableOpacity
@@ -329,10 +398,14 @@ export default function ListAllProperties() {
           styles.paginationButton,
           {
             backgroundColor:
-              page >= (propertiesData?.totalPages || 1) ? currentTheme.muted : currentTheme.primary,
+              page >= (propertiesData?.totalPages || 1)
+                ? currentTheme.border
+                : currentTheme.primary,
           },
         ]}
-        onPress={() => setPage((p) => (p < (propertiesData?.totalPages || 1) ? p + 1 : p))}
+        onPress={() =>
+          setPage((p) => (p < (propertiesData?.totalPages || 1) ? p + 1 : p))
+        }
         disabled={page >= (propertiesData?.totalPages || 1)}
       >
         <Text style={styles.paginationButtonText}>Next</Text>
@@ -340,12 +413,14 @@ export default function ListAllProperties() {
     </View>
   );
 
-  if (isLoading) {
+  if (isLoading && page === 1) {
     return (
-      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
         <ActivityIndicator size="large" color={currentTheme.primary} />
         <Text style={[styles.loadingText, { color: currentTheme.text }]}>
-          Loading properties...
+          Fetching beautiful homes...
         </Text>
       </View>
     );
@@ -353,230 +428,181 @@ export default function ListAllProperties() {
 
   if (isError) {
     return (
-      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
-        <Text style={[styles.errorText, { color: currentTheme.error }]}>
-          Error loading properties.
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={[styles.errorText, { color: currentTheme.danger }]}>
+          Network Error. Could not load properties. 😔
         </Text>
         <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: currentTheme.primary }]}
-          onPress={() => refetch()}
+          style={[
+            styles.retryButton,
+            { backgroundColor: currentTheme.primary },
+          ]}
+          onPress={refetch}
         >
-          <Text style={styles.retryButtonText}>Retry</Text>
+          <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={[styles.mainContainer, { backgroundColor: currentTheme.background }]}>
-      {renderHeader()}
-
-      <FlatList
-        data={propertiesData?.data}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <View style={styles.emptyList}>
-            <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
-              No properties found matching your filters.
-            </Text>
-          </View>
-        }
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListFooterComponent={renderFooter}
-      />
-    </View>
+    <FlatList
+      data={propertiesData?.data}
+      keyExtractor={(item) => item._id}
+      renderItem={renderItem}
+      ListHeaderComponent={header}
+      ListFooterComponent={renderFooter}
+      ListEmptyComponent={
+        <View style={styles.emptyList}>
+          <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+            No properties found matching your filters.
+          </Text>
+          <MaterialCommunityIcons
+            name="home-search-outline"
+            size={50}
+            color={currentTheme.muted}
+            style={{ marginTop: 10 }}
+          />
+        </View>
+      }
+      contentContainerStyle={{
+        paddingHorizontal: 20,
+        paddingBottom: 40,
+        backgroundColor: currentTheme.background,
+      }}
+      showsVerticalScrollIndicator={false}
+    />
   );
 }
 
+// --- Styles ---
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-  },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
+  loadingText: { marginTop: 10, fontSize: 16, fontWeight: "500" },
   errorText: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  retryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  filterContainer: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: "#ccc",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 1,
-  },
-  filterTitle: {
     fontSize: 18,
+    marginBottom: 15,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  retryButton: { paddingVertical: 12, paddingHorizontal: 30, borderRadius: 10 },
+  retryButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  headerContainer: { paddingBottom: 16, paddingTop: 10 },
+  searchRow: { flexDirection: "row", marginBottom: 15 },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 30,
+    paddingHorizontal: 15,
+    height: 55,
+    elevation: 2,
+  },
+  searchInput: { flex: 1, fontSize: 16, marginLeft: 10, fontWeight: "500" },
+  popularCitiesContainer: { marginVertical: 10 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", marginLeft: 8 },
+  resultsTitle: { 
+    fontSize: 18,
+    marginLeft: 13,
     fontWeight: "700",
+    marginTop: 15,
     marginBottom: 10,
   },
-  filterSection: {
-    marginBottom: 15,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  filterValue: {
-    fontSize: 14,
-    fontWeight: "400",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
-    fontSize: 16,
-  },
-  suggestions: {
-    position: "absolute",
-    top: 50,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  suggestionItem: {
-    padding: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  chipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 20,
-  },
-  card: {
-    marginBottom: 16,
+  cityImageCard: {
+    width: 140,
+    height: 140,
     borderRadius: 12,
     overflow: "hidden",
+    marginRight: 12,
+    elevation: 3,
+  },
+  cityImage: { width: "100%", height: "100%" },
+  cityTextOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "flex-end",
+    padding: 10,
+  },
+  cityOverlayName: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  filterScrollView: { marginBottom: 10 },
+  chip: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    borderWidth: 1,
+    marginRight: 10,
+  },
+  chipText: { fontWeight: "600", fontSize: 14 },
+  rangeContainer: { marginVertical: 10, paddingHorizontal: 5 },
+  rangeValueText: {
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  propertyCard: {
+    padding: 18,
+    marginBottom: 20,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    overflow: "hidden",
+  },
+  cardImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   favButton: {
     position: "absolute",
-    top: 16,
-    right: 16,
+    top: 25,
+    right: 25,
     zIndex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
     width: 40,
     height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  infoRow: {
-    flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 4,
-    gap: 5,
   },
-  infoText: {
-    fontSize: 14,
-  },
-  detailsRow: {
+  cardContent: { padding: 15 },
+  cardTitle: { fontSize: 20, fontWeight: "800", marginBottom: 4 },
+  locationText: { fontSize: 14, marginVertical: 4, fontWeight: "500" },
+  capacityRowCard: { flexDirection: "row", gap: 15, marginVertical: 8 },
+  capacityText: { fontSize: 13, fontWeight: "500" },
+  priceContainerCard: {
     flexDirection: "row",
-    gap: 20,
+    alignItems: "baseline",
     marginTop: 8,
   },
-  detailItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  detailText: {
-    fontSize: 14,
-  },
-  viewButton: {
-    marginTop: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  viewButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  priceText: { fontSize: 18, fontWeight: "700" },
+  priceDurationText: { fontSize: 13, fontWeight: "500", marginLeft: 5 },
   paginationRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
+    marginTop: 20,
   },
   paginationButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
-  paginationButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  pageIndicator: {
-    fontWeight: "600",
-  },
-  emptyList: {
-    flex: 1,
-    alignItems: "center",
-    marginTop: 50,
-    paddingHorizontal: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: "center",
-  },
+  paginationButtonText: { color: "#fff", fontWeight: "bold" },
+  pageIndicator: { fontSize: 16, fontWeight: "600" },
+  emptyList: { alignItems: "center", marginTop: 50 },
+  emptyText: { fontSize: 16, fontWeight: "500", textAlign: "center" },
 });

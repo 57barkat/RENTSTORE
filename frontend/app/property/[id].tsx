@@ -1,351 +1,437 @@
-import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import {
-  View,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-} from "react-native";
-import {
-  useFindPropertyByIdQuery,
-  useAddToFavMutation,
-  useRemoveUserFavoriteMutation,
-} from "@/services/api";
-import { Colors } from "@/constants/Colors";
-import { useCallback } from "react";
+import React, { useEffect } from "react";
+import { View, Text, ScrollView, StyleSheet, Dimensions } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { useFindPropertyByIdQuery } from "@/services/api";
 import ImageCarousel from "@/utils/Carousel";
+import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  MaterialCommunityIcons,
+  MaterialIcons,
+  Feather,
+} from "@expo/vector-icons";
 
-const PADDING = 24;
-
-export const options = {
-  headerShown: false,
-};
+const { width } = Dimensions.get("window");
+export const options = { headerShown: false };
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
+  const { data: property, isLoading } = useFindPropertyByIdQuery(id);
 
-  const {
-    data: property,
-    isLoading,
-    error,
-    refetch,
-  } = useFindPropertyByIdQuery(id!, { skip: !id });
+  useEffect(() => {}, [property]);
 
-  const [addToFav, { isLoading: isFavLoading }] = useAddToFavMutation();
-  const [removeUserFavorite, { isLoading: isRemoveLoading }] =
-    useRemoveUserFavoriteMutation();
-
-  useFocusEffect(
-    useCallback(() => {
-      if (id) refetch();
-    }, [id, refetch])
-  );
-
-  // --- Render Loading, Error, and Not Found States ---
-  if (isLoading || error || !property) {
-    let message = "Loading property...";
-    if (error) message = "Error loading property.";
-    if (!property) message = "No property found.";
-
-    const messageColor = error ? currentTheme.error : currentTheme.text;
-
+  if (isLoading) {
     return (
       <View
-        style={[
-          styles.centeredContainer,
-          { backgroundColor: currentTheme.background },
-        ]}
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
-        <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={[styles.text, { color: messageColor }]}>{message}</Text>
+        <Text style={{ color: currentTheme.muted }}>
+          Loading Property Details...
+        </Text>
       </View>
     );
   }
 
-  // --- Helper function to render label/value ---
-  const renderDetail = (
-    label: string,
-    value: string | number | null | undefined
-  ) => {
-    if (value === null || value === undefined) return null;
-
-    const displayValue = typeof value === "string" ? value.trim() : value;
-    if (!displayValue) return null;
-
+  if (!property) {
     return (
-      <View style={styles.detailRow}>
-        <Text style={[styles.detailLabel, { color: currentTheme.secondary }]}>
-          {label}:
-        </Text>
-        <Text style={[styles.detailValue, { color: currentTheme.text }]}>
-          {displayValue}
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={{ color: currentTheme.muted }}>
+          Sorry, no property details were found.
         </Text>
       </View>
     );
+  }
+
+  const {
+    title,
+    location,
+    monthlyRent,
+    SecuritybasePrice,
+    ALL_BILLS,
+    address,
+    amenities,
+    capacityState,
+    description,
+    safetyDetailsData,
+    photos,
+    views,
+  } = property;
+
+  const renderCapacity = (
+    label: string,
+    value: number | undefined,
+    icon: keyof typeof MaterialCommunityIcons.glyphMap
+  ) => (
+    <View style={styles.capacityItem}>
+      <View
+        style={[styles.capacityCircle, { backgroundColor: currentTheme.tint }]}
+      >
+        <MaterialCommunityIcons name={icon} size={28} color="#fff" />
+      </View>
+      <Text style={[styles.capacityValue, { color: currentTheme.text }]}>
+        {value ?? "N/A"}
+      </Text>
+      <Text style={[styles.capacityLabel, { color: currentTheme.muted }]}>
+        {label}
+      </Text>
+    </View>
+  );
+
+  const renderList = (
+    items: string[] | undefined,
+    noDataText: string,
+    icon: keyof typeof Feather.glyphMap
+  ) => {
+    if (!items || items.length === 0) {
+      return (
+        <Text style={[styles.infoText, { color: currentTheme.muted }]}>
+          {noDataText}
+        </Text>
+      );
+    }
+    return (
+      <View style={styles.listContainer}>
+        {items.map((item, i) => (
+          <View
+            key={i}
+            style={[styles.listItem, { backgroundColor: currentTheme.card }]}
+          >
+            <Feather
+              name={icon}
+              size={16}
+              color={currentTheme.primary}
+              style={styles.listIcon}
+            />
+            <Text style={[styles.infoText, { color: currentTheme.text }]}>
+              {item}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
   };
+  const renderSection = ({ title, items, icon, emptyMessage }: any) => (
+    <View style={styles.sectionContainer}>
+      <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+        <Feather name={icon} size={20} color={currentTheme.primary} /> {title}
+      </Text>
+      {Array.isArray(items) && items.length > 0 ? (
+        renderList(items, emptyMessage, icon)
+      ) : (
+        <Text style={[styles.infoText, { color: currentTheme.muted }]}>
+          {emptyMessage}
+        </Text>
+      )}
+    </View>
+  );
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: currentTheme.background }]}
       contentContainerStyle={styles.contentContainer}
     >
-      {/* --- Image Carousel --- */}
-      {property.images?.length > 0 && (
-        <View style={styles.carouselContainer}>
+      {/* Image Carousel */}
+      <View style={styles.imageContainer}>
+        {photos?.length > 0 ? (
           <ImageCarousel
-            media={[
-              ...(property.images?.map((uri: string) => ({
-                uri,
-                type: "image",
-              })) || []),
-              ...(property.videos?.map((uri: string) => ({
-                uri,
-                type: "video",
-              })) || []),
-            ]}
+            media={photos.map((uri: string) => ({ uri, type: "image" }))}
           />
-        </View>
-      )}
-
-      {/* --- Property Main Info --- */}
-      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
-        <Text style={[styles.title, { color: currentTheme.primary }]}>
-          {property.title}
-        </Text>
-        <Text style={[styles.price, { color: currentTheme.accent }]}>
-          Rs. {property.rentPrice?.toLocaleString()}
-        </Text>
-        <Text style={[styles.location, { color: currentTheme.secondary }]}>
-          {property.address}, {property.city}
-        </Text>
+        ) : (
+          <View
+            style={[styles.noImage, { backgroundColor: currentTheme.card }]}
+          >
+            <MaterialCommunityIcons
+              name="image-off-outline"
+              size={60}
+              color={currentTheme.muted}
+            />
+            <Text style={[styles.noImageText, { color: currentTheme.muted }]}>
+              No Photos Available
+            </Text>
+          </View>
+        )}
       </View>
 
-      {/* --- Action Buttons --- */}
-      <View style={styles.actionButtonsContainer}>
-        <TouchableOpacity
+      <View style={styles.detailsBox}>
+        {/* Title & Info */}
+        <Text style={[styles.title, { color: currentTheme.text }]}>
+          {title}
+        </Text>
+        <View style={styles.subInfoRow}>
+          <Text style={[styles.subText, { color: currentTheme.muted }]}>
+            <MaterialIcons
+              name="location-on"
+              size={16}
+              color={currentTheme.muted}
+            />{" "}
+            {location}
+          </Text>
+          <Text style={[styles.subText, { color: currentTheme.muted }]}>
+            <MaterialCommunityIcons
+              name="eye-outline"
+              size={16}
+              color={currentTheme.muted}
+            />{" "}
+            {views} Views
+          </Text>
+        </View>
+
+        {/* Rent & Capacity Card */}
+        <View
           style={[
-            styles.button,
+            styles.card,
             {
-              backgroundColor: property.isFav ? "red" : currentTheme.secondary,
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
             },
           ]}
-          onPress={async () => {
-            if (!property?._id) return;
-            try {
-              if (property.isFav) {
-                await removeUserFavorite({ propertyId: property._id }).unwrap();
-              } else {
-                await addToFav({ propertyId: property._id }).unwrap();
-              }
-              await refetch();
-            } catch (err) {
-              console.log(err);
-            }
-          }}
         >
-          <MaterialCommunityIcons
-            name={property.isFav ? "heart" : "heart-outline"}
-            size={20}
-            color="#fff"
-          />
-          <Text style={styles.buttonText}>
-            {property.isFav ? "Saved" : "Save"}
-          </Text>
-          {(isFavLoading || isRemoveLoading) && (
-            <ActivityIndicator
-              size="small"
-              color="#fff"
-              style={{ marginLeft: 8 }}
-            />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: currentTheme.secondary }]}
-          onPress={() => {
-            if (property.latitude && property.longitude) {
-              Linking.openURL(
-                `http://maps.google.com/?q=${property.latitude},${property.longitude}`
-              );
-            } else {
-              Linking.openURL(
-                `http://maps.google.com/?q=${encodeURIComponent(
-                  `${property.address}, ${property.city}`
-                )}`
-              );
-            }
-          }}
-        >
-          <MaterialCommunityIcons name="map-marker" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Map</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* --- Property & Financial Info --- */}
-      <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
-        <Text
-          style={[styles.sectionHeading, { color: currentTheme.secondary }]}
-        >
-          Property Details
-        </Text>
-        {renderDetail("Type", property.propertyType)}
-        {renderDetail(
-          "Area",
-          property.area ? `${property.area.toLocaleString()} sq.ft` : null
-        )}
-        {renderDetail(
-          "Total Area",
-          property.totalArea
-            ? `${property.totalArea.toLocaleString()} sq.ft`
-            : null
-        )}
-        {renderDetail("Bedrooms", property.bedrooms)}
-        {renderDetail("Bathrooms", property.bathrooms)}
-        {renderDetail("Kitchens", property.kitchens)}
-        {renderDetail("Living Rooms", property.livingRooms)}
-        {renderDetail("Balconies", property.balconies)}
-        {renderDetail(
-          "Furnished",
-          property.furnished !== undefined
-            ? property.furnished
-              ? "Yes"
-              : "No"
-            : null
-        )}
-
-        <View style={styles.divider} />
-
-        <Text
-          style={[styles.sectionHeading, { color: currentTheme.secondary }]}
-        >
-          Financial Info
-        </Text>
-        {renderDetail(
-          "Security Deposit",
-          property.securityDeposit
-            ? `Rs. ${property.securityDeposit.toLocaleString()}`
-            : null
-        )}
-        {renderDetail(
-          "Maintenance",
-          property.maintenanceCharges
-            ? `Rs. ${property.maintenanceCharges.toLocaleString()}`
-            : null
-        )}
-        {renderDetail(
-          "Utilities Included",
-          property.utilitiesIncluded !== undefined
-            ? property.utilitiesIncluded
-              ? "Yes"
-              : "No"
-            : null
-        )}
-      </View>
-
-      {/* --- Amenities --- */}
-      {property.amenities?.length > 0 && (
-        <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
+          <View style={styles.priceContainer}>
+            <Text style={[styles.priceTag, { color: currentTheme.primary }]}>
+              {monthlyRent}
+            </Text>
+            <Text style={[styles.priceDuration, { color: currentTheme.muted }]}>
+              / month
+            </Text>
+          </View>
           <Text
-            style={[styles.sectionHeading, { color: currentTheme.secondary }]}
+            style={[
+              styles.secondaryPrice,
+              {
+                color: currentTheme.muted,
+                borderBottomColor: currentTheme.border,
+              },
+            ]}
           >
-            Amenities
+            {SecuritybasePrice} security deposit
           </Text>
-          <View style={styles.amenitiesContainer}>
-            {property.amenities[0]
-              .split(",")
-              .map((amenity: string, idx: number) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.amenityTag,
-                    { backgroundColor: currentTheme.background },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.amenityText,
-                      { color: currentTheme.secondary },
-                    ]}
-                  >
-                    {amenity.trim()}
-                  </Text>
-                </View>
-              ))}
+          <View style={styles.capacityRow}>
+            {renderCapacity(
+              "Guests",
+              capacityState?.guests,
+              "account-group-outline"
+            )}
+            {renderCapacity("Beds", capacityState?.beds, "bed-outline")}
+            {renderCapacity(
+              "Baths",
+              capacityState?.bathrooms,
+              "bathtub-outline"
+            )}
           </View>
         </View>
-      )}
 
-      {/* --- Owner Info --- */}
-      {property.ownerId && (
-        <View style={[styles.card, { backgroundColor: currentTheme.card }]}>
-          <Text
-            style={[styles.sectionHeading, { color: currentTheme.secondary }]}
-          >
-            Listed By
+        {/* Property Overview */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            <Feather name="info" size={20} color={currentTheme.primary} />{" "}
+            Property Overview
           </Text>
-          {renderDetail("Name", property.ownerId.name)}
-          {renderDetail("Phone", property.ownerId.phone)}
-          {renderDetail("Email", property.ownerId.email)}
+          <Text style={[styles.infoText, { color: currentTheme.text }]}>
+            {description?.overview || "A wonderful place to stay!"}
+          </Text>
+
+          {/* Highlights */}
+          <Text style={[styles.subsectionTitle, { color: currentTheme.text }]}>
+            Highlights
+          </Text>
+          {renderList(
+            description?.highlighted,
+            "No specific highlights listed.",
+            "star"
+          )}
         </View>
-      )}
+
+        {/* Amenities */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            <Feather name="grid" size={20} color={currentTheme.primary} />{" "}
+            Amenities
+          </Text>
+          {renderList(amenities, "No amenities listed.", "check-circle")}
+        </View>
+
+        {/* Included Bills */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            <Feather name="file-text" size={20} color={currentTheme.primary} />{" "}
+            Included Bills
+          </Text>
+          {renderList(ALL_BILLS, "No bills information provided.", "droplet")}
+        </View>
+
+        {/* Full Address */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            <Feather name="map-pin" size={20} color={currentTheme.primary} />{" "}
+            Full Address
+          </Text>
+          {address?.length > 0 ? (
+            address.map((a: any, i: number) => (
+              <View
+                key={i}
+                style={[
+                  styles.addressBlock,
+                  { backgroundColor: currentTheme.card },
+                ]}
+              >
+                <Text style={[styles.infoText, { color: currentTheme.text }]}>
+                  {a.street}, {a.city}, {a.stateTerritory}
+                </Text>
+                <Text style={[styles.infoText, { color: currentTheme.text }]}>
+                  {a.country} - {a.zipCode}
+                </Text>
+                {a.aptSuiteUnit && (
+                  <Text
+                    style={[styles.infoText, { color: currentTheme.muted }]}
+                  >
+                    Apt/Suite: {a.aptSuiteUnit}
+                  </Text>
+                )}
+              </View>
+            ))
+          ) : (
+            <Text style={[styles.infoText, { color: currentTheme.muted }]}>
+              Address details are not fully listed.
+            </Text>
+          )}
+        </View>
+
+        {/* Safety & Security */}
+        <View style={styles.sectionContainer}>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            <Feather name="shield" size={20} color={currentTheme.primary} />{" "}
+            Safety & Security
+          </Text>
+          {renderList(
+            safetyDetailsData?.safetyDetails,
+            "No specific safety features listed.",
+            "alert-triangle"
+          )}
+          {safetyDetailsData?.cameraDescription && (
+            <Text
+              style={[
+                styles.infoText,
+                styles.cameraInfo,
+                { color: currentTheme.text },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="cctv"
+                size={16}
+                color={currentTheme.primary}
+              />{" "}
+              **Camera Note:** {safetyDetailsData.cameraDescription}
+            </Text>
+          )}
+        </View>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  contentContainer: { paddingBottom: 24 },
-  centeredContainer: {
-    flex: 1,
+  contentContainer: { paddingBottom: 30 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  imageContainer: { width: width, height: width * 0.7 },
+  noImage: {
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    padding: 24,
+    borderRadius: 12,
+    margin: 16,
   },
-  card: {
-    marginHorizontal: PADDING,
-    marginTop: PADDING / 2,
-    padding: PADDING,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  carouselContainer: { width: "100%", height: 250 },
-  title: { fontSize: 28, fontWeight: "800", marginBottom: 4 },
-  price: { fontSize: 24, fontWeight: "700", marginBottom: 8 },
-  location: { fontSize: 16, fontWeight: "500" },
-  text: { fontSize: 16, lineHeight: 24, textAlign: "center" },
-  sectionHeading: { fontSize: 20, fontWeight: "700", marginBottom: 12 },
-  divider: { height: 1, backgroundColor: "#e0e0e0", marginVertical: 16 },
-  detailRow: { flexDirection: "row", alignItems: "baseline", marginBottom: 8 },
-  detailLabel: { fontSize: 16, fontWeight: "500", minWidth: 120 },
-  detailValue: { fontSize: 16, fontWeight: "600", flex: 1, flexWrap: "wrap" },
-  actionButtonsContainer: {
+  noImageText: { marginTop: 8, fontSize: 16, fontWeight: "500" },
+
+  detailsBox: { paddingHorizontal: 16, paddingTop: 16 },
+
+  title: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
+  subInfoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginHorizontal: PADDING,
-    marginTop: PADDING,
-    gap: 12,
+    marginBottom: 16,
   },
-  button: {
-    flex: 1,
+  subText: { fontSize: 14, fontWeight: "400", opacity: 0.9 },
+
+  card: {
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginBottom: 4,
+  },
+  priceTag: { fontSize: 32, fontWeight: "bold" },
+  priceDuration: {
+    fontSize: 18,
+    fontWeight: "500",
+    marginLeft: 4,
+    paddingBottom: 2,
+  },
+  secondaryPrice: {
+    fontSize: 14,
+    marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 12,
+  },
+
+  capacityRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 10,
+  },
+  capacityItem: { alignItems: "center", flex: 1 },
+  capacityCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  capacityValue: { fontSize: 20, fontWeight: "600", marginTop: 4 },
+  capacityLabel: { fontSize: 12, fontWeight: "400" },
+
+  sectionContainer: { marginBottom: 20, paddingVertical: 8 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 30,
-    minWidth: 120,
+    gap: 8,
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 15, marginLeft: 8 },
-  amenitiesContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  amenityTag: { borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16 },
-  amenityText: { fontSize: 14, fontWeight: "500" },
+  subsectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  infoText: { fontSize: 16, lineHeight: 24 },
+
+  listContainer: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  listItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  listIcon: { marginRight: 6 },
+
+  addressBlock: { marginBottom: 8, padding: 12, borderRadius: 12 },
+  cameraInfo: { fontStyle: "italic", marginTop: 10 },
 });

@@ -40,7 +40,7 @@ export default function Profile() {
   const [deleteUser] = useDeleteUserMutation();
   const handleDelete = async () => {
     try {
-      await deleteUser().unwrap();
+      await deleteUser(undefined).unwrap();
       Alert.alert("Deleted!", "Your account has been removed.", [
         {
           text: "OK",

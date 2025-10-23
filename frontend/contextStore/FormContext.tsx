@@ -21,10 +21,16 @@ export interface FormData {
   safetyDetailsData?: SafetyDetailsData;
 }
 
+export interface SubmitResult {
+  success: boolean;
+  data?: any;
+  error?: unknown;
+}
+
 export interface FormContextType {
   data: FormData;
   updateForm: <K extends keyof FormData>(step: K, values: FormData[K]) => void;
-  submitData: () => Promise<void>;
+  submitData: () => Promise<SubmitResult>;
 }
 
 export const FormContext = createContext<FormContextType | undefined>(
@@ -34,22 +40,27 @@ export const FormContext = createContext<FormContextType | undefined>(
 export const FormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<FormData>({});
   const [createProperty] = useCreatePropertyMutation();
-  const updateForm: FormContextType["updateForm"] = async (step, values) => {
+
+  const updateForm: FormContextType["updateForm"] = (step, values) => {
     setData((prev) => {
       const newData = { ...prev, [step]: values };
-      console.log(newData);
+      console.log("📝 Updated Form Data:", newData);
       return newData;
     });
   };
-  const submitData = async () => {
+
+  const submitData: FormContextType["submitData"] = async () => {
     try {
-      console.log("Submitting property data:", data);
-      await createProperty(data).unwrap();
-      console.log("✅ Property created successfully!");
+      console.log("🚀 Submitting property data:", data);
+      const response = await createProperty(data).unwrap();
+      console.log("✅ Property created successfully!", response);
+      return { success: true, data: response };
     } catch (error) {
       console.error("❌ Error submitting property:", error);
+      return { success: false, error };
     }
   };
+
   return (
     <FormContext.Provider value={{ data, updateForm, submitData }}>
       {children}

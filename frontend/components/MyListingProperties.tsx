@@ -15,7 +15,7 @@ import {
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"; // Added Feather for map-pin icon
 
 const MyListingProperties = () => {
   const {
@@ -23,7 +23,7 @@ const MyListingProperties = () => {
     isLoading,
     error,
     refetch,
-  } = useFindMyPropertiesQuery();
+  } = useFindMyPropertiesQuery(undefined);
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -42,7 +42,7 @@ const MyListingProperties = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteProperty(id).unwrap();
-      Alert.alert("Deleted!", "Property has been removed.");
+      Alert.alert("Deleted! 👋", "Property has been successfully removed.");
       refetch();
     } catch (err) {
       console.error("Delete failed:", err);
@@ -52,10 +52,12 @@ const MyListingProperties = () => {
 
   if (isLoading) {
     return (
-      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
         <ActivityIndicator size="large" color={currentTheme.primary} />
         <Text style={[styles.loadingText, { color: currentTheme.text }]}>
-          Loading properties...
+          Loading your properties...
         </Text>
       </View>
     );
@@ -63,13 +65,29 @@ const MyListingProperties = () => {
 
   if (error) {
     return (
-      <View style={[styles.center, { backgroundColor: currentTheme.background }]}>
-        <Text style={[styles.errorText, { color: currentTheme.error }]}>
-          Failed to load properties.
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={[styles.errorText, { color: currentTheme.danger }]}>
+          Failed to load properties. Please check your connection. 😔
         </Text>
       </View>
     );
   }
+
+  // Helper to render property capacity icons
+  const renderCapacity = (iconName: string, value: any, unit: string) => (
+    <View style={styles.capacityItem}>
+      <MaterialCommunityIcons
+        name={iconName as any}
+        size={16}
+        color={currentTheme.muted}
+      />
+      <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
+        {value || "N/A"} {unit}
+      </Text>
+    </View>
+  );
 
   return (
     <FlatList
@@ -79,15 +97,30 @@ const MyListingProperties = () => {
       ListHeaderComponent={
         <View style={styles.headerContainer}>
           <Text style={[styles.header, { color: currentTheme.text }]}>
-            My Listing Properties
+            My Listings
           </Text>
         </View>
       }
       ListEmptyComponent={
         <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons
+            name="home-search-outline"
+            size={50}
+            color={currentTheme.muted}
+            style={{ marginBottom: 10 }}
+          />
           <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
-            You have no properties listed.
+            You have no properties listed yet.
           </Text>
+          <TouchableOpacity
+            style={[
+              styles.createButton,
+              { backgroundColor: currentTheme.primary, marginTop: 20 },
+            ]}
+            onPress={() => router.push("/upload")} // Assuming you have a route for creating a property
+          >
+            <Text style={styles.createButtonText}>List a New Property</Text>
+          </TouchableOpacity>
         </View>
       }
       renderItem={({ item }) => (
@@ -96,44 +129,86 @@ const MyListingProperties = () => {
             styles.card,
             {
               backgroundColor: currentTheme.card,
-              width: width * 0.9,
+              width: width - 40, // Match a standard design padding of 20 on each side
+              // shadowColor: currentTheme.shadow,
               borderColor: currentTheme.border,
             },
           ]}
         >
+          {/* Main Info Section */}
           <View style={styles.infoSection}>
-            <Text style={[styles.title, { color: currentTheme.text }]}>
+            <Text
+              style={[styles.title, { color: currentTheme.text }]}
+              numberOfLines={1}
+            >
               {item.title}
             </Text>
+
             <View style={styles.row}>
-              <MaterialCommunityIcons name="map-marker-outline" size={16} color={currentTheme.muted} />
-              <Text style={[styles.location, { color: currentTheme.muted }]}>
-                {item.city} | {item.address}
+              <Feather name="map-pin" size={14} color={currentTheme.muted} />
+              <Text
+                style={[styles.location, { color: currentTheme.muted }]}
+                numberOfLines={1}
+              >
+                {item.address?.[0]?.city || "City N/A"},{" "}
+                {item.address?.[0]?.country || "Country N/A"}
               </Text>
             </View>
-            <View style={styles.row}>
-              <MaterialCommunityIcons name="currency-usd" size={16} color={currentTheme.primary} />
+
+            {/* Capacity Row */}
+            <View style={styles.capacityRow}>
+              {renderCapacity(
+                "account-group-outline",
+                item.capacityState?.guests,
+                "Guests"
+              )}
+              {renderCapacity("bed-outline", item.capacityState?.beds, "Beds")}
+              {renderCapacity(
+                "bathtub-outline",
+                item.capacityState?.bathrooms,
+                "Baths"
+              )}
+            </View>
+
+            {/* Price */}
+            <View style={styles.priceContainer}>
               <Text style={[styles.price, { color: currentTheme.primary }]}>
-                Rs. {item.rentPrice.toLocaleString()}
+                Rs. {item.monthlyRent?.toLocaleString() || "N/A"}
+              </Text>
+              <Text
+                style={[styles.priceDuration, { color: currentTheme.muted }]}
+              >
+                / month
               </Text>
             </View>
           </View>
 
+          {/* Actions Row */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.success }]}
               onPress={() => handleOpenDetails(item._id)}
             >
-              <MaterialCommunityIcons name="eye-outline" size={20} color="#fff" />
+              <MaterialCommunityIcons
+                name="eye-outline"
+                size={20}
+                color="#fff"
+              />
               <Text style={styles.buttonText}>View</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.info }]}
               onPress={() => handleEdit(item._id)}
             >
-              <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={20}
+                color="#fff"
+              />
               <Text style={styles.buttonText}>Edit</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.danger }]}
               onPress={() =>
@@ -142,18 +217,29 @@ const MyListingProperties = () => {
                   "Are you sure you want to delete this property?",
                   [
                     { text: "Cancel", style: "cancel" },
-                    { text: "Delete", style: "destructive", onPress: () => handleDelete(item._id) },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => handleDelete(item._id),
+                    },
                   ]
                 )
               }
             >
-              <MaterialCommunityIcons name="delete-outline" size={20} color="#fff" />
+              <MaterialCommunityIcons
+                name="delete-outline"
+                size={20}
+                color="#fff"
+              />
               <Text style={styles.buttonText}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
-      contentContainerStyle={{ alignItems: "center", paddingVertical: 10 }}
+      contentContainerStyle={{
+        paddingHorizontal: 20, // Added padding to the list container
+        paddingBottom: 40,
+      }}
     />
   );
 };
@@ -166,63 +252,109 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 8,
+    fontWeight: "500",
   },
   errorText: {
     marginTop: 8,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 80,
+    paddingHorizontal: 20,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  createButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+  },
+  createButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
   },
   headerContainer: {
-    padding: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e0e0e0',
+    paddingTop: 16,
+    paddingBottom: 20,
     marginBottom: 8,
   },
   header: {
     fontSize: 24,
-    fontWeight: "700",
-    textAlign: 'center',
+    fontWeight: "800",
+    textAlign: "left",
   },
+  // --- CARD STYLES ---
   card: {
-    padding: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    shadowColor: "#000",
+    padding: 18,
+    marginBottom: 20, // Increased spacing between cards
+    borderRadius: 15, // More rounded corners
+    borderWidth: StyleSheet.hairlineWidth,
+    // Enhanced shadow for floating effect
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
   },
   infoSection: {
     marginBottom: 16,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20, // Larger title
+    fontWeight: "800",
     marginBottom: 8,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 4,
-    gap: 4,
+    marginBottom: 6,
+    gap: 8, // Increased gap
   },
   location: {
     fontSize: 14,
+    fontWeight: "500",
+  },
+  capacityRow: {
+    flexDirection: "row",
+    marginTop: 10,
+    marginBottom: 12,
+    gap: 20, // Gap between capacity items
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  capacityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  capacityText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  // Price Styling (similar to previous component)
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    marginTop: 10,
   },
   price: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "900", // Extra bold price
   },
+  priceDuration: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginLeft: 5,
+  },
+  // --- ACTIONS STYLES ---
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
