@@ -10,6 +10,7 @@ import {
   Modal,
   SafeAreaView,
   Pressable,
+  ImageBackground,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,15 +19,17 @@ import Toast from "react-native-toast-message";
 import { Formik } from "formik";
 import { signupValidationSchema } from "@/utils/signupValidation";
 import { useAuth } from "@/contextStore/AuthContext";
-import { useTheme } from "@/contextStore/ThemeContext";
-import GoogleLoginButton from "./SignInScreenWithOauth";
 import { Colors } from "../constants/Colors";
 import { Checkbox } from "react-native-paper";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import AuthImage from '../assets/images/authimage.jpg';
 
 export default function SignUpScreen() {
   const [role, setRole] = useState<string | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+
   const [createUser, { isLoading }] = useCreateUserMutation();
   const { login } = useAuth();
   const router = useRouter();
@@ -76,13 +79,15 @@ export default function SignUpScreen() {
         await AsyncStorage.setItem("userPhone", values.phone);
       }
 
-      router.replace("/homePage");
       Toast.show({
         type: "success",
         text1: "Account created!",
         text2: `Welcome to RentStore, ${values.name}.`,
       });
+
+      router.replace("/homePage");
     } catch (err: any) {
+      console.log("Signup Error:", err);
       Toast.show({
         type: "error",
         text1: "Signup failed",
@@ -93,379 +98,354 @@ export default function SignUpScreen() {
 
   if (!role) {
     return (
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { backgroundColor: currentTheme.background },
-        ]}
-      >
+      <View style={[{ backgroundColor: currentTheme.background }]}>
         <Text style={[styles.title, { color: currentTheme.text }]}>
           Loading...
         </Text>
-      </ScrollView>
+      </View>
     );
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: currentTheme.background },
-      ]}
+    <ImageBackground
+      source={AuthImage}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
-      <View
-        style={[styles.formContainer, { backgroundColor: currentTheme.card }]}
-      >
-        <Text style={[styles.title, { color: currentTheme.text }]}>
-          Create a new account
-        </Text>
-        <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
-          Please fill out the form below
-        </Text>
-
-        <Formik
-          initialValues={initialValues}
-          validationSchema={signupValidationSchema(role)}
-          onSubmit={handleSignUp}
-        >
-          {({
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            values,
-            errors,
-            touched,
-          }) => (
-            <>
-              {/* Full Name */}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="Full Name"
-                placeholderTextColor={currentTheme.muted}
-                value={values.name}
-                onChangeText={handleChange("name")}
-                onBlur={handleBlur("name")}
-              />
-              {touched.name && errors.name && (
-                <Text style={styles.error}>{errors.name}</Text>
-              )}
-
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="Email"
-                placeholderTextColor={currentTheme.muted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={values.email}
-                onChangeText={handleChange("email")}
-                onBlur={handleBlur("email")}
-              />
-              {touched.email && errors.email && (
-                <Text style={styles.error}>{errors.email}</Text>
-              )}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="Password"
-                placeholderTextColor={currentTheme.muted}
-                secureTextEntry
-                value={values.password}
-                onChangeText={handleChange("password")}
-                onBlur={handleBlur("password")}
-              />
-              {touched.password && errors.password && (
-                <Text style={styles.error}>{errors.password}</Text>
-              )}
-
-              {/* Phone */}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="Phone"
-                placeholderTextColor={currentTheme.muted}
-                keyboardType="phone-pad"
-                value={values.phone}
-                onChangeText={handleChange("phone")}
-                onBlur={handleBlur("phone")}
-              />
-              {touched.phone && errors.phone && (
-                <Text style={styles.error}>{errors.phone}</Text>
-              )}
-
-              {/* Agency fields */}
-              {role === "agency" && (
-                <>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: currentTheme.border,
-                        color: currentTheme.text,
-                      },
-                    ]}
-                    placeholder="Agency Name"
-                    placeholderTextColor={currentTheme.muted}
-                    value={values.agencyName}
-                    onChangeText={handleChange("agencyName")}
-                    onBlur={handleBlur("agencyName")}
-                  />
-                  {touched.agencyName && errors.agencyName && (
-                    <Text style={styles.error}>{errors.agencyName}</Text>
-                  )}
-                  <TextInput
-                    style={[
-                      styles.input,
-                      {
-                        borderColor: currentTheme.border,
-                        color: currentTheme.text,
-                      },
-                    ]}
-                    placeholder="Agency License"
-                    placeholderTextColor={currentTheme.muted}
-                    value={values.agencyLicense}
-                    onChangeText={handleChange("agencyLicense")}
-                    onBlur={handleBlur("agencyLicense")}
-                  />
-                  {touched.agencyLicense && errors.agencyLicense && (
-                    <Text style={styles.error}>{errors.agencyLicense}</Text>
-                  )}
-                </>
-              )}
-
-              {/* Preferences */}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="Preferences (optional)"
-                placeholderTextColor={currentTheme.muted}
-                value={values.preferences}
-                onChangeText={handleChange("preferences")}
-                onBlur={handleBlur("preferences")}
-              />
-
-              {/* CNIC */}
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
-                  },
-                ]}
-                placeholder="CNIC"
-                placeholderTextColor={currentTheme.muted}
-                value={values.cnic}
-                onChangeText={handleChange("cnic")}
-                onBlur={handleBlur("cnic")}
-              />
-              {touched.cnic && errors.cnic && (
-                <Text style={styles.error}>{errors.cnic}</Text>
-              )}
-
-              {/* Terms & Conditions */}
-              <TouchableOpacity
-                style={styles.termsContainer}
-                onPress={() => setShowTermsModal(true)}
-              >
-                <Checkbox
-                  status={acceptedTerms ? "checked" : "unchecked"}
-                  onPress={() => setAcceptedTerms(!acceptedTerms)}
-                  color={currentTheme.primary}
-                />
-                <Text style={[styles.termsText, { color: currentTheme.text }]}>
-                  I accept the{" "}
-                  <Text
-                    style={{
-                      color: currentTheme.primary,
-                      textDecorationLine: "underline",
-                    }}
-                    onPress={() => setShowTermsModal(true)}
-                  >
-                    Terms and Conditions
-                  </Text>
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  {
-                    backgroundColor: isLoading
-                      ? currentTheme.muted
-                      : currentTheme.primary,
-                  },
-                ]}
-                onPress={() => handleSubmit()}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Sign Up</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
-        </Formik>
-
-        <Link href="/signin" asChild>
-          <TouchableOpacity style={styles.linkContainer}>
-            <Text style={[styles.linkText, { color: currentTheme.text }]}>
-              Already have an account?{" "}
-              <Text style={[styles.linkBold, { color: currentTheme.primary }]}>
-                Sign In
-              </Text>
-            </Text>
-          </TouchableOpacity>
-        </Link>
-
-        <GoogleLoginButton />
-      </View>
-
-      {/* Terms & Conditions Modal */}
-      <Modal visible={showTermsModal} animationType="slide" transparent={true}>
-        <SafeAreaView style={styles.modalContainer}>
+      <View style={styles.overlay}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View
             style={[
-              styles.modalContent,
+              styles.formContainer,
               { backgroundColor: currentTheme.card },
             ]}
           >
-            <ScrollView style={{ padding: 16 }}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
-                RentStore Terms and Conditions
-              </Text>
-              <Text style={{ color: currentTheme.text, marginTop: 16 }}>
-                {/* Put your full T&C content here */}
-                1. RentStore is a platform that allows users to list and rent
-                properties.{"\n\n"}
-                2. Users and customers are independent contractors to each
-                other.{"\n\n"}
-                3. RentStore is not responsible for any disputes, scams, or
-                damages between users.{"\n\n"}
-                4. Users must accept these Terms and Conditions to create an
-                account.{"\n\n"}
-                5. Other rules and obligations applicable under Pakistan law for
-                rental agreements.
-              </Text>
-            </ScrollView>
+            <Text style={[styles.title, { color: currentTheme.text }]}>
+              Create a new account
+            </Text>
+            <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
+              Fill in the details to get started
+            </Text>
 
-            <Pressable
-              style={[
-                styles.modalCloseButton,
-                { backgroundColor: currentTheme.primary },
-              ]}
-              onPress={() => setShowTermsModal(false)}
+            <Formik
+              initialValues={initialValues}
+              validationSchema={signupValidationSchema(role)}
+              onSubmit={handleSignUp}
             >
-              <Text style={styles.buttonText}>Close</Text>
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </Modal>
+              {({
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                values,
+                errors,
+                touched,
+              }) => (
+                <>
+                  {/* Name */}
+                  <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={20}
+                      color="#A0AEC0"
+                      style={styles.icon}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="Full Name"
+                      placeholderTextColor="#A0AEC0"
+                      value={values.name}
+                      onChangeText={handleChange("name")}
+                      onBlur={handleBlur("name")}
+                    />
+                  </View>
+                  {touched.name && errors.name && (
+                    <Text style={styles.error}>{errors.name}</Text>
+                  )}
 
-      <Toast />
-    </ScrollView>
+                  {/* Email */}
+                  <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons
+                      name="email-outline"
+                      size={20}
+                      color="#A0AEC0"
+                      style={styles.icon}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="Email"
+                      placeholderTextColor="#A0AEC0"
+                      value={values.email}
+                      onChangeText={handleChange("email")}
+                      onBlur={handleBlur("email")}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
+                  {touched.email && errors.email && (
+                    <Text style={styles.error}>{errors.email}</Text>
+                  )}
+
+                  {/* Password */}
+                  <View style={styles.inputContainer}>
+                    <Feather
+                      name="lock"
+                      size={20}
+                      color="#A0AEC0"
+                      style={styles.icon}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="Password"
+                      placeholderTextColor="#A0AEC0"
+                      secureTextEntry
+                      value={values.password}
+                      onChangeText={handleChange("password")}
+                      onBlur={handleBlur("password")}
+                    />
+                  </View>
+                  {touched.password && errors.password && (
+                    <Text style={styles.error}>{errors.password}</Text>
+                  )}
+
+                  {/* Phone */}
+                  <View style={styles.inputContainer}>
+                    <Feather
+                      name="phone"
+                      size={20}
+                      color="#A0AEC0"
+                      style={styles.icon}
+                    />
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="Phone"
+                      placeholderTextColor="#A0AEC0"
+                      keyboardType="phone-pad"
+                      value={values.phone}
+                      onChangeText={handleChange("phone")}
+                      onBlur={handleBlur("phone")}
+                    />
+                  </View>
+                  {touched.phone && errors.phone && (
+                    <Text style={styles.error}>{errors.phone}</Text>
+                  )}
+
+                  {/* Agency fields */}
+                  {role === "agency" && (
+                    <>
+                      <View style={styles.inputContainer}>
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="Agency Name"
+                          placeholderTextColor="#A0AEC0"
+                          value={values.agencyName}
+                          onChangeText={handleChange("agencyName")}
+                          onBlur={handleBlur("agencyName")}
+                        />
+                      </View>
+                      {touched.agencyName && errors.agencyName && (
+                        <Text style={styles.error}>{errors.agencyName}</Text>
+                      )}
+
+                      <View style={styles.inputContainer}>
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="Agency License"
+                          placeholderTextColor="#A0AEC0"
+                          value={values.agencyLicense}
+                          onChangeText={handleChange("agencyLicense")}
+                          onBlur={handleBlur("agencyLicense")}
+                        />
+                      </View>
+                      {touched.agencyLicense && errors.agencyLicense && (
+                        <Text style={styles.error}>{errors.agencyLicense}</Text>
+                      )}
+                    </>
+                  )}
+
+                  {/* Preferences */}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="Preferences (optional)"
+                      placeholderTextColor="#A0AEC0"
+                      value={values.preferences}
+                      onChangeText={handleChange("preferences")}
+                      onBlur={handleBlur("preferences")}
+                    />
+                  </View>
+
+                  {/* CNIC */}
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={[styles.input, { color: currentTheme.text }]}
+                      placeholder="CNIC"
+                      placeholderTextColor="#A0AEC0"
+                      value={values.cnic}
+                      onChangeText={handleChange("cnic")}
+                      onBlur={handleBlur("cnic")}
+                    />
+                  </View>
+                  {touched.cnic && errors.cnic && (
+                    <Text style={styles.error}>{errors.cnic}</Text>
+                  )}
+
+                  {/* Terms */}
+                  <TouchableOpacity
+                    style={styles.termsContainer}
+                    onPress={() => setShowTermsModal(true)}
+                  >
+                    <Checkbox
+                      status={acceptedTerms ? "checked" : "unchecked"}
+                      onPress={() => setAcceptedTerms(!acceptedTerms)}
+                      color="#3B82F6"
+                    />
+                    <Text style={styles.termsText}>
+                      I accept the{" "}
+                      <Text
+                        style={{
+                          color: "#3B82F6",
+                          textDecorationLine: "underline",
+                        }}
+                        onPress={() => setShowTermsModal(true)}
+                      >
+                        Terms and Conditions
+                      </Text>
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Sign Up Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.loginButton,
+                      { opacity: isLoading ? 0.7 : 1 },
+                    ]}
+                    onPress={() => handleSubmit()}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.loginButtonText}>Sign Up</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
+              )}
+            </Formik>
+
+            {/* Sign In Link */}
+            <Link href="/signin" asChild>
+              <TouchableOpacity style={styles.signUpRow}>
+                <Text style={{ color: currentTheme.text }}>
+                  Already have an account?{" "}
+                  <Text style={{ color: "#3B82F6", fontWeight: "600" }}>
+                    Sign In
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            </Link>
+
+            {/* Social Login */}
+            {/* <SocialButton iconName="google" label="Continue with Google" onPress={() => console.log("Google")} /> */}
+          </View>
+        </ScrollView>
+
+        {/* Terms Modal */}
+        <Modal visible={showTermsModal} animationType="slide" transparent>
+          <SafeAreaView style={styles.modalContainer}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: currentTheme.card },
+              ]}
+            >
+              <ScrollView style={{ padding: 16 }}>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontWeight: "700",
+                    textAlign: "center",
+                    marginBottom: 12,
+                    color: currentTheme.text,
+                  }}
+                >
+                  Terms and Conditions
+                </Text>
+                <Text style={{ color: currentTheme.text, marginTop: 16 }}>
+                  1. RentStore is a platform for listing and renting properties.
+                  {"\n\n"}
+                  2. Users are independent contractors.{"\n\n"}
+                  3. RentStore is not responsible for disputes.{"\n\n"}
+                  4. Accepting Terms is required to create an account.{"\n\n"}
+                </Text>
+              </ScrollView>
+              <Pressable
+                style={[
+                  styles.modalCloseButton,
+                  { backgroundColor: "#3B82F6" },
+                ]}
+                onPress={() => setShowTermsModal(false)}
+              >
+                <Text style={styles.loginButtonText}>Close</Text>
+              </Pressable>
+            </View>
+          </SafeAreaView>
+        </Modal>
+
+        <Toast />
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
+  backgroundImage: { flex: 1, width: "100%", height: "100%" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.2)" },
+  scrollContainer: { padding: 24, justifyContent: "flex-end" },
   formContainer: {
-    width: "100%",
-    maxWidth: 450,
+    backgroundColor: "#fff",
+    borderRadius: 30,
     padding: 24,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    minHeight: "70%",
   },
   title: {
     fontSize: 28,
-    fontWeight: "800",
+    fontWeight: "700",
+    marginBottom: 4,
     textAlign: "center",
   },
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  input: {
+  subtitle: { fontSize: 16, marginBottom: 20, textAlign: "center" },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    fontSize: 16,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 12,
+    backgroundColor: "#F7FAFC",
   },
-  error: {
-    color: "#e74c3c",
-    fontSize: 12,
-    marginBottom: 10,
-    marginTop: -10,
-  },
+  icon: { marginRight: 10 },
+  input: { flex: 1, paddingVertical: 12, fontSize: 16 },
+  error: { color: "#e74c3c", fontSize: 12, marginBottom: 8, marginTop: -6 },
   termsContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
   },
-  termsText: {
-    fontSize: 14,
-    flexShrink: 1,
-  },
-  button: {
+  termsText: { fontSize: 14, flexShrink: 1 },
+  loginButton: {
+    backgroundColor: "#3B82F6",
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 12,
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 18,
-  },
-  linkContainer: {
-    marginTop: 20,
-    alignSelf: "center",
-  },
-  linkText: {
-    fontSize: 14,
-  },
-  linkBold: {
-    fontWeight: "bold",
+  loginButtonText: { color: "#fff", fontWeight: "700", fontSize: 18 },
+  signUpRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 12,
+    marginBottom: 10,
   },
   modalContainer: {
     flex: 1,
@@ -478,13 +458,5 @@ const styles = StyleSheet.create({
     maxHeight: "80%",
     overflow: "hidden",
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  modalCloseButton: {
-    paddingVertical: 14,
-    alignItems: "center",
-  },
+  modalCloseButton: { paddingVertical: 14, alignItems: "center" },
 });
