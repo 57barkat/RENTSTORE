@@ -25,42 +25,48 @@ export class PropertyController {
   @Post("create")
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
   async createProperty(
-    @Body() dto: any,
+    @Body() dto: CreatePropertyDto,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any
   ) {
     const photos = files?.photos || [];
-    console.log("📸 Uploaded files:", photos.length);
-
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
-    // 🧠 Parse any fields that might be JSON strings
     const parsedDto = {
       ...dto,
-      address:
-        typeof dto.address === "string" 
-          ? JSON.parse(dto.address) 
-          : dto.address,
-      capacityState:
-        typeof dto.capacityState === "string"
-          ? JSON.parse(dto.capacityState)
-          : dto.capacityState,
-      description:
-        typeof dto.description === "string"
-          ? JSON.parse(dto.description)
-          : dto.description,
-      safetyDetailsData:
-        typeof dto.safetyDetailsData === "string"
-          ? JSON.parse(dto.safetyDetailsData)
-          : dto.safetyDetailsData,
-      amenities:
-        typeof dto.amenities === "string"
-          ? JSON.parse(dto.amenities)
-          : dto.amenities,
+      address: this.parseJson(dto.address),
+      capacityState: this.parseJson(dto.capacityState),
+      description: this.parseJson(dto.description),
+      safetyDetailsData: this.parseJson(dto.safetyDetailsData),
+      amenities: this.parseJson(dto.amenities),
     };
 
+    // Required fields for full completion
+    const requiredFields = [
+      "title",
+      "hostOption",
+      "location",
+      "monthlyRent",
+      "SecuritybasePrice",
+      "address",
+      "capacityState",
+    ];
+
+    const isComplete = requiredFields.every((field) => !!parsedDto[field]);
+
+    // 👇 Automatically set property status: true (complete) / false (draft)
+    parsedDto.status = isComplete;
+
     return this.propertyService.create(parsedDto, photos, userId);
+  }
+
+  private parseJson(value: any) {
+    try {
+      return typeof value === "string" ? JSON.parse(value) : value;
+    } catch {
+      return value;
+    }
   }
 
   @Get()
@@ -137,7 +143,19 @@ export class PropertyController {
     const userId = req.user?.userId;
     return this.propertyService.getFeaturedProperties(userId);
   }
+  @Get("drafts")
+  async getAllDrafts(@Req() req: any) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+    return this.propertyService.getAllDrafts(userId);
+  }
 
+  @Delete("drafts/:id")
+  async deleteDraftById(@Param("id") id: string, @Req() req: any) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+    return this.propertyService.deleteDraftById(id, userId);
+  }
   @Get(":id")
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
