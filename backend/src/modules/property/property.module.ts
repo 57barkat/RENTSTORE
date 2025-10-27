@@ -6,12 +6,13 @@ import { Property, PropertySchema } from "./property.schema";
 import { CloudinaryModule } from "../../services/Cloudinary Service/cloudinary.module";
 import { AuthModule } from "../../services/auth.module";
 import { AddToFavModule } from "../addToFav/favorite.module";
- 
+import { PropertyDraftSchema } from "./draft.schema";  
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: Property.name, schema: PropertySchema },
+      { name: Property.name, schema: PropertySchema },        
+      { name: 'PropertyDraft', schema: PropertyDraftSchema },  
     ]),
     CloudinaryModule,
     AuthModule,
