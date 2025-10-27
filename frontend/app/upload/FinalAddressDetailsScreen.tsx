@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState, useCallback } from "react";
+import React, { FC, useContext, useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -33,6 +33,22 @@ const FinalAddressDetailsScreen: FC = () => {
       },
     ]
   );
+  useEffect(() => {
+    if (!data.address || data.address.length === 0) {
+      setAddresses([
+        {
+          country: "PAKISTAN",
+          street: "",
+          aptSuiteUnit: "",
+          city: "",
+          stateTerritory: "",
+          zipCode: "",
+        },
+      ]);
+    } else {
+      setAddresses(data.address);
+    }
+  }, [data.address]);
 
   const [errors, setErrors] = useState<AddressErrors>({});
   const [loading, setLoading] = useState(false);
