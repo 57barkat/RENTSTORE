@@ -290,9 +290,15 @@ export class PropertyService {
       .lean()) as unknown as PropertyWithFav[];
 
     const favIds = await this.favService.getUserFavoriteIds(userId);
-    data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
 
-    return data;
+    const filteredData = data
+      .filter((p) => p.status !== false)
+      .map((p) => ({
+        ...p,
+        isFav: favIds.includes(p._id.toString()),
+      }));
+
+    return filteredData;
   }
 
   async findPropertyById(propertyId: string, userId?: string) {
