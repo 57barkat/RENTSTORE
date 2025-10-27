@@ -16,6 +16,8 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"; // Added Feather for map-pin icon
+import { useContext } from "react";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 
 const MyListingProperties = () => {
   const {
@@ -24,6 +26,7 @@ const MyListingProperties = () => {
     error,
     refetch,
   } = useFindMyPropertiesQuery(undefined);
+  const formContext = useContext(FormContext);
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -33,8 +36,10 @@ const MyListingProperties = () => {
     router.push(`/property/${id}`);
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/property/edit/${id}`);
+  const handleEdit = (item: FormData) => {
+    formContext?.setFullFormData(item);
+    router.push("/upload/IntroStep1");
+    // router.push(`/property/edit/${id}`);
   };
 
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
@@ -117,7 +122,7 @@ const MyListingProperties = () => {
               styles.createButton,
               { backgroundColor: currentTheme.primary, marginTop: 20 },
             ]}
-            onPress={() => router.push("/upload")} // Assuming you have a route for creating a property
+            onPress={() => router.push("/upload")}
           >
             <Text style={styles.createButtonText}>List a New Property</Text>
           </TouchableOpacity>
@@ -199,7 +204,7 @@ const MyListingProperties = () => {
 
             <TouchableOpacity
               style={[styles.button, { backgroundColor: currentTheme.info }]}
-              onPress={() => handleEdit(item._id)}
+              onPress={() => handleEdit(item)}
             >
               <MaterialCommunityIcons
                 name="pencil-outline"
