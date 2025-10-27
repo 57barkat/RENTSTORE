@@ -1,65 +1,42 @@
-import React, { useContext, useState } from "react";
-import { Text, TouchableOpacity } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import React, { FC } from "react";
+import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import StepContainer from "@/app/upload/Welcome";
-import { styles } from "@/styles/upload";
-import { FormContext } from "@/contextStore/FormContext";
+import { styles } from "@/styles/CreateStep";
+import { OptionCard } from "@/components/UploadPropertyComponents/OptionCard";
 
-const WelcomeScreen = () => {
-  const formContext = useContext(FormContext);
+
+
+const CreateStep: FC = () => {
   const router = useRouter();
 
-  if (!formContext) {
-    throw new Error(
-      "FormContext is missing! Make sure WelcomeScreen is wrapped in <FormProvider>."
-    );
-  }
-
-  const { updateForm, data } = formContext;
-
-  const [selectedType, setSelectedType] = useState<string | null>(
-    data.hostOption ?? null
-  );
-
-  const hostOptions = [
-    { title: "Home", value: "home", icon: "home-city-outline" },
-    { title: "Apartment", value: "apartment", icon: "office-building-outline" },
-    { title: "Hostel", value: "hostel", icon: "bed-empty" },
-  ];
-
-  const handleNext = () => {
-    if (!selectedType) return;
-    updateForm("hostOption", selectedType);
+  const handleCreateNew = () => {
+    // router.push(NEW_LISTING_PATH as `${string}:param`);
     router.push("/upload/IntroStep1");
   };
 
+  const handleCreateFromExisting = () => {
+    router.push("/DraftProperties" as `${string}:param`);
+
+    console.log("Navigating to existing listings selection.");
+  };
+
   return (
-    <StepContainer
-      title="What would you like to host?"
-      showBack={false}
-      onNext={handleNext}
-      isNextDisabled={!selectedType}
-    >
-      {hostOptions.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          onPress={() => setSelectedType(option.value)}
-          style={[
-            styles.card,
-            selectedType === option.value && styles.selectedCard,
-          ]}
-        >
-          <Text style={styles.cardTitle}>{option.title}</Text>
-          <MaterialCommunityIcons
-            name={option.icon as any}
-            size={60}
-            color="#333"
-          />
-        </TouchableOpacity>
-      ))}
-    </StepContainer>
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>Start a new listing</Text>
+
+      <OptionCard
+        iconName="home-plus-outline"
+        title="Create a new listing"
+        onPress={handleCreateNew}
+      />
+      <View style={styles.separator} />
+      <OptionCard
+        iconName="content-copy"
+        title="Create from an existing listing"
+        onPress={handleCreateFromExisting}
+      />
+    </View>
   );
 };
 
-export default WelcomeScreen;
+export default CreateStep;
