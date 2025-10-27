@@ -16,7 +16,7 @@ export const styles = StyleSheet.create({
     borderStyle: "solid",
     position: "absolute",
     left: 20,
-    width: 80,
+    width: 150,
     height: 35,
     justifyContent: "center",
     alignItems: "center",
