@@ -15,9 +15,23 @@ import { AddToFavService } from "../addToFav/favorites.service";
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
+    @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
     private readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService
   ) {}
+
+  async uploadFilesToCloudinary(
+    files: Express.Multer.File[]
+  ): Promise<string[]> {
+    if (!files || files.length === 0) return [];
+    const urls = await Promise.all(
+      files.map(async (file) => {
+        const uploaded = await this.cloudinary.uploadFile(file);
+        return uploaded.secure_url;
+      })
+    );
+    return urls;
+  }
 
   async create(
     dto: CreatePropertyDto,
@@ -110,7 +124,7 @@ export class PropertyService {
 
     const draft = new this.propertyDraftModel({
       ...dto,
-      photos: photoUrls,
+      photos,
       ownerId: new Types.ObjectId(userId),
       status: "draft",
     });
@@ -145,7 +159,7 @@ export class PropertyService {
   }
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
-    const filter: any = {};
+    const filter: any = { status: true };
     if (ownerId) {
       filter.ownerId = ownerId;
     }
@@ -166,109 +180,108 @@ export class PropertyService {
     };
   }
 
- async findFiltered(
-    page = 1,
-    limit = 10,
-    filters: {
-      city?: string;
-      country?: string;
-      stateTerritory?: string;
-      minRent?: number;
-      maxRent?: number;
-      minSecurity?: number;
-      maxSecurity?: number;
-      bedrooms?: number;
-      beds?: number; //  
-      bathrooms?: number;
-      guests?: number;
-      amenities?: string[];
-      bills?: string[];
-      hostOption?: string;
-      title?: string;
-      highlighted?: string[];
-      safety?: string[];
-    },
-    userId?: string
-  ) {
-    const skip = (page - 1) * limit;
-    const filter: any = {};
+  async findFiltered(
+    page = 1,
+    limit = 10,
+    filters: {
+      city?: string;
+      country?: string;
+      stateTerritory?: string;
+      minRent?: number;
+      maxRent?: number;
+      minSecurity?: number;
+      maxSecurity?: number;
+      bedrooms?: number;
+      beds?: number;
+      bathrooms?: number;
+      guests?: number;
+      amenities?: string[];
+      bills?: string[];
+      hostOption?: string;
+      title?: string;
+      highlighted?: string[];
+      safety?: string[];
+    },
+    userId?: string
+  ) {
+    const skip = (page - 1) * limit;
+    const filter: any = { status: true };
 
-    if (filters.city)
-      filter["address.city"] = { $regex: filters.city, $options: "i" };
-    if (filters.country)
-      filter["address.country"] = { $regex: filters.country, $options: "i" };
-    if (filters.stateTerritory)
-      filter["address.stateTerritory"] = {
-        $regex: filters.stateTerritory,
-        $options: "i",
-      };
-    if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
+    if (filters.city)
+      filter["address.city"] = { $regex: filters.city, $options: "i" };
+    if (filters.country)
+      filter["address.country"] = { $regex: filters.country, $options: "i" };
+    if (filters.stateTerritory)
+      filter["address.stateTerritory"] = {
+        $regex: filters.stateTerritory,
+        $options: "i",
+      };
+    if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
 
-    if (filters.minRent !== undefined || filters.maxRent !== undefined) {
-      filter.monthlyRent = {};
-      if (filters.minRent !== undefined)
-        filter.monthlyRent.$gte = filters.minRent;
-      if (filters.maxRent !== undefined)
-        filter.monthlyRent.$lte = filters.maxRent;
-    }
+    if (filters.minRent !== undefined || filters.maxRent !== undefined) {
+      filter.monthlyRent = {};
+      if (filters.minRent !== undefined)
+        filter.monthlyRent.$gte = filters.minRent;
+      if (filters.maxRent !== undefined)
+        filter.monthlyRent.$lte = filters.maxRent;
+    }
 
-    if (
-      filters.minSecurity !== undefined ||
-      filters.maxSecurity !== undefined
-    ) {
-      filter.SecuritybasePrice = {};
-      if (filters.minSecurity !== undefined)
-        filter.SecuritybasePrice.$gte = filters.minSecurity;
-      if (filters.maxSecurity !== undefined)
-        filter.SecuritybasePrice.$lte = filters.maxSecurity;
-    }
+    if (
+      filters.minSecurity !== undefined ||
+      filters.maxSecurity !== undefined
+    ) {
+      filter.SecuritybasePrice = {};
+      if (filters.minSecurity !== undefined)
+        filter.SecuritybasePrice.$gte = filters.minSecurity;
+      if (filters.maxSecurity !== undefined)
+        filter.SecuritybasePrice.$lte = filters.maxSecurity;
+    }
 
     // Existing: Filters by the number of private bedrooms (rooms)
-    if (filters.bedrooms !== undefined)
-      filter["capacityState.bedrooms"] = filters.bedrooms;
-      
+    if (filters.bedrooms !== undefined)
+      filter["capacityState.bedrooms"] = filters.bedrooms;
+
     // MODIFIED: Filters by the total number of beds (sleeping spots)
-    if (filters.beds !== undefined) 
-      filter["capacityState.beds"] = filters.beds; 
-      
-    if (filters.bathrooms !== undefined)
-      filter["capacityState.bathrooms"] = filters.bathrooms;
-    if (filters.guests !== undefined)
-      filter["capacityState.guests"] = filters.guests;
+    if (filters.beds !== undefined) filter["capacityState.beds"] = filters.beds;
 
-    if (filters.amenities?.length)
-      filter.amenities = { $all: filters.amenities };
-    if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
-    if (filters.highlighted?.length)
-      filter["description.highlighted"] = { $all: filters.highlighted };
-    if (filters.safety?.length)
-      filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
+    if (filters.bathrooms !== undefined)
+      filter["capacityState.bathrooms"] = filters.bathrooms;
+    if (filters.guests !== undefined)
+      filter["capacityState.guests"] = filters.guests;
 
-    if (filters.hostOption) filter.hostOption = filters.hostOption;
+    if (filters.amenities?.length)
+      filter.amenities = { $all: filters.amenities };
+    if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
+    if (filters.highlighted?.length)
+      filter["description.highlighted"] = { $all: filters.highlighted };
+    if (filters.safety?.length)
+      filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
 
-    const [data, total] = await Promise.all([
-      this.propertyModel
-        .find(filter)
-        .skip(skip)
-        .limit(limit)
-        .populate("ownerId", "name email")
-        .lean() as unknown as PropertyWithFav[],
-      this.propertyModel.countDocuments(filter),
-    ]);
+    if (filters.hostOption) filter.hostOption = filters.hostOption;
+
+    const [data, total] = await Promise.all([
+      this.propertyModel
+        .find(filter)
+        .skip(skip)
+        .limit(limit)
+        .populate("ownerId", "name email")
+        .lean() as unknown as PropertyWithFav[],
+      this.propertyModel.countDocuments(filter),
+    ]);
 
     if (userId) {
       const favIds = await this.favService.getUserFavoriteIds(userId);
       data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
     }
 
-    return {
-      data: data || [],
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit) || 1,
-    };
-  }
+    return {
+      data: data || [],
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
 
   async findMyProperties(userId: string) {
     const data = (await this.propertyModel
@@ -336,6 +349,30 @@ export class PropertyService {
     }
 
     Object.assign(property, dto);
+
+    // Define required fields for a complete property
+    const requiredFields = [
+      "title",
+      "hostOption",
+      "location",
+      "monthlyRent",
+      "SecuritybasePrice",
+      "address",
+      "capacityState",
+    ];
+
+    // Check completion (ensure all required fields are filled)
+    const isComplete = requiredFields.every(
+      (field) =>
+        property[field] !== undefined &&
+        property[field] !== null &&
+        property[field] !== ""
+    );
+
+    // Update the status automatically
+    property.status = isComplete;
+
+    // Save and return updated document
     return property.save();
   }
 
