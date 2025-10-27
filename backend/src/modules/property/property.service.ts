@@ -33,9 +33,82 @@ export class PropertyService {
             })
           )
         : [];
-    console.log("Create property instance", imageFiles);
-    // Create property instance
-    const property = new this.propertyModel({
+
+    // Parse nested fields if they come as JSON strings
+    const parsedDto = {
+      ...dto,
+      address:
+        typeof dto.address === "string" ? JSON.parse(dto.address) : dto.address,
+      capacityState:
+        typeof dto.capacityState === "string"
+          ? JSON.parse(dto.capacityState)
+          : dto.capacityState,
+      description:
+        typeof dto.description === "string"
+          ? JSON.parse(dto.description)
+          : dto.description,
+      safetyDetailsData:
+        typeof dto.safetyDetailsData === "string"
+          ? JSON.parse(dto.safetyDetailsData)
+          : dto.safetyDetailsData,
+      amenities:
+        typeof dto.amenities === "string"
+          ? JSON.parse(dto.amenities)
+          : dto.amenities,
+      photos: photoUrls.length ? photoUrls : dto.photos, // override only if new files uploaded
+    };
+
+    // Determine required fields for status
+    const requiredFields = [
+      "title",
+      "hostOption",
+      "location",
+      "monthlyRent",
+      "SecuritybasePrice",
+      "address",
+      "capacityState",
+    ];
+    parsedDto.status = requiredFields.every((field) => !!parsedDto[field]);
+
+    let property: Property | null;
+
+    if (dto._id) {
+      // ✅ Existing property: update instead of creating
+      property = await this.propertyModel.findById(dto._id);
+      if (!property) throw new NotFoundException("Property not found");
+
+      // Only the owner can update
+      if (property.ownerId.toString() !== userId.toString())
+        throw new UnauthorizedException(
+          "You are not allowed to edit this property"
+        );
+
+      Object.assign(property, parsedDto);
+      property = await property.save();
+      console.log("Updated existing property:", property._id);
+    } else {
+      // ✅ New property: create
+      property = new this.propertyModel({
+        ...parsedDto,
+        ownerId: userId,
+      });
+      property = await property.save();
+      console.log("Created new property:", property._id);
+    }
+
+    return property;
+  }
+
+  async saveDraft(
+    dto: Partial<CreatePropertyDto>,
+    imageFiles?: Express.Multer.File[],
+    userId?: string
+  ) {
+    const photos: string[] = imageFiles?.length
+      ? await this.uploadFilesToCloudinary(imageFiles)
+      : dto.photos || [];
+
+    const draft = new this.propertyDraftModel({
       ...dto,
       photos: photoUrls,
       ownerId: new Types.ObjectId(userId),
