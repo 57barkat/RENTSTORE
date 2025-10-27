@@ -1,26 +1,27 @@
+import React, { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Provider } from "react-redux";
+import { Stack, useRouter, useSegments } from "expo-router";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { useFonts } from "expo-font";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
 import Toast from "react-native-toast-message";
-import { Provider } from "react-redux";
+import { useFonts } from "expo-font";
+
 import { store } from "../services/store";
 import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
-import Header from "@/components/Header";
 import {
   ThemeProvider as CustomThemeProvider,
   useTheme,
 } from "@/contextStore/ThemeContext";
 import { FormProvider } from "@/contextStore/FormContext";
+import Header from "@/components/Header";
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
+  const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
@@ -30,7 +31,7 @@ export default function RootLayout() {
   const { theme } = useTheme?.() ?? { theme: "light" };
 
   useEffect(() => {
-    if (!loaded) return;
+    if (!fontsLoaded) return;
 
     const inAuthGroup =
       segments[0] === "signin" ||
@@ -40,9 +41,9 @@ export default function RootLayout() {
     if (!isLoggedIn && !inAuthGroup) {
       router.replace("/signin");
     }
-  }, [isLoggedIn, loaded, segments, router]);
+  }, [isLoggedIn, fontsLoaded, segments, router]);
 
-  if (!loaded) {
+  if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#4F46E5" />
@@ -50,69 +51,54 @@ export default function RootLayout() {
     );
   }
 
-  // const currentSegment = segments[segments.length - 1];
-  // const inAuthGroup =
-  //   currentSegment === "signin" ||
-  //   currentSegment === "signup" ||
-  //   currentSegment === "choose-role";
-
-  // const hideHeader = inAuthGroup;
-  // || currentSegment === "profile";
+  // Screens where the custom Header should be hidden
+  const hideHeaderScreens = [
+    "signin",
+    "signup",
+    "choose-role", 
+    "Verification",
+    "property/[id]",
+    "property/edit/[id]",
+  ];
+  const currentSegment = segments[segments.length - 1];
+  const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
     <Provider store={store}>
       <AuthProvider>
         <CustomThemeProvider>
-          <FormProvider>
-            <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-              {/* {!hideHeader && <Header />} */}
-              <Header />
-              <Stack>
-                <Stack.Screen name="signin" options={{ headerShown: false }} />
-                <Stack.Screen name="signup" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="choose-role"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="Verification"
-                  options={{ headerShown: false }}
-                />
+          <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+            {/* Show custom header only if not hidden */}
+            {!hideHeader && <Header />}
 
-                <Stack.Screen
-                  name="property/[id]"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="property/edit/[id]"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="MyListingsScreen"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="PrivacyPolicyScreen"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                  name="favorites"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="DraftProperties"
-                  options={{ headerShown: false }}
-                />
-                <Stack.Screen name="upload" options={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false }}>
+              {/* Auth Screens */}
+              <Stack.Screen name="signin" />
+              <Stack.Screen name="signup" />
+              <Stack.Screen name="choose-role" />
+              <Stack.Screen name="Verification" />
 
-                <Stack.Screen name="+not-found" />
-              </Stack>
+              {/* Property Screens */}
+              <Stack.Screen name="property/[id]" />
+              <Stack.Screen name="property/edit/[id]" />
 
-              <StatusBar style="auto" />
-              <Toast />
-            </ThemeProvider>
-          </FormProvider>
+              {/* Screens that need FormProvider */}
+              <FormProvider>
+                <Stack.Screen name="MyListingsScreen" />
+                <Stack.Screen name="DraftProperties" />
+                <Stack.Screen name="upload" />
+              </FormProvider>
+
+              {/* Other Screens */}
+              <Stack.Screen name="PrivacyPolicyScreen" />
+              <Stack.Screen name="favorites" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+
+            <StatusBar style="auto" />
+            <Toast />
+          </ThemeProvider>
         </CustomThemeProvider>
       </AuthProvider>
     </Provider>
