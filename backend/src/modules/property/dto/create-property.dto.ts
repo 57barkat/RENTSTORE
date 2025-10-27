@@ -5,28 +5,30 @@ import {
   IsArray,
   ValidateNested,
   IsObject,
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { Property } from '../property.schema';
+  IsBoolean,
+  isString,
+} from "class-validator";
+import { Type, Transform } from "class-transformer";
+import { Property } from "../property.schema";
 
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
-  @IsString() street: string;
-  @IsString() city: string;
-  @IsString() stateTerritory: string;
-  @IsString() country: string;
-  @IsString() zipCode: string;
+  @IsOptional() @IsString() street?: string;
+  @IsOptional() @IsString() city?: string;
+  @IsOptional() @IsString() stateTerritory?: string;
+  @IsOptional() @IsString() country?: string;
+  @IsOptional() @IsString() zipCode?: string;
 }
 
 class CapacityStateDto {
-  @IsNumber() guests: number;
-  @IsNumber() bedrooms: number;
-  @IsNumber() beds: number;
-  @IsNumber() bathrooms: number;
+  @IsOptional() @IsNumber() guests?: number;
+  @IsOptional() @IsNumber() bedrooms?: number;
+  @IsOptional() @IsNumber() beds?: number;
+  @IsOptional() @IsNumber() bathrooms?: number;
 }
 
 class SafetyDetailsDataDto {
-  @IsArray() @IsString({ each: true }) safetyDetails: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) safetyDetails?: string[];
   @IsOptional() @IsString() cameraDescription?: string;
 }
 
@@ -35,26 +37,27 @@ class DescriptionDto {
 }
 
 export class CreatePropertyDto {
-  @IsString() title: string;
-  @IsString() hostOption: string;
-  @IsString() location: string;
+  @IsOptional() @IsString() _id?: string;
+  @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() hostOption?: string;
+  @IsOptional() @IsString() location?: string;
 
-  @IsNumber() monthlyRent: number;
-  @IsNumber() SecuritybasePrice: number;
+  @IsOptional() @IsNumber() monthlyRent?: number;
+  @IsOptional() @IsNumber() SecuritybasePrice?: number;
 
   @IsOptional() @IsArray() @IsString({ each: true }) ALL_BILLS?: string[];
 
-  @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => AddressDto)
-  address: AddressDto[];
+  address?: AddressDto[];
 
   @IsOptional() @IsArray() @IsString({ each: true }) amenities?: string[];
 
-  @IsObject()
+  @IsOptional()
   @ValidateNested()
   @Type(() => CapacityStateDto)
-  capacityState: CapacityStateDto;
+  capacityState?: CapacityStateDto;
 
   @IsOptional()
   @ValidateNested()
@@ -68,7 +71,12 @@ export class CreatePropertyDto {
 
   @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
 
-  @IsString() ownerId: string;  
+  @IsString() ownerId: string;
+
+  @Transform(({ value }) => value === "true" || value === true)
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }
 
 export interface PropertyWithFav extends Property {
