@@ -100,6 +100,10 @@ export default function RootLayout() {
                   options={{ headerShown: false }}
                 />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="DraftProperties"
+                  options={{ headerShown: false }}
+                />
                 <Stack.Screen name="upload" options={{ headerShown: false }} />
 
                 <Stack.Screen name="+not-found" />
