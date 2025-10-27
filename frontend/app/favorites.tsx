@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Text,
   View,
@@ -29,7 +29,7 @@ type Property = {
 };
 
 const Favorites = () => {
-  const queryResult = useGetUserFavoritesQuery(null as any)
+  const queryResult = useGetUserFavoritesQuery(null as any);
   const [removeFavorite] = useRemoveUserFavoriteMutation();
 
   const { theme } = useTheme();
@@ -41,6 +41,10 @@ const Favorites = () => {
     router.push(`/property/${id}`);
   };
 
+  useEffect(() => {
+    queryResult.refetch();
+  }, []);
+  
   const handleRemoveFavorite = async (propertyId: string) => {
     try {
       await removeFavorite({ propertyId }).unwrap();
@@ -80,23 +84,26 @@ const Favorites = () => {
   const favoritesArray: Property[] = Array.isArray(queryResult.data)
     ? queryResult.data
         .map((fav: any) => fav.property)
-        .filter((property: Property | null | undefined): property is Property => property != null) 
+        .filter(
+          (property: Property | null | undefined): property is Property =>
+            property != null
+        )
     : [];
   // -------------------------------------------------------------
-    
+
   const ListEmptyComponent = (
     <View style={[styles.emptyContainer, { height: width * 0.6 }]}>
-      <MaterialCommunityIcons 
-        name="heart-broken-outline" 
-        size={60} 
-        color={currentTheme.muted} 
+      <MaterialCommunityIcons
+        name="heart-broken-outline"
+        size={60}
+        color={currentTheme.muted}
       />
       <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
         You don&apos;t have any favorite properties yet.
       </Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.browseButton, { backgroundColor: currentTheme.primary }]}
-        onPress={() => router.push('/homePage')}
+        onPress={() => router.push("/homePage")}
       >
         <Text style={styles.browseButtonText}>Start Browsing</Text>
       </TouchableOpacity>
@@ -114,23 +121,32 @@ const Favorites = () => {
         },
       ]}
     >
-        {/* Optional: Property Image/Preview */}
-        <View style={[styles.imagePlaceholder, { backgroundColor: currentTheme.muted + '20' }]}>
-            {item.photos && item.photos.length > 0 ? (
-                <Image 
-                    source={{ uri: item.photos[0] }} 
-                    style={styles.propertyImage} 
-                />
-            ) : (
-                <MaterialCommunityIcons name="image-off-outline" size={30} color={currentTheme.muted} />
-            )}
-        </View>
+      {/* Optional: Property Image/Preview */}
+      <View
+        style={[
+          styles.imagePlaceholder,
+          { backgroundColor: currentTheme.muted + "20" },
+        ]}
+      >
+        {item.photos && item.photos.length > 0 ? (
+          <Image
+            source={{ uri: item.photos[0] }}
+            style={styles.propertyImage}
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name="image-off-outline"
+            size={30}
+            color={currentTheme.muted}
+          />
+        )}
+      </View>
 
-        {/* Property Info */}
+      {/* Property Info */}
       <Text style={[styles.title, { color: currentTheme.text }]}>
         {item.title ?? "Property Title"}
       </Text>
-      
+
       {/* Location */}
       <View style={styles.infoRow}>
         <MaterialCommunityIcons
@@ -142,7 +158,7 @@ const Favorites = () => {
           {item.location ?? "Unknown Location"}
         </Text>
       </View>
-      
+
       {/* Price */}
       <View style={styles.infoRow}>
         <MaterialCommunityIcons
@@ -164,7 +180,7 @@ const Favorites = () => {
           <MaterialCommunityIcons name="eye-outline" size={20} color="#fff" />
           <Text style={styles.buttonText}>View Details</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.button, { backgroundColor: currentTheme.danger }]}
           onPress={() =>
@@ -173,7 +189,11 @@ const Favorites = () => {
               "Are you sure you want to remove this property from your favorites?",
               [
                 { text: "Cancel", style: "cancel" },
-                { text: "Remove", style: "destructive", onPress: () => handleRemoveFavorite(item._id) },
+                {
+                  text: "Remove",
+                  style: "destructive",
+                  onPress: () => handleRemoveFavorite(item._id),
+                },
               ]
             )
           }
@@ -217,12 +237,12 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 10,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   headerContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    marginTop: Platform.OS === 'android' ? 20 : 0,
+    marginTop: Platform.OS === "android" ? 20 : 0,
     marginBottom: 8,
   },
   header: {
@@ -233,14 +253,14 @@ const styles = StyleSheet.create({
   emptyContainer: {
     flex: 1,
     alignItems: "center",
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
     paddingTop: 80,
     minHeight: 300,
     paddingHorizontal: 30,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '500',
+    fontWeight: "500",
     marginTop: 15,
     textAlign: "center",
   },
@@ -255,10 +275,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  listContentContainer: { 
-    alignItems: "center", 
-    paddingVertical: 10, 
-    paddingBottom: 40
+  listContentContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingBottom: 40,
   },
   card: {
     padding: 18,
@@ -272,18 +292,18 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   imagePlaceholder: {
-    width: '100%',
+    width: "100%",
     height: 150,
     borderRadius: 10,
     marginBottom: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   propertyImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   title: {
     fontSize: 20,
