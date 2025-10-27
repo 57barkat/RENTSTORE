@@ -121,12 +121,6 @@ export class PropertyController {
 
     return this.propertyService.findFiltered(page, limit, filters, userId);
   }
-
-  @Get("filters")
-  async getFilterOptions() {
-    return this.propertyService.getFilterOptions();
-  }
-
   @Get("my-listings")
   async getMyProperties(@Req() req: any) {
     if (!req.user || !req.user.userId) {

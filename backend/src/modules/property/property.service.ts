@@ -381,24 +381,4 @@ export class PropertyService {
       .findByIdAndDelete(new Types.ObjectId(propertyId))
       .exec();
   }
-
-  async getFilterOptions() {
-    const cities = await this.propertyModel.distinct("city");
-    const bedrooms = await this.propertyModel.distinct("bedrooms");
-    const rents = await this.propertyModel.aggregate([
-      {
-        $group: {
-          _id: null,
-          min: { $min: "$rentPrice" },
-          max: { $max: "$rentPrice" },
-        },
-      },
-    ]);
-
-    return {
-      cities,
-      bedrooms,
-      rentRange: rents[0] || { min: 0, max: 0 },
-    };
-  }
 }
