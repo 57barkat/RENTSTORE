@@ -29,6 +29,7 @@ export interface FormData {
   ALL_BILLS?: BillType[];
   monthlyRent?: number;
   safetyDetailsData?: SafetyDetailsData;
+  status?:boolean;
 }
 
 export interface FormContextType {
