@@ -131,11 +131,16 @@ export const api = createApi({
         };
       },
     }),
-
     // 🔹 FEATURED PROPERTIES
     getFeaturedProperties: builder.query({
       query: () => ({
         url: "/api/v1/properties/featured",
+        method: "GET",
+      }),
+    }),
+    getDraftProperties: builder.query({
+      query: () => ({
+        url: "/api/v1/properties/drafts   ",
         method: "GET",
       }),
     }),
@@ -202,5 +207,6 @@ export const {
   useRemoveUserFavoriteMutation,
   useSendOtpMutation,
   useVerifyOtpMutation,
+  useGetDraftPropertiesQuery,
   useLoginWithGoogleMutation,
 } = api;
