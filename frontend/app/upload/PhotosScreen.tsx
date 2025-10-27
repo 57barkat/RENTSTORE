@@ -48,8 +48,9 @@ const PhotosScreen: FC = () => {
     setLoading(true);
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+      allowsEditing: true,
+      // allowsMultipleSelection: true,
       quality: 1,
     });
 
