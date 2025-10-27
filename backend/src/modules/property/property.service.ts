@@ -269,10 +269,10 @@ export class PropertyService {
       this.propertyModel.countDocuments(filter),
     ]);
 
-    if (userId) {
-      const favIds = await this.favService.getUserFavoriteIds(userId);
-      data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
-    }
+    if (userId) {
+      const favIds = await this.favService.getUserFavoriteIds(userId);
+      data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
+    }
 
     return {
       data: data || [],
