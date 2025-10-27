@@ -61,22 +61,25 @@ const StepContainer: React.FC<StepContainerProps> = ({
   return (
     <SafeAreaView style={styles.fullScreen}>
       <View style={styles.header}>
-        {progress >= 20 && progress <= 99 && (
-          <TouchableOpacity
-            onPress={handleExit}
-            style={styles.headerButton}
-            disabled={isSaving}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.headerText}>Save & Exit</Text>
-            )}
-          </TouchableOpacity>
-        )}
+        {progress >= 20 &&
+          progress <= 99 &&
+          (formContext?.data?.status === undefined ||
+            formContext?.data?.status === false) && (
+            <TouchableOpacity
+              onPress={handleExit}
+              style={styles.headerButton}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.headerText}>Save & Exit</Text>
+              )}
+            </TouchableOpacity>
+          )}
 
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={() => router.push("/upload")}
           style={styles.closeButton}
         >
           <Ionicons name="close" size={24} color="#000" />
