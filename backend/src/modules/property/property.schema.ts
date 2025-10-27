@@ -1,78 +1,108 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, Types } from "mongoose";
-
-@Schema({ _id: false })
-class Address {
-  @Prop({ required: true }) street: string;
-  @Prop({ required: true }) city: string;
-  @Prop({ required: true }) stateTerritory: string;
-  @Prop({ required: false }) country: string;
-  @Prop({ required: true }) zipCode: string;
-  @Prop() aptSuiteUnit?: string;
-}
-
-@Schema({ _id: false })
-class CapacityState {
-  @Prop({ required: true }) guests: number;
-  @Prop({ required: true }) bedrooms: number;
-  @Prop({ required: true }) beds: number;
-  @Prop({ required: true }) bathrooms: number;
-}
-
-@Schema({ _id: false })
-class SafetyDetailsData {
-  @Prop([String]) safetyDetails: string[];
-  @Prop() cameraDescription?: string;
-}
-
-@Schema({ _id: false })
-class Description {
-  @Prop([String]) highlighted?: string[];
-}
+import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Property extends Document {
-  @Prop({ default: 0 })
-  views: number;
-
-  @Prop({ required: true })
+  @Prop({
+    type: String,
+    required: function () {
+      return this.status === true;
+    },
+  })
   title: string;
 
-  @Prop({ required: true })
+  @Prop({
+    type: String,
+    required: function () {
+      return this.status === true;
+    },
+  })
   hostOption: string;
 
-  @Prop({ required: true })
+  @Prop({
+    type: String,
+    required: function () {
+      return this.status === true;
+    },
+  })
   location: string;
 
-  @Prop({ required: true })
+  @Prop({
+    type: Number,
+    required: function () {
+      return this.status === true;
+    },
+  })
   monthlyRent: number;
 
-  @Prop({ required: true })
+  @Prop({
+    type: Number,
+    required: function () {
+      return this.status === true;
+    },
+  })
   SecuritybasePrice: number;
 
-  @Prop([String])
+  @Prop({ type: [String], default: [] })
   ALL_BILLS?: string[];
 
-  @Prop({ type: [Address], required: true })
-  address: Address[];
+  @Prop({
+    type: [
+      {
+        aptSuiteUnit: String,
+        street: String,
+        city: String,
+        stateTerritory: String,
+        country: String,
+        zipCode: String,
+      },
+    ],
+    required: function () {
+      return this.status === true;
+    },
+  })
+  address: Record<string, any>[];
 
-  @Prop([String])
+  @Prop({ type: [String], default: [] })
   amenities?: string[];
 
-  @Prop({ type: CapacityState, required: true })
-  capacityState: CapacityState;
+  @Prop({
+    type: {
+      guests: Number,
+      bedrooms: Number,
+      beds: Number,
+      bathrooms: Number,
+    },
+    required: function () {
+      return this.status === true;
+    },
+  })
+  capacityState: Record<string, any>;
 
-  @Prop({ type: Description })
-  description?: Description;
+  @Prop({
+    type: {
+      highlighted: [String],
+    },
+  })
+  description?: Record<string, any>;
 
-  @Prop({ type: SafetyDetailsData })
-  safetyDetailsData?: SafetyDetailsData;
+  @Prop({
+    type: {
+      safetyDetails: [String],
+      cameraDescription: String,
+    },
+  })
+  safetyDetailsData?: Record<string, any>;
 
-  @Prop([String])
+  @Prop({ type: [String], default: [] })
   photos?: string[];
 
-  @Prop({ type: Types.ObjectId, ref: "User", required: true })
-  ownerId: Types.ObjectId;
+  @Prop({ type: String, required: true })
+  ownerId: string;
+
+  // 👇 Automatically handles draft vs complete
+  @Prop({ type: Boolean, default: false })
+  status: boolean;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
