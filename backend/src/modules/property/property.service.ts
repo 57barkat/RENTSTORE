@@ -112,15 +112,36 @@ export class PropertyService {
       ...dto,
       photos: photoUrls,
       ownerId: new Types.ObjectId(userId),
+      status: "draft",
     });
-    let a;
-    try {
-      a = await property.save();
-      console.log("THE ORIGINAL SAVED DOCUMENT");
-    } catch (error) {
-      console.log("ERROR DOCUMENT", error);
+
+    return draft.save();
+  }
+
+  async getAllDrafts(userId: string) {
+    const drafts = await this.propertyModel
+      .find({ ownerId: new Types.ObjectId(userId), status: false })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return drafts;
+  }
+
+  async deleteDraftById(draftId: string, userId: string) {
+    const draft = await this.propertyDraftModel.findById(draftId);
+
+    if (!draft) {
+      throw new NotFoundException("Draft not found");
     }
-    return a;
+
+    if (draft.ownerId.toString() !== userId.toString()) {
+      throw new UnauthorizedException(
+        "You are not allowed to delete this draft"
+      );
+    }
+
+    await this.propertyDraftModel.findByIdAndDelete(draftId);
+    return { message: "Draft deleted successfully" };
   }
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
