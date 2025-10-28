@@ -11,10 +11,13 @@ import { styles } from "@/styles/AmenitiesScreen";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 // Assuming this is the correct path for your context
 import { FormContext, FormData } from "@/contextStore/FormContext";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contextStore/ThemeContext";
 
 const AmenitiesScreen: FC = () => {
   const router = useRouter();
-
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
   // --- Context Consumption ---
   const context = useContext(FormContext);
 
@@ -70,16 +73,25 @@ const AmenitiesScreen: FC = () => {
 
         {AMENITIES_DATA.map((section, index) => (
           <View key={index} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              {section.title}
+            </Text>
             <View style={styles.itemsGrid}>
-              {section.items.map((item) => (
-                <AmenityCard
-                  key={item.key}
-                  item={item}
-                  isSelected={selectedAmenities.has(item.key)}
-                  onToggle={handleToggleAmenity}
-                />
-              ))}
+              {section.items.map((item) => {
+                const isItemSelected = selectedAmenities.has(item.key);
+
+                return (
+                  <AmenityCard
+                    key={item.key}
+                    item={item}
+                    isSelected={isItemSelected}
+                    onToggle={handleToggleAmenity}
+                    textColor={currentTheme.text}
+                    iconColor={isItemSelected ? "#fff" : currentTheme.icon}
+                    selectedBackgroundColor={currentTheme.primary}
+                  />
+                );
+              })}
             </View>
           </View>
         ))}
