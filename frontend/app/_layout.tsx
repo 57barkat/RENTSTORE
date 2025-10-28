@@ -55,7 +55,7 @@ export default function RootLayout() {
   const hideHeaderScreens = [
     "signin",
     "signup",
-    "choose-role", 
+    "choose-role",
     "Verification",
     "property/[id]",
     "property/edit/[id]",
@@ -64,43 +64,45 @@ export default function RootLayout() {
   const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
+    
     <Provider store={store}>
-      <AuthProvider>
-        <CustomThemeProvider>
-          <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-            {/* Show custom header only if not hidden */}
-            {!hideHeader && <Header />}
+      <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+        <FormProvider>
+          <AuthProvider>
+            <CustomThemeProvider>
+              {/* Show custom header only if not hidden */}
+              {!hideHeader && <Header />}
 
-            <Stack screenOptions={{ headerShown: false }}>
-              {/* Auth Screens */}
-              <Stack.Screen name="signin" />
-              <Stack.Screen name="signup" />
-              <Stack.Screen name="choose-role" />
-              <Stack.Screen name="Verification" />
+              <Stack screenOptions={{ headerShown: false }}>
+                {/* Auth Screens */}
+                <Stack.Screen name="signin" />
+                <Stack.Screen name="signup" />
+                <Stack.Screen name="choose-role" />
+                <Stack.Screen name="Verification" />
 
-              {/* Property Screens */}
-              <Stack.Screen name="property/[id]" />
-              <Stack.Screen name="property/edit/[id]" />
+                {/* Property Screens */}
+                <Stack.Screen name="property/[id]" />
+                <Stack.Screen name="property/edit/[id]" />
 
-              {/* Screens that need FormProvider */}
-              <FormProvider>
+                {/* Screens that need FormProvider */}
+
                 <Stack.Screen name="MyListingsScreen" />
                 <Stack.Screen name="DraftProperties" />
                 <Stack.Screen name="upload" />
-              </FormProvider>
 
-              {/* Other Screens */}
-              <Stack.Screen name="PrivacyPolicyScreen" />
-              <Stack.Screen name="favorites" />
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
+                {/* Other Screens */}
+                <Stack.Screen name="PrivacyPolicyScreen" />
+                <Stack.Screen name="favorites" />
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="+not-found" />
+              </Stack>
 
-            <StatusBar style="auto" />
-            <Toast />
-          </ThemeProvider>
-        </CustomThemeProvider>
-      </AuthProvider>
+              <StatusBar style="auto" />
+              <Toast />
+            </CustomThemeProvider>
+          </AuthProvider>
+        </FormProvider>
+      </ThemeProvider>
     </Provider>
   );
 }
