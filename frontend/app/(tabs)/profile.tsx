@@ -16,7 +16,6 @@ import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contextStore/AuthContext";
 import { styles } from "@/styles/profile";
- 
 
 export default function Profile() {
   const { theme } = useTheme();
@@ -144,5 +143,3 @@ export default function Profile() {
     />
   );
 }
-
-
