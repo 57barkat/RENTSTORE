@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 
 export default function UploadLayout() {
   return (
-    <FormProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="IntroStep1" />
         <Stack.Screen name="Location" />
@@ -21,6 +20,5 @@ export default function UploadLayout() {
         <Stack.Screen name="SafetyDetailsScreen" />
         <Stack.Screen name="FinalAddressDetailsScreen" />
       </Stack>
-    </FormProvider>
   );
 }
