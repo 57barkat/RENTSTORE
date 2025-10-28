@@ -84,14 +84,14 @@ export default function Settings() {
 
       {/* General Settings Card */}
       <SettingCard theme={currentTheme}>
-        <SettingItem
+        {/* <SettingItem
           label="Enable Notifications"
           icon="bell-outline"
           isSwitch
           switchValue={notifications}
           onSwitchChange={setNotifications}
           theme={currentTheme}
-        />
+        /> */}
         <View style={styles.divider} />
         <SettingItem
           label="Dark Mode"
