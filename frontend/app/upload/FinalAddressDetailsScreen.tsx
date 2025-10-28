@@ -1,4 +1,4 @@
-import React, { FC, useContext, useState, useCallback, useEffect } from "react";
+import React, { FC, useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
@@ -17,41 +17,39 @@ import { FormContext } from "@/contextStore/FormContext";
 import { validateAddresses, AddressErrors } from "@/utils/propertyValidator";
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contextStore/ThemeContext";
 
 const FinalAddressDetailsScreen: FC = () => {
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+
   const { data, updateForm, submitData } = useContext(FormContext)!;
 
+  const initialAddress: Address = {
+    country: "PAKISTAN",
+    street: "",
+    aptSuiteUnit: "",
+    city: "",
+    stateTerritory: "",
+    zipCode: "",
+  };
+
+  
   const [addresses, setAddresses] = useState<Address[]>(
-    data.address ?? [
-      {
-        country: "PAKISTAN",
-        street: "",
-        aptSuiteUnit: "",
-        city: "",
-        stateTerritory: "",
-        zipCode: "",
-      },
-    ]
+    data.address?.length ? data.address : [initialAddress]
   );
+
+  const [errors, setErrors] = useState<AddressErrors>({});
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
     if (!data.address || data.address.length === 0) {
-      setAddresses([
-        {
-          country: "PAKISTAN",
-          street: "",
-          aptSuiteUnit: "",
-          city: "",
-          stateTerritory: "",
-          zipCode: "",
-        },
-      ]);
+      setAddresses([initialAddress]);
     } else {
       setAddresses(data.address);
     }
   }, [data.address]);
-
-  const [errors, setErrors] = useState<AddressErrors>({});
-  const [loading, setLoading] = useState(false);
 
   const handleChange = useCallback(
     (index: number, field: keyof Address, value: string) => {
@@ -61,7 +59,7 @@ const FinalAddressDetailsScreen: FC = () => {
         )
       );
 
-      // Clear error on change
+      // Clear error for field
       setErrors((prev: any) => ({
         ...prev,
         [index]: { ...prev[index], [field]: undefined },
@@ -114,7 +112,7 @@ const FinalAddressDetailsScreen: FC = () => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <StepContainer
         title="Provide a few final details"
         onNext={handleNext}
@@ -126,16 +124,23 @@ const FinalAddressDetailsScreen: FC = () => {
           style={{ flex: 1 }}
         >
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-            <Text style={styles.sectionTitle}>Residential Addresses</Text>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              Residential Addresses
+            </Text>
 
             {addresses.map((address, index) => (
               <View key={index} style={{ marginBottom: 25 }}>
-                <Text style={styles.sectionSubtitle}>Address {index + 1}</Text>
+                <Text
+                  style={[styles.sectionSubtitle, { color: currentTheme.text }]}
+                >
+                  Address {index + 1}
+                </Text>
 
                 <InputField
                   label="Street address"
                   value={address.street}
                   onChange={(text) => handleChange(index, "street", text)}
+                  themeColors={currentTheme}
                 />
                 {errors[index]?.street && (
                   <Text style={styles.errorText}>{errors[index]?.street}</Text>
@@ -145,12 +150,14 @@ const FinalAddressDetailsScreen: FC = () => {
                   label="Apt, suite, unit (if applicable)"
                   value={address.aptSuiteUnit}
                   onChange={(text) => handleChange(index, "aptSuiteUnit", text)}
+                  themeColors={currentTheme}
                 />
 
                 <InputField
                   label="City / town"
                   value={address.city}
                   onChange={(text) => handleChange(index, "city", text)}
+                  themeColors={currentTheme}
                 />
                 {errors[index]?.city && (
                   <Text style={styles.errorText}>{errors[index]?.city}</Text>
@@ -162,6 +169,7 @@ const FinalAddressDetailsScreen: FC = () => {
                   onChange={(text) =>
                     handleChange(index, "stateTerritory", text)
                   }
+                  themeColors={currentTheme}
                 />
                 {errors[index]?.stateTerritory && (
                   <Text style={styles.errorText}>
@@ -173,6 +181,7 @@ const FinalAddressDetailsScreen: FC = () => {
                   label="ZIP code"
                   value={address.zipCode}
                   onChange={(text) => handleChange(index, "zipCode", text)}
+                  themeColors={currentTheme}
                 />
                 {errors[index]?.zipCode && (
                   <Text style={styles.errorText}>{errors[index]?.zipCode}</Text>
@@ -181,19 +190,7 @@ const FinalAddressDetailsScreen: FC = () => {
             ))}
 
             <TouchableOpacity
-              onPress={() =>
-                setAddresses((prev) => [
-                  ...prev,
-                  {
-                    country: "PAKISTAN",
-                    street: "",
-                    aptSuiteUnit: "",
-                    city: "",
-                    stateTerritory: "",
-                    zipCode: "",
-                  },
-                ])
-              }
+              onPress={() => setAddresses((prev) => [...prev, initialAddress])}
               disabled={loading}
             >
               <Text
@@ -212,7 +209,6 @@ const FinalAddressDetailsScreen: FC = () => {
         </KeyboardAvoidingView>
       </StepContainer>
 
-      {/* ✅ Fullscreen loading overlay */}
       {loading && (
         <View
           style={{
