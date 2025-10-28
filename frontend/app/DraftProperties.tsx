@@ -12,7 +12,7 @@ import {
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { useRouter } from "expo-router";
-import { FormContext } from "@/contextStore/FormContext";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import {
   useGetDraftPropertiesQuery,
   useFindPropertyByIdAndDeleteMutation,
@@ -21,12 +21,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function DraftProperties() {
   const { theme } = useTheme();
+  const formContext = useContext(FormContext);
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
-  const formContext = useContext(FormContext);
 
-  const { data, isLoading, isError, refetch } =
-    useGetDraftPropertiesQuery(undefined);
+  const { data, isLoading, isError, refetch } = useGetDraftPropertiesQuery(
+    undefined,
+    {
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
 
@@ -34,9 +38,14 @@ export default function DraftProperties() {
     refetch();
   }, []);
 
-  const handleEdit = (draft: any) => {
-    formContext?.setFullFormData(draft);
-    router.push("/upload/IntroStep1");
+  const handleEdit = (data: FormData) => {
+    console.log("coming from draft page", data);
+    formContext?.setFullFormData({ ...data });
+
+    // TEMPORARY: Add a small delay for state update to process
+    setTimeout(() => {
+      router.push("/upload/IntroStep1");
+    }, 50); // 50ms should be plenty for the state update
   };
 
   const handleDelete = async (id: string) => {
@@ -52,17 +61,29 @@ export default function DraftProperties() {
 
   if (isLoading) {
     return (
-      <View style={styles.loaderContainer}>
+      <View
+        style={[
+          styles.loaderContainer,
+          { backgroundColor: currentTheme.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ color: currentTheme.text }}>Loading drafts...</Text>
+        <Text style={{ color: currentTheme.text, marginTop: 8 }}>
+          Loading drafts...
+        </Text>
       </View>
     );
   }
 
   if (isError || !data?.length) {
     return (
-      <View style={styles.loaderContainer}>
-        <Text style={{ color: currentTheme.text }}>
+      <View
+        style={[
+          styles.loaderContainer,
+          { backgroundColor: currentTheme.background },
+        ]}
+      >
+        <Text style={{ color: currentTheme.text, fontSize: 16 }}>
           No draft properties found.
         </Text>
       </View>
@@ -74,14 +95,14 @@ export default function DraftProperties() {
       <TouchableOpacity onPress={() => handleEdit(item)}>
         <Image
           source={{ uri: item.photos?.[0] }}
-          style={styles.image}
+          style={[styles.image, { backgroundColor: currentTheme.border }]}
           resizeMode="cover"
         />
         <View style={styles.info}>
           <Text style={[styles.title, { color: currentTheme.text }]}>
             {item.title || "Untitled Property"}
           </Text>
-          <Text style={[styles.subText]}>
+          <Text style={[styles.subText, { color: currentTheme.muted }]}>
             {item.location || "No location"}
           </Text>
           <Text style={[styles.price, { color: currentTheme.primary }]}>
@@ -90,14 +111,17 @@ export default function DraftProperties() {
         </View>
       </TouchableOpacity>
 
-      {/* Actions Row (Edit + Delete) */}
       <View style={styles.actionsRow}>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: currentTheme.info }]}
           onPress={() => handleEdit(item)}
         >
-          <MaterialCommunityIcons name="pencil-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Edit</Text>
+          <MaterialCommunityIcons
+            name="pencil-outline"
+            size={20}
+            color="#fff"
+          />
+          <Text style={[styles.buttonText]}>Edit</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -117,8 +141,12 @@ export default function DraftProperties() {
             )
           }
         >
-          <MaterialCommunityIcons name="delete-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Delete</Text>
+          <MaterialCommunityIcons
+            name="delete-outline"
+            size={20}
+            color="#fff"
+          />
+          <Text style={[styles.buttonText]}>Delete</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -135,7 +163,10 @@ export default function DraftProperties() {
         data={data}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80 }}
+        contentContainerStyle={{
+          paddingBottom: 80,
+          backgroundColor: currentTheme.background,
+        }}
       />
     </View>
   );
@@ -156,8 +187,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: "600" },
   subText: { fontSize: 14, marginVertical: 2 },
   price: { fontSize: 16, fontWeight: "700", marginTop: 4 },
-
-  // Buttons
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -174,9 +203,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
 });
