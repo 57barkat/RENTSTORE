@@ -4,4 +4,7 @@ export type OptionCardProps = {
   iconName: keyof typeof MaterialCommunityIcons.glyphMap;
   title: string;
   onPress: () => void;
+  backgroundColor?: string;
+  iconColor?: string;
+  textColor?: string;
 };

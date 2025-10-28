@@ -6,9 +6,13 @@ import { styles } from "@/styles/PropertyDetails";
 import { CapacityState } from "@/types/PropertyDetails.types";
 import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCounterInput";
 import { FormContext } from "@/contextStore/FormContext";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const PropertyDetails: FC = () => {
   const context = useContext(FormContext);
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
   if (!context) {
     throw new Error("PropertyDetails must be used within a FormProvider");
@@ -18,12 +22,7 @@ const PropertyDetails: FC = () => {
   const router = useRouter();
 
   const [capacity, setCapacity] = useState<CapacityState>(
-    data.capacityState || {
-      guests: 1,
-      bedrooms: 0,
-      beds: 1,
-      bathrooms: 1,
-    }
+    data.capacityState || { guests: 1, bedrooms: 0, beds: 1, bathrooms: 1 }
   );
 
   const updateCapacity = (
@@ -36,11 +35,8 @@ const PropertyDetails: FC = () => {
     });
   };
 
-  // ... inside PropertyDetails component
-
   const handleNext = () => {
-    // Save the current capacity state to the global context before navigating
-    updateForm("capacityState", capacity); // Assuming you meant 'updateForm'
+    updateForm("capacityState", capacity);
     router.push("/upload/AmenitiesScreen");
   };
 
@@ -53,7 +49,7 @@ const PropertyDetails: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={25}
     >
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         You&apos;ll add more details later, like bed types.
       </Text>
 
@@ -61,9 +57,11 @@ const PropertyDetails: FC = () => {
         <CounterInput
           label="Guests"
           value={capacity.guests}
-          minValue={1} // Minimum guest is typically 1
+          minValue={1}
           onIncrement={() => updateCapacity("guests", "increment")}
           onDecrement={() => updateCapacity("guests", "decrement")}
+          textColor={currentTheme.text}
+          buttonColor={currentTheme.primary}
         />
         <CounterInput
           label="Bedrooms"
@@ -71,13 +69,17 @@ const PropertyDetails: FC = () => {
           minValue={0}
           onIncrement={() => updateCapacity("bedrooms", "increment")}
           onDecrement={() => updateCapacity("bedrooms", "decrement")}
+          textColor={currentTheme.text}
+          buttonColor={currentTheme.primary}
         />
         <CounterInput
           label="Beds"
           value={capacity.beds}
-          minValue={1} // Minimum beds is typically 1
+          minValue={1}
           onIncrement={() => updateCapacity("beds", "increment")}
           onDecrement={() => updateCapacity("beds", "decrement")}
+          textColor={currentTheme.text}
+          buttonColor={currentTheme.primary}
         />
         <CounterInput
           label="Bathrooms"
@@ -85,6 +87,8 @@ const PropertyDetails: FC = () => {
           minValue={0}
           onIncrement={() => updateCapacity("bathrooms", "increment")}
           onDecrement={() => updateCapacity("bathrooms", "decrement")}
+          textColor={currentTheme.text}
+          buttonColor={currentTheme.primary}
         />
       </View>
     </StepContainer>

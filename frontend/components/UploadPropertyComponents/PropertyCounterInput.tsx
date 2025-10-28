@@ -10,9 +10,11 @@ export const CounterInput: FC<CounterInputProps> = ({
   minValue,
   onIncrement,
   onDecrement,
+  textColor = "#000",      
+  buttonColor = "#000",      
 }) => (
   <View style={stepperStyles.row}>
-    <Text style={stepperStyles.label}>{label}</Text>
+    <Text style={[stepperStyles.label, { color: textColor }]}>{label}</Text>
     <View style={stepperStyles.controls}>
       <TouchableOpacity
         onPress={onDecrement}
@@ -25,15 +27,16 @@ export const CounterInput: FC<CounterInputProps> = ({
         <MaterialCommunityIcons
           name="minus"
           size={24}
-          color={value <= minValue ? "#ccc" : "#000"}
+          color={value <= minValue ? "#ccc" : buttonColor}
         />
       </TouchableOpacity>
 
-      <Text style={stepperStyles.value}>{value}</Text>
+      <Text style={[stepperStyles.value, { color: textColor }]}>{value}</Text>
 
       <TouchableOpacity onPress={onIncrement} style={stepperStyles.button}>
-        <MaterialCommunityIcons name="plus" size={24} color="#000" />
+        <MaterialCommunityIcons name="plus" size={24} color={buttonColor} />
       </TouchableOpacity>
     </View>
   </View>
 );
+

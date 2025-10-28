@@ -1,6 +1,8 @@
 import React, { FC } from "react";
 import { Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 import StepContainer from "./Welcome";
 import { styles } from "@/styles/IntroStep1";
@@ -9,6 +11,8 @@ import { stepsData } from "@/utils/stepsData";
 
 const IntroStep1: FC = () => {
   const router = useRouter();
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
   const handleNext = () => {
     router.push("/upload/CreateStep" as `${string}:param`);
@@ -17,12 +21,16 @@ const IntroStep1: FC = () => {
   return (
     <StepContainer onNext={handleNext} showBack={false} progress={10}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { backgroundColor: currentTheme.background },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.mainTitle}>
+        <Text style={[styles.mainTitle, { color: currentTheme.text }]}>
           It&apos;s easy to get started on RentStore
         </Text>
+
         {stepsData.map((step) => (
           <StepItem key={step.stepNumber} {...step} />
         ))}

@@ -8,10 +8,12 @@ export interface CheckboxItemProps {
   onToggle: (key: string) => void;
   description?: string;
   onEditDescription?: () => void;
+  themeColors?:any;
 }
 export interface CameraModalProps {
   visible: boolean;
   initialDescription: string;
   onClose: () => void;
   onContinue: (description: string) => void;
+  themeColors?: any;
 }

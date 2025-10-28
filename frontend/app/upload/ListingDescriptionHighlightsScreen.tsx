@@ -6,23 +6,21 @@ import { styles } from "@/styles/ListingDescriptionHighlightsScreen";
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
 import { Chip } from "@/components/UploadPropertyComponents/DiscriptionChip";
 import { FormContext } from "@/contextStore/FormContext";
-import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const MAX_SELECTIONS = 2;
 
 const ListingDescriptionHighlightsScreen: FC = () => {
   const router = useRouter();
-  const context = useContext(FormContext);
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
-  if (!context) {
-    throw new Error(
-      "FormContext is missing! Make sure ListingDescriptionHighlightsScreen is wrapped in <FormProvider>."
-    );
-  }
+  const context = useContext(FormContext);
+  if (!context) throw new Error("FormContext is missing!");
 
   const { data, updateForm } = context;
 
-  // Compute initial selected highlights from global state
   const initialHighlights = useMemo(() => {
     return new Set(data?.description?.highlighted ?? []);
   }, [data?.description?.highlighted]);
@@ -30,7 +28,6 @@ const ListingDescriptionHighlightsScreen: FC = () => {
   const [selectedHighlights, setSelectedHighlights] =
     useState<Set<string>>(initialHighlights);
 
-  // Keep selectedHighlights in sync if data updates (e.g., from AsyncStorage)
   useEffect(() => {
     setSelectedHighlights(new Set(data?.description?.highlighted ?? []));
   }, [data?.description?.highlighted]);
@@ -49,10 +46,7 @@ const ListingDescriptionHighlightsScreen: FC = () => {
 
   const handleNext = () => {
     const highlightsArray = Array.from(selectedHighlights);
-    const fDDesciptionHighlights = {
-      highlighted: highlightsArray
-    }
-    updateForm("description", fDDesciptionHighlights);
+    updateForm("description", { highlighted: highlightsArray });
     router.push("/upload/PricingScreen");
   };
 
@@ -65,7 +59,7 @@ const ListingDescriptionHighlightsScreen: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={56}
     >
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get
         your description started.
       </Text>
@@ -77,6 +71,12 @@ const ListingDescriptionHighlightsScreen: FC = () => {
             highlight={highlight}
             isSelected={selectedHighlights.has(highlight.key)}
             onToggle={handleToggleHighlight}
+            textColor={currentTheme.text}
+            iconColor={
+              selectedHighlights.has(highlight.key) ? "#fff" : currentTheme.icon
+            }
+            selectedBackgroundColor={currentTheme.primary}
+            unselectedBackgroundColor={currentTheme.card}
           />
         ))}
       </View>

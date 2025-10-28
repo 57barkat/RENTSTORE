@@ -5,10 +5,13 @@ import StepContainer from "./Welcome";
 import { useRouter } from "expo-router";
 import { styles } from "@/styles/Location";
 import { FormContext } from "@/contextStore/FormContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const LocationScreen = () => {
   const formContext = useContext(FormContext);
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
   if (!formContext) {
     throw new Error(
@@ -26,10 +29,6 @@ const LocationScreen = () => {
     updateForm("location", address);
   }, [address]);
 
-  // Coordinates for initial region
-  const latitude = 37.78825;
-  const longitude = -122.4324;
-
   const handleNext = () => {
     if (!address || address.length < 5) return;
     router.push("/upload/PropertyDetails" as `${string}:param`);
@@ -42,20 +41,34 @@ const LocationScreen = () => {
       title="Where's your place located?"
       progress={20}
     >
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         Your address is only shared with guests after they&apos;ve made a
         reservation.
       </Text>
 
-      <View style={[styles.inputContainer, isFocused && styles.focusedInput]}>
-        <Ionicons name="location-sharp" size={20} color="#333" />
+      <View
+        style={[
+          styles.inputContainer,
+          isFocused && styles.focusedInput,
+          {
+            backgroundColor: currentTheme.card,
+            borderColor: currentTheme.border,
+          },
+        ]}
+      >
+        <Ionicons
+          name="location-sharp"
+          size={20}
+          color={currentTheme.primary}
+        />
         <TextInput
           placeholder="Enter your address"
+          placeholderTextColor={currentTheme.muted}
           value={address}
           onChangeText={setAddress}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          style={styles.input}
+          style={[styles.input, { color: currentTheme.text }]}
           returnKeyType="done"
           onSubmitEditing={Keyboard.dismiss}
         />
@@ -65,15 +78,17 @@ const LocationScreen = () => {
         {/* <MapView
           style={{ flex: 1 }}
           initialRegion={{
-            latitude,
-            longitude,
+            latitude: 37.78825,
+            longitude: -122.4324,
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           }}
         >
           <Marker coordinate={{ latitude, longitude }} />
         </MapView> */}
-        <Text style={styles.mapCredit}>© OpenStreetMap contributors</Text>
+        <Text style={[styles.mapCredit, { color: currentTheme.muted }]}>
+          © OpenStreetMap contributors
+        </Text>
       </View>
     </StepContainer>
   );

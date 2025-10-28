@@ -1,12 +1,14 @@
 import React, { FC, useState, useCallback, useContext, useEffect } from "react";
 import { View, Text, ScrollView } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { styles } from "@/styles/SafetyDetailsScreen";
 import { SAFETY_DETAILS } from "@/utils/SafetyDetails";
 import { CheckboxItem } from "@/components/UploadPropertyComponents/SafetyDetailsCheckboxItem";
 import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
 import { FormContext, FormContextType } from "@/contextStore/FormContext";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contextStore/ThemeContext";
 
 export interface SafetyDetailsData {
   safetyDetails: string[];
@@ -14,6 +16,10 @@ export interface SafetyDetailsData {
 }
 
 const SafetyDetailsScreen: FC = () => {
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+
+  const router = useRouter();
   const formContext = useContext(FormContext);
   if (!formContext) {
     throw new Error("SafetyDetailsScreen must be used within a FormProvider");
@@ -21,7 +27,6 @@ const SafetyDetailsScreen: FC = () => {
 
   const { data, updateForm } = formContext as FormContextType;
 
-  // ✅ Initialize state safely from persisted context
   const [checkedDetails, setCheckedDetails] = useState<Set<string>>(
     new Set(data.safetyDetailsData?.safetyDetails ?? [])
   );
@@ -30,7 +35,6 @@ const SafetyDetailsScreen: FC = () => {
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  // ✅ Re-sync when context data changes (e.g. when restored from AsyncStorage)
   useEffect(() => {
     if (data.safetyDetailsData) {
       setCheckedDetails(new Set(data.safetyDetailsData.safetyDetails ?? []));
@@ -83,10 +87,7 @@ const SafetyDetailsScreen: FC = () => {
         ? cameraDescription
         : null,
     };
-
-    // ✅ Save to context (and persist via AsyncStorage)
     updateForm("safetyDetailsData", finalData);
-
     router.push("/upload/FinalAddressDetailsScreen");
   };
 
@@ -98,7 +99,7 @@ const SafetyDetailsScreen: FC = () => {
       progress={96}
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text style={styles.sectionTitle}>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           Does your place have any of these?
         </Text>
 
@@ -116,13 +117,16 @@ const SafetyDetailsScreen: FC = () => {
                 ? () => setIsModalVisible(true)
                 : undefined
             }
+            themeColors={currentTheme}
           />
         ))}
 
         <View style={styles.separator} />
 
-        <Text style={styles.sectionTitle}>Important things to know</Text>
-        <Text style={styles.infoText}>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+          Important things to know
+        </Text>
+        <Text style={[styles.infoText, { color: currentTheme.text }]}>
           Security cameras that monitor indoor spaces are not allowed even if
           they’re turned off. All exterior security cameras must be disclosed.
         </Text>
@@ -133,6 +137,7 @@ const SafetyDetailsScreen: FC = () => {
         initialDescription={cameraDescription}
         onContinue={handleModalContinue}
         onClose={handleModalClose}
+        themeColors={currentTheme}
       />
     </StepContainer>
   );

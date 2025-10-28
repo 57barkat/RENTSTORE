@@ -12,6 +12,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { styles } from "@/styles/Welcome";
 import { StepContainerProps } from "@/types/Welcome.types";
 import { FormContext } from "@/contextStore/FormContext";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const StepContainer: React.FC<StepContainerProps> = ({
   title,
@@ -24,6 +26,9 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const router = useRouter();
   const formContext = useContext(FormContext);
   const [isSaving, setIsSaving] = useState(false);
+
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
   const handleBack = () => {
     if (showBack) router.back();
@@ -59,7 +64,9 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const nextButtonText = progress >= 100 ? "Finish" : "Next";
 
   return (
-    <SafeAreaView style={styles.fullScreen}>
+    <SafeAreaView
+      style={[styles.fullScreen, { backgroundColor: currentTheme.background }]}
+    >
       <View style={styles.header}>
         {progress >= 20 &&
           progress <= 99 &&
@@ -71,9 +78,11 @@ const StepContainer: React.FC<StepContainerProps> = ({
               disabled={isSaving}
             >
               {isSaving ? (
-                <ActivityIndicator color="#000" />
+                <ActivityIndicator color={currentTheme.primary} />
               ) : (
-                <Text style={styles.headerText}>Save & Exit</Text>
+                <Text style={[styles.headerText, { color: currentTheme.text }]}>
+                  Save & Exit
+                </Text>
               )}
             </TouchableOpacity>
           )}
@@ -82,26 +91,44 @@ const StepContainer: React.FC<StepContainerProps> = ({
           onPress={() => router.push("/upload")}
           style={styles.closeButton}
         >
-          <Ionicons name="close" size={24} color="#000" />
+          <Ionicons name="close" size={24} color={currentTheme.text} />
         </TouchableOpacity>
       </View>
 
       {/* Main Content */}
       <View style={styles.content}>
-        {title && <Text style={styles.title}>{title}</Text>}
+        {title && (
+          <Text style={[styles.title, { color: currentTheme.text }]}>
+            {title}
+          </Text>
+        )}
         {children}
       </View>
 
       {/* Footer Navigation */}
       <View style={styles.footer}>
-        <View style={[styles.progressBarContainer]}>
-          <View style={[styles.progressBar, { width: `${progress}%` }]} />
+        <View
+          style={[
+            styles.progressBarContainer,
+            { backgroundColor: currentTheme.border },
+          ]}
+        >
+          <View
+            style={[
+              styles.progressBar,
+              { width: `${progress}%`, backgroundColor: currentTheme.primary },
+            ]}
+          />
         </View>
 
         <View style={styles.navBar}>
           {showBack ? (
             <TouchableOpacity onPress={handleBack}>
-              <Text style={styles.backButtonText}>Back</Text>
+              <Text
+                style={[styles.backButtonText, { color: currentTheme.text }]}
+              >
+                Back
+              </Text>
             </TouchableOpacity>
           ) : (
             <View />
@@ -112,10 +139,13 @@ const StepContainer: React.FC<StepContainerProps> = ({
             style={[
               styles.nextButton,
               isNextDisabled && styles.disabledNextButton,
+              { backgroundColor: currentTheme.primary },
             ]}
             disabled={isNextDisabled}
           >
-            <Text style={styles.nextButtonText}>{nextButtonText}</Text>
+            <Text style={[styles.nextButtonText, { color: currentTheme.card }]}>
+              {nextButtonText}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

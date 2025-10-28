@@ -1,27 +1,26 @@
 import React, { useState, FC, useContext } from "react";
-import {
-  Text,
-  View,
-  TextInput,
-  Keyboard,
-} from "react-native";
+import { Text, View, TextInput, Keyboard } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PricingScreen";
 import { PricingScreenProps } from "@/types/PricingScreen.types";
 import { FormContext } from "@/contextStore/FormContext";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const INITIAL_BASE_PRICE = 10;
 
 const PricingScreen: FC<PricingScreenProps> = () => {
   const context = useContext(FormContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("Component must be used within a FormProvider");
   }
 
   const { data, updateForm } = context;
   const router = useRouter();
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
   // Initialize from global context or default
   const [basePrice, setBasePrice] = useState<number>(
@@ -45,7 +44,6 @@ const PricingScreen: FC<PricingScreenProps> = () => {
   };
 
   const handleNext = () => {
-    // ✅ Send only base price to global context
     updateForm("SecuritybasePrice", basePrice);
     console.log("Security Base Price saved:", basePrice);
     router.push("/upload/WeekendPricingScreen");
@@ -61,20 +59,26 @@ const PricingScreen: FC<PricingScreenProps> = () => {
       progress={80}
     >
       <View style={styles.priceInputRow}>
-        <Text style={styles.currencySymbol}>PKR</Text>
+        <Text style={[styles.currencySymbol, { color: currentTheme.text }]}>
+          PKR
+        </Text>
         <TextInput
           keyboardType="numeric"
           value={priceInput}
           onChangeText={handlePriceChange}
           onBlur={() => Keyboard.dismiss()}
-          style={styles.priceInput}
+          style={[
+            styles.priceInput,
+            { color: currentTheme.text, borderColor: currentTheme.border },
+          ]}
           maxLength={7}
           placeholder="price"
+          placeholderTextColor={currentTheme.border}
         />
         <MaterialCommunityIcons
           name="pencil"
           size={20}
-          color="#000"
+          color={currentTheme.icon}
           style={styles.editIcon}
         />
       </View>

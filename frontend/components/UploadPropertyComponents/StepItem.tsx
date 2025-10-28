@@ -3,6 +3,8 @@ import { StepItemProps } from "@/types/IntroStep1.types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FC } from "react";
 import { Dimensions, Text, View } from "react-native";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -12,6 +14,9 @@ export const StepItem: FC<StepItemProps> = ({
   description,
   iconName,
 }) => {
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+
   const isNarrow = screenWidth < 350;
   const iconSize = screenWidth * 0.18;
 
@@ -31,13 +36,19 @@ export const StepItem: FC<StepItemProps> = ({
           { paddingRight: isNarrow ? 0 : 20, marginBottom: isNarrow ? 10 : 0 },
         ]}
       >
-        <Text style={itemStyles.stepTitle}>{title}</Text>
-        <Text style={itemStyles.stepDescription}>{description}</Text>
+        <Text style={[itemStyles.stepTitle, { color: currentTheme.text }]}>
+          {title}
+        </Text>
+        <Text
+          style={[itemStyles.stepDescription, { color: currentTheme.muted }]}
+        >
+          {description}
+        </Text>
       </View>
       <MaterialCommunityIcons
         name={iconName}
         size={iconSize}
-        color="#777"
+        color={currentTheme.primary}
         style={itemStyles.stepIcon}
       />
     </View>

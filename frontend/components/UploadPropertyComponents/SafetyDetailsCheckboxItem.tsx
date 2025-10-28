@@ -9,15 +9,24 @@ export const CheckboxItem: FC<CheckboxItemProps> = ({
   onToggle,
   description,
   onEditDescription,
+  themeColors,
 }) => (
   <View style={styles.checkboxItem}>
     <TouchableOpacity
       style={styles.checkboxRow}
       onPress={() => onToggle(detail.key)}
     >
-      <Text style={styles.checkboxLabel}>{detail.label}</Text>
+      <Text style={[styles.checkboxLabel, { color: themeColors.text }]}>
+        {detail.label}
+      </Text>
       <View
-        style={[styles.checkboxBox, isChecked && styles.checkboxBoxChecked]}
+        style={[
+          styles.checkboxBox,
+          isChecked && {
+            ...styles.checkboxBoxChecked,
+            backgroundColor: themeColors.primary,
+          },
+        ]}
       >
         {isChecked && <Text style={styles.checkboxCheck}>✓</Text>}
       </View>
@@ -25,9 +34,13 @@ export const CheckboxItem: FC<CheckboxItemProps> = ({
 
     {detail.key === "exterior_camera" && isChecked && description && (
       <View style={styles.descriptionContainer}>
-        <Text style={styles.descriptionText}>{description}</Text>
+        <Text style={[styles.descriptionText, { color: themeColors.text }]}>
+          {description}
+        </Text>
         <TouchableOpacity style={styles.editButton} onPress={onEditDescription}>
-          <Text style={styles.editButtonText}>Edit</Text>
+          <Text style={[styles.editButtonText, { color: themeColors.primary }]}>
+            Edit
+          </Text>
         </TouchableOpacity>
       </View>
     )}

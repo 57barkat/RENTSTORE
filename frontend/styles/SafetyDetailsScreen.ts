@@ -127,9 +127,9 @@ export const styles = StyleSheet.create({
   },
   modalClose: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    padding: 6,
+    top: 0,
+    right: 0,
+    padding: 2,
   },
   modalCloseText: {
     fontSize: 20,

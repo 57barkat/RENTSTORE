@@ -63,7 +63,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   // 🔹 Set entire form (used when resuming a draft)
   const setFullFormData: FormContextType["setFullFormData"] = (newData) => {
     console.log("📥 Loaded draft data into form:", newData);
-    setData(newData);
+    setData({...newData});
   };
 
   // 🔹 Create new published property

@@ -4,6 +4,8 @@ export interface CounterInputProps {
   minValue: number;
   onIncrement: () => void;
   onDecrement: () => void;
+  textColor?: string;
+  buttonColor?: string;
 }
 export interface CapacityState {
   guests: number;

@@ -2,11 +2,10 @@ import React, { useState, FC, useContext, useEffect } from "react";
 import {
   Text,
   View,
-  TouchableOpacity,
   TextInput,
+  Keyboard,
   Platform,
   Switch,
-  Keyboard,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -14,6 +13,8 @@ import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/WeekendPricingScreen";
 import { WeekendPricingScreenProps } from "@/types/WeekendPricingScreen.types";
 import { FormContext } from "@/contextStore/FormContext";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 export type BillType = "electricity" | "water" | "gas";
 const ALL_BILLS: BillType[] = ["electricity", "water", "gas"];
@@ -27,8 +28,9 @@ const WeekendPricingScreen: FC<WeekendPricingScreenProps> = ({
 
   const { data, updateForm } = context;
   const router = useRouter();
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
 
-  // Initialize state from context (fallbacks included)
   const [monthlyRent, setMonthlyRent] = useState<number>(
     data.monthlyRent ?? 500
   );
@@ -36,13 +38,11 @@ const WeekendPricingScreen: FC<WeekendPricingScreenProps> = ({
     data.ALL_BILLS ?? []
   );
 
-  // Sync local state with global context when data changes (e.g. after async load)
   useEffect(() => {
     if (data.monthlyRent !== undefined) setMonthlyRent(data.monthlyRent);
     if (data.ALL_BILLS !== undefined) setIncludedBills(data.ALL_BILLS);
   }, [data]);
 
-  // Handle numeric input for rent
   const handleRentChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, "");
     const newRent = Number(numericValue);
@@ -51,7 +51,6 @@ const WeekendPricingScreen: FC<WeekendPricingScreenProps> = ({
     }
   };
 
-  // Handle bill toggles
   const handleBillToggle = (billType: BillType, isIncluded: boolean) => {
     setIncludedBills((prev) => {
       if (isIncluded) return [...new Set([...prev, billType])];
@@ -59,7 +58,6 @@ const WeekendPricingScreen: FC<WeekendPricingScreenProps> = ({
     });
   };
 
-  // Save to global state + persist to AsyncStorage (handled by FormContext)
   const handleNext = () => {
     updateForm("ALL_BILLS", includedBills);
     updateForm("monthlyRent", monthlyRent);
@@ -77,40 +75,52 @@ const WeekendPricingScreen: FC<WeekendPricingScreenProps> = ({
     >
       {/* Monthly Rent Input */}
       <View style={styles.priceInputRow}>
-        <Text style={styles.currencySymbol}>PKR</Text>
+        <Text style={[styles.currencySymbol, { color: currentTheme.text }]}>
+          PKR
+        </Text>
         <TextInput
           keyboardType="numeric"
           value={String(monthlyRent)}
           onChangeText={handleRentChange}
           onBlur={() => Keyboard.dismiss()}
-          style={styles.priceInput}
+          style={[
+            styles.priceInput,
+            { color: currentTheme.text, borderColor: currentTheme.border },
+          ]}
           maxLength={7}
         />
         <MaterialCommunityIcons
           name="pencil"
           size={20}
-          color="#000"
+          color={currentTheme.icon}
           style={styles.editIcon}
         />
       </View>
 
       {/* Bills Included */}
       <View style={styles.billsContainer}>
-        <Text style={styles.billInstructionText}>
+        <Text
+          style={[styles.billInstructionText, { color: currentTheme.text }]}
+        >
           Check only those which are{" "}
           <Text style={{ fontWeight: "bold" }}>included</Text> in the rent:
         </Text>
 
         {ALL_BILLS.map((type) => (
           <View key={type} style={styles.billRow}>
-            <Text style={styles.billLabel}>
+            <Text style={[styles.billLabel, { color: currentTheme.text }]}>
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </Text>
             <Switch
               value={includedBills.includes(type)}
               onValueChange={(value) => handleBillToggle(type, value)}
-              trackColor={{ false: "#ccc", true: "#000" }}
-              thumbColor={Platform.OS === "ios" ? "#fff" : "#000"}
+              trackColor={{
+                false: currentTheme.border,
+                true: currentTheme.primary,
+              }}
+              thumbColor={
+                Platform.OS === "ios" ? currentTheme.card : currentTheme.primary
+              }
             />
           </View>
         ))}
