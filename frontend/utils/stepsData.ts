@@ -5,7 +5,7 @@ export const stepsData: StepItemProps[] = [
     stepNumber: 1,
     title: "1. Tell us about your place",
     description:
-      "Share some basic info, like where it is and how many guests can stay.",
+      "Share some basic info, like where it is and how many persons can stay.",
     iconName: "home-account",
   },
   {

@@ -26,6 +26,14 @@ export const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 4,
   },
+    modalInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16, 
+    textAlignVertical: "top",
+  },
   textInput: {
     borderWidth: 1,
     borderColor: "#ccc",

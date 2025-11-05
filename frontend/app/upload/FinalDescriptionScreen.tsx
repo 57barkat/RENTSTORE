@@ -61,7 +61,7 @@ const FinalDescriptionScreen: FC<FinalDescriptionScreenProps> = ({
           onChangeText={setDescription}
           onBlur={Keyboard.dismiss}
           style={styles.textInput as TextStyle}
-          placeholder="Tell guests what makes your listing unique..."
+          placeholder="Tell persons what makes your listing unique..."
         />
         <Text style={styles.charCount}>
           {description.length}/{MAX_DESCRIPTION_LENGTH}

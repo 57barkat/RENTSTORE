@@ -19,6 +19,7 @@ import {
 } from "@/contextStore/ThemeContext";
 import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
+import { HostelFormProvider } from "@/contextStore/HostelFormContext";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -58,50 +59,52 @@ export default function RootLayout() {
     "choose-role",
     "Verification",
     "property/[id]",
-    "property/edit/[id]",
   ];
   const currentSegment = segments[segments.length - 1];
   const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
-    
     <Provider store={store}>
       <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-        <FormProvider>
-          <AuthProvider>
-            <CustomThemeProvider>
-              {/* Show custom header only if not hidden */}
-              {!hideHeader && <Header />}
+        <HostelFormProvider>
+          <FormProvider>
+            <AuthProvider>
+              <CustomThemeProvider>
+                {/* Show custom header only if not hidden */}
+                {!hideHeader && <Header />}
 
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* Auth Screens */}
-                <Stack.Screen name="signin" />
-                <Stack.Screen name="signup" />
-                <Stack.Screen name="choose-role" />
-                <Stack.Screen name="Verification" />
+                <Stack screenOptions={{ headerShown: false }}>
+                  {/* Auth Screens */}
+                  <Stack.Screen name="signin" />
+                  <Stack.Screen name="signup" />
+                  <Stack.Screen name="choose-role" />
+                  <Stack.Screen name="Verification" />
 
-                {/* Property Screens */}
-                <Stack.Screen name="property/[id]" />
-                <Stack.Screen name="property/edit/[id]" />
+                  {/* Property Screens */}
+                  <Stack.Screen name="property/[id]" />
 
-                {/* Screens that need FormProvider */}
+                  {/* Screens that need FormProvider */}
 
-                <Stack.Screen name="MyListingsScreen" />
-                <Stack.Screen name="DraftProperties" />
-                <Stack.Screen name="upload" />
+                  <Stack.Screen name="MyListingsScreen" />
+                  <Stack.Screen name="DraftProperties" />
+                  <Stack.Screen name="upload" />
 
-                {/* Other Screens */}
-                <Stack.Screen name="PrivacyPolicyScreen" />
-                <Stack.Screen name="favorites" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
+                  {/* Other Screens */}
+                  <Stack.Screen name="PrivacyPolicyScreen" />
+                  <Stack.Screen name="favorites" />
 
-              <StatusBar style="auto" />
-              <Toast />
-            </CustomThemeProvider>
-          </AuthProvider>
-        </FormProvider>
+                  <Stack.Screen name="HostelForms" />
+
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="+not-found" /> 
+                </Stack>
+
+                <StatusBar style="auto" />
+                <Toast />
+              </CustomThemeProvider>
+            </AuthProvider>
+          </FormProvider>
+        </HostelFormProvider>
       </ThemeProvider>
     </Provider>
   );

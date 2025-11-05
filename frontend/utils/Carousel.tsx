@@ -107,7 +107,7 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 10, height: 250 },
+  container: {   height: 250 },
   media: { width, height: 250, resizeMode: "cover" },
   videoContainer: { position: "relative" },
   playIcon: { position: "absolute", top: "40%", left: "40%" },

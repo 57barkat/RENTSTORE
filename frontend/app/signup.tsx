@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import {
+  View,
   TextInput,
   StyleSheet,
   Text,
   TouchableOpacity,
-  ScrollView,
-  View,
+  ImageBackground,
   ActivityIndicator,
+  ScrollView,
   Modal,
   SafeAreaView,
   Pressable,
-  ImageBackground,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -22,8 +22,41 @@ import { useAuth } from "@/contextStore/AuthContext";
 import { Colors } from "../constants/Colors";
 import { Checkbox } from "react-native-paper";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import AuthImage from '../assets/images/authimage.jpg';
+import { Feather, MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
+import AuthImage from "../assets/images/authimage.jpg";
+
+// --- Social Login Button ---
+const SocialButton = ({ iconName, label, onPress }: any) => (
+  <TouchableOpacity style={socialStyles.button} onPress={onPress}>
+    {iconName === "phone" ? (
+      <Feather name="phone" size={20} color="#333" style={socialStyles.icon} />
+    ) : (
+      <AntDesign
+        name="google"
+        size={20}
+        color="#333"
+        style={socialStyles.icon}
+      />
+    )}
+    <Text style={socialStyles.buttonText}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const socialStyles = StyleSheet.create({
+  button: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderColor: "#E5E7EB",
+    borderWidth: 1,
+    marginTop: 15,
+  },
+  icon: { marginRight: 10 },
+  buttonText: { color: "#333", fontSize: 16, fontWeight: "600" },
+});
 
 export default function SignUpScreen() {
   const [role, setRole] = useState<string | null>(null);
@@ -98,8 +131,17 @@ export default function SignUpScreen() {
 
   if (!role) {
     return (
-      <View style={[{ backgroundColor: currentTheme.background }]}>
-        <Text style={[styles.title, { color: currentTheme.text }]}>
+      <View
+        style={[
+          {
+            backgroundColor: currentTheme.background,
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <Text style={[styles.welcomeTitle, { color: currentTheme.text }]}>
           Loading...
         </Text>
       </View>
@@ -113,20 +155,22 @@ export default function SignUpScreen() {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+        >
           <View
             style={[
-              styles.formContainer,
+              styles.authContainer,
               { backgroundColor: currentTheme.card },
             ]}
           >
-            <Text style={[styles.title, { color: currentTheme.text }]}>
+            {/* Header */}
+            <Text style={[styles.welcomeTitle, { color: currentTheme.text }]}>
               Create a new account
             </Text>
-            <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
-              Fill in the details to get started
-            </Text>
+       
 
+            {/* Form */}
             <Formik
               initialValues={initialValues}
               validationSchema={signupValidationSchema(role)}
@@ -262,18 +306,6 @@ export default function SignUpScreen() {
                     </>
                   )}
 
-                  {/* Preferences */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Preferences (optional)"
-                      placeholderTextColor="#A0AEC0"
-                      value={values.preferences}
-                      onChangeText={handleChange("preferences")}
-                      onBlur={handleBlur("preferences")}
-                    />
-                  </View>
-
                   {/* CNIC */}
                   <View style={styles.inputContainer}>
                     <TextInput
@@ -328,24 +360,33 @@ export default function SignUpScreen() {
                       <Text style={styles.loginButtonText}>Sign Up</Text>
                     )}
                   </TouchableOpacity>
+
+                  {/* Social Buttons */}
+                  {/* <SocialButton
+                    iconName="phone"
+                    label="Continue with phone number"
+                    onPress={() => console.log("Phone")}
+                  /> */}
+                  <SocialButton
+                    iconName="google"
+                    label="Continue with Google"
+                    onPress={() => console.log("Google")}
+                  />
                 </>
               )}
             </Formik>
 
             {/* Sign In Link */}
-            <Link href="/signin" asChild>
-              <TouchableOpacity style={styles.signUpRow}>
-                <Text style={{ color: currentTheme.text }}>
-                  Already have an account?{" "}
+            <View style={styles.signUpRow}>
+              <Text style={{ color: currentTheme.text }}>
+                Already have an account?{" "}
+                <Link href="/signin">
                   <Text style={{ color: "#3B82F6", fontWeight: "600" }}>
                     Sign In
                   </Text>
-                </Text>
-              </TouchableOpacity>
-            </Link>
-
-            {/* Social Login */}
-            {/* <SocialButton iconName="google" label="Continue with Google" onPress={() => console.log("Google")} /> */}
+                </Link>
+              </Text>
+            </View>
           </View>
         </ScrollView>
 
@@ -400,20 +441,28 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   backgroundImage: { flex: 1, width: "100%", height: "100%" },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.2)" },
-  scrollContainer: { padding: 24, justifyContent: "flex-end" },
-  formContainer: {
+  authContainer: {
     backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 30,
+    paddingTop: 30,
+    paddingBottom: 50,
     minHeight: "70%",
   },
-  title: {
+  welcomeTitle: {
     fontSize: 28,
     fontWeight: "700",
+    color: "#1A202C",
     marginBottom: 4,
     textAlign: "center",
   },
-  subtitle: { fontSize: 16, marginBottom: 20, textAlign: "center" },
+  signInInstruction: {
+    fontSize: 16,
+    color: "#4A5568",
+    marginBottom: 20,
+    textAlign: "center",
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",

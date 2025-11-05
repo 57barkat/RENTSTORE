@@ -1,15 +1,17 @@
-import React, { FC } from "react";
+import React, { FC, useContext } from "react";
 import { Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { OptionCard } from "@/components/UploadPropertyComponents/OptionCard";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { styles } from "@/styles/CreateStep";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 
 const CreateStep: FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+  const formContext = useContext(FormContext);
 
   const handleCreateNew = () => {
     router.push("/upload/IntroStep1");
@@ -17,6 +19,8 @@ const CreateStep: FC = () => {
 
   const handleCreateFromExisting = () => {
     router.push("/DraftProperties" as `${string}:param`);
+    formContext?.setFullFormData([] as FormData);
+
     console.log("Navigating to existing listings selection.");
   };
 

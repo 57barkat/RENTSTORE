@@ -7,11 +7,13 @@ import { styles } from "@/styles/Location";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { Address } from "@/types/FinalAddressDetailsScreen.types";
 
 const LocationScreen = () => {
   const formContext = useContext(FormContext);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+  const router = useRouter();
 
   if (!formContext) {
     throw new Error(
@@ -20,29 +22,40 @@ const LocationScreen = () => {
   }
 
   const { data, updateForm } = formContext;
-  const [address, setAddress] = useState<string>(data.location ?? "");
+
+  // Initialize as Address object
+  const [address, setAddress] = useState<Address>(
+    data.location ?? {
+      city: "",
+      street: "",
+      aptSuiteUnit: "",
+      stateTerritory: "",
+      zipCode: "",
+      country: "PAKISTAN",
+    }
+  );
+
   const [isFocused, setIsFocused] = useState(false);
 
-  const router = useRouter();
-
+  // Update form context whenever address changes
   useEffect(() => {
     updateForm("location", address);
   }, [address]);
 
   const handleNext = () => {
-    if (!address || address.length < 5) return;
+    if (!address.street || address.street.length < 5) return;
     router.push("/upload/PropertyDetails" as `${string}:param`);
   };
 
   return (
     <StepContainer
       onNext={handleNext}
-      isNextDisabled={address.length < 5}
+      isNextDisabled={!address.street || address.street.length < 5}
       title="Where's your place located?"
       progress={20}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-        Your address is only shared with guests after they&apos;ve made a
+        Your address is only shared with persons after they&apos;ve made a
         reservation.
       </Text>
 
@@ -62,10 +75,12 @@ const LocationScreen = () => {
           color={currentTheme.primary}
         />
         <TextInput
-          placeholder="Enter your address"
+          placeholder="Enter your street address"
           placeholderTextColor={currentTheme.muted}
-          value={address}
-          onChangeText={setAddress}
+          value={address.street}
+          onChangeText={(text) =>
+            setAddress((prev) => ({ ...prev, street: text }))
+          }
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           style={[styles.input, { color: currentTheme.text }]}
@@ -75,17 +90,7 @@ const LocationScreen = () => {
       </View>
 
       <View style={styles.mapContainer}>
-        {/* <MapView
-          style={{ flex: 1 }}
-          initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          <Marker coordinate={{ latitude, longitude }} />
-        </MapView> */}
+        {/* Map placeholder */}
         <Text style={[styles.mapCredit, { color: currentTheme.muted }]}>
           © OpenStreetMap contributors
         </Text>

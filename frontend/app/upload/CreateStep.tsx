@@ -20,7 +20,6 @@ const WelcomeScreen = () => {
     );
   }
 
-  const NEW_LISTING_PATH = "/upload/Location";
   const { updateForm, data } = formContext;
   const [selectedType, setSelectedType] = useState<string | null>(
     data.hostOption ?? null
@@ -34,8 +33,15 @@ const WelcomeScreen = () => {
 
   const handleNext = () => {
     if (!selectedType) return;
+
     updateForm("hostOption", selectedType);
-    router.push(NEW_LISTING_PATH as `${string}:param`);
+
+    // Navigate based on type
+    if (selectedType === "hostel") {
+      router.push("/HostelForm" as `${string}:param`);
+    } else {
+      router.push("/upload/Location" as `${string}:param`);
+    }
   };
 
   return (

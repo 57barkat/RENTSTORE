@@ -10,14 +10,20 @@ import {
   StyleSheet,
   useWindowDimensions,
   TouchableOpacity,
-  Alert,
+  // Image, // Removed as it's not used in renderItem
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons"; // Added Feather for map-pin icon
-import { useContext } from "react";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { useContext, useEffect, useState } from "react";
+// Assuming FormData now correctly maps to the new property structure
 import { FormContext, FormData } from "@/contextStore/FormContext";
+import {
+  FormContext as HostelFormContext,
+  HostelFormData,
+} from "@/contextStore/HostelFormContext";
+import ConfirmationModal from "./ConfirmDialog";
 
 const MyListingProperties = () => {
   const {
@@ -25,33 +31,65 @@ const MyListingProperties = () => {
     isLoading,
     error,
     refetch,
-  } = useFindMyPropertiesQuery(undefined);
+  } = useFindMyPropertiesQuery(undefined, { refetchOnMountOrArgChange: true });
   const formContext = useContext(FormContext);
+  const hostelFormContext = useContext(HostelFormContext);
+
+  useEffect(() => {
+    // Note: refetchOnMountOrArgChange: true handles the refetch on mount.
+    // Explicitly calling refetch here is often redundant but kept if it addresses a specific external trigger.
+    // I'll keep it as it was in the original code.
+    refetch();
+  }, []);
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const { width } = useWindowDimensions();
 
-  const handleOpenDetails = (id: string) => {
-    router.push(`/property/${id}`);
+  // Function to safely extract rent amount and type
+  const getRentInfo = (rentRates: any) => {
+    const rate = rentRates?.[0];
+    if (rate) {
+      // The amount is in 'amount' and the type is in 'type' (e.g., 'daily')
+      return { amount: rate.amount, type: rate.type };
+    }
+    return { amount: "N/A", type: "N/A" };
   };
 
-  const handleEdit = (item: FormData) => {
-    formContext?.setFullFormData(item);
-    router.push("/upload/IntroStep1");
-    // router.push(`/property/edit/${id}`);
+  const handleOpenDetails = (id: string) => router.push(`/property/${id}`);
+  const handleEdit = (item: any) => {
+    if (item.propertyType === "hostel") {
+      hostelFormContext?.setFullFormData(item as HostelFormData);
+      router.push("/HostelForms"); // hostel form
+    } else {
+      formContext?.setFullFormData(item as FormData);
+      router.push("/upload/Location"); // home form
+    }
   };
 
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
 
-  const handleDelete = async (id: string) => {
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
+    null
+  );
+
+  const showDeleteConfirm = (id: string) => {
+    setSelectedPropertyId(id);
+    setConfirmVisible(true);
+  };
+  const handleDelete = async () => {
+    if (!selectedPropertyId) return;
     try {
-      await deleteProperty(id).unwrap();
-      Alert.alert("Deleted! 👋", "Property has been successfully removed.");
+      // Assuming deleteProperty takes the ID
+      await deleteProperty(selectedPropertyId).unwrap();
+      setConfirmVisible(false);
       refetch();
     } catch (err) {
       console.error("Delete failed:", err);
-      Alert.alert("Error", "Failed to delete property.");
+      setConfirmVisible(false);
+    } finally {
+      setSelectedPropertyId(null);
     }
   };
 
@@ -80,7 +118,6 @@ const MyListingProperties = () => {
     );
   }
 
-  // Helper to render property capacity icons
   const renderCapacity = (iconName: string, value: any, unit: string) => (
     <View style={styles.capacityItem}>
       <MaterialCommunityIcons
@@ -94,171 +131,169 @@ const MyListingProperties = () => {
     </View>
   );
 
-  return (
-    <FlatList
-      style={{ flex: 1, backgroundColor: currentTheme.background }}
-      data={myProperties ?? []}
-      keyExtractor={(item, index) => item._id ?? index.toString()}
-      ListHeaderComponent={
-        <View style={styles.headerContainer}>
-          <Text style={[styles.header, { color: currentTheme.text }]}>
-            My Listings
-          </Text>
-        </View>
-      }
-      ListEmptyComponent={
-        <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons
-            name="home-search-outline"
-            size={50}
-            color={currentTheme.muted}
-            style={{ marginBottom: 10 }}
-          />
-          <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
-            You have no properties listed yet.
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.createButton,
-              { backgroundColor: currentTheme.primary, marginTop: 20 },
-            ]}
-            onPress={() => router.push("/upload")}
+  const renderItem = ({ item }: { item: any }) => {
+    // --- MODIFICATIONS START HERE ---
+    const { amount: rentAmount, type: rentType } = getRentInfo(item.rentRates);
+    const city = item.location?.city || "City N/A";
+    const area = item.location?.area || "Area N/A";
+    const persons = item.capacity?.persons;
+    const beds = item.capacity?.beds;
+    const bathrooms = item.capacity?.bathrooms;
+
+    // Format the duration text (e.g., "daily" -> "/ day")
+    const durationText =
+      rentType === "daily"
+        ? "/ day"
+        : rentType === "monthly"
+        ? "/ month"
+        : rentType === "weekly"
+        ? "/week"
+        : "N/A";
+    // --- MODIFICATIONS END HERE ---
+
+    return (
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: currentTheme.card,
+            width: width - 40,
+            borderColor: currentTheme.border,
+          },
+        ]}
+      >
+        <View style={styles.infoSection}>
+          <Text
+            style={[styles.title, { color: currentTheme.text }]}
+            numberOfLines={1}
           >
-            <Text style={styles.createButtonText}>List a New Property</Text>
-          </TouchableOpacity>
-        </View>
-      }
-      renderItem={({ item }) => (
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: currentTheme.card,
-              width: width - 40, // Match a standard design padding of 20 on each side
-              // shadowColor: currentTheme.shadow,
-              borderColor: currentTheme.border,
-            },
-          ]}
-        >
-          {/* Main Info Section */}
-          <View style={styles.infoSection}>
+            {item.title}
+          </Text>
+          <View style={styles.row}>
+            <Feather name="map-pin" size={14} color={currentTheme.muted} />
             <Text
-              style={[styles.title, { color: currentTheme.text }]}
+              style={[styles.location, { color: currentTheme.muted }]}
               numberOfLines={1}
             >
-              {item.title}
+              {area}, {city} {/* Using Area and City from the new structure */}
             </Text>
-
-            <View style={styles.row}>
-              <Feather name="map-pin" size={14} color={currentTheme.muted} />
-              <Text
-                style={[styles.location, { color: currentTheme.muted }]}
-                numberOfLines={1}
-              >
-                {item.address?.[0]?.city || "City N/A"},{" "}
-                {item.address?.[0]?.country || "Country N/A"}
-              </Text>
-            </View>
-
-            {/* Capacity Row */}
-            <View style={styles.capacityRow}>
-              {renderCapacity(
-                "account-group-outline",
-                item.capacityState?.guests,
-                "Guests"
-              )}
-              {renderCapacity("bed-outline", item.capacityState?.beds, "Beds")}
-              {renderCapacity(
-                "bathtub-outline",
-                item.capacityState?.bathrooms,
-                "Baths"
-              )}
-            </View>
-
-            {/* Price */}
-            <View style={styles.priceContainer}>
-              <Text style={[styles.price, { color: currentTheme.primary }]}>
-                Rs. {item.monthlyRent?.toLocaleString() || "N/A"}
-              </Text>
-              <Text
-                style={[styles.priceDuration, { color: currentTheme.muted }]}
-              >
-                / month
-              </Text>
-            </View>
           </View>
-
-          {/* Actions Row */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: currentTheme.success }]}
-              onPress={() => handleOpenDetails(item._id)}
-            >
-              <MaterialCommunityIcons
-                name="eye-outline"
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.buttonText}>View</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: currentTheme.info }]}
-              onPress={() => handleEdit(item)}
-            >
-              <MaterialCommunityIcons
-                name="pencil-outline"
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.buttonText}>Edit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: currentTheme.danger }]}
-              onPress={() =>
-                Alert.alert(
-                  "Confirm Deletion",
-                  "Are you sure you want to delete this property?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Delete",
-                      style: "destructive",
-                      onPress: () => handleDelete(item._id),
-                    },
-                  ]
-                )
-              }
-            >
-              <MaterialCommunityIcons
-                name="delete-outline"
-                size={20}
-                color="#fff"
-              />
-              <Text style={styles.buttonText}>Delete</Text>
-            </TouchableOpacity>
+          <View style={styles.capacityRow}>
+            {renderCapacity(
+              "account-group-outline",
+              persons, // Using item.capacity.persons
+              "persons"
+            )}
+            {renderCapacity(
+              "bed-outline",
+              beds, // Using item.capacity.beds
+              "Beds"
+            )}
+            {renderCapacity(
+              "bathtub-outline",
+              bathrooms, // Using item.capacity.bathrooms
+              "Baths"
+            )}
+          </View>
+          <View style={styles.priceContainer}>
+            <Text style={[styles.price, { color: currentTheme.primary }]}>
+              Rs. {rentAmount.toLocaleString() || "N/A"}
+            </Text>
+            <Text style={[styles.priceDuration, { color: currentTheme.muted }]}>
+              {durationText} {/* Adjusted duration based on rentRates */}
+            </Text>
           </View>
         </View>
-      )}
-      contentContainerStyle={{
-        paddingHorizontal: 20, // Added padding to the list container
-        paddingBottom: 40,
-      }}
-    />
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: currentTheme.success }]}
+            onPress={() => handleOpenDetails(item._id)}
+          >
+            <MaterialCommunityIcons name="eye-outline" size={20} color="#fff" />
+            <Text style={styles.buttonText}>View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: currentTheme.info }]}
+            onPress={() => handleEdit(item)}
+          >
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.buttonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: currentTheme.danger }]}
+            onPress={() => showDeleteConfirm(item._id)}
+          >
+            <MaterialCommunityIcons
+              name="delete-outline"
+              size={20}
+              color="#fff"
+            />
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <>
+      <FlatList
+        style={{ flex: 1, backgroundColor: currentTheme.background }}
+        data={myProperties ?? []}
+        keyExtractor={(item, index) => item._id ?? index.toString()}
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            <Text style={[styles.header, { color: currentTheme.text }]}>
+              My Listings
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons
+              name="home-search-outline"
+              size={50}
+              color={currentTheme.muted}
+              style={{ marginBottom: 10 }}
+            />
+            <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+              You have no properties listed yet.
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.createButton,
+                { backgroundColor: currentTheme.primary, marginTop: 20 },
+              ]}
+              onPress={() => router.push("/upload")}
+            >
+              <Text style={styles.createButtonText}>List a New Property</Text>
+            </TouchableOpacity>
+          </View>
+        }
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+      />
+
+      <ConfirmationModal
+        visible={confirmVisible}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this property?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmVisible(false)}
+      />
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 8,
-    fontWeight: "500",
-  },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 8, fontWeight: "500" },
   errorText: {
     marginTop: 8,
     fontSize: 16,
@@ -272,94 +307,42 @@ const styles = StyleSheet.create({
     paddingVertical: 80,
     paddingHorizontal: 20,
   },
-  emptyText: {
-    fontSize: 16,
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  createButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 8,
-  },
-  createButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
-  headerContainer: {
-    paddingTop: 16,
-    paddingBottom: 20,
-    marginBottom: 8,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "left",
-  },
-  // --- CARD STYLES ---
+  emptyText: { fontSize: 16, textAlign: "center", fontWeight: "500" },
+  createButton: { paddingVertical: 12, paddingHorizontal: 25, borderRadius: 8 },
+  createButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  headerContainer: { paddingTop: 16, paddingBottom: 20, marginBottom: 8 },
+  header: { fontSize: 24, fontWeight: "800", textAlign: "left" },
   card: {
     padding: 18,
-    marginBottom: 20, // Increased spacing between cards
-    borderRadius: 15, // More rounded corners
+    marginBottom: 20,
+    borderRadius: 15,
     borderWidth: StyleSheet.hairlineWidth,
-    // Enhanced shadow for floating effect
     shadowOpacity: 0.1,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 8,
   },
-  infoSection: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 20, // Larger title
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-    gap: 8, // Increased gap
-  },
-  location: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
+  infoSection: { marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
+  row: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 8 },
+  location: { fontSize: 14, fontWeight: "500" },
   capacityRow: {
     flexDirection: "row",
     marginTop: 10,
     marginBottom: 12,
-    gap: 20, // Gap between capacity items
+    gap: 20,
     paddingBottom: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  capacityItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  capacityText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  // Price Styling (similar to previous component)
+  capacityItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+  capacityText: { fontSize: 13, fontWeight: "500" },
   priceContainer: {
     flexDirection: "row",
     alignItems: "baseline",
     marginTop: 10,
   },
-  price: {
-    fontSize: 22,
-    fontWeight: "900", // Extra bold price
-  },
-  priceDuration: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginLeft: 5,
-  },
-  // --- ACTIONS STYLES ---
+  price: { fontSize: 22, fontWeight: "900" },
+  priceDuration: { fontSize: 14, fontWeight: "500", marginLeft: 5 },
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -374,11 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
-  },
+  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
 });
 
 export default MyListingProperties;

@@ -10,7 +10,7 @@ export interface WeekendPricingScreenProps {
 
 export interface PriceBreakdownProps {
   basePrice: number;
-  guestServiceFee: number;
+  personserviceFee: number;
   guestPriceBeforeTaxes: number;
   youEarn: number;
   isVisible: boolean;

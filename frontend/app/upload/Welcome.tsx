@@ -4,16 +4,16 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { styles } from "@/styles/Welcome";
 import { StepContainerProps } from "@/types/Welcome.types";
-import { FormContext } from "@/contextStore/FormContext";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import ConfirmationModal from "@/components/ConfirmDialog";
 
 const StepContainer: React.FC<StepContainerProps> = ({
   title,
@@ -26,6 +26,9 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const router = useRouter();
   const formContext = useContext(FormContext);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [confirmTitle, setConfirmTitle] = useState("");
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -36,7 +39,9 @@ const StepContainer: React.FC<StepContainerProps> = ({
 
   const handleExit = async () => {
     if (!formContext) {
-      Alert.alert("Error", "Form context not found");
+      setConfirmTitle("Error");
+      setConfirmMessage("Form context not found");
+      setConfirmVisible(true);
       return;
     }
 
@@ -44,17 +49,22 @@ const StepContainer: React.FC<StepContainerProps> = ({
       setIsSaving(true);
       const result = await formContext.submitDraftData();
       if (result.success) {
-        Alert.alert(
-          "Draft saved!",
-          "Your progress has been saved successfully."
-        );
+        formContext.setFullFormData([] as FormData);
+
+        setConfirmTitle("Draft Saved!");
+        setConfirmMessage("Your progress has been saved successfully.");
+        setConfirmVisible(true);
       } else {
-        Alert.alert("Error", "Failed to save draft.");
+        setConfirmTitle("Error");
+        setConfirmMessage("Failed to save draft.");
+        setConfirmVisible(true);
         console.error(result.error);
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Something went wrong while saving the draft.");
+      setConfirmTitle("Error");
+      setConfirmMessage("Something went wrong while saving the draft.");
+      setConfirmVisible(true);
     } finally {
       setIsSaving(false);
       router.replace("/homePage");
@@ -149,6 +159,17 @@ const StepContainer: React.FC<StepContainerProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmVisible}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="OK"
+        cancelText="Cancel"
+        onConfirm={() => setConfirmVisible(false)}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </SafeAreaView>
   );
 };

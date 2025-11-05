@@ -14,7 +14,7 @@ import {
   Query,
 } from "@nestjs/common";
 import { PropertyService } from "./property.service";
-import { CreatePropertyDto } from "./dto/create-property.dto";
+import { CreatePropertyDto, RentFilter } from "./dto/create-property.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -22,51 +22,45 @@ import { AuthGuard } from "@nestjs/passport";
 @Controller("properties")
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
-  @Post("create")
+
+  private parseJson(val: any) {
+    if (!val) return undefined;
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return val; // return raw string if parse fails
+      }
+    }
+    return val;
+  }
+
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
-  async createProperty(
+  @Post()
+  async createOrUpdateProperty(
     @Body() dto: CreatePropertyDto,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any
   ) {
-    const photos = files?.photos || [];
+    console.log(req.body)
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
+    const photos = files?.photos || []; // Corrected DTO parsing to align with the new schema field names
+
     const parsedDto = {
       ...dto,
-      address: this.parseJson(dto.address),
-      capacityState: this.parseJson(dto.capacityState),
-      description: this.parseJson(dto.description),
-      safetyDetailsData: this.parseJson(dto.safetyDetailsData),
-      amenities: this.parseJson(dto.amenities),
+      location: this.parseJson(dto.location) || {},
+      capacity: this.parseJson(dto.capacity) || {},
+      description: this.parseJson(dto.description) || {}, // Corrected field name: safetyDetailsData -> safetyFeatures
+      safetyFeatures: this.parseJson(dto.safetyFeatures as any) || [],
+      amenities: this.parseJson(dto.amenities as any) || [],
+      billsIncluded: this.parseJson((dto as any).billsIncluded) || [],
+      photos: this.parseJson((dto as any).photos) || [], // rentRates is a crucial JSON field that needs parsing
+      rentRates: this.parseJson((dto as any).rentRates) || [],
     };
 
-    // Required fields for full completion
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
-
-    const isComplete = requiredFields.every((field) => !!parsedDto[field]);
-
-    // 👇 Automatically set property status: true (complete) / false (draft)
-    parsedDto.status = isComplete;
-
-    return this.propertyService.create(parsedDto, photos, userId);
-  }
-
-  private parseJson(value: any) {
-    try {
-      return typeof value === "string" ? JSON.parse(value) : value;
-    } catch {
-      return value;
-    }
+    return this.propertyService.createOrUpdate(parsedDto, photos, userId);
   }
 
   @Get()
@@ -87,40 +81,31 @@ export class PropertyController {
   async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
 
-    // Convert numeric filters from string to number
-    const numericFields = [
-      "page",
-      "limit",
-      "minRent",
-      "maxRent",
-      "minSecurity",
-      "maxSecurity",
-      "bedrooms",
-      "bathrooms",
-      "guests",
-    ];
-    numericFields.forEach((field) => {
-      if (query[field] !== undefined) query[field] = Number(query[field]);
-    });
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
 
-    // Convert array filters (amenities, bills, highlighted, safety) from comma-separated string to array
-    const arrayFields = ["amenities", "bills", "highlighted", "safety"];
-    arrayFields.forEach((field) => {
-      if (query[field] && typeof query[field] === "string") {
-        query[field] = query[field].split(",").map((v) => v.trim());
-      }
-    });
+    const rentFilter: RentFilter = {
+      rentType: query.rentType?.toLowerCase() as "daily" | "weekly" | "monthly",
+      minAmount: query.minRent ? Number(query.minRent) : undefined,
+      maxAmount: query.maxRent ? Number(query.maxRent) : undefined,
+    };
 
-    const page = query.page || 1;
-    const limit = query.limit || 10;
+    // General filters
+    const filters: Record<string, any> = {
+      propertyType: query.propertyType?.toLowerCase(),
+      city: query.city,
+      beds: query.beds ? Number(query.beds) : undefined,
+    };
 
-    // Remove pagination params from query before sending to service
-    const filters = { ...query };
-    delete filters.page;
-    delete filters.limit;
-
-    return this.propertyService.findFiltered(page, limit, filters, userId);
+    return this.propertyService.findFiltered(
+      page,
+      limit,
+      filters,
+      userId,
+      rentFilter
+    );
   }
+
   @Get("my-listings")
   async getMyProperties(@Req() req: any) {
     if (!req.user || !req.user.userId) {
@@ -144,12 +129,6 @@ export class PropertyController {
     return this.propertyService.getAllDrafts(userId);
   }
 
-  @Delete("drafts/:id")
-  async deleteDraftById(@Param("id") id: string, @Req() req: any) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException("User not authenticated");
-    return this.propertyService.deleteDraftById(id, userId);
-  }
   @Get(":id")
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;

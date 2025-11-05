@@ -23,7 +23,7 @@ const PrivacyPolicyScreen = () => {
           1. Information We Collect
         </Text>
         <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We may collect personal information such as name, email, phone number,
+          We may collect personsal information such as name, email, phone number,
           account credentials, property details uploaded by users, location
           data, and app usage information.
         </Text>
@@ -58,7 +58,7 @@ const PrivacyPolicyScreen = () => {
           5. Your Rights
         </Text>
         <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          You may have rights to access, update, or delete your personal data,
+          You may have rights to access, update, or delete your personsal data,
           and to object or restrict certain processing. Contact us at
           barkat.khattak@codeshop.biz to exercise these rights.
         </Text>

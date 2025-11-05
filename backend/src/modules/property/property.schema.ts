@@ -1,108 +1,106 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
+// --- Sub-Schema for Rent Rates ---
+@Schema()
+class RentRate {
+  @Prop({ type: String, enum: ["daily", "weekly", "monthly"] })
+  type: string; // The type of rent (daily, weekly, monthly)
+
+  @Prop({ type: Number })
+  amount: number; // The numeric rent based on the type
+}
+const RentRateSchema = SchemaFactory.createForClass(RentRate);
+// ---------------------------------
+
 @Schema({ timestamps: true })
 export class Property extends Document {
+  // Basic Info
   @Prop({
     type: String,
     required: function () {
-      return this.status === true;
+      return this.status;
     },
   })
   title: string;
 
   @Prop({
     type: String,
+    enum: ["house", "apartment", "room", "hostel"],
     required: function () {
-      return this.status === true;
+      return this.status;
     },
   })
-  hostOption: string;
+  propertyType: string; // Instead of separate hostelType/roomType
 
   @Prop({
     type: String,
-    required: function () {
-      return this.status === true;
-    },
+    enum: ["male", "female", "mixed", "single", "double"],
+    required: false,
   })
-  location: string;
-
-  @Prop({
-    type: Number,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  monthlyRent: number;
-
-  @Prop({
-    type: Number,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  SecuritybasePrice: number;
-
-  @Prop({ type: [String], default: [] })
-  ALL_BILLS?: string[];
-
-  @Prop({
-    type: [
-      {
-        aptSuiteUnit: String,
-        street: String,
-        city: String,
-        stateTerritory: String,
-        country: String,
-        zipCode: String,
-      },
-    ],
-    required: function () {
-      return this.status === true;
-    },
-  })
-  address: Record<string, any>[];
-
-  @Prop({ type: [String], default: [] })
-  amenities?: string[];
+  subType?: string; // handles both roomType and hostelType // Address (localized for Pakistan)
 
   @Prop({
     type: {
-      guests: Number,
+      city: String, // Karachi, Lahore, Islamabad...
+      area: String, // DHA, Bahria, Gulberg...
+      block: String, // optional
+      street: String,
+      fullAddress: String,
+    },
+    required: function () {
+      return this.status;
+    },
+  })
+  location: Record<string, any>; // Rent and Payment (MODIFIED FOR MULTI-RENT)
+
+  @Prop({ type: [RentRateSchema] })
+  rentRates: RentRate[];
+
+  @Prop({ type: Number })
+  securityDeposit?: number; // Bills included
+
+  @Prop({ type: [String], default: [] })
+  billsIncluded?: string[]; // Capacity
+
+  @Prop({
+    type: {
+      persons: Number,
       bedrooms: Number,
       beds: Number,
       bathrooms: Number,
     },
-    required: function () {
-      return this.status === true;
-    },
   })
-  capacityState: Record<string, any>;
-
-  @Prop({
-    type: {
-      highlighted: [String],
-    },
-  })
-  description?: Record<string, any>;
-
-  @Prop({
-    type: {
-      safetyDetails: [String],
-      cameraDescription: String,
-    },
-  })
-  safetyDetailsData?: Record<string, any>;
+  capacity?: Record<string, any>; // Features / Amenities
 
   @Prop({ type: [String], default: [] })
-  photos?: string[];
+  amenities?: string[]; // Safety / Rules
 
-  @Prop({ type: String, required: true })
-  ownerId: string;
+  @Prop({ type: [String], default: [] })
+  safetyFeatures?: string[];
 
-  // 👇 Automatically handles draft vs complete
+  @Prop({ type: [String], default: [] })
+  rules?: string[]; // Description
+
+  @Prop({
+    type: {
+      highlights: [String],
+      details: String,
+    },
+  })
+  description?: Record<string, any>; // Photos
+
+  @Prop({ type: [String], default: [] })
+  photos?: string[]; // Owner
+
+  @Prop({ type: String })
+  ownerId: string; // Draft or Published
+
   @Prop({ type: Boolean, default: false })
   status: boolean;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
+
+PropertySchema.index({ propertyType: 1 });
+PropertySchema.index({ ownerId: 1 });

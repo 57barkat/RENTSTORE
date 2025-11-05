@@ -1,21 +1,21 @@
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Image,
   TouchableOpacity,
   FlatList,
-  Alert,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../../constants/Colors";
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useDeleteUserMutation } from "@/services/api";
 import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contextStore/AuthContext";
 import { styles } from "@/styles/profile";
+import ConfirmationModal from "@/components/ConfirmDialog";
 
 export default function Profile() {
   const { theme } = useTheme();
@@ -25,6 +25,9 @@ export default function Profile() {
   const data = [{ key: "dummy" }];
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  const [deleteUser] = useDeleteUserMutation();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -36,23 +39,14 @@ export default function Profile() {
     loadUser();
   }, []);
 
-  const [deleteUser] = useDeleteUserMutation();
   const handleDelete = async () => {
     try {
       await deleteUser(undefined).unwrap();
-      Alert.alert("Deleted!", "Your account has been removed.", [
-        {
-          text: "OK",
-          onPress: () => {
-            logout();
-            router.replace("/signin");
-          },
-        },
-      ]);
       await AsyncStorage.clear();
+      logout();
+      router.replace("/signin");
     } catch (err) {
       console.error("Delete failed:", err);
-      Alert.alert("Error", "Failed to delete your account.");
     }
   };
 
@@ -108,26 +102,28 @@ export default function Profile() {
   );
 
   const renderFooter = () => (
-    <TouchableOpacity
-      style={[styles.deleteButton, { backgroundColor: currentTheme.danger }]}
-      onPress={() => {
-        Alert.alert(
-          "Confirm Deletion",
-          "Are you sure you want to delete your account?",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Delete",
-              style: "destructive",
-              onPress: () => handleDelete(),
-            },
-          ]
-        );
-      }}
-    >
-      <MaterialCommunityIcons name="delete-outline" size={24} color="#fff" />
-      <Text style={styles.deleteButtonText}>Delete Account</Text>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity
+        style={[styles.deleteButton, { backgroundColor: currentTheme.danger }]}
+        onPress={() => setShowModal(true)}
+      >
+        <MaterialCommunityIcons name="delete-outline" size={24} color="#fff" />
+        <Text style={styles.deleteButtonText}>Delete Account</Text>
+      </TouchableOpacity>
+
+      <ConfirmationModal
+        visible={showModal}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete your account?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          handleDelete();
+          setShowModal(false);
+        }}
+        onCancel={() => setShowModal(false)}
+      />
+    </>
   );
 
   return (

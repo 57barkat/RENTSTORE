@@ -26,7 +26,10 @@ export const InputField: FC<InputFieldProps> = ({
       onChangeText={onChange}
       placeholder={placeholder}
       placeholderTextColor={themeColors?.placeholder ?? "#000000"}
-      style={[styles.textInput, { color: themeColors?.text ?? "#000" }]}
+      style={[
+        styles.modalInput,
+        { color: themeColors.text, borderColor: themeColors.border },
+      ]}
     />
   </View>
 );

@@ -2,26 +2,27 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 
 import { CreatePropertyDto, PropertyWithFav } from "./dto/create-property.dto";
-import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
 import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
+import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
-    @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
     private readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService
   ) {}
 
+  // helper for uploading files
   async uploadFilesToCloudinary(
-    files: Express.Multer.File[]
+    files: Express.Multer.File[] = []
   ): Promise<string[]> {
     if (!files || files.length === 0) return [];
     const urls = await Promise.all(
@@ -33,137 +34,132 @@ export class PropertyService {
     return urls;
   }
 
-  async create(
-    dto: CreatePropertyDto,
-    imageFiles: Express.Multer.File[],
-    userId: string
-  ): Promise<Property> {
-    const photoUrls: string[] =
-      imageFiles?.length > 0
-        ? await Promise.all(
-            imageFiles.map(async (file) => {
-              const uploaded = await this.cloudinary.uploadFile(file);
-              return uploaded.secure_url;
-            })
-          )
-        : [];
+  // parse nested fields sent as JSON strings (safe)
+  private parseNestedFields(dto: any) {
+    const parsed: any = { ...dto };
+    const toTryParse = [
+      "location",
+      "capacity",
+      "description",
+      "safetyDetailsData",
+      "amenities",
+      "billsIncluded",
+      "rules",
+      "photos",
+    ];
 
-    // Parse nested fields if they come as JSON strings
-    const parsedDto = {
-      ...dto,
-      address:
-        typeof dto.address === "string" ? JSON.parse(dto.address) : dto.address,
-      capacityState:
-        typeof dto.capacityState === "string"
-          ? JSON.parse(dto.capacityState)
-          : dto.capacityState,
-      description:
-        typeof dto.description === "string"
-          ? JSON.parse(dto.description)
-          : dto.description,
-      safetyDetailsData:
-        typeof dto.safetyDetailsData === "string"
-          ? JSON.parse(dto.safetyDetailsData)
-          : dto.safetyDetailsData,
-      amenities:
-        typeof dto.amenities === "string"
-          ? JSON.parse(dto.amenities)
-          : dto.amenities,
-      photos: photoUrls.length ? photoUrls : dto.photos, // override only if new files uploaded
+    toTryParse.forEach((k) => {
+      const val = parsed[k];
+      if (typeof val === "string") {
+        try {
+          parsed[k] = JSON.parse(val);
+        } catch {
+          // if parse fails, leave as original string
+          // but this indicates a frontend issue — optional to throw
+        }
+      }
+    });
+
+    return parsed;
+  }
+
+  private determineCompleteness(parsedDto: any): boolean {
+    const baseRequired = ["title", "location", "rentRates"];
+
+    const typeRequirements: Record<string, string[]> = {
+      house: ["title", "location", "rentRates"],
+      apartment: ["title", "location", "rentRates", "capacity"],
+      room: ["title", "location", "rentRates", "subType"],
+      hostel: ["title", "location", "rentRates", "capacity", "subType"],
     };
 
-    // Determine required fields for status
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
-    parsedDto.status = requiredFields.every((field) => !!parsedDto[field]);
+    const required = Array.from(
+      new Set([
+        ...(typeRequirements[parsedDto.propertyType] || []),
+        ...baseRequired,
+      ])
+    );
 
-    let property: Property | null;
+    return required.every((f) => {
+      const v = parsedDto[f];
+      if (f === "rentRates") return Array.isArray(v) && v.length > 0;
+      return (
+        v !== undefined &&
+        v !== null &&
+        !(typeof v === "string" && v.trim() === "")
+      );
+    });
+  }
 
-    if (dto._id) {
-      // ✅ Existing property: update instead of creating
-      property = await this.propertyModel.findById(dto._id);
+  // create or update entry
+  async createOrUpdate(
+    dto: CreatePropertyDto,
+    imageFiles: Express.Multer.File[] = [],
+    userId: string
+  ): Promise<Property> {
+    // Upload files if present
+    const uploadedPhotoUrls = await this.uploadFilesToCloudinary(imageFiles);
+
+    // parse nested fields safely
+    const parsedDto: any = this.parseNestedFields(dto);
+    // if photos were uploaded, override/append as appropriate
+    if (uploadedPhotoUrls.length) {
+      parsedDto.photos = uploadedPhotoUrls;
+    } else if (!parsedDto.photos) {
+      parsedDto.photos = dto.photos || [];
+    }
+
+    // ensure keys align with schema: propertyType, rentAmount, securityDeposit, location, capacity
+    // determine completeness
+    parsedDto.status = !!parsedDto.status
+      ? true
+      : this.determineCompleteness(parsedDto);
+
+    // Update existing
+    if (parsedDto._id) {
+      const property = await this.propertyModel.findById(parsedDto._id);
       if (!property) throw new NotFoundException("Property not found");
 
-      // Only the owner can update
       if (property.ownerId.toString() !== userId.toString())
         throw new UnauthorizedException(
           "You are not allowed to edit this property"
         );
 
+      // merge: keep existing photos if none uploaded
+      if (
+        !uploadedPhotoUrls.length &&
+        parsedDto.photos &&
+        parsedDto.photos.length === 0
+      ) {
+        // do nothing — allow clearing photos if frontend intentionally sends empty array
+      }
+
       Object.assign(property, parsedDto);
-      property = await property.save();
-      console.log("Updated existing property:", property._id);
-    } else {
-      // ✅ New property: create
-      property = new this.propertyModel({
-        ...parsedDto,
-        ownerId: userId,
-      });
-      property = await property.save();
-      console.log("Created new property:", property._id);
+      property.status = parsedDto.status;
+      return await property.save();
     }
 
-    return property;
-  }
-
-  async saveDraft(
-    dto: Partial<CreatePropertyDto>,
-    imageFiles?: Express.Multer.File[],
-    userId?: string
-  ) {
-    const photos: string[] = imageFiles?.length
-      ? await this.uploadFilesToCloudinary(imageFiles)
-      : dto.photos || [];
-
-    const draft = new this.propertyDraftModel({
-      ...dto,
-      photos,
-      ownerId: new Types.ObjectId(userId),
-      status: "draft",
+    // Create new
+    const newProp = new this.propertyModel({
+      ...parsedDto,
+      ownerId: userId,
     });
 
-    return draft.save();
+    return await newProp.save();
   }
 
+  // drafts for a user
   async getAllDrafts(userId: string) {
     const drafts = await this.propertyModel
       .find({ ownerId: new Types.ObjectId(userId), status: false })
       .sort({ createdAt: -1 })
       .lean();
-
     return drafts;
-  }
-
-  async deleteDraftById(draftId: string, userId: string) {
-    const draft = await this.propertyDraftModel.findById(draftId);
-
-    if (!draft) {
-      throw new NotFoundException("Draft not found");
-    }
-
-    if (draft.ownerId.toString() !== userId.toString()) {
-      throw new UnauthorizedException(
-        "You are not allowed to delete this draft"
-      );
-    }
-
-    await this.propertyDraftModel.findByIdAndDelete(draftId);
-    return { message: "Draft deleted successfully" };
   }
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
     const filter: any = { status: true };
-    if (ownerId) {
-      filter.ownerId = ownerId;
-    }
-
+    if (ownerId) filter.ownerId = ownerId;
     const skip = (page - 1) * limit;
 
     const [properties, total] = await Promise.all([
@@ -176,89 +172,86 @@ export class PropertyService {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   }
-
   async findFiltered(
-    page = 1,
-    limit = 10,
-    filters: {
-      city?: string;
-      country?: string;
-      stateTerritory?: string;
-      minRent?: number;
-      maxRent?: number;
-      minSecurity?: number;
-      maxSecurity?: number;
-      bedrooms?: number;
-      beds?: number;
-      bathrooms?: number;
-      guests?: number;
-      amenities?: string[];
-      bills?: string[];
-      hostOption?: string;
-      title?: string;
-      highlighted?: string[];
-      safety?: string[];
-    },
-    userId?: string
+    page: number,
+    limit: number,
+    filters: Record<string, any>,
+    userId: string,
+    rentFilter?: {
+      rentType?: "daily" | "weekly" | "monthly";
+      minAmount?: number;
+      maxAmount?: number;
+    }
   ) {
     const skip = (page - 1) * limit;
     const filter: any = { status: true };
 
+    // --- Location / Title Filters ---
     if (filters.city)
-      filter["address.city"] = { $regex: filters.city, $options: "i" };
+      filter["location.city"] = { $regex: filters.city, $options: "i" };
     if (filters.country)
-      filter["address.country"] = { $regex: filters.country, $options: "i" };
+      filter["location.country"] = { $regex: filters.country, $options: "i" };
     if (filters.stateTerritory)
-      filter["address.stateTerritory"] = {
+      filter["location.stateTerritory"] = {
         $regex: filters.stateTerritory,
         $options: "i",
       };
     if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
 
-    if (filters.minRent !== undefined || filters.maxRent !== undefined) {
-      filter.monthlyRent = {};
-      if (filters.minRent !== undefined)
-        filter.monthlyRent.$gte = filters.minRent;
-      if (filters.maxRent !== undefined)
-        filter.monthlyRent.$lte = filters.maxRent;
+    // --- Rent Filter using rentFilter param ---
+    if (
+      rentFilter?.minAmount !== undefined ||
+      rentFilter?.maxAmount !== undefined ||
+      rentFilter?.rentType
+    ) {
+      filter.rentRates = {
+        $elemMatch: {
+          type: rentFilter?.rentType ?? "monthly",
+          amount: {
+            $gte: rentFilter?.minAmount ?? 0,
+            $lte: rentFilter?.maxAmount ?? Number.MAX_SAFE_INTEGER,
+          },
+        },
+      };
     }
 
+    // --- Security Deposit Filter ---
     if (
       filters.minSecurity !== undefined ||
       filters.maxSecurity !== undefined
     ) {
-      filter.SecuritybasePrice = {};
+      filter.securityDeposit = {};
       if (filters.minSecurity !== undefined)
-        filter.SecuritybasePrice.$gte = filters.minSecurity;
+        filter.securityDeposit.$gte = filters.minSecurity;
       if (filters.maxSecurity !== undefined)
-        filter.SecuritybasePrice.$lte = filters.maxSecurity;
+        filter.securityDeposit.$lte = filters.maxSecurity;
     }
 
-    // Existing: Filters by the number of private bedrooms (rooms)
+    // --- Capacity Filters ---
     if (filters.bedrooms !== undefined)
-      filter["capacityState.bedrooms"] = filters.bedrooms;
-
-    // MODIFIED: Filters by the total number of beds (sleeping spots)
-    if (filters.beds !== undefined) filter["capacityState.beds"] = filters.beds;
-
+      filter["capacity.bedrooms"] = filters.bedrooms;
+    if (filters.beds !== undefined) filter["capacity.beds"] = filters.beds;
     if (filters.bathrooms !== undefined)
-      filter["capacityState.bathrooms"] = filters.bathrooms;
-    if (filters.guests !== undefined)
-      filter["capacityState.guests"] = filters.guests;
+      filter["capacity.bathrooms"] = filters.bathrooms;
+    if (filters.persons !== undefined)
+      filter["capacity.persons"] = filters.persons;
 
+    // --- Amenities / Bills / Safety / Highlights ---
     if (filters.amenities?.length)
       filter.amenities = { $all: filters.amenities };
-    if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
+    if (filters.bills?.length) filter.billsIncluded = { $all: filters.bills };
     if (filters.highlighted?.length)
-      filter["description.highlighted"] = { $all: filters.highlighted };
+      filter["description.highlights"] = { $all: filters.highlighted };
     if (filters.safety?.length)
       filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
 
-    if (filters.hostOption) filter.hostOption = filters.hostOption;
+    // --- Property Type ---
+    if (filters.propertyType) filter.propertyType = filters.propertyType;
 
+    // --- Fetch Data ---
     const [data, total] = await Promise.all([
       this.propertyModel
         .find(filter)
@@ -269,6 +262,7 @@ export class PropertyService {
       this.propertyModel.countDocuments(filter),
     ]);
 
+    // --- Mark Favorites ---
     if (userId) {
       const favIds = await this.favService.getUserFavoriteIds(userId);
       data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
@@ -279,7 +273,7 @@ export class PropertyService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit) || 1,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   }
 
@@ -291,14 +285,9 @@ export class PropertyService {
 
     const favIds = await this.favService.getUserFavoriteIds(userId);
 
-    const filteredData = data
+    return data
       .filter((p) => p.status !== false)
-      .map((p) => ({
-        ...p,
-        isFav: favIds.includes(p._id.toString()),
-      }));
-
-    return filteredData;
+      .map((p) => ({ ...p, isFav: favIds.includes(p._id.toString()) }));
   }
 
   async findPropertyById(propertyId: string, userId?: string) {
@@ -307,9 +296,7 @@ export class PropertyService {
       .populate("ownerId", "name email phone")
       .lean()) as unknown as PropertyWithFav;
 
-    if (!property) {
-      throw new NotFoundException("Property not found");
-    }
+    if (!property) throw new NotFoundException("Property not found");
 
     if (userId) {
       const favIds = await this.favService.getUserFavoriteIds(userId);
@@ -343,42 +330,16 @@ export class PropertyService {
     userId: string
   ) {
     const property = await this.propertyModel.findById(id);
-
-    if (!property) {
-      throw new NotFoundException("Property not found");
-    }
-
-    if (property.ownerId.toString() !== userId.toString()) {
+    if (!property) throw new NotFoundException("Property not found");
+    if (property.ownerId.toString() !== userId.toString())
       throw new UnauthorizedException(
         "You are not allowed to edit this property"
       );
-    }
 
-    Object.assign(property, dto);
+    const parsed = this.parseNestedFields(dto);
+    Object.assign(property, parsed);
 
-    // Define required fields for a complete property
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
-
-    // Check completion (ensure all required fields are filled)
-    const isComplete = requiredFields.every(
-      (field) =>
-        property[field] !== undefined &&
-        property[field] !== null &&
-        property[field] !== ""
-    );
-
-    // Update the status automatically
-    property.status = isComplete;
-
-    // Save and return updated document
+    property.status = this.determineCompleteness(property);
     return property.save();
   }
 

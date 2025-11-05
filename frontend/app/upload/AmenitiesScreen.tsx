@@ -58,7 +58,7 @@ const AmenitiesScreen: FC = () => {
 
   return (
     <StepContainer
-      title="Tell guests what your place has to offer"
+      title="Tell persons what your place has to offer"
       onNext={handleNext}
       isNextDisabled={isNextDisabled(selectedAmenities)}
       progress={33}

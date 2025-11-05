@@ -71,7 +71,7 @@ export const api = createApi({
         }
 
         return {
-          url: "/api/v1/properties/create",
+          url: "/api/v1/properties",
           method: "POST",
           body: formData,
         };

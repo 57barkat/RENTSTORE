@@ -7,24 +7,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { InputField } from "@/components/UploadPropertyComponents/AdderssInputField";
-import { FormContext } from "@/contextStore/FormContext";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import { validateAddresses, AddressErrors } from "@/utils/propertyValidator";
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
-import { useTheme } from "@/contextStore/ThemeContext";
+import { useTheme } from "@/contextStore/ThemeContext"; 
+import ConfirmationModal from "@/components/ConfirmDialog";
 
 const FinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const { data, updateForm, submitData } = useContext(FormContext)!;
+  const { data, updateForm, submitData, setFullFormData } =
+    useContext(FormContext)!;
 
   const initialAddress: Address = {
     country: "PAKISTAN",
@@ -35,13 +36,13 @@ const FinalAddressDetailsScreen: FC = () => {
     zipCode: "",
   };
 
-  
   const [addresses, setAddresses] = useState<Address[]>(
     data.address?.length ? data.address : [initialAddress]
   );
 
   const [errors, setErrors] = useState<AddressErrors>({});
   const [loading, setLoading] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false); // modal visibility
 
   useEffect(() => {
     if (!data.address || data.address.length === 0) {
@@ -59,7 +60,6 @@ const FinalAddressDetailsScreen: FC = () => {
         )
       );
 
-      // Clear error for field
       setErrors((prev: any) => ({
         ...prev,
         [index]: { ...prev[index], [field]: undefined },
@@ -76,7 +76,7 @@ const FinalAddressDetailsScreen: FC = () => {
     setErrors(errors);
 
     if (!valid) {
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      setConfirmVisible(true);
       setLoading(false);
       return;
     }
@@ -85,6 +85,7 @@ const FinalAddressDetailsScreen: FC = () => {
     const result = await submitData();
 
     if (result.success) {
+      setFullFormData([] as FormData);
       Toast.show({ type: "success", text1: "Property uploaded successfully!" });
       setTimeout(() => router.replace("/MyListingsScreen"), 1500);
     } else {
@@ -103,7 +104,7 @@ const FinalAddressDetailsScreen: FC = () => {
     setErrors(errors);
 
     if (!valid) {
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      setConfirmVisible(true);
       return;
     }
 
@@ -229,6 +230,17 @@ const FinalAddressDetailsScreen: FC = () => {
           </Text>
         </View>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        visible={confirmVisible}
+        title="Validation Error"
+        message="Please correct the highlighted fields."
+        confirmText="OK"
+        cancelText="Cancel"
+        onConfirm={() => setConfirmVisible(false)}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </View>
   );
 };

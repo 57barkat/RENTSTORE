@@ -30,7 +30,7 @@ export const CameraModal: FC<CameraModalProps> = ({
           ]}
         >
           <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-            Tell guests about your exterior security cameras
+            Tell persons about your exterior security cameras
           </Text>
           <Text style={[styles.modalSubtitle, { color: themeColors.text }]}>
             Describe the area that each camera monitors, such as backyard or
