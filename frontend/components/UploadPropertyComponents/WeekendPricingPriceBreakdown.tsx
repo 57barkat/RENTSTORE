@@ -6,8 +6,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const PriceBreakdown: FC<PriceBreakdownProps> = ({
   basePrice,
-  guestServiceFee,
-  guestPriceBeforeTaxes,
+  PersonServiceFee,
+  PersonPriceBeforeTaxes,
   youEarn,
   billsIncluded, // new prop for bills
   isVisible,
@@ -34,12 +34,12 @@ export const PriceBreakdown: FC<PriceBreakdownProps> = ({
           <Text style={breakdownStyles.value}>${basePrice}</Text>
         </View>
         <View style={breakdownStyles.row}>
-          <Text style={breakdownStyles.label}>Guest service fee</Text>
-          <Text style={breakdownStyles.value}>${guestServiceFee}</Text>
+          <Text style={breakdownStyles.label}>Person service fee</Text>
+          <Text style={breakdownStyles.value}>${PersonServiceFee}</Text>
         </View>
         <View style={[breakdownStyles.row, breakdownStyles.totalRow]}>
-          <Text style={breakdownStyles.label}>Guest price before taxes</Text>
-          <Text style={breakdownStyles.value}>${guestPriceBeforeTaxes}</Text>
+          <Text style={breakdownStyles.label}>Person price before taxes</Text>
+          <Text style={breakdownStyles.value}>${PersonPriceBeforeTaxes}</Text>
         </View>
       </View>
 

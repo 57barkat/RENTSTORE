@@ -5,11 +5,11 @@ import { Text, View } from "react-native";
 
 export const PriceBreakdown: FC<PriceBreakdownProps> = ({
   basePrice,
-  guestServiceFeeRate,
+  PersonServiceFeeRate,
   isVisible,
 }) => {
-  const guestServiceFee = Math.round(basePrice * guestServiceFeeRate);
-  const guestPriceBeforeTaxes = basePrice + guestServiceFee;
+  const PersonServiceFee = Math.round(basePrice * PersonServiceFeeRate);
+  const PersonPriceBeforeTaxes = basePrice + PersonServiceFee;
   const youEarn = basePrice - Math.round(basePrice * 0.02); // Example: 2% host service fee
 
   if (!isVisible) return null;
@@ -22,12 +22,12 @@ export const PriceBreakdown: FC<PriceBreakdownProps> = ({
           <Text style={breakdownStyles.value}>${basePrice}</Text>
         </View>
         <View style={breakdownStyles.row}>
-          <Text style={breakdownStyles.label}>Guest service fee</Text>
-          <Text style={breakdownStyles.value}>${guestServiceFee}</Text>
+          <Text style={breakdownStyles.label}>Person service fee</Text>
+          <Text style={breakdownStyles.value}>${PersonServiceFee}</Text>
         </View>
         <View style={[breakdownStyles.row, breakdownStyles.totalRow]}>
-          <Text style={breakdownStyles.label}>Guest price before taxes</Text>
-          <Text style={breakdownStyles.value}>${guestPriceBeforeTaxes}</Text>
+          <Text style={breakdownStyles.label}>Person price before taxes</Text>
+          <Text style={breakdownStyles.value}>${PersonPriceBeforeTaxes}</Text>
         </View>
       </View>
       <View style={breakdownStyles.section}>

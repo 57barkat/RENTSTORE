@@ -185,7 +185,7 @@ export default function EditProperty() {
     aptSuiteUnit: "",
     latitude: "",
     longitude: "",
-    guests: "",
+    Persons: "",
     beds: "",
     bathrooms: "",
     amenities: [] as string[],
@@ -216,7 +216,7 @@ export default function EditProperty() {
       aptSuiteUnit: address.aptSuiteUnit || "",
       latitude: property.location?.coordinates?.[1]?.toString() || "",
       longitude: property.location?.coordinates?.[0]?.toString() || "",
-      guests: property.capacityState?.guests?.toString() || "",
+      Persons: property.capacityState?.Persons?.toString() || "",
       beds: property.capacityState?.beds?.toString() || "",
       bathrooms: property.capacityState?.bathrooms?.toString() || "",
       amenities: property.amenities || [],
@@ -295,7 +295,7 @@ export default function EditProperty() {
       },
       photos: images,
       capacityState: {
-        guests: parseInt(form.guests || "0"),
+        Persons: parseInt(form.Persons || "0"),
         beds: parseInt(form.beds || "0"),
         bathrooms: parseInt(form.bathrooms || "0"),
       },
@@ -404,10 +404,10 @@ export default function EditProperty() {
             styles.input,
             { borderColor: currentTheme.border, color: currentTheme.text },
           ]}
-          placeholder="Guests"
+          placeholder="Persons"
           keyboardType="numeric"
-          value={form.guests}
-          onChangeText={(t) => handleChange("guests", t)}
+          value={form.Persons}
+          onChangeText={(t) => handleChange("Persons", t)}
         />
         <TextInput
           style={[

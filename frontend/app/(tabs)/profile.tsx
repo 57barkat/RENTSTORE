@@ -68,10 +68,10 @@ export default function Profile() {
           style={styles.avatar}
         />
         <Text style={[styles.name, { color: currentTheme.text }]}>
-          {name || "Guest"}
+          {name || "Person"}
         </Text>
         <Text style={[styles.email, { color: currentTheme.secondary }]}>
-          {email || "guest@example.com"}
+          {email || "Person@example.com"}
         </Text>
       </View>
 

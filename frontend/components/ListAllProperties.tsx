@@ -39,7 +39,7 @@ interface Property {
   photos?: string[];
   isFav?: boolean;
   address?: { city?: string; country?: string }[];
-  capacityState?: { guests?: number; beds?: number; bathrooms?: number };
+  capacityState?: { Persons?: number; beds?: number; bathrooms?: number };
 }
 
 interface RentRange {
@@ -293,7 +293,7 @@ export default function ListAllProperties() {
     const address = item.address?.[0];
     const city = address?.city || "N/A";
     const country = address?.country || "";
-    const guests = item.capacityState?.guests || "N/A";
+    const Persons = item.capacityState?.Persons || "N/A";
     const bedsCount = item.capacityState?.beds || "N/A";
     const baths = item.capacityState?.bathrooms || "N/A";
 
@@ -337,7 +337,7 @@ export default function ListAllProperties() {
                 size={14}
                 color={currentTheme.muted}
               />{" "}
-              {guests} Guests
+              {Persons} Persons
             </Text>
             <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
               <MaterialCommunityIcons

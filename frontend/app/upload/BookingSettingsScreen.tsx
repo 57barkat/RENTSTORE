@@ -41,7 +41,7 @@ const BookingSettingsScreen: FC = () => {
         <SettingCard
           setting="manual"
           title="Approve your first 5 bookings"
-          subtitle="Start by reviewing reservation requests, then switch to Instant Book, so guests can book automatically."
+          subtitle="Start by reviewing reservation requests, then switch to Instant Book, so Persons can book automatically."
           iconName="calendar-check"
           isSelected={selectedSetting === "manual"}
           recommended={true}
@@ -50,7 +50,7 @@ const BookingSettingsScreen: FC = () => {
         <SettingCard
           setting="instant"
           title="Use Instant Book"
-          subtitle="Let guests book automatically."
+          subtitle="Let Persons book automatically."
           iconName="flash-auto"
           isSelected={selectedSetting === "instant"}
           onSelect={handleSelectSetting}

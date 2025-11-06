@@ -1,48 +1,51 @@
 import React, { useContext, useState, useEffect } from "react";
 import { View, Text, TextInput, Keyboard } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import StepContainer from "./Welcome";
+import StepContainer from "../Welcome";
 import { useRouter } from "expo-router";
 import { styles } from "@/styles/Location";
-import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
 
-const LocationScreen = () => {
-  const formContext = useContext(FormContext);
+const ApartmentLocationScreen = () => {
+  const formContext = useContext(ApartmentFormContext);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
   if (!formContext) {
     throw new Error(
-      "FormContext is missing! Make sure LocationScreen is wrapped in <FormProvider>."
+      "ApartmentFormContext is missing! Make sure LocationScreen is wrapped in <ApartmentFormProvider>."
     );
   }
 
   const { data, updateForm } = formContext;
+
   const [address, setAddress] = useState<string>(data.location ?? "");
   const [isFocused, setIsFocused] = useState(false);
 
   const router = useRouter();
 
+  // ✅ Update apartment location on change
   useEffect(() => {
     updateForm("location", address);
   }, [address]);
 
   const handleNext = () => {
     if (!address || address.length < 5) return;
-    router.push("/upload/PropertyDetails" as `${string}:param`);
+
+    router.push("/upload/apartmentForm/PropertyDetails" as `${string}:param`);
   };
 
   return (
     <StepContainer
       onNext={handleNext}
       isNextDisabled={address.length < 5}
-      title="Where's your place located?"
+      title="Where's your apartment located?"
       progress={20}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-        Your address is only shared with Persons after they&apos;ve made a
+        Your apartment address is shown to guests only after a confirmed
         reservation.
       </Text>
 
@@ -61,8 +64,9 @@ const LocationScreen = () => {
           size={20}
           color={currentTheme.primary}
         />
+
         <TextInput
-          placeholder="Enter your address"
+          placeholder="Enter your apartment address"
           placeholderTextColor={currentTheme.muted}
           value={address}
           onChangeText={setAddress}
@@ -75,17 +79,6 @@ const LocationScreen = () => {
       </View>
 
       <View style={styles.mapContainer}>
-        {/* <MapView
-          style={{ flex: 1 }}
-          initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-        >
-          <Marker coordinate={{ latitude, longitude }} />
-        </MapView> */}
         <Text style={[styles.mapCredit, { color: currentTheme.muted }]}>
           © OpenStreetMap contributors
         </Text>
@@ -94,4 +87,4 @@ const LocationScreen = () => {
   );
 };
 
-export default LocationScreen;
+export default ApartmentLocationScreen;

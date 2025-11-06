@@ -211,8 +211,8 @@ export default function PropertyDetails() {
           </Text>
           <View style={styles.capacityRow}>
             {renderCapacity(
-              "Guests",
-              capacityState?.guests,
+              "Persons",
+              capacityState?.Persons,
               "account-group-outline"
             )}
             {renderCapacity("Beds", capacityState?.beds, "bed-outline")}

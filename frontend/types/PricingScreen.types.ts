@@ -1,6 +1,6 @@
 export interface PriceBreakdownProps {
   basePrice: number;
-  guestServiceFeeRate: number;
+  PersonServiceFeeRate: number;
   isVisible: boolean;
 }
 export interface PricingScreenProps {

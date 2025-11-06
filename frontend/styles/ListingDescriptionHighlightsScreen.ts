@@ -11,6 +11,9 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
   },
+  scrollContent: {
+    paddingBottom: 20,
+  },
 });
 export const chipStyles = StyleSheet.create({
   chip: {

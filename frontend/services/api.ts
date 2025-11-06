@@ -42,28 +42,28 @@ export const api = createApi({
       }),
     }),
 
-    // 🔹 PROPERTY CREATION (File Upload)
     createProperty: builder.mutation({
       query: (body) => {
         const formData = new FormData();
 
-        // Append all non-photo fields
         Object.entries(body).forEach(([key, value]) => {
           if (key === "photos") return;
+
           if (value !== undefined && value !== null) {
             if (typeof value === "object") {
-              formData.append(key, JSON.stringify(value));
+              // Convert empty arrays to "[]"
+              formData.append(key, JSON.stringify(value ?? []));
             } else {
               formData.append(key, String(value));
             }
           }
         });
 
-        // Append photos (React Native ImagePicker URIs)
+        // Append photos
         if (Array.isArray(body.photos)) {
           body.photos.forEach((uri: string, idx: number) => {
             formData.append("photos", {
-              uri, // ✅ Already starts with file://
+              uri,
               name: `photo_${idx}.jpeg`,
               type: "image/jpeg",
             } as any);

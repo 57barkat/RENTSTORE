@@ -2,7 +2,7 @@ import { AmenityItem } from "@/types/Aminities.types";
 
 export const AMENITIES_DATA = [
   {
-    title: "What about these guest favorites?",
+    title: "What about these Person favorites?",
     items: [
       { key: "wifi", label: "WiFi", iconName: "wifi" },
       { key: "tv", label: "TV", iconName: "television" },

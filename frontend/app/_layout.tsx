@@ -19,6 +19,8 @@ import {
 } from "@/contextStore/ThemeContext";
 import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
+import { HostelFormProvider } from "@/contextStore/HostelFormContext";
+import { ApartmentFormProvider } from "@/contextStore/ApartmentFormContextType";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -28,7 +30,7 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const isLoggedIn = useAuth();
-  const { theme } = useTheme?.() ?? { theme: "light" };
+  const { theme = "light" } = useTheme();
 
   useEffect(() => {
     if (!fontsLoaded) return;
@@ -64,44 +66,45 @@ export default function RootLayout() {
   const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
-    
     <Provider store={store}>
       <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-        <FormProvider>
-          <AuthProvider>
-            <CustomThemeProvider>
-              {/* Show custom header only if not hidden */}
-              {!hideHeader && <Header />}
+        <ApartmentFormProvider>
+          <HostelFormProvider>
+            <FormProvider>
+              <AuthProvider>
+                <CustomThemeProvider>
+                  {!hideHeader && <Header />}
 
-              <Stack screenOptions={{ headerShown: false }}>
-                {/* Auth Screens */}
-                <Stack.Screen name="signin" />
-                <Stack.Screen name="signup" />
-                <Stack.Screen name="choose-role" />
-                <Stack.Screen name="Verification" />
+                  <Stack screenOptions={{ headerShown: false }}>
+                    {/* Auth Screens */}
+                    <Stack.Screen name="signin" />
+                    <Stack.Screen name="signup" />
+                    <Stack.Screen name="choose-role" />
+                    <Stack.Screen name="Verification" />
 
-                {/* Property Screens */}
-                <Stack.Screen name="property/[id]" />
-                <Stack.Screen name="property/edit/[id]" />
+                    {/* Property Screens */}
+                    <Stack.Screen name="property/[id]" />
+                    <Stack.Screen name="property/edit/[id]" />
 
-                {/* Screens that need FormProvider */}
+                    {/* Screens that need FormProvider */}
+                    <Stack.Screen name="MyListingsScreen" />
+                    <Stack.Screen name="DraftProperties" />
+                    <Stack.Screen name="upload" />
 
-                <Stack.Screen name="MyListingsScreen" />
-                <Stack.Screen name="DraftProperties" />
-                <Stack.Screen name="upload" />
+                    {/* Other Screens */}
+                    <Stack.Screen name="PrivacyPolicyScreen" />
+                    <Stack.Screen name="favorites" />
+                    <Stack.Screen name="(tabs)" />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
 
-                {/* Other Screens */}
-                <Stack.Screen name="PrivacyPolicyScreen" />
-                <Stack.Screen name="favorites" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-
-              <StatusBar style="auto" />
-              <Toast />
-            </CustomThemeProvider>
-          </AuthProvider>
-        </FormProvider>
+                  <StatusBar style="auto" />
+                  <Toast />
+                </CustomThemeProvider>
+              </AuthProvider>
+            </FormProvider>
+          </HostelFormProvider>
+        </ApartmentFormProvider>
       </ThemeProvider>
     </Provider>
   );

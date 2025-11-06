@@ -1,4 +1,4 @@
-const GUEST_SERVICE_FEE_RATE = 0.15; // Example 15% fee
+const Person_SERVICE_FEE_RATE = 0.15; // Example 15% fee
 export const calculatePrices = (
   weekdayPrice: number,
   premiumPercent: number
@@ -6,14 +6,14 @@ export const calculatePrices = (
   const weekendBasePrice = Math.round(
     weekdayPrice * (1 + premiumPercent / 100)
   );
-  const guestServiceFee = Math.round(weekendBasePrice * GUEST_SERVICE_FEE_RATE);
-  const guestPriceBeforeTaxes = weekendBasePrice + guestServiceFee;
+  const PersonServiceFee = Math.round(weekendBasePrice * Person_SERVICE_FEE_RATE);
+  const PersonPriceBeforeTaxes = weekendBasePrice + PersonServiceFee;
   const hostEarns = weekendBasePrice - Math.round(weekendBasePrice * 0.03); // Example: 3% host service fee
 
   return {
     weekendBasePrice,
-    guestServiceFee,
-    guestPriceBeforeTaxes,
+    PersonServiceFee,
+    PersonPriceBeforeTaxes,
     hostEarns,
   };
 };

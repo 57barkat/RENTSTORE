@@ -22,7 +22,7 @@ const PropertyDetails: FC = () => {
   const router = useRouter();
 
   const [capacity, setCapacity] = useState<CapacityState>(
-    data.capacityState || { guests: 1, bedrooms: 0, beds: 1, bathrooms: 1 }
+    data.capacityState || { Persons: 1, bedrooms: 0, beds: 1, bathrooms: 1 }
   );
 
   const updateCapacity = (
@@ -40,7 +40,7 @@ const PropertyDetails: FC = () => {
     router.push("/upload/AmenitiesScreen");
   };
 
-  const isNextDisabled = capacity.guests < 1 || capacity.beds < 1;
+  const isNextDisabled = capacity.Persons < 1 || capacity.beds < 1;
 
   return (
     <StepContainer
@@ -55,11 +55,11 @@ const PropertyDetails: FC = () => {
 
       <View style={styles.listContainer}>
         <CounterInput
-          label="Guests"
-          value={capacity.guests}
+          label="Persons"
+          value={capacity.Persons}
           minValue={1}
-          onIncrement={() => updateCapacity("guests", "increment")}
-          onDecrement={() => updateCapacity("guests", "decrement")}
+          onIncrement={() => updateCapacity("Persons", "increment")}
+          onDecrement={() => updateCapacity("Persons", "decrement")}
           textColor={currentTheme.text}
           buttonColor={currentTheme.primary}
         />

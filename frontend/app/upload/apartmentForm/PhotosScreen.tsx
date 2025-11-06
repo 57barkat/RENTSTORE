@@ -1,34 +1,34 @@
-import React, { useState, FC, useContext } from "react";  
+import React, { useState, FC, useContext } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
   Image,
   FlatList,
-  Alert, 
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
-// Assuming this path is correct:
-import { FormContext, FormData } from "@/contextStore/FormContext";
+import { ApartmentFormContext, ApartmentFormData } from "@/contextStore/ApartmentFormContextType";
 
 type ImageUriArray = string[];
 
-const PhotosScreen: FC = () => {
+const ApartmentPhotosScreen: FC = () => {
   const router = useRouter();
 
   // --- Context Consumption ---
-  const context = useContext(FormContext);
+  const context = useContext(ApartmentFormContext);
   if (!context) {
-    throw new Error("PhotosScreen must be used within a FormProvider");
+    throw new Error(
+      "ApartmentPhotosScreen must be used within an ApartmentFormProvider"
+    );
   }
   const { data, updateForm } = context;
 
   // --- State Initialization ---
-  // Initialize local state using data.photos from the global context
   const [selectedImages, setSelectedImages] = useState<ImageUriArray>(
     data.photos || []
   );
@@ -40,16 +40,15 @@ const PhotosScreen: FC = () => {
     if (status !== "granted") {
       Alert.alert(
         "Permission required",
-        "You need to grant media library access to upload photos."
+        "You need to grant media library access to upload apartment photos."
       );
       return;
     }
 
     setLoading(true);
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-      // allowsEditing: true,
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 1,
     });
@@ -58,15 +57,10 @@ const PhotosScreen: FC = () => {
 
     if (!result.canceled) {
       const newUris = result.assets.map((asset) => asset.uri);
-
-      // Calculate the new list of URIs
       const updatedUris = [...selectedImages, ...newUris];
 
-      // 1. Update local state
       setSelectedImages(updatedUris);
-
-      // 2. Update global context
-      updateForm("photos" as keyof FormData, updatedUris);
+      updateForm("photos" as keyof ApartmentFormData, updatedUris);
     }
   };
 
@@ -74,18 +68,16 @@ const PhotosScreen: FC = () => {
   const handleRemovePhoto = (uriToRemove: string) => {
     setSelectedImages((prev) => {
       const updatedUris = prev.filter((uri) => uri !== uriToRemove);
-
-      // Update global context immediately
-      updateForm("photos" as keyof FormData, updatedUris);
-
+      updateForm("photos" as keyof ApartmentFormData, updatedUris);
       return updatedUris;
     });
   };
 
   // --- Navigation & Validation ---
   const handleNext = () => {
-    // The context is already up-to-date from the add/remove handlers
-    router.push("/upload/ListingTitleScreen");
+    router.push(
+      "/upload/apartmentForm/ListingTitleScreen" as `${string}:param`
+    );
   };
 
   const MIN_PHOTOS_REQUIRED = 5;
@@ -96,8 +88,6 @@ const PhotosScreen: FC = () => {
   const renderImageItem = ({ item }: { item: string }) => (
     <View style={styles.imageContainer}>
       <Image source={{ uri: item }} style={styles.image} resizeMode="cover" />
-
-      {/* Remove Button */}
       <TouchableOpacity
         style={styles.removeButton}
         onPress={() => handleRemovePhoto(item)}
@@ -109,7 +99,7 @@ const PhotosScreen: FC = () => {
 
   return (
     <StepContainer
-      title="Add some photos of your house"
+      title="Add some photos of your apartment"
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={40}
@@ -119,30 +109,27 @@ const PhotosScreen: FC = () => {
         add more or make changes later.
       </Text>
 
-      {/* Main Upload Button Area */}
       <TouchableOpacity
         onPress={handleAddPhotos}
         style={styles.uploadButton}
-        disabled={loading} // Disable button while loading
+        disabled={loading}
       >
         <FontAwesome name="camera" size={30} color="#000" />
         <Text style={styles.addButtonText}>
           {loading
             ? "Loading..."
             : photosCount > 0
-            ? "Add more photos"
-            : "Add photos"}
+            ? "Add more apartment photos"
+            : "Add apartment photos"}
         </Text>
       </TouchableOpacity>
 
-      {/* Status Text */}
       {photosCount > 0 && (
         <Text style={styles.statusText}>
           {photosCount} / {MIN_PHOTOS_REQUIRED} photos added
         </Text>
       )}
 
-      {/* Image Grid */}
       <FlatList
         data={selectedImages}
         renderItem={renderImageItem}
@@ -156,4 +143,4 @@ const PhotosScreen: FC = () => {
   );
 };
 
-export default PhotosScreen;
+export default ApartmentPhotosScreen;

@@ -164,8 +164,8 @@ const MyListingProperties = () => {
             <View style={styles.capacityRow}>
               {renderCapacity(
                 "account-group-outline",
-                item.capacityState?.guests,
-                "Guests"
+                item.capacityState?.Persons,
+                "Persons"
               )}
               {renderCapacity("bed-outline", item.capacityState?.beds, "Beds")}
               {renderCapacity(

@@ -5,25 +5,22 @@ import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/upload";
 import { FormContext } from "@/contextStore/FormContext";
+import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
 
 const WelcomeScreen = () => {
   const formContext = useContext(FormContext);
+  const hostelFormContext = useContext(HostelFormContext);
+  const appartmentFormContext = useContext(ApartmentFormContext);
+
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  if (!formContext) {
-    throw new Error(
-      "FormContext is missing! Make sure WelcomeScreen is wrapped in <FormProvider>."
-    );
-  }
-
-  const NEW_LISTING_PATH = "/upload/Location";
-  const { updateForm, data } = formContext;
   const [selectedType, setSelectedType] = useState<string | null>(
-    data.hostOption ?? null
+    formContext?.data.hostOption ?? null
   );
 
   const hostOptions = [
@@ -34,8 +31,30 @@ const WelcomeScreen = () => {
 
   const handleNext = () => {
     if (!selectedType) return;
-    updateForm("hostOption", selectedType);
-    router.push(NEW_LISTING_PATH as `${string}:param`);
+
+    if (selectedType === "hostel") {
+      if (!hostelFormContext)
+        throw new Error(
+          "HostelFormContext is missing! Wrap this screen in <HostelFormProvider>."
+        );
+      hostelFormContext.updateForm("hostOption", selectedType);
+      router.push("/upload/hostelForm/Location");
+    } else if (selectedType === "apartment") {
+      if (!appartmentFormContext)
+        throw new Error(
+          "FormContext is missing! Wrap this screen in <FormProvider>."
+        );
+      appartmentFormContext.updateForm("hostOption", selectedType);
+      router.push("/upload/apartmentForm/Location");
+    } else {
+      // Home
+      if (!formContext)
+        throw new Error(
+          "FormContext is missing! Wrap this screen in <FormProvider>."
+        );
+      formContext.updateForm("hostOption", selectedType);
+      router.push("/upload/Location");
+    }
   };
 
   return (
