@@ -4,13 +4,12 @@ import {
   IsOptional,
   IsArray,
   ValidateNested,
-  IsObject,
   IsBoolean,
-  isString,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { Property } from "../property.schema";
 
+// Nested DTOs
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
   @IsOptional() @IsString() street?: string;
@@ -21,10 +20,11 @@ class AddressDto {
 }
 
 class CapacityStateDto {
-  @IsOptional() @IsNumber() guests?: number;
+  @IsOptional() @IsNumber() Persons?: number;
   @IsOptional() @IsNumber() bedrooms?: number;
   @IsOptional() @IsNumber() beds?: number;
   @IsOptional() @IsNumber() bathrooms?: number;
+  @IsOptional() @IsNumber() floorLevel?: number;
 }
 
 class SafetyDetailsDataDto {
@@ -36,6 +36,7 @@ class DescriptionDto {
   @IsOptional() @IsArray() @IsString({ each: true }) highlighted?: string[];
 }
 
+// Unified DTO
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
@@ -43,6 +44,8 @@ export class CreatePropertyDto {
   @IsOptional() @IsString() location?: string;
 
   @IsOptional() @IsNumber() monthlyRent?: number;
+  @IsOptional() @IsNumber() dailyRent?: number;
+  @IsOptional() @IsNumber() weeklyRent?: number;
   @IsOptional() @IsNumber() SecuritybasePrice?: number;
 
   @IsOptional() @IsArray() @IsString({ each: true }) ALL_BILLS?: string[];
@@ -53,6 +56,7 @@ export class CreatePropertyDto {
   address?: AddressDto[];
 
   @IsOptional() @IsArray() @IsString({ each: true }) amenities?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
 
   @IsOptional()
   @ValidateNested()
@@ -69,13 +73,21 @@ export class CreatePropertyDto {
   @Type(() => SafetyDetailsDataDto)
   safetyDetailsData?: SafetyDetailsDataDto;
 
-  @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
+  // Apartment-specific
+  @IsOptional() @IsString() apartmentType?: string;
+  @IsOptional() @IsString() furnishing?: string;
+  @IsOptional() @IsBoolean() parking?: boolean;
+
+  // Hostel-specific
+  @IsOptional() @IsString() hostelType?: string;
+  @IsOptional() @IsArray() @IsString({ each: true }) mealPlan?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) rules?: string[];
 
   @IsString() ownerId: string;
 
   @Transform(({ value }) => value === "true" || value === true)
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   status?: boolean;
 }
 

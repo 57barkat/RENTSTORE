@@ -20,7 +20,7 @@ export const PropertyDraftSchema = new Schema(
     ],
     amenities: [String],
     capacityState: {
-      guests: Number,
+      Persons: Number,
       bedrooms: Number,
       beds: Number,
       bathrooms: Number,

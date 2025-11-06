@@ -78,7 +78,7 @@ function generateDummyProperties(count = 30000) {
     const bedrooms = randomInt(1, hostOption === "room" ? 1 : 5);
     const beds = randomInt(bedrooms, bedrooms + 2);
     const bathrooms = randomInt(1, bedrooms);
-    const guests = beds + 1;
+    const Persons = beds + 1;
 
     const monthlyRent = randomInt(500, 500000);
     const SecuritybasePrice = monthlyRent * 1.5;
@@ -132,7 +132,7 @@ function generateDummyProperties(count = 30000) {
       ALL_BILLS,
       address,
       amenities,
-      capacityState: { guests, bedrooms, beds, bathrooms },
+      capacityState: { Persons, bedrooms, beds, bathrooms },
       description: { highlighted },
       safetyDetailsData: { safetyDetails, cameraDescription },
       photos,

@@ -16,7 +16,7 @@ export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
-    private readonly cloudinary: CloudinaryService,
+    public  readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService
   ) {}
 
@@ -33,81 +33,22 @@ export class PropertyService {
     return urls;
   }
 
-  async create(
-    dto: CreatePropertyDto,
-    imageFiles: Express.Multer.File[],
-    userId: string
-  ): Promise<Property> {
-    const photoUrls: string[] =
-      imageFiles?.length > 0
-        ? await Promise.all(
-            imageFiles.map(async (file) => {
-              const uploaded = await this.cloudinary.uploadFile(file);
-              return uploaded.secure_url;
-            })
-          )
-        : [];
-
-    // Parse nested fields if they come as JSON strings
-    const parsedDto = {
-      ...dto,
-      address:
-        typeof dto.address === "string" ? JSON.parse(dto.address) : dto.address,
-      capacityState:
-        typeof dto.capacityState === "string"
-          ? JSON.parse(dto.capacityState)
-          : dto.capacityState,
-      description:
-        typeof dto.description === "string"
-          ? JSON.parse(dto.description)
-          : dto.description,
-      safetyDetailsData:
-        typeof dto.safetyDetailsData === "string"
-          ? JSON.parse(dto.safetyDetailsData)
-          : dto.safetyDetailsData,
-      amenities:
-        typeof dto.amenities === "string"
-          ? JSON.parse(dto.amenities)
-          : dto.amenities,
-      photos: photoUrls.length ? photoUrls : dto.photos, // override only if new files uploaded
-    };
-
-    // Determine required fields for status
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
-    parsedDto.status = requiredFields.every((field) => !!parsedDto[field]);
-
+  async create(dto: CreatePropertyDto, userId: string): Promise<Property> {
     let property: Property | null;
 
     if (dto._id) {
-      // ✅ Existing property: update instead of creating
+      // Update existing
       property = await this.propertyModel.findById(dto._id);
       if (!property) throw new NotFoundException("Property not found");
-
-      // Only the owner can update
       if (property.ownerId.toString() !== userId.toString())
-        throw new UnauthorizedException(
-          "You are not allowed to edit this property"
-        );
+        throw new UnauthorizedException("Not allowed");
 
-      Object.assign(property, parsedDto);
+      Object.assign(property, dto);
       property = await property.save();
-      console.log("Updated existing property:", property._id);
     } else {
-      // ✅ New property: create
-      property = new this.propertyModel({
-        ...parsedDto,
-        ownerId: userId,
-      });
+      // New property
+      property = new this.propertyModel({ ...dto, ownerId: userId });
       property = await property.save();
-      console.log("Created new property:", property._id);
     }
 
     return property;
@@ -194,7 +135,7 @@ export class PropertyService {
       bedrooms?: number;
       beds?: number;
       bathrooms?: number;
-      guests?: number;
+      Persons?: number;
       amenities?: string[];
       bills?: string[];
       hostOption?: string;
@@ -246,8 +187,8 @@ export class PropertyService {
 
     if (filters.bathrooms !== undefined)
       filter["capacityState.bathrooms"] = filters.bathrooms;
-    if (filters.guests !== undefined)
-      filter["capacityState.guests"] = filters.guests;
+    if (filters.Persons !== undefined)
+      filter["capacityState.Persons"] = filters.Persons;
 
     if (filters.amenities?.length)
       filter.amenities = { $all: filters.amenities };
@@ -343,10 +284,7 @@ export class PropertyService {
     userId: string
   ) {
     const property = await this.propertyModel.findById(id);
-
-    if (!property) {
-      throw new NotFoundException("Property not found");
-    }
+    if (!property) throw new NotFoundException("Property not found");
 
     if (property.ownerId.toString() !== userId.toString()) {
       throw new UnauthorizedException(
@@ -354,9 +292,19 @@ export class PropertyService {
       );
     }
 
+    // Merge incoming updates
     Object.assign(property, dto);
 
-    // Define required fields for a complete property
+    // Robust status calculation
+    const isFilled = (value: any): boolean => {
+      if (value === null || value === undefined) return false;
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "object") return Object.keys(value).length > 0;
+      if (typeof value === "string") return value.trim() !== "";
+      return true;
+    };
+
+    // Define required fields for completion
     const requiredFields = [
       "title",
       "hostOption",
@@ -367,18 +315,10 @@ export class PropertyService {
       "capacityState",
     ];
 
-    // Check completion (ensure all required fields are filled)
-    const isComplete = requiredFields.every(
-      (field) =>
-        property[field] !== undefined &&
-        property[field] !== null &&
-        property[field] !== ""
+    property.status = requiredFields.every((field) =>
+      isFilled(property[field])
     );
 
-    // Update the status automatically
-    property.status = isComplete;
-
-    // Save and return updated document
     return property.save();
   }
 

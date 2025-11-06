@@ -29,44 +29,83 @@ export class PropertyController {
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any
   ) {
-    const photos = files?.photos || [];
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
-
-    const parsedDto = {
-      ...dto,
-      address: this.parseJson(dto.address),
-      capacityState: this.parseJson(dto.capacityState),
-      description: this.parseJson(dto.description),
-      safetyDetailsData: this.parseJson(dto.safetyDetailsData),
-      amenities: this.parseJson(dto.amenities),
+    console.log("🔥 RAW DTO from frontend:", req.body);
+    console.log("🔥 RAW FILES from frontend:", files);
+    // Robust JSON parsing function
+    const parseJson = (val: any) => {
+      if (!val) return undefined;
+      try {
+        return typeof val === "string" ? JSON.parse(val) : val;
+      } catch {
+        return val;
+      }
     };
 
-    // Required fields for full completion
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
+    let parsedDto: any = {
+      ...dto,
+      capacityState: parseJson(dto.capacityState),
+      description: parseJson(dto.description),
+      safetyDetailsData: parseJson(dto.safetyDetailsData),
+      amenities: parseJson(dto.amenities),
+      ALL_BILLS: parseJson(dto.ALL_BILLS),
+    };
 
-    const isComplete = requiredFields.every((field) => !!parsedDto[field]);
+    /** ✅ FIXED address handling */
+    let parsedAddress: any[] = [];
+    if (dto.address) {
+      try {
+        parsedAddress =
+          typeof dto.address === "string"
+            ? JSON.parse(dto.address)
+            : dto.address;
+      } catch (e) {
+        parsedAddress = [];
+      }
 
-    // 👇 Automatically set property status: true (complete) / false (draft)
-    parsedDto.status = isComplete;
-
-    return this.propertyService.create(parsedDto, photos, userId);
-  }
-
-  private parseJson(value: any) {
-    try {
-      return typeof value === "string" ? JSON.parse(value) : value;
-    } catch {
-      return value;
+      // Trim each field and remove empty objects
+      parsedAddress = parsedAddress
+        .map((addr) => {
+          const cleaned = {};
+          Object.keys(addr).forEach((key) => {
+            const val = addr[key];
+            cleaned[key] = typeof val === "string" ? val.trim() : val;
+          });
+          return cleaned;
+        })
+        .filter((a) => Object.keys(a).length > 0);
     }
+
+    parsedDto.address = parsedAddress;
+
+    /** ✅ Status calculation */
+    const isFilled = (value: any) => {
+      if (value === null || value === undefined) return false;
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "object") return Object.keys(value).length > 0;
+      if (typeof value === "string") return value.trim() !== "";
+      return true;
+    };
+
+    const requiredFields = ["hostOption", "location", "address"];
+    parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
+
+    /** ✅ Upload photos */
+    const photoUrls = files?.photos?.length
+      ? await Promise.all(
+          files.photos.map((file) =>
+            this.propertyService.cloudinary
+              .uploadFile(file)
+              .then((r) => r.secure_url)
+          )
+        )
+      : dto.photos || [];
+    parsedDto.photos = photoUrls;
+
+    console.log("parsed address:", parsedDto.address);
+
+    return this.propertyService.create(parsedDto, userId);
   }
 
   @Get()
@@ -97,7 +136,7 @@ export class PropertyController {
       "maxSecurity",
       "bedrooms",
       "bathrooms",
-      "guests",
+      "Persons",
     ];
     numericFields.forEach((field) => {
       if (query[field] !== undefined) query[field] = Number(query[field]);

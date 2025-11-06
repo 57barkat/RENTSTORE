@@ -3,49 +3,17 @@ import { Document } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Property extends Document {
-  @Prop({
-    type: String,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  title: string;
+  // Common fields
+  @Prop({ type: String }) title?: string;
+  @Prop({ type: String }) hostOption?: string;
+  @Prop({ type: String }) location?: string;
 
-  @Prop({
-    type: String,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  hostOption: string;
+  @Prop({ type: Number }) monthlyRent?: number;
+  @Prop({ type: Number }) dailyRent?: number;
+  @Prop({ type: Number }) weeklyRent?: number;
+  @Prop({ type: Number }) SecuritybasePrice?: number; // security deposit
 
-  @Prop({
-    type: String,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  location: string;
-
-  @Prop({
-    type: Number,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  monthlyRent: number;
-
-  @Prop({
-    type: Number,
-    required: function () {
-      return this.status === true;
-    },
-  })
-  SecuritybasePrice: number;
-
-  @Prop({ type: [String], default: [] })
-  ALL_BILLS?: string[];
-
+  @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];
   @Prop({
     type: [
       {
@@ -57,32 +25,28 @@ export class Property extends Document {
         zipCode: String,
       },
     ],
-    required: function () {
-      return this.status === true;
-    },
+    default: [],
   })
-  address: Record<string, any>[];
+  address?: Record<string, any>[];
 
-  @Prop({ type: [String], default: [] })
-  amenities?: string[];
+  @Prop({ type: [String], default: [] }) amenities?: string[];
+  @Prop({ type: [String], default: [] }) photos?: string[];
 
   @Prop({
     type: {
-      guests: Number,
+      Persons: Number,
       bedrooms: Number,
       beds: Number,
       bathrooms: Number,
+      floorLevel: Number,
     },
-    required: function () {
-      return this.status === true;
-    },
+    default: {},
   })
-  capacityState: Record<string, any>;
+  capacityState?: Record<string, any>;
 
   @Prop({
-    type: {
-      highlighted: [String],
-    },
+    type: { highlighted: [String] },
+    default: {},
   })
   description?: Record<string, any>;
 
@@ -91,18 +55,27 @@ export class Property extends Document {
       safetyDetails: [String],
       cameraDescription: String,
     },
+    default: {},
   })
   safetyDetailsData?: Record<string, any>;
 
-  @Prop({ type: [String], default: [] })
-  photos?: string[];
+  // Apartment-specific
+  @Prop({ type: String, enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"] })
+  apartmentType?: string;
+  @Prop({ type: String, enum: ["furnished", "semi-furnished", "unfurnished"] })
+  furnishing?: string;
+  @Prop({ type: Boolean }) parking?: boolean;
 
-  @Prop({ type: String, required: true })
-  ownerId: string;
+  // Hostel-specific
+  @Prop({ type: String, enum: ["male", "female", "mixed"] })
+  hostelType?: string;
+  @Prop({ type: [String], default: [] }) mealPlan?: string[];
+  @Prop({ type: [String], default: [] }) rules?: string[];
 
-  // 👇 Automatically handles draft vs complete
-  @Prop({ type: Boolean, default: false })
-  status: boolean;
+  @Prop({ type: String, required: true }) ownerId: string;
+
+  // Draft vs Complete
+  @Prop({ type: Boolean, default: false }) status: boolean;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
