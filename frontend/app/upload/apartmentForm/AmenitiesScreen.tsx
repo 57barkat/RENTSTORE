@@ -78,6 +78,7 @@ const ApartmentAmenitiesScreen: FC = () => {
                   }
                   selectedBackgroundColor={currentTheme.primary}
                 />
+                
               ))}
             </View>
           </View>

@@ -18,7 +18,7 @@ export interface HostelFormData {
   hostOption?: string;
   description?: Description;
   address?: Address[];
-  hostelType?: "male" | "female" | "mixed";  // hostel type
+  hostelType?: "male" | "female" | "mixed"; // hostel type
   location?: string;
   capacityState?: CapacityState; // total beds, beds per room, etc.
   amenities?: string[];
@@ -26,24 +26,29 @@ export interface HostelFormData {
   title?: string;
   securityDeposit?: number;
   monthlyRent?: number;
-  dailyRent?:number;
-  weeklyRent?:number;
-  mealPlan?: string[];           // e.g., ["breakfast", "dinner"]
-  rules?: string[];              // hostel rules/policies
+  dailyRent?: number;
+  weeklyRent?: number;
+  mealPlan?: string[]; // e.g., ["breakfast", "dinner"]
+  rules?: string[]; // hostel rules/policies
   safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
-  ALL_BILLS?: BillType[];        // optional
+  ALL_BILLS?: BillType[]; // optional
 }
 
 export interface HostelFormContextType {
   data: HostelFormData;
-  updateForm: <K extends keyof HostelFormData>(step: K, values: HostelFormData[K]) => void;
+  updateForm: <K extends keyof HostelFormData>(
+    step: K,
+    values: HostelFormData[K]
+  ) => void;
   setFullFormData: (newData: HostelFormData) => void;
-  submitData: () => Promise<SubmitResult>;
+  submitData: (overrideData?: HostelFormData) => Promise<SubmitResult>;
   submitDraftData: () => Promise<SubmitResult>;
 }
 
-export const HostelFormContext = createContext<HostelFormContextType | undefined>(undefined);
+export const HostelFormContext = createContext<
+  HostelFormContextType | undefined
+>(undefined);
 
 export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<HostelFormData>({});
@@ -52,7 +57,7 @@ export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
 
   // 🔹 Update a specific field/step
   const updateForm: HostelFormContextType["updateForm"] = (step, values) => {
-    setData(prev => {
+    setData((prev) => {
       const newData = { ...prev, [step]: values };
       console.log("📝 Updated Hostel Form Data:", newData);
       return newData;
@@ -60,16 +65,24 @@ export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // 🔹 Load full draft form
-  const setFullFormData: HostelFormContextType["setFullFormData"] = (newData) => {
+  const setFullFormData: HostelFormContextType["setFullFormData"] = (
+    newData
+  ) => {
     console.log("📥 Loaded hostel draft data:", newData);
     setData({ ...newData });
   };
 
   // 🔹 Submit hostel property
-  const submitData: HostelFormContextType["submitData"] = async () => {
+  const submitData: HostelFormContextType["submitData"] = async (
+    overrideData?: HostelFormData
+  ) => {
     try {
+      const payload = overrideData ?? data;
       console.log("🚀 Submitting hostel data:", data);
-      const response = await createProperty(data).unwrap();
+      const response = await createDraftProperty({
+        ...payload,
+        propertyType: "hostel",
+      }).unwrap();
       console.log("✅ Hostel created successfully!", response);
       return { success: true, data: response };
     } catch (error) {
@@ -79,17 +92,18 @@ export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // 🔹 Save draft hostel property
-  const submitDraftData: HostelFormContextType["submitDraftData"] = async () => {
-    try {
-      console.log("🗂️ Saving hostel draft data:", data);
-      const response = await createDraftProperty(data).unwrap();
-      console.log("✅ Draft saved successfully!", response);
-      return { success: true, data: response };
-    } catch (error) {
-      console.error("❌ Error saving draft:", error);
-      return { success: false, error };
-    }
-  };
+  const submitDraftData: HostelFormContextType["submitDraftData"] =
+    async () => {
+      try {
+        console.log("🗂️ Saving hostel draft data:", data);
+        const response = await createDraftProperty(data).unwrap();
+        console.log("✅ Draft saved successfully!", response);
+        return { success: true, data: response };
+      } catch (error) {
+        console.error("❌ Error saving draft:", error);
+        return { success: false, error };
+      }
+    };
 
   return (
     <HostelFormContext.Provider

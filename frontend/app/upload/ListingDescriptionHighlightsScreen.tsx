@@ -8,6 +8,7 @@ import { Chip } from "@/components/UploadPropertyComponents/DiscriptionChip";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 
 const MAX_SELECTIONS = 2;
 
@@ -66,9 +67,9 @@ const ListingDescriptionHighlightsScreen: FC = () => {
 
       <View style={styles.chipsContainer}>
         {HIGHLIGHTS_DATA.map((highlight) => (
-          <Chip
+          <AmenityCard
             key={highlight.key}
-            highlight={highlight}
+            item={highlight}
             isSelected={selectedHighlights.has(highlight.key)}
             onToggle={handleToggleHighlight}
             textColor={currentTheme.text}
@@ -76,7 +77,6 @@ const ListingDescriptionHighlightsScreen: FC = () => {
               selectedHighlights.has(highlight.key) ? "#fff" : currentTheme.icon
             }
             selectedBackgroundColor={currentTheme.primary}
-            unselectedBackgroundColor={currentTheme.card}
           />
         ))}
       </View>

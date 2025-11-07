@@ -8,6 +8,7 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
+import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 
 const MealPlanAndRulesScreen: FC = () => {
   const router = useRouter();
@@ -133,9 +134,9 @@ const MealPlanAndRulesScreen: FC = () => {
         </Text>
         <View style={styles.chipsContainer}>
           {MEAL_PLANS.map((plan) => (
-            <Chip
+            <AmenityCard
               key={plan.key}
-              highlight={plan}
+              item={plan}
               isSelected={selectedMealPlans.has(plan.key)}
               onToggle={handleToggleMealPlan}
               textColor={currentTheme.text}
@@ -143,7 +144,6 @@ const MealPlanAndRulesScreen: FC = () => {
                 selectedMealPlans.has(plan.key) ? "#fff" : currentTheme.icon
               }
               selectedBackgroundColor={currentTheme.primary}
-              unselectedBackgroundColor={currentTheme.card}
             />
           ))}
         </View>
@@ -156,9 +156,9 @@ const MealPlanAndRulesScreen: FC = () => {
         </Text>
         <View style={styles.chipsContainer}>
           {RULES.map((rule) => (
-            <Chip
+            <AmenityCard
               key={rule.key}
-              highlight={rule}
+              item={rule}
               isSelected={selectedRules.has(rule.key)}
               onToggle={handleToggleRule}
               textColor={currentTheme.text}
@@ -166,7 +166,6 @@ const MealPlanAndRulesScreen: FC = () => {
                 selectedRules.has(rule.key) ? "#fff" : currentTheme.icon
               }
               selectedBackgroundColor={currentTheme.primary}
-              unselectedBackgroundColor={currentTheme.card}
             />
           ))}
         </View>
@@ -180,9 +179,9 @@ const MealPlanAndRulesScreen: FC = () => {
         </Text>
         <View style={styles.chipsContainer}>
           {HIGHLIGHTS_DATA.map((highlight) => (
-            <Chip
+            <AmenityCard
               key={highlight.key}
-              highlight={highlight}
+              item={highlight}
               isSelected={selectedHighlights.has(highlight.key)}
               onToggle={handleToggleHighlight}
               textColor={currentTheme.text}
@@ -192,7 +191,6 @@ const MealPlanAndRulesScreen: FC = () => {
                   : currentTheme.icon
               }
               selectedBackgroundColor={currentTheme.primary}
-              unselectedBackgroundColor={currentTheme.card}
             />
           ))}
         </View>

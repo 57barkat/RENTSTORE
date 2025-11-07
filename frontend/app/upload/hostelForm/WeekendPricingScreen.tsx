@@ -1,21 +1,21 @@
-import React, { useState, FC, useContext, useEffect } from "react";
+import React, { FC, useState, useContext, useEffect } from "react";
 import {
-  Text,
   View,
+  Text,
   TextInput,
-  Keyboard,
-  Platform,
   Switch,
+  StyleSheet,
+  Platform,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-// import { styles } from "@/styles/HostelRentScreenStyles";
 
-export type BillType = "electricity" | "water" | "gas";
+type RentType = "daily" | "weekly" | "monthly";
+type BillType = "electricity" | "water" | "gas";
+
 const ALL_BILLS: BillType[] = ["electricity", "water", "gas"];
 const MIN_RENT = 100;
 
@@ -31,50 +31,62 @@ const HostelRentScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const [dailyRent, setDailyRent] = useState<number>(data.dailyRent ?? 0);
-  const [weeklyRent, setWeeklyRent] = useState<number>(data.weeklyRent ?? 0);
-  const [monthlyRent, setMonthlyRent] = useState<number>(data.monthlyRent ?? 0);
+  const [rents, setRents] = useState<Record<RentType, number>>({
+    daily: data.dailyRent ?? 0,
+    weekly: data.weeklyRent ?? 0,
+    monthly: data.monthlyRent ?? 0,
+  });
+
+  const [offer, setOffer] = useState<Record<RentType, boolean>>({
+    daily: !!data.dailyRent,
+    weekly: !!data.weeklyRent,
+    monthly: !!data.monthlyRent,
+  });
+
   const [includedBills, setIncludedBills] = useState<BillType[]>(
     data.ALL_BILLS ?? []
   );
 
   useEffect(() => {
-    if (data.dailyRent !== undefined) setDailyRent(data.dailyRent);
-    if (data.weeklyRent !== undefined) setWeeklyRent(data.weeklyRent);
-    if (data.monthlyRent !== undefined) setMonthlyRent(data.monthlyRent);
-    if (data.ALL_BILLS !== undefined) setIncludedBills(data.ALL_BILLS);
+    setRents({
+      daily: data.dailyRent ?? 0,
+      weekly: data.weeklyRent ?? 0,
+      monthly: data.monthlyRent ?? 0,
+    });
+    setIncludedBills(data.ALL_BILLS ?? []);
   }, [data]);
 
-  const handleRentChange = (
-    text: string,
-    type: "daily" | "weekly" | "monthly"
-  ) => {
-    const numericValue = text.replace(/[^0-9]/g, "");
-    const value = Number(numericValue);
-    if (isNaN(value) || value < 0) return;
-
-    if (type === "daily") setDailyRent(value);
-    else if (type === "weekly") setWeeklyRent(value);
-    else setMonthlyRent(value);
+  const handleRentChange = (text: string, type: RentType) => {
+    const numericValue = Number(text.replace(/[^0-9]/g, ""));
+    if (!isNaN(numericValue)) {
+      setRents((prev) => ({ ...prev, [type]: numericValue }));
+    }
   };
 
-  const handleBillToggle = (billType: BillType, isIncluded: boolean) => {
-    setIncludedBills((prev) => {
-      if (isIncluded) return [...new Set([...prev, billType])];
-      return prev.filter((b) => b !== billType);
-    });
+  const handleOfferToggle = (type: RentType, value: boolean) => {
+    setOffer((prev) => ({ ...prev, [type]: value }));
+  };
+
+  const handleBillToggle = (bill: BillType, value: boolean) => {
+    setIncludedBills((prev) =>
+      value ? [...new Set([...prev, bill])] : prev.filter((b) => b !== bill)
+    );
   };
 
   const handleNext = () => {
-    updateForm("dailyRent", dailyRent);
-    updateForm("weeklyRent", weeklyRent);
-    updateForm("monthlyRent", monthlyRent);
+    updateForm("dailyRent", offer.daily ? rents.daily : undefined);
+    updateForm("weeklyRent", offer.weekly ? rents.weekly : undefined);
+    updateForm("monthlyRent", offer.monthly ? rents.monthly : undefined);
     updateForm("ALL_BILLS", includedBills);
+
     router.push("/upload/hostelForm/SafetyDetailsScreen");
   };
 
   const isNextDisabled =
-    dailyRent < MIN_RENT && weeklyRent < MIN_RENT && monthlyRent < MIN_RENT;
+    !Object.values(offer).some(Boolean) ||
+    (offer.daily && rents.daily < MIN_RENT) ||
+    (offer.weekly && rents.weekly < MIN_RENT) ||
+    (offer.monthly && rents.monthly < MIN_RENT);
 
   return (
     <StepContainer
@@ -83,65 +95,67 @@ const HostelRentScreen: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={88}
     >
-      {/* Rents in a row */}
-      <View style={styles.rentRow}>
-        {[
-          { label: "Daily", value: dailyRent, type: "daily" },
-          { label: "Weekly", value: weeklyRent, type: "weekly" },
-          { label: "Monthly", value: monthlyRent, type: "monthly" },
-        ].map((item) => (
-          <View key={item.type} style={styles.rentColumn}>
-            <Text style={[styles.currencySymbol, { color: currentTheme.text }]}>
-              PKR
-            </Text>
-            <TextInput
-              keyboardType="numeric"
-              value={String(item.value)}
-              onChangeText={(text) =>
-                handleRentChange(
-                  text,
-                  item.type as "daily" | "weekly" | "monthly"
-                )
-              }
-              onBlur={() => Keyboard.dismiss()}
-              style={[
-                styles.priceInput,
-                { color: currentTheme.text, borderColor: currentTheme.border },
-              ]}
-              maxLength={7}
-              placeholder={`${item.label} rent`}
-              placeholderTextColor={currentTheme.border}
-            />
-            <MaterialCommunityIcons
-              name="pencil"
-              size={20}
-              color={currentTheme.icon}
-              style={styles.editIcon}
-            />
+      {/* Inline Rent Inputs with styled toggles */}
+      <View style={{ marginTop: 20 }}>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+          Set rent and toggle availability
+        </Text>
+
+        {(["daily", "weekly", "monthly"] as RentType[]).map((type) => (
+          <View key={type} style={styles.inlineRow}>
+            {/* Label */}
             <Text style={[styles.label, { color: currentTheme.text }]}>
-              {item.label}
+              {type.charAt(0).toUpperCase() + type.slice(1)}
             </Text>
+
+            {/* Centered Input */}
+            {offer[type] && (
+              <TextInput
+                keyboardType="numeric"
+                value={String(rents[type])}
+                onChangeText={(text) => handleRentChange(text, type)}
+                style={[
+                  styles.centerInput,
+                  {
+                    color: currentTheme.text,
+                    borderColor: currentTheme.border,
+                  },
+                ]}
+                placeholder="Amount"
+                placeholderTextColor={currentTheme.border}
+              />
+            )}
+
+            {/* Styled Toggle */}
+            <Switch
+              value={offer[type]}
+              onValueChange={(val) => handleOfferToggle(type, val)}
+              trackColor={{
+                false: currentTheme.border,
+                true: currentTheme.primary,
+              }}
+              thumbColor={
+                Platform.OS === "ios" ? currentTheme.card : currentTheme.primary
+              }
+            />
           </View>
         ))}
       </View>
 
-      {/* Bills switches */}
-      <View style={styles.billsContainer}>
-        <Text
-          style={[styles.billInstructionText, { color: currentTheme.text }]}
-        >
-          Check only those which are{" "}
-          <Text style={{ fontWeight: "bold" }}>included</Text> in the rent:
+      {/* Bills Section */}
+      <View style={{ marginTop: 30 }}>
+        <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+          Check bills included in rent
         </Text>
 
-        {ALL_BILLS.map((type) => (
-          <View key={type} style={styles.billRow}>
-            <Text style={[styles.billLabel, { color: currentTheme.text }]}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+        {ALL_BILLS.map((bill) => (
+          <View key={bill} style={styles.row}>
+            <Text style={[styles.label, { color: currentTheme.text }]}>
+              {bill.charAt(0).toUpperCase() + bill.slice(1)}
             </Text>
             <Switch
-              value={includedBills.includes(type)}
-              onValueChange={(value) => handleBillToggle(type, value)}
+              value={includedBills.includes(bill)}
+              onValueChange={(val) => handleBillToggle(bill, val)}
               trackColor={{
                 false: currentTheme.border,
                 true: currentTheme.primary,
@@ -159,59 +173,8 @@ const HostelRentScreen: FC = () => {
 
 export default HostelRentScreen;
 
-import { StyleSheet } from "react-native";
-
-export const styles = StyleSheet.create({
-  rentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 20,
-  },
-
-  rentColumn: {
-    flex: 1,
-    marginHorizontal: 5,
-    alignItems: "center",
-  },
-
-  currencySymbol: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 5,
-  },
-
-  priceInput: {
-    fontSize: 24,
-    fontWeight: "700",
-    width: "100%",
-    textAlign: "center",
-    paddingVertical: 5,
-    borderBottomWidth: 2,
-    borderBottomColor: "#ccc",
-    minHeight: 50,
-  },
-
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginTop: 5,
-  },
-
-  editIcon: {
-    marginLeft: 5,
-  },
-
-  billsContainer: {
-    marginTop: 30,
-    paddingHorizontal: 10,
-  },
-  billInstructionText: {
-    fontSize: 14,
-    color: "#555",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  billRow: {
+const styles = StyleSheet.create({
+  row: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -219,8 +182,29 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
-  billLabel: {
+  inlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
+  label: {
     fontSize: 16,
     fontWeight: "500",
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  centerInput: {
+    width: 100,
+    textAlign: "center",
+    borderBottomWidth: 2,
+    paddingVertical: 5,
+    fontSize: 18,
+    fontWeight: "700",
   },
 });

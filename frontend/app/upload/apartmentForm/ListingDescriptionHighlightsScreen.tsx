@@ -8,6 +8,7 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors"; 
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
 import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 
 const MAX_SELECTIONS = 2;
 
@@ -58,15 +59,14 @@ const ApartmentDescriptionHighlightsScreen: FC = () => {
 
         <View style={styles.chipsContainer}>
           {HIGHLIGHTS_DATA.map((highlight) => (
-            <Chip
+            <AmenityCard
               key={highlight.key}
-              highlight={highlight}
+              item={highlight}
               isSelected={selectedHighlights.has(highlight.key)}
               onToggle={handleToggleHighlight}
               textColor={currentTheme.text}
               iconColor={selectedHighlights.has(highlight.key) ? "#fff" : currentTheme.icon}
-              selectedBackgroundColor={currentTheme.primary}
-              unselectedBackgroundColor={currentTheme.card}
+              selectedBackgroundColor={currentTheme.primary} 
             />
           ))}
         </View>

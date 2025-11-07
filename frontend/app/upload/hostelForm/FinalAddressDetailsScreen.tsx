@@ -102,7 +102,7 @@ const FinalAddressDetailsScreen: FC = () => {
     setLoading(false);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const { valid, errors } = validateAddresses(addresses);
     setErrors(errors);
 
@@ -111,8 +111,23 @@ const FinalAddressDetailsScreen: FC = () => {
       return;
     }
 
+    // Pass latest addresses directly to submit
+    const result = await submitData({ ...data, address: addresses });
     updateForm("address", addresses);
-    handleFinish();
+
+    if (result.success) {
+      Toast.show({
+        type: "success",
+        text1: "Apartment listed successfully!",
+      });
+      setTimeout(() => router.replace("/MyListingsScreen"), 1500);
+    } else {
+      Toast.show({
+        type: "error",
+        text1: "Upload failed",
+        text2: "Please try again later.",
+      });
+    }
   };
 
   return (

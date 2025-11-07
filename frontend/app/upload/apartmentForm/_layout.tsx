@@ -17,8 +17,7 @@ export default function UploadLayout() {
         <Stack.Screen name="PricingScreen" />
         <Stack.Screen name="WeekendPricingScreen" />
         <Stack.Screen name="SafetyDetailsScreen" />
-        <Stack.Screen name="FinalAddressDetailsScreen" />
-        <Stack.Screen name="ApartmentFinalSubmitScreen" />
+        <Stack.Screen name="FinalAddressDetailsScreen" /> 
       </Stack>
   );
 }

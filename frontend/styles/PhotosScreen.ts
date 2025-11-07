@@ -43,6 +43,7 @@ export const styles = StyleSheet.create({
   },
   uploadButton: {
     flexDirection: "row",
+    gap:5,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EBEBEB",
