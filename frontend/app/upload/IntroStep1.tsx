@@ -8,13 +8,15 @@ import StepContainer from "./Welcome";
 import { styles } from "@/styles/IntroStep1";
 import { StepItem } from "@/components/UploadPropertyComponents/StepItem";
 import { stepsData } from "@/utils/stepsData";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const IntroStep1: FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    await AsyncStorage.setItem("seen", "true");  
     router.push("/upload/CreateStep" as `${string}:param`);
   };
 

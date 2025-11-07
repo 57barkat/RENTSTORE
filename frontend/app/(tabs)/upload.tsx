@@ -5,14 +5,21 @@ import { OptionCard } from "@/components/UploadPropertyComponents/OptionCard";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { styles } from "@/styles/CreateStep";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const CreateStep: FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+  const seen = AsyncStorage.getItem("seen");
 
-  const handleCreateNew = () => {
-    router.push("/upload/IntroStep1");
+  const handleCreateNew = async () => {
+    const seen = await AsyncStorage.getItem("seen");  
+    if (!seen) {
+      router.push("/upload/IntroStep1");
+    } else {
+      router.push("/upload/CreateStep" as `${string}:param`);
+    }
   };
 
   const handleCreateFromExisting = () => {
