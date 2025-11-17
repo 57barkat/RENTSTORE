@@ -21,6 +21,7 @@ import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
 import { HostelFormProvider } from "@/contextStore/HostelFormContext";
 import { ApartmentFormProvider } from "@/contextStore/ApartmentFormContextType";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -66,46 +67,48 @@ export default function RootLayout() {
   const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
-    <Provider store={store}>
-      <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-        <ApartmentFormProvider>
-          <HostelFormProvider>
-            <FormProvider>
-              <AuthProvider>
-                <CustomThemeProvider>
-                  {!hideHeader && <Header />}
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+          <ApartmentFormProvider>
+            <HostelFormProvider>
+              <FormProvider>
+                <AuthProvider>
+                  <CustomThemeProvider>
+                    {!hideHeader && <Header />}
 
-                  <Stack screenOptions={{ headerShown: false }}>
-                    {/* Auth Screens */}
-                    <Stack.Screen name="signin" />
-                    <Stack.Screen name="signup" />
-                    <Stack.Screen name="choose-role" />
-                    <Stack.Screen name="Verification" />
+                    <Stack screenOptions={{ headerShown: false }}>
+                      {/* Auth Screens */}
+                      <Stack.Screen name="signin" />
+                      <Stack.Screen name="signup" />
+                      <Stack.Screen name="choose-role" />
+                      <Stack.Screen name="Verification" />
 
-                    {/* Property Screens */}
-                    <Stack.Screen name="property/[id]" />
-                    <Stack.Screen name="property/edit/[id]" />
+                      {/* Property Screens */}
+                      <Stack.Screen name="property/[id]" />
+                      <Stack.Screen name="property/edit/[id]" />
 
-                    {/* Screens that need FormProvider */}
-                    <Stack.Screen name="MyListingsScreen" />
-                    <Stack.Screen name="DraftProperties" />
-                    <Stack.Screen name="upload" />
+                      {/* Screens that need FormProvider */}
+                      <Stack.Screen name="MyListingsScreen" />
+                      <Stack.Screen name="DraftProperties" />
+                      <Stack.Screen name="upload" />
 
-                    {/* Other Screens */}
-                    <Stack.Screen name="PrivacyPolicyScreen" />
-                    <Stack.Screen name="favorites" />
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen name="+not-found" />
-                  </Stack>
+                      {/* Other Screens */}
+                      <Stack.Screen name="PrivacyPolicyScreen" />
+                      <Stack.Screen name="favorites" />
+                      <Stack.Screen name="(tabs)" />
+                      <Stack.Screen name="+not-found" />
+                    </Stack>
 
-                  <StatusBar style="auto" />
-                  <Toast />
-                </CustomThemeProvider>
-              </AuthProvider>
-            </FormProvider>
-          </HostelFormProvider>
-        </ApartmentFormProvider>
-      </ThemeProvider>
-    </Provider>
+                    <StatusBar style="auto" />
+                    <Toast />
+                  </CustomThemeProvider>
+                </AuthProvider>
+              </FormProvider>
+            </HostelFormProvider>
+          </ApartmentFormProvider>
+        </ThemeProvider>
+      </Provider>
+    </SafeAreaProvider>
   );
 }
