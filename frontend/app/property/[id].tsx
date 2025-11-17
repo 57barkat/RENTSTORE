@@ -1,5 +1,14 @@
-import React, { useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, Dimensions } from "react-native";
+import React from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  Linking,
+  // useWindowDimensions,
+} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useFindPropertyByIdQuery } from "@/services/api";
 import ImageCarousel from "@/utils/Carousel";
@@ -19,8 +28,7 @@ export default function PropertyDetails() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
   const { data: property, isLoading } = useFindPropertyByIdQuery(id);
-
-  useEffect(() => {}, [property]);
+  // const window = useWindowDimensions();
 
   if (isLoading) {
     return (
@@ -50,6 +58,8 @@ export default function PropertyDetails() {
     title,
     location,
     monthlyRent,
+    weeklyRent,
+    dailyRent,
     SecuritybasePrice,
     ALL_BILLS,
     address,
@@ -58,7 +68,8 @@ export default function PropertyDetails() {
     description,
     safetyDetailsData,
     photos,
-    views,
+    lat,
+    lng,
   } = property;
 
   const renderCapacity = (
@@ -94,19 +105,19 @@ export default function PropertyDetails() {
       );
     }
     return (
-      <View style={styles.listContainer}>
+      <View style={styles.badgesContainer}>
         {items.map((item, i) => (
           <View
             key={i}
-            style={[styles.listItem, { backgroundColor: currentTheme.card }]}
+            style={[styles.badge, { backgroundColor: currentTheme.card }]}
           >
             <Feather
               name={icon}
-              size={16}
+              size={14}
               color={currentTheme.primary}
-              style={styles.listIcon}
+              style={{ marginRight: 4 }}
             />
-            <Text style={[styles.infoText, { color: currentTheme.text }]}>
+            <Text style={[styles.badgeText, { color: currentTheme.text }]}>
               {item}
             </Text>
           </View>
@@ -114,28 +125,21 @@ export default function PropertyDetails() {
       </View>
     );
   };
-  const renderSection = ({ title, items, icon, emptyMessage }: any) => (
-    <View style={styles.sectionContainer}>
-      <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-        <Feather name={icon} size={20} color={currentTheme.primary} /> {title}
-      </Text>
-      {Array.isArray(items) && items.length > 0 ? (
-        renderList(items, emptyMessage, icon)
-      ) : (
-        <Text style={[styles.infoText, { color: currentTheme.muted }]}>
-          {emptyMessage}
-        </Text>
-      )}
-    </View>
-  );
+
+  const handleMapRedirect = () => {
+    if (lat && lng) {
+      const url = `https://www.google.com/maps?q=${lat},${lng}`;
+      Linking.openURL(url);
+    }
+  };
 
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: currentTheme.background }]}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={{ paddingBottom: 40 }}
     >
       {/* Image Carousel */}
-      <View style={styles.imageContainer}>
+      <View style={{ width: width, height: width * 0.65 }}>
         {photos?.length > 0 ? (
           <ImageCarousel
             media={photos.map((uri: string) => ({ uri, type: "image" }))}
@@ -156,8 +160,8 @@ export default function PropertyDetails() {
         )}
       </View>
 
+      {/* Details */}
       <View style={styles.detailsBox}>
-        {/* Title & Info */}
         <Text style={[styles.title, { color: currentTheme.text }]}>
           {title}
         </Text>
@@ -170,17 +174,29 @@ export default function PropertyDetails() {
             />{" "}
             {location}
           </Text>
-          <Text style={[styles.subText, { color: currentTheme.muted }]}>
-            <MaterialCommunityIcons
-              name="eye-outline"
-              size={16}
-              color={currentTheme.muted}
-            />{" "}
-            {views} Views
-          </Text>
+          {lat && lng && (
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center" }}
+              onPress={handleMapRedirect}
+            >
+              <MaterialCommunityIcons
+                name="map-marker-radius"
+                size={16}
+                color={currentTheme.muted}
+              />
+              <Text
+                style={[
+                  styles.subText,
+                  { color: currentTheme.primary, marginLeft: 4 },
+                ]}
+              >
+                Show on Map
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Rent & Capacity Card */}
+        {/* Rent Card */}
         <View
           style={[
             styles.card,
@@ -190,14 +206,30 @@ export default function PropertyDetails() {
             },
           ]}
         >
-          <View style={styles.priceContainer}>
-            <Text style={[styles.priceTag, { color: currentTheme.primary }]}>
-              {monthlyRent}
-            </Text>
-            <Text style={[styles.priceDuration, { color: currentTheme.muted }]}>
-              / month
-            </Text>
-          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginBottom: 12 }}
+          >
+            {[
+              { label: "/month", value: monthlyRent },
+              { label: "/week", value: weeklyRent },
+              { label: "/day", value: dailyRent },
+            ].map((item, idx) => (
+              <View key={idx} style={styles.priceBox}>
+                <Text
+                  style={[styles.priceAmount, { color: currentTheme.primary }]}
+                >
+                  {item.value ?? "N/A"}
+                </Text>
+                <Text
+                  style={[styles.priceLabel, { color: currentTheme.muted }]}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
           <Text
             style={[
               styles.secondaryPrice,
@@ -207,8 +239,10 @@ export default function PropertyDetails() {
               },
             ]}
           >
-            {SecuritybasePrice} security deposit
+            {SecuritybasePrice ?? "N/A"} security deposit
           </Text>
+
+          {/* Capacity */}
           <View style={styles.capacityRow}>
             {renderCapacity(
               "Persons",
@@ -233,14 +267,12 @@ export default function PropertyDetails() {
           <Text style={[styles.infoText, { color: currentTheme.text }]}>
             {description?.overview || "A wonderful place to stay!"}
           </Text>
-
-          {/* Highlights */}
           <Text style={[styles.subsectionTitle, { color: currentTheme.text }]}>
             Highlights
           </Text>
           {renderList(
             description?.highlighted,
-            "No specific highlights listed.",
+            "No highlights listed.",
             "star"
           )}
         </View>
@@ -308,7 +340,7 @@ export default function PropertyDetails() {
           </Text>
           {renderList(
             safetyDetailsData?.safetyDetails,
-            "No specific safety features listed.",
+            "No safety features listed.",
             "alert-triangle"
           )}
           {safetyDetailsData?.cameraDescription && (
@@ -324,7 +356,7 @@ export default function PropertyDetails() {
                 size={16}
                 color={currentTheme.primary}
               />{" "}
-              **Camera Note:** {safetyDetailsData.cameraDescription}
+              Camera Note: {safetyDetailsData.cameraDescription}
             </Text>
           )}
         </View>
@@ -335,21 +367,8 @@ export default function PropertyDetails() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  contentContainer: { paddingBottom: 30 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  imageContainer: { width: width, height: width * 0.7 },
-  noImage: {
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 12,
-    margin: 16,
-  },
-  noImageText: { marginTop: 8, fontSize: 16, fontWeight: "500" },
-
   detailsBox: { paddingHorizontal: 16, paddingTop: 16 },
-
   title: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
   subInfoRow: {
     flexDirection: "row",
@@ -357,7 +376,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subText: { fontSize: 14, fontWeight: "400", opacity: 0.9 },
-
   card: {
     padding: 16,
     borderRadius: 20,
@@ -368,29 +386,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
     elevation: 6,
   },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    marginBottom: 4,
-  },
-  priceTag: { fontSize: 32, fontWeight: "bold" },
-  priceDuration: {
-    fontSize: 18,
-    fontWeight: "500",
-    marginLeft: 4,
-    paddingBottom: 2,
-  },
+  priceBox: { marginRight: 16, alignItems: "center" },
+  priceAmount: { fontSize: 28, fontWeight: "700" },
+  priceLabel: { fontSize: 16, fontWeight: "500", color: "#555" },
   secondaryPrice: {
     fontSize: 14,
     marginBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     paddingBottom: 12,
   },
-
   capacityRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 10,
+    marginTop: 12,
   },
   capacityItem: { alignItems: "center", flex: 1 },
   capacityCircle: {
@@ -403,7 +411,6 @@ const styles = StyleSheet.create({
   },
   capacityValue: { fontSize: 20, fontWeight: "600", marginTop: 4 },
   capacityLabel: { fontSize: 12, fontWeight: "400" },
-
   sectionContainer: { marginBottom: 20, paddingVertical: 8 },
   sectionTitle: {
     fontSize: 20,
@@ -420,18 +427,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   infoText: { fontSize: 16, lineHeight: 24 },
-
-  listContainer: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  listItem: {
+  badgesContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
     marginBottom: 8,
   },
-  listIcon: { marginRight: 6 },
-
+  badgeText: { fontSize: 14 },
   addressBlock: { marginBottom: 8, padding: 12, borderRadius: 12 },
   cameraInfo: { fontStyle: "italic", marginTop: 10 },
+  noImage: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    margin: 16,
+  },
+  noImageText: { marginTop: 8, fontSize: 16, fontWeight: "500" },
 });
