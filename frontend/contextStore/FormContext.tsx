@@ -4,10 +4,7 @@ import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
 import { CapacityState } from "@/types/PropertyDetails.types";
 import React, { createContext, useState, ReactNode } from "react";
-import {
-  useCreatePropertyMutation,
-  // useUpdatePropertyMutation,
-} from "@/services/api";
+import { useCreatePropertyMutation } from "@/services/api";
 
 export interface SubmitResult {
   success: boolean;
@@ -20,7 +17,9 @@ export interface FormData {
   description?: Description;
   address?: Address[];
   hostOption?: string;
-  location?: string;
+  location?: string; // Human-readable address
+  lat?: number; // Latitude from map
+  lng?: number; // Longitude from map
   capacityState?: CapacityState;
   amenities?: string[];
   photos?: string[];
@@ -36,11 +35,7 @@ export interface FormContextType {
   data: FormData;
   updateForm: <K extends keyof FormData>(step: K, values: FormData[K]) => void;
   setFullFormData: (newData: FormData) => void;
-
-  // ✅ Now accepts override data
   submitData: (overrideData?: FormData) => Promise<SubmitResult>;
-
-  // ✅ Also updated for consistency
   submitDraftData: (overrideData?: FormData) => Promise<SubmitResult>;
 }
 
@@ -61,7 +56,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     setData({ ...newData });
   };
 
-  // ✅ Updated: accepts overrideData
   const submitData: FormContextType["submitData"] = async (overrideData) => {
     try {
       const payload = overrideData ?? data;
@@ -77,7 +71,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ✅ Updated: accepts overrideData
   const submitDraftData: FormContextType["submitDraftData"] = async (
     overrideData
   ) => {

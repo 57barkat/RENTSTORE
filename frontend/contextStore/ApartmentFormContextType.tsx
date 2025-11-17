@@ -34,6 +34,8 @@ export interface ApartmentFormData {
   address?: Address[];
   hostOption?: string;
   location?: string;
+   lat?: number; // Latitude from map
+  lng?: number;
   // ✅ Apartment-only fields
   apartmentType?: "studio" | "1BHK" | "2BHK" | "3BHK" | "penthouse";
   capacityState?: capacityState;

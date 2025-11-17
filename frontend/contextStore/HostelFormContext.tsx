@@ -20,6 +20,8 @@ export interface HostelFormData {
   address?: Address[];
   hostelType?: "male" | "female" | "mixed"; // hostel type
   location?: string;
+   lat?: number; // Latitude from map
+  lng?: number;
   capacityState?: CapacityState; // total beds, beds per room, etc.
   amenities?: string[];
   photos?: string[];
