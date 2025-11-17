@@ -138,12 +138,25 @@ const StepContainer: React.FC<StepContainerProps> = ({
             onPress={onNext}
             style={[
               styles.nextButton,
-              isNextDisabled && styles.disabledNextButton,
-              { backgroundColor: currentTheme.primary },
+              {
+                backgroundColor: isNextDisabled
+                  ?"#BDBDBD"  
+                  : currentTheme.primary,
+                opacity: isNextDisabled ? 0.6 : 1,
+              },
             ]}
             disabled={isNextDisabled}
           >
-            <Text style={[styles.nextButtonText, { color: currentTheme.card }]}>
+            <Text
+              style={[
+                styles.nextButtonText,
+                {
+                  color: isNextDisabled
+                    ? currentTheme.text // readable in disabled mode
+                    : currentTheme.card,
+                },
+              ]}
+            >
               {nextButtonText}
             </Text>
           </TouchableOpacity>
