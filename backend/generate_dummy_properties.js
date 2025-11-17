@@ -24,6 +24,15 @@ const AREAS = {
   Quetta: ["Cantonment Area", "Airport Road"],
 };
 
+const CITY_COORDS = {
+  Lahore: { lat: [31.45, 31.60], lng: [74.20, 74.40] },
+  Karachi: { lat: [24.80, 25.10], lng: [66.90, 67.20] },
+  Islamabad: { lat: [33.65, 33.75], lng: [72.95, 73.10] },
+  Rawalpindi: { lat: [33.55, 33.65], lng: [72.95, 73.10] },
+  Peshawar: { lat: [34.00, 34.05], lng: [71.45, 71.60] },
+  Quetta: { lat: [30.20, 30.30], lng: [67.00, 67.05] },
+};
+
 const HOST_OPTIONS = ["home", "room", "entire_place"];
 const AMENITIES = [
   "wifi",
@@ -58,6 +67,11 @@ const CLOUDINARY_PHOTOS = [
   "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/rd8urpckgtidczr1crgd.jpg",
   "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/synzyaj62qiqgfz35zrl.jpg",
 ];
+const APARTMENT_TYPES = ["studio", "1BHK", "2BHK", "penthouse"];
+const FURNISHINGS = ["furnished", "semi-furnished", "unfurnished"];
+const HOSTEL_TYPES = ["boys", "girls", "co-ed"];
+const MEAL_PLANS = ["breakfast", "lunch", "dinner"];
+const RULES = ["no_smoking", "no_pets", "quiet_hours", "no_party"];
 
 // --- Helpers ---
 const randomInt = (min, max) =>
@@ -66,6 +80,7 @@ const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randomSubarray = (arr, min = 0, max = arr.length) =>
   arr.sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
+// --- Main Generator ---
 function generateDummyProperties(count = 30000) {
   const properties = [];
   const baseOwnerId = new ObjectId().toHexString();
@@ -81,8 +96,11 @@ function generateDummyProperties(count = 30000) {
     const Persons = beds + 1;
 
     const monthlyRent = randomInt(500, 500000);
+    const dailyRent = Math.round(monthlyRent / 30);
+    const weeklyRent = Math.round(monthlyRent / 4);
     const SecuritybasePrice = monthlyRent * 1.5;
 
+    // Address
     const address = [
       {
         street: `Plot No. ${randomInt(1, 500)}`,
@@ -96,6 +114,11 @@ function generateDummyProperties(count = 30000) {
             : `Unit ${randomInt(1, 20)}`,
       },
     ];
+
+    // Coordinates
+    const cityRange = CITY_COORDS[city];
+    const lat = Math.random() * (cityRange.lat[1] - cityRange.lat[0]) + cityRange.lat[0];
+    const lng = Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
 
     const photos =
       Math.random() < 0.2
@@ -115,6 +138,16 @@ function generateDummyProperties(count = 30000) {
           ])
         : undefined;
 
+    // Apartment-specific
+    const apartmentType = hostOption === "entire_place" ? randomChoice(APARTMENT_TYPES) : undefined;
+    const furnishing = hostOption === "entire_place" ? randomChoice(FURNISHINGS) : undefined;
+    const parking = hostOption === "entire_place" ? Math.random() > 0.5 : undefined;
+
+    // Hostel-specific
+    const hostelType = hostOption === "room" ? randomChoice(HOSTEL_TYPES) : undefined;
+    const mealPlan = hostOption === "room" ? randomSubarray(MEAL_PLANS, 1, 3) : undefined;
+    const rules = hostOption === "room" ? randomSubarray(RULES, 1, 3) : undefined;
+
     properties.push({
       _id: new ObjectId().toHexString(),
       ownerId: baseOwnerId,
@@ -127,7 +160,11 @@ function generateDummyProperties(count = 30000) {
       } in ${area}`,
       hostOption,
       location: `${area}, ${city}`,
+      lat,
+      lng,
       monthlyRent,
+      dailyRent,
+      weeklyRent,
       SecuritybasePrice,
       ALL_BILLS,
       address,
@@ -136,7 +173,13 @@ function generateDummyProperties(count = 30000) {
       description: { highlighted },
       safetyDetailsData: { safetyDetails, cameraDescription },
       photos,
-      status: Math.random() > 0.2, // 80% active, 20% draft
+      apartmentType,
+      furnishing,
+      parking,
+      hostelType,
+      mealPlan,
+      rules,
+      status: Math.random() > 0.2, // 80% active
     });
   }
 
@@ -152,6 +195,4 @@ fs.writeFileSync(
   JSON.stringify({ data: properties, total: properties.length }, null, 2)
 );
 
-console.log(
-  `Generated ${PROPERTY_COUNT} properties according to CreatePropertyDto.`
-);
+console.log(`Generated ${PROPERTY_COUNT} properties with full CreatePropertyDto fields.`);
