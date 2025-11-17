@@ -1,85 +1,83 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { View, ActivityIndicator, Alert, TouchableOpacity, Text, Platform } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import * as Location from "expo-location";
+import Constants from "expo-constants";
 
 type LocationPickerProps = {
   onPick: (lat: number, lng: number, address?: string) => void;
 };
 
-function LocationPicker({ onPick }: LocationPickerProps) {
+const LocationPicker: React.FC<LocationPickerProps> = ({ onPick }) => {
   const [region, setRegion] = useState<Region | null>(null);
   const [marker, setMarker] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string>("");
 
+  const GOOGLE_MAPS_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
+console.log("GOOGLE_MAPS_API_KEY",GOOGLE_MAPS_API_KEY)
+  // Fetch current location on mount
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission denied", "Location permission is required.");
+    const getLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission denied", "Location permission is required.");
+          setLoading(false);
+          return;
+        }
+        const loc = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = loc.coords;
+
+        setRegion({ latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+        setMarker({ latitude, longitude });
+      } catch (err) {
+        Alert.alert("Error", "Could not fetch current location.");
+      } finally {
         setLoading(false);
-        return;
       }
-      let loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-      setRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      });
-      setMarker({ latitude, longitude });
-      setLoading(false);
-    })();
+    };
+
+    getLocation();
   }, []);
 
-  const handleMapPress = (e: any) => {
+  // Map press handler
+  const handleMapPress = useCallback((e: any) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
     setMarker({ latitude, longitude });
     setRegion((r) =>
-      r
-        ? { ...r, latitude, longitude }
-        : {
-            latitude,
-            longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }
+      r ? { ...r, latitude, longitude } : { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }
     );
-  };
+  }, []);
 
-  const handleMarkerDrag = (e: any) => {
+  // Marker drag handler
+  const handleMarkerDrag = useCallback((e: any) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
     setMarker({ latitude, longitude });
     setRegion((r) =>
-      r
-        ? { ...r, latitude, longitude }
-        : {
-            latitude,
-            longitude,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }
+      r ? { ...r, latitude, longitude } : { latitude, longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }
     );
-  };
+  }, []);
 
-  const handleConfirm = async () => {
+  // Confirm selection
+  const handleConfirm = useCallback(async () => {
     if (!marker) return;
+
     try {
-      let geocode = await Location.reverseGeocodeAsync(marker);
-      let addr =
-        geocode && geocode.length
-          ? `${geocode[0].name || ""} ${geocode[0].street || ""}, ${geocode[0].city || ""}, ${geocode[0].country || ""}`
-          : "";
+      const geocode = await Location.reverseGeocodeAsync(marker);
+      const addr = geocode && geocode.length
+        ? `${geocode[0].name || ""} ${geocode[0].street || ""}, ${geocode[0].city || ""}, ${geocode[0].country || ""}`
+        : "";
+
       setAddress(addr);
       onPick(marker.latitude, marker.longitude, addr);
-    } catch  {
+    } catch {
       Alert.alert("Error", "Could not fetch address.");
       onPick(marker.latitude, marker.longitude);
     }
-  };
+  }, [marker, onPick]);
 
+  // Loading or web fallback
   if (loading || !region) {
     return (
       <View style={{ height: 300, justifyContent: "center", alignItems: "center" }}>
@@ -98,6 +96,7 @@ function LocationPicker({ onPick }: LocationPickerProps) {
     );
   }
 
+  // Render Map
   return (
     <View style={{ height: 340, marginVertical: 10 }}>
       <MapView
@@ -113,6 +112,7 @@ function LocationPicker({ onPick }: LocationPickerProps) {
           />
         )}
       </MapView>
+
       <TouchableOpacity
         style={{
           marginTop: 10,
@@ -125,11 +125,10 @@ function LocationPicker({ onPick }: LocationPickerProps) {
       >
         <Text style={{ color: "#fff", fontWeight: "600" }}>Confirm Location</Text>
       </TouchableOpacity>
-      {address ? (
-        <Text style={{ marginTop: 5, color: "#333" }}>Address: {address}</Text>
-      ) : null}
+
+      {address ? <Text style={{ marginTop: 5, color: "#333" }}>Address: {address}</Text> : null}
     </View>
   );
-}
+};
 
 export default LocationPicker;
