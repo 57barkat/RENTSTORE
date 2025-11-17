@@ -31,9 +31,10 @@ export class PropertyController {
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
+
     console.log("🔥 RAW DTO from frontend:", req.body);
-    console.log("🔥 RAW FILES from frontend:", files);
-    // Robust JSON parsing function
+
+    // Helper to parse JSON
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -50,9 +51,11 @@ export class PropertyController {
       safetyDetailsData: parseJson(dto.safetyDetailsData),
       amenities: parseJson(dto.amenities),
       ALL_BILLS: parseJson(dto.ALL_BILLS),
+      lat: dto.lat ? Number(dto.lat) : undefined,
+      lng: dto.lng ? Number(dto.lng) : undefined,
     };
 
-    /** ✅ FIXED address handling */
+    /** ✅ Address handling */
     let parsedAddress: any[] = [];
     if (dto.address) {
       try {
@@ -60,11 +63,10 @@ export class PropertyController {
           typeof dto.address === "string"
             ? JSON.parse(dto.address)
             : dto.address;
-      } catch (e) {
+      } catch {
         parsedAddress = [];
       }
 
-      // Trim each field and remove empty objects
       parsedAddress = parsedAddress
         .map((addr) => {
           const cleaned = {};
@@ -76,7 +78,6 @@ export class PropertyController {
         })
         .filter((a) => Object.keys(a).length > 0);
     }
-
     parsedDto.address = parsedAddress;
 
     /** ✅ Status calculation */
@@ -88,10 +89,10 @@ export class PropertyController {
       return true;
     };
 
-    const requiredFields = ["hostOption", "location", "address"];
+    const requiredFields = ["hostOption", "location", "lat", "lng", "address"];
     parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
 
-    /** ✅ Upload photos */
+    /** ✅ Photo upload */
     const photoUrls = files?.photos?.length
       ? await Promise.all(
           files.photos.map((file) =>
@@ -103,7 +104,7 @@ export class PropertyController {
       : dto.photos || [];
     parsedDto.photos = photoUrls;
 
-    console.log("parsed address:", parsedDto.address);
+    console.log("Parsed DTO:", parsedDto);
 
     return this.propertyService.create(parsedDto, userId);
   }

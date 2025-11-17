@@ -41,7 +41,10 @@ export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() hostOption?: string;
-  @IsOptional() @IsString() location?: string;
+  @IsOptional() @IsString() location?: string; // human-readable
+
+  @IsOptional() @IsNumber() lat?: number; // latitude
+  @IsOptional() @IsNumber() lng?: number; // longitude
 
   @IsOptional() @IsNumber() monthlyRent?: number;
   @IsOptional() @IsNumber() dailyRent?: number;

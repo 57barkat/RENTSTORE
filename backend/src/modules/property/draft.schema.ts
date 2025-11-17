@@ -4,7 +4,9 @@ export const PropertyDraftSchema = new Schema(
   {
     title: String,
     hostOption: String,
-    location: String,
+    location: String,   // human-readable
+    lat: Number,        // latitude
+    lng: Number,        // longitude
     monthlyRent: Number,
     SecuritybasePrice: Number,
     ALL_BILLS: [String],
@@ -34,9 +36,9 @@ export const PropertyDraftSchema = new Schema(
     },
     photos: [String],
     ownerId: { type: Types.ObjectId, ref: "User" },
-    status: { type: String, default: "draft" },
+    status: { type: Boolean, default: false }, // draft vs complete
   },
   { timestamps: true }
 );
 
-// export const PropertyDraft = model("PropertyDraft", PropertyDraftSchema); 
+export const PropertyDraft = model("PropertyDraft", PropertyDraftSchema);

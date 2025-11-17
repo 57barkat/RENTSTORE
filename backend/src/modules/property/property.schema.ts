@@ -3,15 +3,17 @@ import { Document } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Property extends Document {
-  // Common fields
   @Prop({ type: String }) title?: string;
   @Prop({ type: String }) hostOption?: string;
-  @Prop({ type: String }) location?: string;
+
+  @Prop({ type: String }) location?: string; // human-readable
+  @Prop({ type: Number }) lat?: number;      // latitude
+  @Prop({ type: Number }) lng?: number;      // longitude
 
   @Prop({ type: Number }) monthlyRent?: number;
   @Prop({ type: Number }) dailyRent?: number;
   @Prop({ type: Number }) weeklyRent?: number;
-  @Prop({ type: Number }) SecuritybasePrice?: number; // security deposit
+  @Prop({ type: Number }) SecuritybasePrice?: number;
 
   @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];
   @Prop({
@@ -59,23 +61,19 @@ export class Property extends Document {
   })
   safetyDetailsData?: Record<string, any>;
 
-  // Apartment-specific
   @Prop({ type: String, enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"] })
   apartmentType?: string;
   @Prop({ type: String, enum: ["furnished", "semi-furnished", "unfurnished"] })
   furnishing?: string;
   @Prop({ type: Boolean }) parking?: boolean;
 
-  // Hostel-specific
-  @Prop({ type: String, enum: ["male", "female", "mixed"] })
-  hostelType?: string;
+  @Prop({ type: String, enum: ["male", "female", "mixed"] }) hostelType?: string;
   @Prop({ type: [String], default: [] }) mealPlan?: string[];
   @Prop({ type: [String], default: [] }) rules?: string[];
 
   @Prop({ type: String, required: true }) ownerId: string;
 
-  // Draft vs Complete
-  @Prop({ type: Boolean, default: false }) status: boolean;
+  @Prop({ type: Boolean, default: false }) status: boolean; // draft vs complete
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
