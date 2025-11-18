@@ -40,14 +40,12 @@ export default function RootLayout() {
       segments[0] === "signin" ||
       segments[0] === "signup" ||
       segments[0] === "choose-role";
-
-    // Not logged in → force to signin
+ 
     if (!isLoggedIn && !inAuthGroup) {
       router.replace("/signin");
       return;
     }
-
-    // Logged in & currently on auth screen → move to homepage
+ 
     if (isLoggedIn && inAuthGroup) {
       router.replace("/homePage");
     }
