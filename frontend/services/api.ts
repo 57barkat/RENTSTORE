@@ -1,10 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import Constants from "expo-constants";
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
+  const API_URL = Constants.expoConfig?.extra?.apiUrl;
   const token = await AsyncStorage.getItem("accessToken");
   const rawBaseQuery = fetchBaseQuery({
-    baseUrl: process.env.EXPO_PUBLIC_API_URL || "http://172.16.18.99:3000",
+    baseUrl: API_URL,
     prepareHeaders: (headers) => {
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);

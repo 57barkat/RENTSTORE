@@ -62,6 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.extra,
     MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
     MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
+    apiUrl: process.env.EXPO_PUBLIC_API_URL,
 
     // this can stay
     eas: {
