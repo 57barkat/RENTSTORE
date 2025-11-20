@@ -4,7 +4,8 @@ import {
   Image,
   TouchableOpacity,
   FlatList,
-  Alert,
+  Modal,
+  StyleSheet,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../../constants/Colors";
@@ -16,6 +17,7 @@ import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "@/contextStore/AuthContext";
 import { styles } from "@/styles/profile";
+import Toast from "react-native-toast-message";
 
 export default function Profile() {
   const { theme } = useTheme();
@@ -25,6 +27,9 @@ export default function Profile() {
   const data = [{ key: "dummy" }];
   const [name, setName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+
+  // Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -37,22 +42,27 @@ export default function Profile() {
   }, []);
 
   const [deleteUser] = useDeleteUserMutation();
+
   const handleDelete = async () => {
     try {
       await deleteUser(undefined).unwrap();
-      Alert.alert("Deleted!", "Your account has been removed.", [
-        {
-          text: "OK",
-          onPress: () => {
-            logout();
-            router.replace("/signin");
-          },
-        },
-      ]);
+
+      Toast.show({
+        type: "success",
+        text1: "Account Deleted",
+        text2: "Your account has been removed.",
+      });
+
+      logout();
+      router.replace("/signin");
       await AsyncStorage.clear();
     } catch (err) {
       console.error("Delete failed:", err);
-      Alert.alert("Error", "Failed to delete your account.");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete your account.",
+      });
     }
   };
 
@@ -110,20 +120,7 @@ export default function Profile() {
   const renderFooter = () => (
     <TouchableOpacity
       style={[styles.deleteButton, { backgroundColor: currentTheme.danger }]}
-      onPress={() => {
-        Alert.alert(
-          "Confirm Deletion",
-          "Are you sure you want to delete your account?",
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Delete",
-              style: "destructive",
-              onPress: () => handleDelete(),
-            },
-          ]
-        );
-      }}
+      onPress={() => setShowDeleteModal(true)}
     >
       <MaterialCommunityIcons name="delete-outline" size={24} color="#fff" />
       <Text style={styles.deleteButtonText}>Delete Account</Text>
@@ -131,15 +128,104 @@ export default function Profile() {
   );
 
   return (
-    <FlatList
-      data={data}
-      renderItem={null}
-      keyExtractor={(item) => item.key}
-      style={{ flex: 1, backgroundColor: currentTheme.background }}
-      contentContainerStyle={styles.container}
-      ListHeaderComponent={renderHeader}
-      ListFooterComponent={renderFooter}
-      showsVerticalScrollIndicator={false}
-    />
+    <>
+      <FlatList
+        data={data}
+        renderItem={null}
+        keyExtractor={(item) => item.key}
+        style={{ flex: 1, backgroundColor: currentTheme.background }}
+        contentContainerStyle={styles.container}
+        ListHeaderComponent={renderHeader}
+        ListFooterComponent={renderFooter}
+        showsVerticalScrollIndicator={false}
+      />
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <Modal visible={showDeleteModal} transparent animationType="fade">
+        <View style={modalStyles.overlay}>
+          <View
+            style={[modalStyles.box, { backgroundColor: currentTheme.card }]}
+          >
+            <Text style={[modalStyles.title, { color: currentTheme.text }]}>
+              Delete Account?
+            </Text>
+
+            <Text
+              style={[modalStyles.message, { color: currentTheme.secondary }]}
+            >
+              Are you sure you want to delete your account?
+            </Text>
+
+            <View style={modalStyles.buttons}>
+              <TouchableOpacity
+                onPress={() => setShowDeleteModal(false)}
+                style={modalStyles.cancelBtn}
+              >
+                <Text style={modalStyles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDeleteModal(false);
+                  handleDelete();
+                }}
+                style={[
+                  modalStyles.deleteBtn,
+                  { backgroundColor: currentTheme.danger },
+                ]}
+              >
+                <Text style={modalStyles.deleteText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  box: {
+    width: "80%",
+    borderRadius: 16,
+    padding: 20,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  message: {
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  buttons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    columnGap: 12,
+  },
+  cancelBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  cancelText: {
+    fontSize: 14,
+    color: "#777",
+  },
+  deleteBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+  deleteText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+});
+

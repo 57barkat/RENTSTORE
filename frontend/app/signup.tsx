@@ -23,7 +23,7 @@ import { Colors } from "../constants/Colors";
 import { Checkbox } from "react-native-paper";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import AuthImage from '../assets/images/authimage.jpg';
+import AuthImage from "../assets/images/authimage.jpg";
 
 export default function SignUpScreen() {
   const [role, setRole] = useState<string | null>(null);
@@ -98,10 +98,17 @@ export default function SignUpScreen() {
 
   if (!role) {
     return (
-      <View style={[{ backgroundColor: currentTheme.background }]}>
-        <Text style={[styles.title, { color: currentTheme.text }]}>
-          Loading...
-        </Text>
+      <View
+        style={[
+          {
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: currentTheme.background,
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
@@ -113,17 +120,16 @@ export default function SignUpScreen() {
       resizeMode="cover"
     >
       <View style={styles.overlay}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View
-            style={[
-              styles.formContainer,
-              { backgroundColor: currentTheme.card },
-            ]}
-          >
-            <Text style={[styles.title, { color: currentTheme.text }]}>
+        <View
+          style={[styles.authContainer, { backgroundColor: currentTheme.card }]}
+        >
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <Text style={[styles.welcomeTitle, { color: currentTheme.text }]}>
               Create a new account
             </Text>
-            <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
+            <Text
+              style={[styles.signInInstruction, { color: currentTheme.muted }]}
+            >
               Fill in the details to get started
             </Text>
 
@@ -343,77 +349,78 @@ export default function SignUpScreen() {
                 </Text>
               </TouchableOpacity>
             </Link>
-
-            {/* Social Login */}
-            {/* <SocialButton iconName="google" label="Continue with Google" onPress={() => console.log("Google")} /> */}
-          </View>
-        </ScrollView>
-
-        {/* Terms Modal */}
-        <Modal visible={showTermsModal} animationType="slide" transparent>
-          <SafeAreaView style={styles.modalContainer}>
-            <View
-              style={[
-                styles.modalContent,
-                { backgroundColor: currentTheme.card },
-              ]}
-            >
-              <ScrollView style={{ padding: 16 }}>
-                <Text
-                  style={{
-                    fontSize: 20,
-                    fontWeight: "700",
-                    textAlign: "center",
-                    marginBottom: 12,
-                    color: currentTheme.text,
-                  }}
-                >
-                  Terms and Conditions
-                </Text>
-                <Text style={{ color: currentTheme.text, marginTop: 16 }}>
-                  1. RentStore is a platform for listing and renting properties.
-                  {"\n\n"}
-                  2. Users are independent contractors.{"\n\n"}
-                  3. RentStore is not responsible for disputes.{"\n\n"}
-                  4. Accepting Terms is required to create an account.{"\n\n"}
-                </Text>
-              </ScrollView>
-              <Pressable
-                style={[
-                  styles.modalCloseButton,
-                  { backgroundColor: "#3B82F6" },
-                ]}
-                onPress={() => setShowTermsModal(false)}
-              >
-                <Text style={styles.loginButtonText}>Close</Text>
-              </Pressable>
-            </View>
-          </SafeAreaView>
-        </Modal>
-
-        <Toast />
+          </ScrollView>
+        </View>
       </View>
+
+      {/* Terms Modal */}
+      <Modal visible={showTermsModal} animationType="slide" transparent>
+        <SafeAreaView style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: currentTheme.card },
+            ]}
+          >
+            <ScrollView style={{ padding: 16 }}>
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: "700",
+                  textAlign: "center",
+                  marginBottom: 12,
+                  color: currentTheme.text,
+                }}
+              >
+                Terms and Conditions
+              </Text>
+              <Text style={{ color: currentTheme.text, marginTop: 16 }}>
+                1. RentStore is a platform for listing and renting properties.
+                {"\n\n"}
+                2. Users are independent contractors.{"\n\n"}
+                3. RentStore is not responsible for disputes.{"\n\n"}
+                4. Accepting Terms is required to create an account.{"\n\n"}
+              </Text>
+            </ScrollView>
+            <Pressable
+              style={[styles.modalCloseButton, { backgroundColor: "#3B82F6" }]}
+              onPress={() => setShowTermsModal(false)}
+            >
+              <Text style={styles.loginButtonText}>Close</Text>
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      <Toast />
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   backgroundImage: { flex: 1, width: "100%", height: "100%" },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.2)" },
-  scrollContainer: { padding: 24, justifyContent: "flex-end" },
-  formContainer: {
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+    justifyContent: "flex-end",
+  },
+  authContainer: {
     backgroundColor: "#fff",
-    borderRadius: 30,
-    padding: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 30,
+    paddingTop: 30,
+    paddingBottom: 50,
     minHeight: "70%",
   },
-  title: {
+  scrollContainer: { paddingBottom: 10 },
+  welcomeTitle: {
     fontSize: 28,
     fontWeight: "700",
     marginBottom: 4,
     textAlign: "center",
   },
-  subtitle: { fontSize: 16, marginBottom: 20, textAlign: "center" },
+  signInInstruction: { fontSize: 16, marginBottom: 20, textAlign: "center" },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",

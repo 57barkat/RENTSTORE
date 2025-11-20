@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   Image,
   FlatList,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
@@ -16,6 +16,7 @@ import {
   HostelFormContext,
   HostelFormData,
 } from "@/contextStore/HostelFormContext";
+import Toast from "react-native-toast-message";
 
 type ImageUriArray = string[];
 
@@ -41,10 +42,11 @@ const HostelPhotosScreen: FC = () => {
   const handleAddPhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "You need to grant media library access to upload hostel photos."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Permission required",
+        text2: "You need to grant media library access to upload hostel photos.",
+      });
       return;
     }
 
@@ -69,15 +71,28 @@ const HostelPhotosScreen: FC = () => {
 
   // --- Image Removal Function ---
   const handleRemovePhoto = (uriToRemove: string) => {
-    setSelectedImages((prev) => {
-      const updatedUris = prev.filter((uri) => uri !== uriToRemove);
-      updateForm("photos" as keyof HostelFormData, updatedUris);
-      return updatedUris;
+    const updatedUris = selectedImages.filter((uri) => uri !== uriToRemove);
+    setSelectedImages(updatedUris);
+    updateForm("photos" as keyof HostelFormData, updatedUris);
+
+    Toast.show({
+      type: "info",
+      text1: "Photo removed",
+      text2: `${updatedUris.length} photos remaining`,
     });
   };
 
   // --- Navigation & Validation ---
   const handleNext = () => {
+    const MIN_PHOTOS_REQUIRED = 5;
+    if (selectedImages.length < MIN_PHOTOS_REQUIRED) {
+      Toast.show({
+        type: "error",
+        text1: "Not enough photos",
+        text2: `Please add at least ${MIN_PHOTOS_REQUIRED} photos to continue.`,
+      });
+      return;
+    }
     router.push("/upload/hostelForm/ListingTitleScreen" as `${string}:param`);
   };
 
@@ -131,6 +146,27 @@ const HostelPhotosScreen: FC = () => {
         </Text>
       )}
 
+      {loading && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.4)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 999,
+          }}
+        >
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={{ color: "#fff", marginTop: 10, fontSize: 16 }}>
+            Loading images...
+          </Text>
+        </View>
+      )}
+
       <FlatList
         data={selectedImages}
         renderItem={renderImageItem}
@@ -140,6 +176,8 @@ const HostelPhotosScreen: FC = () => {
         contentContainerStyle={styles.imageGridContent}
         showsVerticalScrollIndicator={false}
       />
+
+      <Toast />
     </StepContainer>
   );
 };

@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
@@ -80,7 +79,11 @@ const FinalAddressDetailsScreen: FC = () => {
     setErrors(errors);
 
     if (!valid) {
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please correct the highlighted fields.",
+      });
       setLoading(false);
       return;
     }
@@ -89,7 +92,10 @@ const FinalAddressDetailsScreen: FC = () => {
     const result = await submitData();
 
     if (result.success) {
-      Toast.show({ type: "success", text1: "Property uploaded successfully!" });
+      Toast.show({
+        type: "success",
+        text1: "Property uploaded successfully!",
+      });
       setTimeout(() => router.replace("/MyListingsScreen"), 1500);
     } else {
       Toast.show({
@@ -107,7 +113,11 @@ const FinalAddressDetailsScreen: FC = () => {
     setErrors(errors);
 
     if (!valid) {
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please correct the highlighted fields.",
+      });
       return;
     }
 
@@ -207,21 +217,6 @@ const FinalAddressDetailsScreen: FC = () => {
                 )}
               </View>
             ))}
-
-            {/* <TouchableOpacity
-              onPress={() => setAddresses((prev) => [...prev, initialAddress])}
-              disabled={loading}
-            >
-              <Text
-                style={{
-                  color: loading ? "#999" : "#007AFF",
-                  textAlign: "center",
-                  marginTop: 10,
-                }}
-              >
-                + Add Another Address
-              </Text>
-            </TouchableOpacity> */}
 
             <Toast />
           </ScrollView>

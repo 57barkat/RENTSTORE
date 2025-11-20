@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from "react";
+import React, { useEffect, useContext, useState } from "react";
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Alert,
+  Modal,
 } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -18,6 +18,7 @@ import {
   useFindPropertyByIdAndDeleteMutation,
 } from "@/services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 export default function DraftProperties() {
   const { theme } = useTheme();
@@ -34,28 +35,41 @@ export default function DraftProperties() {
 
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
   useEffect(() => {
     refetch();
   }, []);
 
   const handleEdit = (data: FormData) => {
-    console.log("coming from draft page", data);
     formContext?.setFullFormData({ ...data });
 
-    // TEMPORARY: Add a small delay for state update to process
     setTimeout(() => {
       router.push("/upload/IntroStep1");
-    }, 50); // 50ms should be plenty for the state update
+    }, 50);
   };
 
-  const handleDelete = async (id: string) => {
+  const onDeleteConfirm = async () => {
+    if (!selectedId) return;
     try {
-      await deleteProperty(id).unwrap();
-      Alert.alert("Deleted!", "Draft property has been removed.");
+      await deleteProperty(selectedId).unwrap();
+
+      Toast.show({
+        type: "success",
+        text1: "Draft Deleted",
+        text2: "Your draft has been removed.",
+      });
+
+      setShowDeleteModal(false);
       refetch();
     } catch (err) {
-      console.error("Delete failed:", err);
-      Alert.alert("Error", "Failed to delete draft.");
+      Toast.show({
+        type: "error",
+        text1: "Delete Failed",
+        text2: "Something went wrong.",
+      });
+      console.error(err);
     }
   };
 
@@ -121,32 +135,22 @@ export default function DraftProperties() {
             size={20}
             color="#fff"
           />
-          <Text style={[styles.buttonText]}>Edit</Text>
+          <Text style={styles.buttonText}>Edit</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: currentTheme.danger }]}
-          onPress={() =>
-            Alert.alert(
-              "Confirm Deletion",
-              "Are you sure you want to delete this draft?",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: () => handleDelete(item._id),
-                },
-              ]
-            )
-          }
+          onPress={() => {
+            setSelectedId(item._id);
+            setShowDeleteModal(true);
+          }}
         >
           <MaterialCommunityIcons
             name="delete-outline"
             size={20}
             color="#fff"
           />
-          <Text style={[styles.buttonText]}>Delete</Text>
+          <Text style={styles.buttonText}>Delete</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -159,6 +163,7 @@ export default function DraftProperties() {
       <Text style={[styles.header, { color: currentTheme.text }]}>
         Your Drafts
       </Text>
+
       <FlatList
         data={data}
         keyExtractor={(item) => item._id}
@@ -168,6 +173,39 @@ export default function DraftProperties() {
           backgroundColor: currentTheme.background,
         }}
       />
+
+      {/* Delete Confirmation Modal */}
+      <Modal transparent visible={showDeleteModal} animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: currentTheme.card }]}>
+            <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
+              Confirm Deletion
+            </Text>
+
+            <Text style={[styles.modalText, { color: currentTheme.muted }]}>
+              Are you sure you want to delete this draft?
+            </Text>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: currentTheme.border }]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={{ color: currentTheme.text }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: currentTheme.danger }]}
+                onPress={onDeleteConfirm}
+              >
+                <Text style={{ color: "#fff" }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Toast />
     </View>
   );
 }
@@ -204,4 +242,30 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    width: "80%",
+    padding: 20,
+    borderRadius: 12,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "600", marginBottom: 10 },
+  modalText: { fontSize: 14, marginBottom: 20 },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  modalBtn: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
 });

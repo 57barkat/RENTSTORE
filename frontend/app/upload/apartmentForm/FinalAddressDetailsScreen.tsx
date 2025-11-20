@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
@@ -73,8 +72,12 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
     const { valid, errors } = validateAddresses(addresses);
     setErrors(errors);
 
-    if (!valid) {   
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+    if (!valid) {
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please correct the highlighted fields.",
+      });
       return;
     }
 

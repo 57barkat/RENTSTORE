@@ -168,7 +168,7 @@ export default function SignInScreen() {
             </Link>
           </View>
 
-          <SocialButton
+          {/* <SocialButton
             iconName="phone"
             label="Continue with phone number"
             onPress={() => console.log("Phone")}
@@ -177,7 +177,7 @@ export default function SignInScreen() {
             iconName="google"
             label="Continue with Google"
             onPress={() => console.log("Google")}
-          />
+          /> */}
         </View>
       </View>
     </ImageBackground>

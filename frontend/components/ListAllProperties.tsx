@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 16, marginLeft: 10, fontWeight: "500" },
-  popularCitiesContainer: { marginVertical: 10 },
+  popularCitiesContainer: { marginVertical: 10 , paddingLeft:5},
   sectionTitle: { fontSize: 20, fontWeight: "700", marginLeft: 8 },
   resultsTitle: { 
     fontSize: 18,

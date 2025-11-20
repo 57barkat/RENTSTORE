@@ -1,2 +1,2 @@
-./frontend/.env
-frontend/.env*
+frontend/.env 
+backend/insert_properties.js

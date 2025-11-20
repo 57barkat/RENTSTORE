@@ -1,18 +1,22 @@
-import React, { useState, FC, useContext } from "react";
+import React, { FC, useState, useContext } from "react";
 import {
   Text,
   View,
   TouchableOpacity,
   Image,
   FlatList,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
-import { ApartmentFormContext, ApartmentFormData } from "@/contextStore/ApartmentFormContextType";
+import {
+  ApartmentFormContext,
+  ApartmentFormData,
+} from "@/contextStore/ApartmentFormContextType";
+import Toast from "react-native-toast-message";
 
 type ImageUriArray = string[];
 
@@ -38,10 +42,12 @@ const ApartmentPhotosScreen: FC = () => {
   const handleAddPhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert(
-        "Permission required",
-        "You need to grant media library access to upload apartment photos."
-      );
+      Toast.show({
+        type: "error",
+        text1: "Permission required",
+        text2:
+          "You need to grant media library access to upload apartment photos.",
+      });
       return;
     }
 
@@ -61,6 +67,11 @@ const ApartmentPhotosScreen: FC = () => {
 
       setSelectedImages(updatedUris);
       updateForm("photos" as keyof ApartmentFormData, updatedUris);
+      Toast.show({
+        type: "success",
+        text1: "Photos added",
+        text2: `${newUris.length} photo(s) added successfully`,
+      });
     }
   };
 
@@ -69,6 +80,10 @@ const ApartmentPhotosScreen: FC = () => {
     setSelectedImages((prev) => {
       const updatedUris = prev.filter((uri) => uri !== uriToRemove);
       updateForm("photos" as keyof ApartmentFormData, updatedUris);
+      Toast.show({
+        type: "info",
+        text1: "Photo removed",
+      });
       return updatedUris;
     });
   };
@@ -139,6 +154,9 @@ const ApartmentPhotosScreen: FC = () => {
         contentContainerStyle={styles.imageGridContent}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Toast Component */}
+      <Toast />
     </StepContainer>
   );
 };

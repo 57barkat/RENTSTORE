@@ -1,55 +1,73 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Text } from "react-native";
 
 type AuthContextType = {
   token: string | null;
   isVerified: boolean;
+  hasToken: boolean;
+  loading: boolean;
   login: (newToken: string, verified?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   setVerified: (verified: boolean) => Promise<void>;
-  hasToken: boolean;
 };
 
 const AuthContext = createContext<AuthContextType>({
   token: null,
   isVerified: false,
+  hasToken: false,
+  loading: true,
   login: async () => {},
   logout: async () => {},
   setVerified: async () => {},
-  hasToken: false,
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [isVerified, setIsVerifiedState] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      const storedToken = await AsyncStorage.getItem("accessToken");
-      const storedVerified = await AsyncStorage.getItem("isVerified");
-      if (storedToken) setToken(storedToken);
-      setIsVerified(storedVerified === "true");
+    const loadAuth = async () => {
+      try {
+        console.log("Loading auth from AsyncStorage...");
+        const keys = await AsyncStorage.getAllKeys();
+        console.log("AsyncStorage keys:", keys);
+
+        const storedToken = await AsyncStorage.getItem("accessToken");
+        const storedVerified = await AsyncStorage.getItem("isVerified");
+
+        if (storedToken) setToken(storedToken);
+        setIsVerifiedState(storedVerified === "true");
+
+        console.log("Stored token:", storedToken);
+        console.log("Verified:", storedVerified);
+      } catch (error) {
+        console.warn("Error loading auth from AsyncStorage:", error);
+      } finally {
+        setLoading(false);
+        console.log("Auth loading finished");
+      }
     };
-    loadData();
+
+    loadAuth();
   }, []);
 
   const login = async (newToken: string, verified = false) => {
     setToken(newToken);
-    setIsVerified(verified);
+    setIsVerifiedState(verified);
     await AsyncStorage.setItem("accessToken", newToken);
     await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
   };
 
   const setVerified = async (verified: boolean) => {
-    setIsVerified(verified);
+    setIsVerifiedState(verified);
     await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
   };
 
   const logout = async () => {
     setToken(null);
-    setIsVerified(false);
+    setIsVerifiedState(false);
     await AsyncStorage.removeItem("accessToken");
     await AsyncStorage.removeItem("isVerified");
   };
@@ -59,13 +77,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         token,
         isVerified,
+        hasToken: !!token,
+        loading,
         login,
         logout,
         setVerified,
-        hasToken: !!token,
       }}
     >
-      {children}
+      {loading ? (
+        <Text>Loading authentication...</Text> // Safe RN rendering
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

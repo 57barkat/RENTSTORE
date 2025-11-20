@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
@@ -35,7 +34,6 @@ const FinalAddressDetailsScreen: FC = () => {
     zipCode: "",
   };
 
-  
   const [addresses, setAddresses] = useState<Address[]>(
     data.address?.length ? data.address : [initialAddress]
   );
@@ -68,48 +66,22 @@ const FinalAddressDetailsScreen: FC = () => {
     []
   );
 
-  const handleFinish = async () => {
-    if (loading) return;
-    setLoading(true);
-
-    const { valid, errors } = validateAddresses(addresses);
-    setErrors(errors);
-
-    if (!valid) {
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
-      setLoading(false);
-      return;
-    }
-
-    updateForm("address", addresses);
-    const result = await submitData();
-
-    if (result.success) {
-      Toast.show({ type: "success", text1: "Property uploaded successfully!" });
-      setTimeout(() => router.replace("/MyListingsScreen"), 1500);
-    } else {
-      Toast.show({
-        type: "error",
-        text1: "Upload failed",
-        text2: "Please try again later.",
-      });
-    }
-
-    setLoading(false);
-  };
-
   const handleNext = async () => {
     const { valid, errors } = validateAddresses(addresses);
     setErrors(errors);
 
-    if (!valid) {   
-      Alert.alert("Validation Error", "Please correct the highlighted fields.");
+    if (!valid) {
+      Toast.show({
+        type: "error",
+        text1: "Validation Error",
+        text2: "Please correct the highlighted fields.",
+      });
       return;
     }
 
-    // Pass latest addresses directly to submit
-    const result = await submitData({ ...data, address: addresses });
     updateForm("address", addresses);
+
+    const result = await submitData({ ...data, address: addresses });
 
     if (result.success) {
       Toast.show({

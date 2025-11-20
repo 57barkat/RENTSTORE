@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -14,6 +13,7 @@ import { StepContainerProps } from "@/types/Welcome.types";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import Toast from "react-native-toast-message";
 
 const StepContainer: React.FC<StepContainerProps> = ({
   title,
@@ -30,13 +30,19 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
+  // Back button
   const handleBack = () => {
     if (showBack) router.back();
   };
 
+  // Save & Exit button
   const handleExit = async () => {
     if (!formContext) {
-      Alert.alert("Error", "Form context not found");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Form context not found",
+      });
       return;
     }
 
@@ -44,20 +50,48 @@ const StepContainer: React.FC<StepContainerProps> = ({
       setIsSaving(true);
       const result = await formContext.submitDraftData();
       if (result.success) {
-        Alert.alert(
-          "Draft saved!",
-          "Your progress has been saved successfully."
-        );
+        Toast.show({
+          type: "success",
+          text1: "Draft saved!",
+          text2: "Your progress has been saved successfully.",
+        });
       } else {
-        Alert.alert("Error", "Failed to save draft.");
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Failed to save draft.",
+        });
         console.error(result.error);
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Something went wrong while saving the draft.");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Something went wrong while saving the draft.",
+      });
     } finally {
       setIsSaving(false);
       router.replace("/homePage");
+    }
+  };
+
+  // Next / Finish button
+  const handleNext = async () => {
+    if (!onNext) return;
+
+    try {
+      setIsSaving(true);
+      await onNext();
+    } catch (err) {
+      console.error(err);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Something went wrong while processing.",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -95,7 +129,6 @@ const StepContainer: React.FC<StepContainerProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Main Content */}
       <View style={styles.content}>
         {title && (
           <Text style={[styles.title, { color: currentTheme.text }]}>
@@ -105,7 +138,6 @@ const StepContainer: React.FC<StepContainerProps> = ({
         {children}
       </View>
 
-      {/* Footer Navigation */}
       <View style={styles.footer}>
         <View
           style={[
@@ -135,33 +167,39 @@ const StepContainer: React.FC<StepContainerProps> = ({
           )}
 
           <TouchableOpacity
-            onPress={onNext}
+            onPress={handleNext}
             style={[
               styles.nextButton,
               {
                 backgroundColor: isNextDisabled
-                  ?"#BDBDBD"  
+                  ? "#BDBDBD"
                   : currentTheme.primary,
-                opacity: isNextDisabled ? 0.6 : 1,
+                opacity: isNextDisabled || isSaving ? 0.6 : 1,
               },
             ]}
-            disabled={isNextDisabled}
+            disabled={isNextDisabled || isSaving}
           >
-            <Text
-              style={[
-                styles.nextButtonText,
-                {
-                  color: isNextDisabled
-                    ? currentTheme.text // readable in disabled mode
-                    : currentTheme.card,
-                },
-              ]}
-            >
-              {nextButtonText}
-            </Text>
+            {isSaving ? (
+              <ActivityIndicator color={currentTheme.card} />
+            ) : (
+              <Text
+                style={[
+                  styles.nextButtonText,
+                  {
+                    color: isNextDisabled
+                      ? currentTheme.text
+                      : currentTheme.card,
+                  },
+                ]}
+              >
+                {nextButtonText}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
+
+      <Toast />
     </SafeAreaView>
   );
 };

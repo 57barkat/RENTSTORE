@@ -1,5 +1,6 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
+frontend/.env
+.env
 # dependencies
 node_modules/
 
@@ -32,7 +33,6 @@ frontend/.env
 
 # local env files
 .env*.local
-.env*
 # typescript
 *.tsbuildinfo
 app-example
