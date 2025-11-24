@@ -28,6 +28,7 @@ import StepContainer from "../Welcome";
 import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { Address } from "@/types/FinalAddressDetailsScreen.types";
 
 // --- Mapbox Token Initialization
 const MAPBOX_TOKEN: string =
@@ -96,7 +97,17 @@ const HostelLocationScreen = () => {
     );
 
   const { data, updateForm } = formContext;
+
   const [address, setAddress] = useState<string>(data.location ?? "");
+  const [addressObj, setAddressObj] = useState<Address>({
+    aptSuiteUnit: "",
+    street: "",
+    city: "",
+    stateTerritory: "",
+    zipCode: "",
+    country: "",
+  });
+
   const [coords, setCoords] = useState<Coords>(DEFAULT_COORDS);
   const [loading, setLoading] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(
@@ -111,19 +122,33 @@ const HostelLocationScreen = () => {
   const mapRef = useRef<Mapbox.MapView | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reverse geocode
+  // Reverse geocode -> returns structured Address object
   const reverseGeocode = useCallback(
-    async (location: Coords): Promise<string> => {
+    async (location: Coords): Promise<Address> => {
       try {
         const geo = await Location.reverseGeocodeAsync(location);
         if (geo?.[0]) {
-          const { name, street, city } = geo[0];
-          return `${name || ""} ${street || ""} ${city || ""}`.trim();
+          const { name, street, city, region, postalCode, country } = geo[0];
+          return {
+            aptSuiteUnit: name || "",
+            street: street || "",
+            city: city || "",
+            stateTerritory: region || "",
+            zipCode: postalCode || "",
+            country: country || "",
+          };
         }
       } catch (err) {
         console.error("Reverse geocoding error:", err);
       }
-      return "";
+      return {
+        aptSuiteUnit: "",
+        street: "",
+        city: "",
+        stateTerritory: "",
+        zipCode: "",
+        country: "",
+      };
     },
     []
   );
@@ -146,8 +171,12 @@ const HostelLocationScreen = () => {
           longitude: loc.coords.longitude,
         };
         setCoords(newCoords);
-        const addr = await reverseGeocode(newCoords);
-        setAddress(addr);
+
+        const addrObj = await reverseGeocode(newCoords);
+        setAddressObj(addrObj);
+        setAddress(
+          `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
+        );
       } catch (err) {
         console.error("Initial location error:", err);
       } finally {
@@ -162,7 +191,8 @@ const HostelLocationScreen = () => {
     updateForm("lat", coords.latitude);
     updateForm("lng", coords.longitude);
     updateForm("location", address);
-  }, [coords, address]);
+    updateForm("address", [addressObj]);
+  }, [coords, address, addressObj]);
 
   // Debounced search
   const handleAddressChange = useCallback((text: string) => {
@@ -187,13 +217,18 @@ const HostelLocationScreen = () => {
       setCoords(newCoords);
       setSuggestions([]);
       Keyboard.dismiss();
+
       cameraRef.current?.setCamera({
         centerCoordinate: [lon, lat],
         zoomLevel: INITIAL_ZOOM,
         animationDuration: 500,
       });
-      const addr = await reverseGeocode(newCoords);
-      setAddress(addr);
+
+      const addrObj = await reverseGeocode(newCoords);
+      setAddressObj(addrObj);
+      setAddress(
+        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
+      );
     },
     [reverseGeocode]
   );
@@ -205,8 +240,12 @@ const HostelLocationScreen = () => {
       const [lon, lat] = center;
       const newCoords = { latitude: lat, longitude: lon };
       setCoords(newCoords);
-      const addr = await reverseGeocode(newCoords);
-      setAddress(addr);
+
+      const addrObj = await reverseGeocode(newCoords);
+      setAddressObj(addrObj);
+      setAddress(
+        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
+      );
     },
     [reverseGeocode]
   );
@@ -218,8 +257,12 @@ const HostelLocationScreen = () => {
       const [lon, lat] = coordsArr;
       const newCoords = { latitude: lat, longitude: lon };
       setCoords(newCoords);
-      const addr = await reverseGeocode(newCoords);
-      setAddress(addr);
+
+      const addrObj = await reverseGeocode(newCoords);
+      setAddressObj(addrObj);
+      setAddress(
+        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
+      );
     },
     [reverseGeocode]
   );
@@ -409,6 +452,7 @@ const HostelLocationScreen = () => {
 };
 
 export default HostelLocationScreen;
+
 const styles = StyleSheet.create({
   inputContainer: { zIndex: 10 },
   searchBox: {

@@ -11,6 +11,8 @@ import {
   SafeAreaView,
   Pressable,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -71,9 +73,8 @@ export default function SignUpScreen() {
 
     try {
       const result = await createUser(payload).unwrap();
-
       if (result.accessToken) {
-        await login(result.accessToken);
+        await login(result.accessToken ?? result.token, result.refreshToken, result.isPhoneVerified);
         await AsyncStorage.setItem("userName", values.name);
         await AsyncStorage.setItem("userEmail", values.email);
         await AsyncStorage.setItem("userPhone", values.phone);
@@ -119,279 +120,304 @@ export default function SignUpScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay}>
-        <View
-          style={[styles.authContainer, { backgroundColor: currentTheme.card }]}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            padding: 20,
+          }}
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
-            <Text style={[styles.welcomeTitle, { color: currentTheme.text }]}>
-              Create a new account
-            </Text>
-            <Text
-              style={[styles.signInInstruction, { color: currentTheme.muted }]}
+          <View style={styles.overlay}>
+            <View
+              style={[
+                styles.authContainer,
+                { backgroundColor: currentTheme.card },
+              ]}
             >
-              Fill in the details to get started
-            </Text>
+              <View style={styles.scrollContainer}>
+                <Text
+                  style={[styles.welcomeTitle, { color: currentTheme.text }]}
+                >
+                  Create a new account
+                </Text>
+                <Text
+                  style={[
+                    styles.signInInstruction,
+                    { color: currentTheme.muted },
+                  ]}
+                >
+                  Fill in the details to get started
+                </Text>
 
-            <Formik
-              initialValues={initialValues}
-              validationSchema={signupValidationSchema(role)}
-              onSubmit={handleSignUp}
-            >
-              {({
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                values,
-                errors,
-                touched,
-              }) => (
-                <>
-                  {/* Name */}
-                  <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons
-                      name="account-outline"
-                      size={20}
-                      color="#A0AEC0"
-                      style={styles.icon}
-                    />
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Full Name"
-                      placeholderTextColor="#A0AEC0"
-                      value={values.name}
-                      onChangeText={handleChange("name")}
-                      onBlur={handleBlur("name")}
-                    />
-                  </View>
-                  {touched.name && errors.name && (
-                    <Text style={styles.error}>{errors.name}</Text>
-                  )}
-
-                  {/* Email */}
-                  <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons
-                      name="email-outline"
-                      size={20}
-                      color="#A0AEC0"
-                      style={styles.icon}
-                    />
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Email"
-                      placeholderTextColor="#A0AEC0"
-                      value={values.email}
-                      onChangeText={handleChange("email")}
-                      onBlur={handleBlur("email")}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
-                  {touched.email && errors.email && (
-                    <Text style={styles.error}>{errors.email}</Text>
-                  )}
-
-                  {/* Password */}
-                  <View style={styles.inputContainer}>
-                    <Feather
-                      name="lock"
-                      size={20}
-                      color="#A0AEC0"
-                      style={styles.icon}
-                    />
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Password"
-                      placeholderTextColor="#A0AEC0"
-                      secureTextEntry
-                      value={values.password}
-                      onChangeText={handleChange("password")}
-                      onBlur={handleBlur("password")}
-                    />
-                  </View>
-                  {touched.password && errors.password && (
-                    <Text style={styles.error}>{errors.password}</Text>
-                  )}
-
-                  {/* Phone */}
-                  <View style={styles.inputContainer}>
-                    <Feather
-                      name="phone"
-                      size={20}
-                      color="#A0AEC0"
-                      style={styles.icon}
-                    />
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Phone"
-                      placeholderTextColor="#A0AEC0"
-                      keyboardType="phone-pad"
-                      value={values.phone}
-                      onChangeText={handleChange("phone")}
-                      onBlur={handleBlur("phone")}
-                    />
-                  </View>
-                  {touched.phone && errors.phone && (
-                    <Text style={styles.error}>{errors.phone}</Text>
-                  )}
-
-                  {/* Agency fields */}
-                  {role === "agency" && (
+                <Formik
+                  initialValues={initialValues}
+                  validationSchema={signupValidationSchema(role)}
+                  onSubmit={handleSignUp}
+                >
+                  {({
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                    values,
+                    errors,
+                    touched,
+                  }) => (
                     <>
                       <View style={styles.inputContainer}>
+                        <MaterialCommunityIcons
+                          name="account-outline"
+                          size={20}
+                          color="#A0AEC0"
+                          style={styles.icon}
+                        />
                         <TextInput
                           style={[styles.input, { color: currentTheme.text }]}
-                          placeholder="Agency Name"
+                          placeholder="Full Name"
                           placeholderTextColor="#A0AEC0"
-                          value={values.agencyName}
-                          onChangeText={handleChange("agencyName")}
-                          onBlur={handleBlur("agencyName")}
+                          value={values.name}
+                          onChangeText={handleChange("name")}
+                          onBlur={handleBlur("name")}
                         />
                       </View>
-                      {touched.agencyName && errors.agencyName && (
-                        <Text style={styles.error}>{errors.agencyName}</Text>
+                      {touched.name && errors.name && (
+                        <Text style={styles.error}>{errors.name}</Text>
+                      )}
+
+                      <View style={styles.inputContainer}>
+                        <MaterialCommunityIcons
+                          name="email-outline"
+                          size={20}
+                          color="#A0AEC0"
+                          style={styles.icon}
+                        />
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="Email"
+                          placeholderTextColor="#A0AEC0"
+                          value={values.email}
+                          onChangeText={handleChange("email")}
+                          onBlur={handleBlur("email")}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                        />
+                      </View>
+                      {touched.email && errors.email && (
+                        <Text style={styles.error}>{errors.email}</Text>
+                      )}
+
+                      <View style={styles.inputContainer}>
+                        <Feather
+                          name="lock"
+                          size={20}
+                          color="#A0AEC0"
+                          style={styles.icon}
+                        />
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="Password"
+                          placeholderTextColor="#A0AEC0"
+                          secureTextEntry
+                          value={values.password}
+                          onChangeText={handleChange("password")}
+                          onBlur={handleBlur("password")}
+                        />
+                      </View>
+                      {touched.password && errors.password && (
+                        <Text style={styles.error}>{errors.password}</Text>
+                      )}
+
+                      <View style={styles.inputContainer}>
+                        <Feather
+                          name="phone"
+                          size={20}
+                          color="#A0AEC0"
+                          style={styles.icon}
+                        />
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="Phone"
+                          placeholderTextColor="#A0AEC0"
+                          keyboardType="phone-pad"
+                          value={values.phone}
+                          onChangeText={handleChange("phone")}
+                          onBlur={handleBlur("phone")}
+                        />
+                      </View>
+                      {touched.phone && errors.phone && (
+                        <Text style={styles.error}>{errors.phone}</Text>
+                      )}
+
+                      {role === "agency" && (
+                        <>
+                          <View style={styles.inputContainer}>
+                            <TextInput
+                              style={[
+                                styles.input,
+                                { color: currentTheme.text },
+                              ]}
+                              placeholder="Agency Name"
+                              placeholderTextColor="#A0AEC0"
+                              value={values.agencyName}
+                              onChangeText={handleChange("agencyName")}
+                              onBlur={handleBlur("agencyName")}
+                            />
+                          </View>
+                          {touched.agencyName && errors.agencyName && (
+                            <Text style={styles.error}>
+                              {errors.agencyName}
+                            </Text>
+                          )}
+
+                          <View style={styles.inputContainer}>
+                            <TextInput
+                              style={[
+                                styles.input,
+                                { color: currentTheme.text },
+                              ]}
+                              placeholder="Agency License"
+                              placeholderTextColor="#A0AEC0"
+                              value={values.agencyLicense}
+                              onChangeText={handleChange("agencyLicense")}
+                              onBlur={handleBlur("agencyLicense")}
+                            />
+                          </View>
+                          {touched.agencyLicense && errors.agencyLicense && (
+                            <Text style={styles.error}>
+                              {errors.agencyLicense}
+                            </Text>
+                          )}
+                        </>
                       )}
 
                       <View style={styles.inputContainer}>
                         <TextInput
                           style={[styles.input, { color: currentTheme.text }]}
-                          placeholder="Agency License"
+                          placeholder="Preferences (optional)"
                           placeholderTextColor="#A0AEC0"
-                          value={values.agencyLicense}
-                          onChangeText={handleChange("agencyLicense")}
-                          onBlur={handleBlur("agencyLicense")}
+                          value={values.preferences}
+                          onChangeText={handleChange("preferences")}
+                          onBlur={handleBlur("preferences")}
                         />
                       </View>
-                      {touched.agencyLicense && errors.agencyLicense && (
-                        <Text style={styles.error}>{errors.agencyLicense}</Text>
+
+                      <View style={styles.inputContainer}>
+                        <TextInput
+                          style={[styles.input, { color: currentTheme.text }]}
+                          placeholder="CNIC"
+                          placeholderTextColor="#A0AEC0"
+                          value={values.cnic}
+                          onChangeText={handleChange("cnic")}
+                          onBlur={handleBlur("cnic")}
+                        />
+                      </View>
+                      {touched.cnic && errors.cnic && (
+                        <Text style={styles.error}>{errors.cnic}</Text>
                       )}
-                    </>
-                  )}
 
-                  {/* Preferences */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="Preferences (optional)"
-                      placeholderTextColor="#A0AEC0"
-                      value={values.preferences}
-                      onChangeText={handleChange("preferences")}
-                      onBlur={handleBlur("preferences")}
-                    />
-                  </View>
-
-                  {/* CNIC */}
-                  <View style={styles.inputContainer}>
-                    <TextInput
-                      style={[styles.input, { color: currentTheme.text }]}
-                      placeholder="CNIC"
-                      placeholderTextColor="#A0AEC0"
-                      value={values.cnic}
-                      onChangeText={handleChange("cnic")}
-                      onBlur={handleBlur("cnic")}
-                    />
-                  </View>
-                  {touched.cnic && errors.cnic && (
-                    <Text style={styles.error}>{errors.cnic}</Text>
-                  )}
-
-                  {/* Terms */}
-                  <TouchableOpacity
-                    style={styles.termsContainer}
-                    onPress={() => setShowTermsModal(true)}
-                  >
-                    <Checkbox
-                      status={acceptedTerms ? "checked" : "unchecked"}
-                      onPress={() => setAcceptedTerms(!acceptedTerms)}
-                      color="#3B82F6"
-                    />
-                    <Text style={styles.termsText}>
-                      I accept the{" "}
-                      <Text
-                        style={{
-                          color: "#3B82F6",
-                          textDecorationLine: "underline",
-                        }}
+                      <TouchableOpacity
+                        style={styles.termsContainer}
                         onPress={() => setShowTermsModal(true)}
                       >
-                        Terms and Conditions
+                        <Checkbox
+                          status={acceptedTerms ? "checked" : "unchecked"}
+                          onPress={() => setAcceptedTerms(!acceptedTerms)}
+                          color="#3B82F6"
+                        />
+                        <Text style={styles.termsText}>
+                          I accept the{" "}
+                          <Text
+                            style={{
+                              color: "#3B82F6",
+                              textDecorationLine: "underline",
+                            }}
+                            onPress={() => setShowTermsModal(true)}
+                          >
+                            Terms and Conditions
+                          </Text>
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.loginButton,
+                          { opacity: isLoading ? 0.7 : 1 },
+                        ]}
+                        onPress={() => handleSubmit()}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.loginButtonText}>Sign Up</Text>
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </Formik>
+
+                <Link href="/signin" asChild>
+                  <TouchableOpacity style={styles.signUpRow}>
+                    <Text style={{ color: currentTheme.text }}>
+                      Already have an account?{" "}
+                      <Text style={{ color: "#3B82F6", fontWeight: "600" }}>
+                        Sign In
                       </Text>
                     </Text>
                   </TouchableOpacity>
-
-                  {/* Sign Up Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.loginButton,
-                      { opacity: isLoading ? 0.7 : 1 },
-                    ]}
-                    onPress={() => handleSubmit()}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>Sign Up</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-            </Formik>
-
-            {/* Sign In Link */}
-            <Link href="/signin" asChild>
-              <TouchableOpacity style={styles.signUpRow}>
-                <Text style={{ color: currentTheme.text }}>
-                  Already have an account?{" "}
-                  <Text style={{ color: "#3B82F6", fontWeight: "600" }}>
-                    Sign In
-                  </Text>
-                </Text>
-              </TouchableOpacity>
-            </Link>
-          </ScrollView>
-        </View>
-      </View>
-
-      {/* Terms Modal */}
-      <Modal visible={showTermsModal} animationType="slide" transparent>
-        <SafeAreaView style={styles.modalContainer}>
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: currentTheme.card },
-            ]}
-          >
-            <ScrollView style={{ padding: 16 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "700",
-                  textAlign: "center",
-                  marginBottom: 12,
-                  color: currentTheme.text,
-                }}
-              >
-                Terms and Conditions
-              </Text>
-              <Text style={{ color: currentTheme.text, marginTop: 16 }}>
-                1. RentStore is a platform for listing and renting properties.
-                {"\n\n"}
-                2. Users are independent contractors.{"\n\n"}
-                3. RentStore is not responsible for disputes.{"\n\n"}
-                4. Accepting Terms is required to create an account.{"\n\n"}
-              </Text>
-            </ScrollView>
-            <Pressable
-              style={[styles.modalCloseButton, { backgroundColor: "#3B82F6" }]}
-              onPress={() => setShowTermsModal(false)}
-            >
-              <Text style={styles.loginButtonText}>Close</Text>
-            </Pressable>
+                </Link>
+              </View>
+            </View>
           </View>
-        </SafeAreaView>
-      </Modal>
 
+          <Modal visible={showTermsModal} animationType="slide" transparent>
+            <SafeAreaView style={styles.modalContainer}>
+              <View
+                style={[
+                  styles.modalContent,
+                  { backgroundColor: currentTheme.card },
+                ]}
+              >
+                <ScrollView style={{ padding: 16 }}>
+                  <Text
+                    style={{
+                      fontSize: 20,
+                      fontWeight: "700",
+                      textAlign: "center",
+                      marginBottom: 12,
+                      color: currentTheme.text,
+                    }}
+                  >
+                    Terms and Conditions
+                  </Text>
+                  <Text style={{ color: currentTheme.text, marginTop: 16 }}>
+                    1. RentStore is a platform for listing and renting
+                    properties.
+                    {"\n\n"}
+                    2. Users are independent contractors.{"\n\n"}
+                    3. RentStore is not responsible for disputes.{"\n\n"}
+                    4. Accepting Terms is required to create an account.{"\n\n"}
+                  </Text>
+                </ScrollView>
+                <Pressable
+                  style={[
+                    styles.modalCloseButton,
+                    { backgroundColor: "#3B82F6" },
+                  ]}
+                  onPress={() => setShowTermsModal(false)}
+                >
+                  <Text style={styles.loginButtonText}>Close</Text>
+                </Pressable>
+              </View>
+            </SafeAreaView>
+          </Modal>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <Toast />
     </ImageBackground>
   );

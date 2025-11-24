@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ImageBackground,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { Link, useRouter } from "expo-router";
 import { useLoginMutation } from "@/services/api";
@@ -73,8 +76,7 @@ export default function SignInScreen() {
 
     try {
       const res = await login({ emailOrPhone, password }).unwrap();
-      await saveToken(res.accessToken, res.isPhoneVerified);
-
+      await saveToken(res.accessToken, res.refreshToken, res.isPhoneVerified);
       if (res.name && res.email) {
         await AsyncStorage.setItem("userName", res.name);
         await AsyncStorage.setItem("userEmail", res.email);
@@ -106,69 +108,84 @@ export default function SignInScreen() {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay}>
-        <View style={styles.authContainer}>
-          <Text style={styles.welcomeTitle}>Welcome back</Text>
-          <Text style={styles.signInInstruction}>
-            Sign in to continue using app
-          </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: "center",
+            padding: 20,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.overlay}>
+            <View style={styles.authContainer}>
+              <Text style={styles.welcomeTitle}>Welcome back</Text>
+              <Text style={styles.signInInstruction}>
+                Sign in to continue using app
+              </Text>
 
-          <Text style={styles.inputLabel}>Email</Text>
-          <View style={styles.inputContainer}>
-            <MaterialCommunityIcons
-              name="email-outline"
-              size={20}
-              color="#A0AEC0"
-              style={styles.icon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#A0AEC0"
-              autoCapitalize="none"
-              value={emailOrPhone}
-              onChangeText={setEmailOrPhone}
-            />
-          </View>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={styles.inputContainer}>
+                <MaterialCommunityIcons
+                  name="email-outline"
+                  size={20}
+                  color="#A0AEC0"
+                  style={styles.icon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  placeholderTextColor="#A0AEC0"
+                  autoCapitalize="none"
+                  value={emailOrPhone}
+                  onChangeText={setEmailOrPhone}
+                />
+              </View>
 
-          <Text style={styles.inputLabel}>Password</Text>
-          <View style={styles.inputContainer}>
-            <Feather
-              name="lock"
-              size={20}
-              color="#A0AEC0"
-              style={styles.icon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#A0AEC0"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.inputContainer}>
+                <Feather
+                  name="lock"
+                  size={20}
+                  color="#A0AEC0"
+                  style={styles.icon}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor="#A0AEC0"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                />
+              </View>
 
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={handleSignIn}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
-            )}
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={handleSignIn}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.loginButtonText}>Login</Text>
+                )}
+              </TouchableOpacity>
 
-          <View style={styles.signUpRow}>
-            <Text style={styles.linkTextBase}>Don&apos;t have an account?</Text>
-            <Link href="/choose-role">
-              <Text style={styles.linkTextHighlight}> Sign up</Text>
-            </Link>
-          </View>
+              <View style={styles.signUpRow}>
+                <Text style={styles.linkTextBase}>
+                  Don&apos;t have an account?
+                </Text>
+                <Link href="/choose-role">
+                  <Text style={styles.linkTextHighlight}> Sign up</Text>
+                </Link>
+              </View>
 
-          {/* <SocialButton
+              {/* <SocialButton
             iconName="phone"
             label="Continue with phone number"
             onPress={() => console.log("Phone")}
@@ -178,8 +195,10 @@ export default function SignInScreen() {
             label="Continue with Google"
             onPress={() => console.log("Google")}
           /> */}
-        </View>
-      </View>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 }

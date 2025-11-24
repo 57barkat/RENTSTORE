@@ -1,40 +1,75 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl;
+
+const baseQuery = fetchBaseQuery({
+  baseUrl: API_URL,
+  prepareHeaders: async (headers) => {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    headers.set("Content-Type", "application/json");
+    return headers;
+  },
+});
+
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
-  const API_URL = Constants.expoConfig?.extra?.apiUrl;
-  const token = await AsyncStorage.getItem("accessToken");
-  const rawBaseQuery = fetchBaseQuery({
-    baseUrl: API_URL,
-    prepareHeaders: (headers) => {
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+  let result = await baseQuery(args, api, extraOptions);
+
+  if (result.error?.status === 401) {
+    // Try to refresh token
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+    if (refreshToken) {
+      const refreshResult = await baseQuery(
+        {
+          url: "/api/v1/users/refresh",
+          method: "POST",
+          body: { refreshToken },
+        },
+        api,
+        extraOptions
+      );
+
+      if (refreshResult.data) {
+        const { accessToken, refreshToken: newRefreshToken } =
+          refreshResult.data as any;
+        if (accessToken && newRefreshToken) {
+          await AsyncStorage.setItem("accessToken", accessToken);
+          await AsyncStorage.setItem("refreshToken", newRefreshToken);
+        }
+
+        // Retry original request
+        result = await baseQuery(args, api, extraOptions);
+      } else {
+        // Refresh failed → logout
+        api.dispatch({ type: "auth/logout" });
       }
-      return headers;
-    },
-  });
-  return rawBaseQuery(args, api, extraOptions);
+    } else {
+      api.dispatch({ type: "auth/logout" });
+    }
+  }
+
+  return result;
 };
 
 export const api = createApi({
   reducerPath: "api",
   baseQuery: customBaseQuery,
-
   endpoints: (builder) => ({
     // 🔹 USER AUTH
     createUser: builder.mutation({
-      query: (body) => ({
-        url: "/api/v1/users/signup",
-        method: "POST",
-        body,
-      }),
+      query: (body) => ({ url: "/api/v1/users/signup", method: "POST", body }),
     }),
     login: builder.mutation({
-      query: (body) => ({
-        url: "/api/v1/users/login",
-        method: "POST",
-        body,
-      }),
+      query: (body) => ({ url: "/api/v1/users/login", method: "POST", body }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          await AsyncStorage.setItem("accessToken", data.accessToken);
+          await AsyncStorage.setItem("refreshToken", data.refreshToken);
+        } catch {}
+      },
     }),
     deleteUser: builder.mutation({
       query: () => ({
@@ -43,24 +78,18 @@ export const api = createApi({
       }),
     }),
 
+    // 🔹 PROPERTY MUTATIONS
     createProperty: builder.mutation({
       query: (body) => {
         const formData = new FormData();
-
         Object.entries(body).forEach(([key, value]) => {
           if (key === "photos") return;
-
           if (value !== undefined && value !== null) {
-            if (typeof value === "object") {
-              // Convert empty arrays to "[]"
+            if (typeof value === "object")
               formData.append(key, JSON.stringify(value ?? []));
-            } else {
-              formData.append(key, String(value));
-            }
+            else formData.append(key, String(value));
           }
         });
-
-        // Append photos
         if (Array.isArray(body.photos)) {
           body.photos.forEach((uri: string, idx: number) => {
             formData.append("photos", {
@@ -70,27 +99,12 @@ export const api = createApi({
             } as any);
           });
         }
-
         return {
           url: "/api/v1/properties/create",
           method: "POST",
           body: formData,
         };
       },
-    }),
-
-    // 🔹 PROPERTY QUERIES
-    findMyProperties: builder.query({
-      query: () => ({
-        url: "/api/v1/properties/my-listings",
-        method: "GET",
-      }),
-    }),
-    findPropertyById: builder.query({
-      query: (id) => ({
-        url: `/api/v1/properties/${id}`,
-        method: "GET",
-      }),
     }),
     findPropertyByIdAndUpdate: builder.mutation({
       query: ({ id, data }) => ({
@@ -106,7 +120,19 @@ export const api = createApi({
       }),
     }),
 
-    // 🔹 FILTERS & SEARCH
+    // 🔹 PROPERTY QUERIES
+    findMyProperties: builder.query({
+      query: () => ({
+        url: "/api/v1/properties/my-listings",
+        method: "GET",
+      }),
+    }),
+    findPropertyById: builder.query({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}`,
+        method: "GET",
+      }),
+    }),
     getAllProperties: builder.query({
       query: (params = "") => ({
         url: `/api/v1/properties${params}`,
@@ -132,7 +158,6 @@ export const api = createApi({
         };
       },
     }),
-    // 🔹 FEATURED PROPERTIES
     getFeaturedProperties: builder.query({
       query: () => ({
         url: "/api/v1/properties/featured",
@@ -141,7 +166,7 @@ export const api = createApi({
     }),
     getDraftProperties: builder.query({
       query: () => ({
-        url: "/api/v1/properties/drafts   ",
+        url: "/api/v1/properties/drafts",
         method: "GET",
       }),
     }),

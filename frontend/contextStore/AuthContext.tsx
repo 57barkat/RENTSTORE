@@ -1,13 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
+import Constants from "expo-constants";
+
+const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
 type AuthContextType = {
   token: string | null;
   isVerified: boolean;
   hasToken: boolean;
   loading: boolean;
-  login: (newToken: string, verified?: boolean) => Promise<void>;
+  login: (
+    accessToken: string,
+    refreshToken: string,
+    verified?: boolean
+  ) => Promise<void>;
   logout: () => Promise<void>;
   setVerified: (verified: boolean) => Promise<void>;
 };
@@ -22,7 +29,9 @@ const AuthContext = createContext<AuthContextType>({
   setVerified: async () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [token, setToken] = useState<string | null>(null);
   const [isVerified, setIsVerifiedState] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -30,33 +39,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadAuth = async () => {
       try {
-        console.log("Loading auth from AsyncStorage...");
-        const keys = await AsyncStorage.getAllKeys();
-        console.log("AsyncStorage keys:", keys);
-
         const storedToken = await AsyncStorage.getItem("accessToken");
+        const storedRefresh = await AsyncStorage.getItem("refreshToken");
         const storedVerified = await AsyncStorage.getItem("isVerified");
 
-        if (storedToken) setToken(storedToken);
         setIsVerifiedState(storedVerified === "true");
 
-        console.log("Stored token:", storedToken);
-        console.log("Verified:", storedVerified);
+        if (storedToken) {
+          // Try refresh on app start
+          const response = await fetch(`${API_URL}/api/v1/users/refresh`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${storedToken}`,
+            },
+            body: JSON.stringify({ refreshToken: storedRefresh }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setToken(data.accessToken);
+            await AsyncStorage.setItem("accessToken", data.accessToken);
+            await AsyncStorage.setItem("refreshToken", data.refreshToken);
+            console.log("Access token refreshed on app start");
+          } else {
+            // refresh failed
+            await logout();
+          }
+        }
       } catch (error) {
-        console.warn("Error loading auth from AsyncStorage:", error);
+        console.warn("Error refreshing token:", error);
+        await logout();
       } finally {
         setLoading(false);
-        console.log("Auth loading finished");
       }
     };
 
     loadAuth();
   }, []);
 
-  const login = async (newToken: string, verified = false) => {
-    setToken(newToken);
+  const login = async (
+    accessToken: string,
+    refreshToken: string,
+    verified = false
+  ) => {
+    setToken(accessToken);
     setIsVerifiedState(verified);
-    await AsyncStorage.setItem("accessToken", newToken);
+    await AsyncStorage.setItem("accessToken", accessToken);
+    await AsyncStorage.setItem("refreshToken", refreshToken);
     await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
   };
 
@@ -69,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setIsVerifiedState(false);
     await AsyncStorage.removeItem("accessToken");
+    await AsyncStorage.removeItem("refreshToken");
     await AsyncStorage.removeItem("isVerified");
   };
 
@@ -84,11 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setVerified,
       }}
     >
-      {loading ? (
-        <Text>Loading authentication...</Text> // Safe RN rendering
-      ) : (
-        children
-      )}
+      {loading ? <Text>Loading authentication...</Text> : children}
     </AuthContext.Provider>
   );
 };

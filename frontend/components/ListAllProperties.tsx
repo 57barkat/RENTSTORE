@@ -16,7 +16,7 @@ import {
   Feather,
 } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { Colors } from "../constants/Colors";
+import { Colors } from "../constants/Colors"; 
 import { router, useFocusEffect } from "expo-router";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import { useDebounce } from "use-debounce";
@@ -76,6 +76,8 @@ export default function ListAllProperties() {
     max: dummyFilterOptions.rentRange.max,
   });
   const [beds, setBeds] = useState<number | null>(null);
+  const [loadingFavId, setLoadingFavId] = useState<string | null>(null);
+  
 
   // ✅ Query parameters
   const filteredPropertiesParams = useMemo(
@@ -109,11 +111,15 @@ export default function ListAllProperties() {
   // --- Handlers ---
   const handleToggleFav = async (propertyId: string, isFav?: boolean) => {
     try {
+      setLoadingFavId(propertyId);
       if (isFav) await removeUserFavorite({ propertyId });
       else await addToFav({ propertyId });
+
       refetch();
     } catch (err) {
       console.log("Fav error:", err);
+    } finally {
+      setLoadingFavId(null);
     }
   };
 
@@ -307,12 +313,17 @@ export default function ListAllProperties() {
         <TouchableOpacity
           style={styles.favButton}
           onPress={() => handleToggleFav(item._id, item.isFav)}
+          disabled={loadingFavId === item._id}
         >
-          <FontAwesome
-            name={item.isFav ? "heart" : "heart-o"}
-            size={20}
-            color={item.isFav ? currentTheme.danger : "#fff"}
-          />
+          {loadingFavId === item._id ? (
+            <ActivityIndicator size={18} color="#fff" />
+          ) : (
+            <FontAwesome
+              name={item.isFav ? "heart" : "heart-o"}
+              size={20}
+              color={item.isFav ? currentTheme.danger : "#fff"}
+            />
+          )}
         </TouchableOpacity>
 
         <View style={styles.cardContent}>
@@ -507,9 +518,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 16, marginLeft: 10, fontWeight: "500" },
-  popularCitiesContainer: { marginVertical: 10 , paddingLeft:5},
+  popularCitiesContainer: { marginVertical: 10, paddingLeft: 5 },
   sectionTitle: { fontSize: 20, fontWeight: "700", marginLeft: 8 },
-  resultsTitle: { 
+  resultsTitle: {
     fontSize: 18,
     marginLeft: 13,
     fontWeight: "700",
@@ -595,6 +606,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 20,
+    width: "100%",
+    paddingHorizontal: 10,
   },
   paginationButton: {
     paddingVertical: 10,
