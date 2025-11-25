@@ -74,7 +74,11 @@ export default function SignUpScreen() {
     try {
       const result = await createUser(payload).unwrap();
       if (result.accessToken) {
-        await login(result.accessToken ?? result.token, result.refreshToken, result.isPhoneVerified);
+        await login(
+          result.accessToken ?? result.token,
+          result.refreshToken,
+          result.isPhoneVerified
+        );
         await AsyncStorage.setItem("userName", values.name);
         await AsyncStorage.setItem("userEmail", values.email);
         await AsyncStorage.setItem("userPhone", values.phone);
@@ -115,23 +119,23 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ImageBackground
-      source={AuthImage}
-      style={styles.backgroundImage}
-      resizeMode="cover"
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
     >
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          // Removed justifyContent: "center" here for better flow when keyboard is open
+          // padding: 20,
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            padding: 20,
-          }}
-          keyboardShouldPersistTaps="handled"
+        <ImageBackground
+          source={AuthImage}
+          style={styles.backgroundImage}
+          resizeMode="cover"
         >
           <View style={styles.overlay}>
             <View
@@ -140,7 +144,7 @@ export default function SignUpScreen() {
                 { backgroundColor: currentTheme.card },
               ]}
             >
-              <View style={styles.scrollContainer}>
+              <View style={{ marginBottom: 20 }}>
                 <Text
                   style={[styles.welcomeTitle, { color: currentTheme.text }]}
                 >
@@ -416,80 +420,129 @@ export default function SignUpScreen() {
               </View>
             </SafeAreaView>
           </Modal>
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <Toast />
-    </ImageBackground>
+          <Toast />
+        </ImageBackground>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: { flex: 1, width: "100%", height: "100%" },
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.2)",
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "flex-end",
   },
   authContainer: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingHorizontal: 30,
-    paddingTop: 30,
-    paddingBottom: 50,
-    minHeight: "70%",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingHorizontal: 25,
+    paddingTop: 40,
+    paddingBottom: Platform.OS === "ios" ? 50 : 30,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 20,
   },
-  scrollContainer: { paddingBottom: 10 },
   welcomeTitle: {
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#1A202C",
     marginBottom: 4,
-    textAlign: "center",
+    textAlign: "left",
   },
-  signInInstruction: { fontSize: 16, marginBottom: 20, textAlign: "center" },
+  signInInstruction: {
+    fontSize: 15,
+    color: "#718096",
+    marginBottom: 30,
+    textAlign: "left",
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
+    borderColor: "#CBD5E0",
+    borderRadius: 16,
     paddingHorizontal: 15,
-    marginBottom: 12,
-    backgroundColor: "#F7FAFC",
+    marginBottom: 10,
+    backgroundColor: "#FFFFFF",
+    height: 55,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 1,
+    elevation: 0.5,
   },
-  icon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 12, fontSize: 16 },
-  error: { color: "#e74c3c", fontSize: 12, marginBottom: 8, marginTop: -6 },
-  termsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
+  icon: {
+    marginRight: 12,
   },
-  termsText: { fontSize: 14, flexShrink: 1 },
+  input: {
+    flex: 1,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: "#1A202C",
+  },
   loginButton: {
-    backgroundColor: "#3B82F6",
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: "#2B6CB0",
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 30,
+    marginBottom: 10,
+    shadowColor: "#2B6CB0",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  loginButtonText: { color: "#fff", fontWeight: "700", fontSize: 18 },
+  loginButtonText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 18,
+  },
   signUpRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 12,
-    marginBottom: 10,
+    marginTop: 20,
+    marginBottom: 15,
+  },
+  error: {
+    color: "red",
+    marginBottom: 8,
+    marginLeft: 5,
+  },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 15,
+  },
+  termsText: {
+    fontSize: 14,
+    flex: 1,
+    color: "#4A5568",
   },
   modalContainer: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    padding: 20,
   },
   modalContent: {
-    margin: 24,
-    borderRadius: 16,
-    maxHeight: "80%",
-    overflow: "hidden",
+    borderRadius: 20,
+    paddingBottom: 20,
   },
-  modalCloseButton: { paddingVertical: 14, alignItems: "center" },
+  modalCloseButton: {
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
 });
