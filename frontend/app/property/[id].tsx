@@ -4,10 +4,10 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Dimensions,
   TouchableOpacity,
   Linking,
-  // useWindowDimensions,
+  useWindowDimensions,
+  SafeAreaView,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useFindPropertyByIdQuery } from "@/services/api";
@@ -20,7 +20,6 @@ import {
   Feather,
 } from "@expo/vector-icons";
 
-const { width } = Dimensions.get("window");
 export const options = { headerShown: false };
 
 export default function PropertyDetails() {
@@ -28,14 +27,62 @@ export default function PropertyDetails() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
   const { data: property, isLoading } = useFindPropertyByIdQuery(id);
-  // const window = useWindowDimensions();
+  const window = useWindowDimensions();
+
+  const getResponsiveSizes = () => {
+    const isSmallPhone = window.width < 375;
+    const isMediumPhone = window.width >= 375 && window.width < 768;
+    const isTablet = window.width >= 768;
+
+    const baseFontSize = window.width * 0.04;
+
+    return {
+      isSmallPhone,
+      isMediumPhone,
+      isTablet,
+      containerPadding: isTablet ? window.width * 0.08 : window.width * 0.04,
+      titleFontSize:
+        baseFontSize * (isSmallPhone ? 1.5 : isMediumPhone ? 1.7 : 1.9),
+      sectionTitleSize:
+        baseFontSize * (isSmallPhone ? 1.1 : isMediumPhone ? 1.2 : 1.25),
+      bodyFontSize: baseFontSize,
+      smallFontSize:
+        baseFontSize * (isSmallPhone ? 0.85 : isMediumPhone ? 0.9 : 1),
+      iconSize: baseFontSize * (isSmallPhone ? 1 : isMediumPhone ? 1.1 : 1.2),
+      largeIconSize:
+        baseFontSize * (isSmallPhone ? 1.5 : isMediumPhone ? 1.7 : 2),
+      cardPadding: isSmallPhone ? 12 : isMediumPhone ? 16 : 20,
+      carouselHeight: isTablet
+        ? window.height * 0.4
+        : isMediumPhone
+        ? window.height * 0.35
+        : window.height * 0.32,
+      capacityItemWidth: isTablet ? window.width / 4.5 : window.width / 3.5,
+      capacityCircleSize: isSmallPhone
+        ? window.width * 0.1
+        : isMediumPhone
+        ? window.width * 0.12
+        : window.width * 0.14,
+      marginBottom: isSmallPhone ? 16 : isMediumPhone ? 20 : 24,
+      gapSmall: isSmallPhone ? 4 : isMediumPhone ? 6 : 8,
+      gapMedium: isSmallPhone ? 8 : isMediumPhone ? 12 : 16,
+    };
+  };
+
+  const sizes = getResponsiveSizes();
+  const dynamicStyles = getDynamicStyles(window, sizes, currentTheme);
 
   if (isLoading) {
     return (
       <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
+        style={[
+          dynamicStyles.center,
+          { backgroundColor: currentTheme.background },
+        ]}
       >
-        <Text style={{ color: currentTheme.muted }}>
+        <Text
+          style={{ color: currentTheme.muted, fontSize: sizes.bodyFontSize }}
+        >
           Loading Property Details...
         </Text>
       </View>
@@ -45,9 +92,14 @@ export default function PropertyDetails() {
   if (!property) {
     return (
       <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
+        style={[
+          dynamicStyles.center,
+          { backgroundColor: currentTheme.background },
+        ]}
       >
-        <Text style={{ color: currentTheme.muted }}>
+        <Text
+          style={{ color: currentTheme.muted, fontSize: sizes.bodyFontSize }}
+        >
           Sorry, no property details were found.
         </Text>
       </View>
@@ -77,16 +129,40 @@ export default function PropertyDetails() {
     value: number | undefined,
     icon: keyof typeof MaterialCommunityIcons.glyphMap
   ) => (
-    <View style={styles.capacityItem}>
+    <View
+      style={[dynamicStyles.capacityItem, { width: sizes.capacityItemWidth }]}
+    >
       <View
-        style={[styles.capacityCircle, { backgroundColor: currentTheme.tint }]}
+        style={[
+          dynamicStyles.capacityCircle,
+          {
+            backgroundColor: currentTheme.tint,
+            width: sizes.capacityCircleSize,
+            height: sizes.capacityCircleSize,
+            borderRadius: sizes.capacityCircleSize / 2,
+          },
+        ]}
       >
-        <MaterialCommunityIcons name={icon} size={28} color="#fff" />
+        <MaterialCommunityIcons
+          name={icon}
+          size={sizes.capacityCircleSize * 0.5}
+          color="#fff"
+        />
       </View>
-      <Text style={[styles.capacityValue, { color: currentTheme.text }]}>
+      <Text
+        style={[
+          dynamicStyles.capacityValue,
+          { color: currentTheme.text, fontSize: sizes.smallFontSize },
+        ]}
+      >
         {value ?? "N/A"}
       </Text>
-      <Text style={[styles.capacityLabel, { color: currentTheme.muted }]}>
+      <Text
+        style={[
+          dynamicStyles.capacityLabel,
+          { color: currentTheme.muted, fontSize: sizes.smallFontSize * 0.9 },
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -99,25 +175,44 @@ export default function PropertyDetails() {
   ) => {
     if (!items || items.length === 0) {
       return (
-        <Text style={[styles.infoText, { color: currentTheme.muted }]}>
+        <Text
+          style={[
+            dynamicStyles.infoText,
+            { color: currentTheme.muted, fontSize: sizes.bodyFontSize },
+          ]}
+        >
           {noDataText}
         </Text>
       );
     }
     return (
-      <View style={styles.badgesContainer}>
+      <View style={dynamicStyles.badgesContainer}>
         {items.map((item, i) => (
           <View
             key={i}
-            style={[styles.badge, { backgroundColor: currentTheme.card }]}
+            style={[
+              dynamicStyles.badge,
+              {
+                backgroundColor: currentTheme.card,
+                maxWidth: sizes.isTablet
+                  ? window.width * 0.35
+                  : window.width * 0.45,
+              },
+            ]}
           >
             <Feather
               name={icon}
-              size={14}
+              size={sizes.smallFontSize}
               color={currentTheme.primary}
-              style={{ marginRight: 4 }}
+              style={{ marginRight: sizes.gapSmall }}
             />
-            <Text style={[styles.badgeText, { color: currentTheme.text }]}>
+            <Text
+              style={[
+                dynamicStyles.badgeText,
+                { color: currentTheme.text, fontSize: sizes.smallFontSize },
+              ]}
+              numberOfLines={2}
+            >
               {item}
             </Text>
           </View>
@@ -128,323 +223,589 @@ export default function PropertyDetails() {
 
   const handleMapRedirect = () => {
     if (lat && lng) {
-      const url = `https://www.google.com/maps?q=${lat},${lng}`;
+      const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
       Linking.openURL(url);
     }
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
-      contentContainerStyle={{ paddingBottom: 40 }}
+    <SafeAreaView
+      style={[
+        dynamicStyles.safeArea,
+        { backgroundColor: currentTheme.background },
+      ]}
     >
-      {/* Image Carousel */}
-      <View style={{ width: width, height: width * 0.65 }}>
-        {photos?.length > 0 ? (
-          <ImageCarousel
-            media={photos.map((uri: string) => ({ uri, type: "image" }))}
-          />
-        ) : (
-          <View
-            style={[styles.noImage, { backgroundColor: currentTheme.card }]}
-          >
-            <MaterialCommunityIcons
-              name="image-off-outline"
-              size={60}
-              color={currentTheme.muted}
+      <ScrollView
+        style={[
+          dynamicStyles.container,
+          { backgroundColor: currentTheme.background },
+        ]}
+        contentContainerStyle={{
+          paddingBottom: Math.max(window.height * 0.05, 20),
+        }}
+        showsVerticalScrollIndicator={true}
+        scrollIndicatorInsets={{ right: 1 }}
+      >
+        {/* Image Carousel */}
+        <View style={{ width: window.width, height: sizes.carouselHeight }}>
+          {photos?.length > 0 ? (
+            <ImageCarousel
+              media={photos.map((uri: string) => ({ uri, type: "image" }))}
             />
-            <Text style={[styles.noImageText, { color: currentTheme.muted }]}>
-              No Photos Available
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Details */}
-      <View style={styles.detailsBox}>
-        <Text style={[styles.title, { color: currentTheme.text }]}>
-          {title}
-        </Text>
-        <View style={styles.subInfoRow}>
-          <Text style={[styles.subText, { color: currentTheme.muted }]}>
-            <MaterialIcons
-              name="location-on"
-              size={16}
-              color={currentTheme.muted}
-            />{" "}
-            {location}
-          </Text>
-          {lat && lng && (
-            <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
-              onPress={handleMapRedirect}
+          ) : (
+            <View
+              style={[
+                dynamicStyles.noImage,
+                { backgroundColor: currentTheme.card },
+              ]}
             >
               <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={16}
+                name="image-off-outline"
+                size={sizes.largeIconSize}
                 color={currentTheme.muted}
               />
               <Text
                 style={[
-                  styles.subText,
-                  { color: currentTheme.primary, marginLeft: 4 },
+                  dynamicStyles.noImageText,
+                  {
+                    color: currentTheme.muted,
+                    fontSize: sizes.bodyFontSize,
+                    marginTop: sizes.gapSmall,
+                  },
                 ]}
               >
-                Show on Map
+                No Photos Available
               </Text>
-            </TouchableOpacity>
+            </View>
           )}
         </View>
 
-        {/* Rent Card */}
+        {/* Details */}
         <View
           style={[
-            styles.card,
-            {
-              backgroundColor: currentTheme.card,
-              borderColor: currentTheme.border,
-            },
+            dynamicStyles.detailsBox,
+            { paddingHorizontal: sizes.containerPadding },
           ]}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: 12 }}
-          >
-            {[
-              { label: "/month", value: monthlyRent },
-              { label: "/week", value: weeklyRent },
-              { label: "/day", value: dailyRent },
-            ].map((item, idx) => (
-              <View key={idx} style={styles.priceBox}>
-                <Text
-                  style={[styles.priceAmount, { color: currentTheme.primary }]}
-                >
-                  {item.value ?? "N/A"}
-                </Text>
-                <Text
-                  style={[styles.priceLabel, { color: currentTheme.muted }]}
-                >
-                  {item.label}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
           <Text
             style={[
-              styles.secondaryPrice,
+              dynamicStyles.title,
+              { color: currentTheme.text, fontSize: sizes.titleFontSize },
+            ]}
+          >
+            {title}
+          </Text>
+
+          <View style={dynamicStyles.subInfoRow}>
+            <View style={{ flex: 1 }}>
+              <Text
+                style={[
+                  dynamicStyles.subText,
+                  { color: currentTheme.muted, fontSize: sizes.smallFontSize },
+                ]}
+                numberOfLines={2}
+              >
+                <MaterialIcons
+                  name="location-on"
+                  size={sizes.smallFontSize}
+                  color={currentTheme.muted}
+                />{" "}
+                {location}
+              </Text>
+            </View>
+            {lat && lng && (
+              <TouchableOpacity
+                style={[dynamicStyles.mapLink, { marginLeft: sizes.gapSmall }]}
+                onPress={handleMapRedirect}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialCommunityIcons
+                  name="map-marker-radius"
+                  size={sizes.smallFontSize}
+                  color={currentTheme.muted}
+                />
+                <Text
+                  style={[
+                    dynamicStyles.subText,
+                    {
+                      color: currentTheme.primary,
+                      marginLeft: sizes.gapSmall,
+                      fontSize: sizes.smallFontSize,
+                    },
+                  ]}
+                >
+                  Map
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Rent Card */}
+          <View
+            style={[
+              dynamicStyles.card,
               {
-                color: currentTheme.muted,
-                borderBottomColor: currentTheme.border,
+                backgroundColor: currentTheme.card,
+                borderColor: currentTheme.border,
+                padding: sizes.cardPadding,
+                marginBottom: sizes.marginBottom,
               },
             ]}
           >
-            {SecuritybasePrice ?? "N/A"} security deposit
-          </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              scrollEventThrottle={16}
+              style={dynamicStyles.priceScroll}
+              contentContainerStyle={{ paddingRight: sizes.containerPadding }}
+            >
+              {[
+                { label: "/month", value: monthlyRent },
+                { label: "/week", value: weeklyRent },
+                { label: "/day", value: dailyRent },
+              ].map((item, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    dynamicStyles.priceBox,
+                    { marginRight: sizes.gapMedium },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      dynamicStyles.priceAmount,
+                      {
+                        color: currentTheme.primary,
+                        fontSize: sizes.sectionTitleSize,
+                      },
+                    ]}
+                  >
+                    {item.value ?? "N/A"}
+                  </Text>
+                  <Text
+                    style={[
+                      dynamicStyles.priceLabel,
+                      {
+                        color: currentTheme.muted,
+                        fontSize: sizes.smallFontSize,
+                      },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+            <Text
+              style={[
+                dynamicStyles.secondaryPrice,
+                {
+                  color: currentTheme.muted,
+                  borderBottomColor: currentTheme.border,
+                  fontSize: sizes.smallFontSize,
+                  marginBottom: sizes.gapMedium,
+                  paddingBottom: sizes.gapSmall,
+                },
+              ]}
+            >
+              {SecuritybasePrice ?? "N/A"} security deposit
+            </Text>
 
-          {/* Capacity */}
-          <View style={styles.capacityRow}>
-            {renderCapacity(
-              "Persons",
-              capacityState?.Persons,
-              "account-group-outline"
+            {/* Capacity */}
+            <View
+              style={[
+                dynamicStyles.capacityRow,
+                { marginTop: sizes.gapMedium },
+              ]}
+            >
+              {renderCapacity(
+                "Persons",
+                capacityState?.Persons,
+                "account-group-outline"
+              )}
+              {renderCapacity("Beds", capacityState?.beds, "bed-outline")}
+              {renderCapacity(
+                "Baths",
+                capacityState?.bathrooms,
+                "bathtub-outline"
+              )}
+            </View>
+          </View>
+
+          {/* Property Overview */}
+          <View
+            style={[
+              dynamicStyles.sectionContainer,
+              { marginBottom: sizes.marginBottom },
+            ]}
+          >
+            <View style={dynamicStyles.sectionTitleContainer}>
+              <Feather
+                name="info"
+                size={sizes.iconSize}
+                color={currentTheme.primary}
+              />
+              <Text
+                style={[
+                  dynamicStyles.sectionTitle,
+                  {
+                    color: currentTheme.text,
+                    fontSize: sizes.sectionTitleSize,
+                    marginLeft: sizes.gapSmall,
+                  },
+                ]}
+              >
+                Property Overview
+              </Text>
+            </View>
+            <Text
+              style={[
+                dynamicStyles.infoText,
+                {
+                  color: currentTheme.text,
+                  fontSize: sizes.bodyFontSize,
+                  marginVertical: sizes.gapSmall,
+                },
+              ]}
+            >
+              {description?.overview || "A wonderful place to stay!"}
+            </Text>
+            <Text
+              style={[
+                dynamicStyles.subsectionTitle,
+                {
+                  color: currentTheme.text,
+                  fontSize: sizes.sectionTitleSize * 0.9,
+                  marginTop: sizes.gapMedium,
+                  marginBottom: sizes.gapSmall,
+                },
+              ]}
+            >
+              Highlights
+            </Text>
+            {renderList(
+              description?.highlighted,
+              "No highlights listed.",
+              "star"
             )}
-            {renderCapacity("Beds", capacityState?.beds, "bed-outline")}
-            {renderCapacity(
-              "Baths",
-              capacityState?.bathrooms,
-              "bathtub-outline"
+          </View>
+
+          {/* Amenities */}
+          <View
+            style={[
+              dynamicStyles.sectionContainer,
+              { marginBottom: sizes.marginBottom },
+            ]}
+          >
+            <View style={dynamicStyles.sectionTitleContainer}>
+              <Feather
+                name="grid"
+                size={sizes.iconSize}
+                color={currentTheme.primary}
+              />
+              <Text
+                style={[
+                  dynamicStyles.sectionTitle,
+                  {
+                    color: currentTheme.text,
+                    fontSize: sizes.sectionTitleSize,
+                    marginLeft: sizes.gapSmall,
+                  },
+                ]}
+              >
+                Amenities
+              </Text>
+            </View>
+            {renderList(amenities, "No amenities listed.", "check-circle")}
+          </View>
+
+          {/* Included Bills */}
+          <View
+            style={[
+              dynamicStyles.sectionContainer,
+              { marginBottom: sizes.marginBottom },
+            ]}
+          >
+            <View style={dynamicStyles.sectionTitleContainer}>
+              <Feather
+                name="file-text"
+                size={sizes.iconSize}
+                color={currentTheme.primary}
+              />
+              <Text
+                style={[
+                  dynamicStyles.sectionTitle,
+                  {
+                    color: currentTheme.text,
+                    fontSize: sizes.sectionTitleSize,
+                    marginLeft: sizes.gapSmall,
+                  },
+                ]}
+              >
+                Included Bills
+              </Text>
+            </View>
+            {renderList(ALL_BILLS, "No bills information provided.", "droplet")}
+          </View>
+
+          {/* Full Address */}
+          <View
+            style={[
+              dynamicStyles.sectionContainer,
+              { marginBottom: sizes.marginBottom },
+            ]}
+          >
+            <View style={dynamicStyles.sectionTitleContainer}>
+              <Feather
+                name="map-pin"
+                size={sizes.iconSize}
+                color={currentTheme.primary}
+              />
+              <Text
+                style={[
+                  dynamicStyles.sectionTitle,
+                  {
+                    color: currentTheme.text,
+                    fontSize: sizes.sectionTitleSize,
+                    marginLeft: sizes.gapSmall,
+                  },
+                ]}
+              >
+                Full Address
+              </Text>
+            </View>
+            {address?.length > 0 ? (
+              address.map((a: any, i: number) => (
+                <View
+                  key={i}
+                  style={[
+                    dynamicStyles.addressBlock,
+                    {
+                      backgroundColor: currentTheme.card,
+                      padding: sizes.cardPadding,
+                      marginBottom: sizes.gapSmall,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      dynamicStyles.infoText,
+                      {
+                        color: currentTheme.text,
+                        fontSize: sizes.bodyFontSize,
+                      },
+                    ]}
+                  >
+                    {a.street}, {a.city}, {a.stateTerritory}
+                  </Text>
+                  <Text
+                    style={[
+                      dynamicStyles.infoText,
+                      {
+                        color: currentTheme.text,
+                        fontSize: sizes.bodyFontSize,
+                        marginTop: sizes.gapSmall,
+                      },
+                    ]}
+                  >
+                    {a.country} - {a.zipCode}
+                  </Text>
+                  {a.aptSuiteUnit && (
+                    <Text
+                      style={[
+                        dynamicStyles.infoText,
+                        {
+                          color: currentTheme.muted,
+                          fontSize: sizes.smallFontSize,
+                          marginTop: sizes.gapSmall,
+                        },
+                      ]}
+                    >
+                      Apt/Suite: {a.aptSuiteUnit}
+                    </Text>
+                  )}
+                </View>
+              ))
+            ) : (
+              <Text
+                style={[
+                  dynamicStyles.infoText,
+                  { color: currentTheme.muted, fontSize: sizes.bodyFontSize },
+                ]}
+              >
+                Address details are not fully listed.
+              </Text>
+            )}
+          </View>
+
+          {/* Safety & Security */}
+          <View
+            style={[
+              dynamicStyles.sectionContainer,
+              { marginBottom: sizes.marginBottom },
+            ]}
+          >
+            <View style={dynamicStyles.sectionTitleContainer}>
+              <Feather
+                name="shield"
+                size={sizes.iconSize}
+                color={currentTheme.primary}
+              />
+              <Text
+                style={[
+                  dynamicStyles.sectionTitle,
+                  {
+                    color: currentTheme.text,
+                    fontSize: sizes.sectionTitleSize,
+                    marginLeft: sizes.gapSmall,
+                  },
+                ]}
+              >
+                Safety & Security
+              </Text>
+            </View>
+            {renderList(
+              safetyDetailsData?.safetyDetails,
+              "No safety features listed.",
+              "alert-triangle"
+            )}
+            {safetyDetailsData?.cameraDescription && (
+              <View
+                style={[
+                  dynamicStyles.cameraInfoContainer,
+                  { marginTop: sizes.gapMedium },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="cctv"
+                  size={sizes.smallFontSize}
+                  color={currentTheme.primary}
+                  style={{ marginRight: sizes.gapSmall }}
+                />
+                <Text
+                  style={[
+                    dynamicStyles.cameraInfo,
+                    {
+                      color: currentTheme.text,
+                      fontSize: sizes.smallFontSize,
+                      flex: 1,
+                    },
+                  ]}
+                >
+                  {safetyDetailsData.cameraDescription}
+                </Text>
+              </View>
             )}
           </View>
         </View>
-
-        {/* Property Overview */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            <Feather name="info" size={20} color={currentTheme.primary} />{" "}
-            Property Overview
-          </Text>
-          <Text style={[styles.infoText, { color: currentTheme.text }]}>
-            {description?.overview || "A wonderful place to stay!"}
-          </Text>
-          <Text style={[styles.subsectionTitle, { color: currentTheme.text }]}>
-            Highlights
-          </Text>
-          {renderList(
-            description?.highlighted,
-            "No highlights listed.",
-            "star"
-          )}
-        </View>
-
-        {/* Amenities */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            <Feather name="grid" size={20} color={currentTheme.primary} />{" "}
-            Amenities
-          </Text>
-          {renderList(amenities, "No amenities listed.", "check-circle")}
-        </View>
-
-        {/* Included Bills */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            <Feather name="file-text" size={20} color={currentTheme.primary} />{" "}
-            Included Bills
-          </Text>
-          {renderList(ALL_BILLS, "No bills information provided.", "droplet")}
-        </View>
-
-        {/* Full Address */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            <Feather name="map-pin" size={20} color={currentTheme.primary} />{" "}
-            Full Address
-          </Text>
-          {address?.length > 0 ? (
-            address.map((a: any, i: number) => (
-              <View
-                key={i}
-                style={[
-                  styles.addressBlock,
-                  { backgroundColor: currentTheme.card },
-                ]}
-              >
-                <Text style={[styles.infoText, { color: currentTheme.text }]}>
-                  {a.street}, {a.city}, {a.stateTerritory}
-                </Text>
-                <Text style={[styles.infoText, { color: currentTheme.text }]}>
-                  {a.country} - {a.zipCode}
-                </Text>
-                {a.aptSuiteUnit && (
-                  <Text
-                    style={[styles.infoText, { color: currentTheme.muted }]}
-                  >
-                    Apt/Suite: {a.aptSuiteUnit}
-                  </Text>
-                )}
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.infoText, { color: currentTheme.muted }]}>
-              Address details are not fully listed.
-            </Text>
-          )}
-        </View>
-
-        {/* Safety & Security */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            <Feather name="shield" size={20} color={currentTheme.primary} />{" "}
-            Safety & Security
-          </Text>
-          {renderList(
-            safetyDetailsData?.safetyDetails,
-            "No safety features listed.",
-            "alert-triangle"
-          )}
-          {safetyDetailsData?.cameraDescription && (
-            <Text
-              style={[
-                styles.infoText,
-                styles.cameraInfo,
-                { color: currentTheme.text },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="cctv"
-                size={16}
-                color={currentTheme.primary}
-              />{" "}
-              Camera Note: {safetyDetailsData.cameraDescription}
-            </Text>
-          )}
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  detailsBox: { paddingHorizontal: 16, paddingTop: 16 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 4 },
-  subInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  subText: { fontSize: 14, fontWeight: "400", opacity: 0.9 },
-  card: {
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
-  },
-  priceBox: { marginRight: 16, alignItems: "center" },
-  priceAmount: { fontSize: 28, fontWeight: "700" },
-  priceLabel: { fontSize: 16, fontWeight: "500", color: "#555" },
-  secondaryPrice: {
-    fontSize: 14,
-    marginBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingBottom: 12,
-  },
-  capacityRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 12,
-  },
-  capacityItem: { alignItems: "center", flex: 1 },
-  capacityCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  capacityValue: { fontSize: 20, fontWeight: "600", marginTop: 4 },
-  capacityLabel: { fontSize: 12, fontWeight: "400" },
-  sectionContainer: { marginBottom: 20, paddingVertical: 8 },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  subsectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  infoText: { fontSize: 16, lineHeight: 24 },
-  badgesContainer: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  badgeText: { fontSize: 14 },
-  addressBlock: { marginBottom: 8, padding: 12, borderRadius: 12 },
-  cameraInfo: { fontStyle: "italic", marginTop: 10 },
-  noImage: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 12,
-    margin: 16,
-  },
-  noImageText: { marginTop: 8, fontSize: 16, fontWeight: "500" },
-});
+function getDynamicStyles(window: any, sizes: any, currentTheme: any) {
+  return StyleSheet.create({
+    safeArea: { flex: 1 },
+    container: { flex: 1 },
+    center: { flex: 1, justifyContent: "center", alignItems: "center" },
+    detailsBox: { paddingTop: sizes.cardPadding },
+    title: {
+      fontWeight: "700",
+      marginBottom: sizes.gapSmall,
+      letterSpacing: 0.5,
+    },
+    subInfoRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: sizes.marginBottom,
+      gap: sizes.gapSmall,
+    },
+    subText: {
+      fontWeight: "400",
+      opacity: 0.9,
+      lineHeight: sizes.bodyFontSize * 1.5,
+    },
+    mapLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: sizes.gapSmall,
+      paddingHorizontal: sizes.gapSmall,
+      borderRadius: 8,
+      minHeight: 44,
+      minWidth: 44,
+      justifyContent: "center",
+    },
+    card: {
+      borderRadius: 20,
+      borderWidth: 1,
+      shadowColor: "#000",
+      shadowOpacity: 0.05,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    priceScroll: { marginBottom: sizes.gapMedium },
+    priceBox: {
+      alignItems: "center",
+      minWidth: window.width * 0.22,
+      flexShrink: 1,
+    },
+    priceAmount: { fontWeight: "700", letterSpacing: 0.5 },
+    priceLabel: { fontWeight: "500", marginTop: sizes.gapSmall },
+    secondaryPrice: {
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      fontStyle: "italic",
+    },
+    capacityRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    capacityItem: { alignItems: "center" },
+    capacityCircle: {
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: sizes.gapSmall,
+    },
+    capacityValue: { fontWeight: "600", marginTop: sizes.gapSmall },
+    capacityLabel: { textAlign: "center", marginTop: 2 },
+    sectionContainer: { paddingVertical: sizes.gapSmall },
+    sectionTitleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: sizes.gapMedium,
+    },
+    sectionTitle: { fontWeight: "700", letterSpacing: 0.5 },
+    subsectionTitle: { fontWeight: "600" },
+    infoText: { lineHeight: sizes.bodyFontSize * 1.5, letterSpacing: 0.3 },
+    badgesContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: sizes.gapSmall,
+      marginTop: sizes.gapSmall,
+    },
+    badge: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: sizes.gapMedium,
+      paddingVertical: sizes.gapSmall,
+      borderRadius: 20,
+      marginBottom: sizes.gapSmall,
+      minHeight: 44,
+      flexShrink: 1,
+    },
+    badgeText: { flexShrink: 1, fontWeight: "500" },
+    addressBlock: { borderRadius: 12 },
+    cameraInfoContainer: { flexDirection: "row", alignItems: "flex-start" },
+    cameraInfo: { fontStyle: "italic", fontWeight: "500" },
+    noImage: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      borderRadius: 12,
+      margin: sizes.containerPadding,
+    },
+    noImageText: { marginTop: sizes.gapSmall, fontWeight: "500" },
+  });
+}
