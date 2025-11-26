@@ -13,7 +13,9 @@ import {
   Req,
   UseGuards,
   Put,
+  Res,
 } from "@nestjs/common";
+import { Request, Response } from "express";
 import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
@@ -34,7 +36,7 @@ export class UserController {
   @Post("signup")
   async signup(
     @Body() createUserDto: CreateUserDto
-  ): Promise<UserResponseDto & { accessToken: string }> {
+  ): Promise<UserResponseDto & { accessToken: string; refreshToken: string }> {
     const user = await this.userService.create(createUserDto);
 
     if (typeof user === "string") {
@@ -64,7 +66,8 @@ export class UserController {
 
     const doc = user as UserDocument;
 
-    const { accessToken } = await this.authService.login(doc);
+    // return both tokens so client (mobile) can store refreshToken
+    const { accessToken, refreshToken } = await this.authService.login(doc);
 
     return {
       id: doc.id,
@@ -80,6 +83,7 @@ export class UserController {
       createdAt: doc["createdAt"],
       updatedAt: doc["updatedAt"],
       accessToken,
+      refreshToken,
     };
   }
   @Post("login")
@@ -91,7 +95,7 @@ export class UserController {
       phone?: string;
       password: string;
     }
-  ): Promise<UserResponseDto & { accessToken: string }> {
+  ): Promise<UserResponseDto & { accessToken: string; refreshToken: string }> {
     const emailOrPhone = body.emailOrPhone || body.email || body.phone;
     const { password } = body;
 
@@ -105,7 +109,8 @@ export class UserController {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const { accessToken } = await this.authService.login(user);
+    // return both tokens so client (mobile) can store refreshToken
+    const { accessToken, refreshToken } = await this.authService.login(user);
 
     return {
       id: user.id,
@@ -121,7 +126,37 @@ export class UserController {
       createdAt: user["createdAt"],
       updatedAt: user["updatedAt"],
       accessToken,
+      refreshToken,
     };
+  }
+  @Post("refresh")
+  async refresh(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: any,
+    @Body("refreshToken") bodyToken?: string
+  ) {
+    // accept token from body (mobile) or cookie (web)
+    const token = bodyToken || req.cookies?.["refreshToken"];
+    if (!token) throw new UnauthorizedException();
+
+    // decode payload to get userId
+    const payload: any = this.authService.jwtService.decode(token);
+    if (!payload?.sub) throw new UnauthorizedException();
+
+    const { accessToken, refreshToken } = await this.authService.refresh(
+      payload.sub,
+      token
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      path: "/api/v1/users/refresh",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // return both tokens for mobile clients
+    return { accessToken, refreshToken };
   }
 
   @Get()
