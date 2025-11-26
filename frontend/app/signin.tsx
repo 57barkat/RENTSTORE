@@ -140,9 +140,9 @@ export default function SignInScreen() {
         >
           <View style={styles.overlay}>
             <View style={styles.authContainer}>
-              <Text style={styles.welcomeTitle}>Welcome back</Text>
+              <Text style={styles.welcomeTitle}>Welcome!</Text>
               <Text style={styles.signInInstruction}>
-                Sign in to continue using app
+                Sign in to continue using the app
               </Text>
 
               {/* Email Input Field */}
