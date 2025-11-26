@@ -2,23 +2,42 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
+// Base URL from Expo Constants
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
+// Base query with token handling, without forcing Content-Type
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
-  prepareHeaders: async (headers) => {
+  prepareHeaders: async (headers, { getState, endpoint }) => {
     const token = await AsyncStorage.getItem("accessToken");
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    headers.set("Content-Type", "application/json");
+
+    // Do NOT set Content-Type manually for FormData endpoints
+    // Only set JSON for regular JSON requests
+    const jsonEndpoints = [
+      "createUser",
+      "login",
+      "deleteUser",
+      "findPropertyByIdAndUpdate",
+      "findPropertyByIdAndDelete",
+      "sendOtp",
+      "verifyOtp",
+      "loginWithGoogle",
+    ];
+
+    if (jsonEndpoints.includes(endpoint)) {
+      headers.set("Content-Type", "application/json");
+    }
+
     return headers;
   },
 });
 
+// Custom base query with optional token refresh logic
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error?.status === 401) {
-    // Try to refresh token
     const refreshToken = await AsyncStorage.getItem("refreshToken");
     if (refreshToken) {
       const refreshResult = await baseQuery(
@@ -42,7 +61,6 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
         // Retry original request
         result = await baseQuery(args, api, extraOptions);
       } else {
-        // Refresh failed → logout
         api.dispatch({ type: "auth/logout" });
       }
     } else {
@@ -72,24 +90,26 @@ export const api = createApi({
       },
     }),
     deleteUser: builder.mutation({
-      query: () => ({
-        url: "/api/v1/users/delete",
-        method: "DELETE",
-      }),
+      query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
     }),
 
     // 🔹 PROPERTY MUTATIONS
     createProperty: builder.mutation({
       query: (body) => {
         const formData = new FormData();
+
         Object.entries(body).forEach(([key, value]) => {
           if (key === "photos") return;
+
           if (value !== undefined && value !== null) {
-            if (typeof value === "object")
+            if (typeof value === "object") {
               formData.append(key, JSON.stringify(value ?? []));
-            else formData.append(key, String(value));
+            } else {
+              formData.append(key, String(value));
+            }
           }
         });
+
         if (Array.isArray(body.photos)) {
           body.photos.forEach((uri: string, idx: number) => {
             formData.append("photos", {
@@ -99,6 +119,7 @@ export const api = createApi({
             } as any);
           });
         }
+
         return {
           url: "/api/v1/properties/create",
           method: "POST",
@@ -114,24 +135,15 @@ export const api = createApi({
       }),
     }),
     findPropertyByIdAndDelete: builder.mutation({
-      query: (id) => ({
-        url: `/api/v1/properties/${id}`,
-        method: "DELETE",
-      }),
+      query: (id) => ({ url: `/api/v1/properties/${id}`, method: "DELETE" }),
     }),
 
     // 🔹 PROPERTY QUERIES
     findMyProperties: builder.query({
-      query: () => ({
-        url: "/api/v1/properties/my-listings",
-        method: "GET",
-      }),
+      query: () => ({ url: "/api/v1/properties/my-listings", method: "GET" }),
     }),
     findPropertyById: builder.query({
-      query: (id) => ({
-        url: `/api/v1/properties/${id}`,
-        method: "GET",
-      }),
+      query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),
     }),
     getAllProperties: builder.query({
       query: (params = "") => ({
@@ -140,10 +152,7 @@ export const api = createApi({
       }),
     }),
     getFilterOptions: builder.query({
-      query: () => ({
-        url: "/api/v1/properties/filters",
-        method: "GET",
-      }),
+      query: () => ({ url: "/api/v1/properties/filters", method: "GET" }),
     }),
     getFilteredProperties: builder.query({
       query: (params) => {
@@ -159,22 +168,14 @@ export const api = createApi({
       },
     }),
     getFeaturedProperties: builder.query({
-      query: () => ({
-        url: "/api/v1/properties/featured",
-        method: "GET",
-      }),
+      query: () => ({ url: "/api/v1/properties/featured", method: "GET" }),
     }),
     getDraftProperties: builder.query({
-      query: () => ({
-        url: "/api/v1/properties/drafts",
-        method: "GET",
-      }),
+      query: () => ({ url: "/api/v1/properties/drafts", method: "GET" }),
     }),
 
     // 🔹 FAVORITES
-    getUserFavorites: builder.query({
-      query: () => "/api/v1/favorites",
-    }),
+    getUserFavorites: builder.query({ query: () => "/api/v1/favorites" }),
     AddToFav: builder.mutation({
       query: ({ propertyId }) => ({
         url: `/api/v1/favorites/${propertyId}`,
@@ -206,11 +207,7 @@ export const api = createApi({
 
     // 🔹 GOOGLE LOGIN
     loginWithGoogle: builder.mutation({
-      query: (body) => ({
-        url: "/api/v1/users/google",
-        method: "POST",
-        body,
-      }),
+      query: (body) => ({ url: "/api/v1/users/google", method: "POST", body }),
     }),
   }),
 });
