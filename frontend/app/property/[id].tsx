@@ -296,26 +296,31 @@ export default function PropertyDetails() {
             {title}
           </Text>
 
+          {/* Fixed Location + Map Row */}
           <View style={dynamicStyles.subInfoRow}>
-            <View style={{ flex: 1 }}>
+            <View style={dynamicStyles.locationContainer}>
+              <MaterialIcons
+                name="location-on"
+                size={sizes.smallFontSize}
+                color={currentTheme.muted}
+              />
               <Text
                 style={[
                   dynamicStyles.subText,
-                  { color: currentTheme.muted, fontSize: sizes.smallFontSize },
+                  {
+                    color: currentTheme.muted,
+                    fontSize: sizes.smallFontSize,
+                    marginLeft: sizes.gapSmall,
+                  },
                 ]}
                 numberOfLines={2}
               >
-                <MaterialIcons
-                  name="location-on"
-                  size={sizes.smallFontSize}
-                  color={currentTheme.muted}
-                />{" "}
                 {location}
               </Text>
             </View>
             {lat && lng && (
               <TouchableOpacity
-                style={[dynamicStyles.mapLink, { marginLeft: sizes.gapSmall }]}
+                style={dynamicStyles.mapLink}
                 onPress={handleMapRedirect}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
@@ -325,14 +330,11 @@ export default function PropertyDetails() {
                   color={currentTheme.muted}
                 />
                 <Text
-                  style={[
-                    dynamicStyles.subText,
-                    {
-                      color: currentTheme.primary,
-                      marginLeft: sizes.gapSmall,
-                      fontSize: sizes.smallFontSize,
-                    },
-                  ]}
+                  style={{
+                    color: currentTheme.primary,
+                    marginLeft: sizes.gapSmall,
+                    fontSize: sizes.smallFontSize,
+                  }}
                 >
                   Map
                 </Text>
@@ -717,24 +719,18 @@ function getDynamicStyles(window: any, sizes: any, currentTheme: any) {
     subInfoRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "flex-start",
+      alignItems: "center",
       marginBottom: sizes.marginBottom,
       gap: sizes.gapSmall,
     },
-    subText: {
-      fontWeight: "400",
-      opacity: 0.9,
-      lineHeight: sizes.bodyFontSize * 1.5,
-    },
+    locationContainer: { flex: 1, flexDirection: "row", alignItems: "center" },
+    subText: { fontWeight: "400", opacity: 0.9 },
     mapLink: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: sizes.gapSmall,
+      paddingVertical: sizes.gapSmall / 2,
       paddingHorizontal: sizes.gapSmall,
       borderRadius: 8,
-      minHeight: 44,
-      minWidth: 44,
-      justifyContent: "center",
     },
     card: {
       borderRadius: 20,
@@ -778,7 +774,7 @@ function getDynamicStyles(window: any, sizes: any, currentTheme: any) {
     },
     sectionTitle: { fontWeight: "700", letterSpacing: 0.5 },
     subsectionTitle: { fontWeight: "600" },
-    infoText: { lineHeight: sizes.bodyFontSize * 1.5, letterSpacing: 0.3 },
+    infoText: { letterSpacing: 0.3 },
     badgesContainer: {
       flexDirection: "row",
       flexWrap: "wrap",

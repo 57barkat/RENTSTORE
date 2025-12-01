@@ -2,44 +2,115 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
-// Base URL from Expo Constants
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
 
-// Base query with token handling, without forcing Content-Type
+/**
+ * Minimal JWT payload decoder (no external dependency).
+ * Supports URL-safe base64 and works with environments that provide atob or Buffer.
+ */
+function base64UrlDecode(input: string): string {
+  const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = "=".repeat((4 - (base64.length % 4)) % 4);
+  const base64Padded = base64 + pad;
+
+  // Try atob (browser / some RN environments with global atob)
+  if (typeof atob === "function") {
+    try {
+      const binary = atob(base64Padded);
+      try {
+        // decode percent-encoded UTF-8
+        return decodeURIComponent(
+          Array.prototype.map
+            .call(binary, (c: string) => {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+      } catch {
+        // If decodeURIComponent fails, return binary directly
+        return binary;
+      }
+    } catch {}
+  }
+
+  // Try Buffer (Node or RN with buffer polyfill)
+  try {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (typeof Buffer !== "undefined") {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      return Buffer.from(base64Padded, "base64").toString("utf8");
+    }
+  } catch {}
+
+  throw new Error("No base64 decoder available to decode JWT payload.");
+}
+
+function jwtDecode<T = any>(token: string): T {
+  const parts = token.split(".");
+  if (parts.length < 2) throw new Error("Invalid JWT token");
+  const payload = base64UrlDecode(parts[1]);
+  return JSON.parse(payload) as T;
+}
+
+// In-memory token cache
+let accessTokenCache: string | null = null;
+let refreshTokenCache: string | null = null;
+
+// Initialize cache from AsyncStorage once at app start
+const initTokenCache = async () => {
+  if (accessTokenCache === null) {
+    accessTokenCache = await AsyncStorage.getItem("accessToken");
+  }
+  if (refreshTokenCache === null) {
+    refreshTokenCache = await AsyncStorage.getItem("refreshToken");
+  }
+};
+
+// Helper to check if token is expired
+const isTokenExpired = (token: string | null) => {
+  if (!token) return true;
+  try {
+    const { exp } = jwtDecode<{ exp: number }>(token);
+    return Date.now() >= exp * 1000;
+  } catch {
+    return true;
+  }
+};
+
+// Base query with dynamic headers
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
-  prepareHeaders: async (headers, { getState, endpoint }) => {
-    const token = await AsyncStorage.getItem("accessToken");
-    if (token) headers.set("Authorization", `Bearer ${token}`);
+  prepareHeaders: async (headers) => {
+    // Ensure cache is initialized
+    await initTokenCache();
 
-    // Do NOT set Content-Type manually for FormData endpoints
-    // Only set JSON for regular JSON requests
-    const jsonEndpoints = [
-      "createUser",
-      "login",
-      "deleteUser",
-      "findPropertyByIdAndUpdate",
-      "findPropertyByIdAndDelete",
-      "sendOtp",
-      "verifyOtp",
-      "loginWithGoogle",
-    ];
-
-    if (jsonEndpoints.includes(endpoint)) {
-      headers.set("Content-Type", "application/json");
+    if (accessTokenCache) {
+      headers.set("Authorization", `Bearer ${accessTokenCache}`);
     }
 
     return headers;
   },
 });
 
-// Custom base query with optional token refresh logic
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
-  let result = await baseQuery(args, api, extraOptions);
+  const baseQueryWithLatestToken = async () => baseQuery(args, api, extraOptions);
 
+  let result = await baseQueryWithLatestToken();
+
+  // Only refresh if 401 AND token actually expired
   if (result.error?.status === 401) {
-    const refreshToken = await AsyncStorage.getItem("refreshToken");
-    if (refreshToken) {
+    // Check if current token is expired
+    if (isTokenExpired(accessTokenCache)) {
+      const refreshToken = refreshTokenCache;
+
+      if (!refreshToken) {
+        api.dispatch({ type: "auth/logout" });
+        return result;
+      }
+
+      // Call refresh endpoint
       const refreshResult = await baseQuery(
         {
           url: "/api/v1/users/refresh",
@@ -51,26 +122,27 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
       );
 
       if (refreshResult.data) {
-        const { accessToken, refreshToken: newRefreshToken } =
-          refreshResult.data as any;
-        if (accessToken && newRefreshToken) {
-          await AsyncStorage.setItem("accessToken", accessToken);
-          await AsyncStorage.setItem("refreshToken", newRefreshToken);
-        }
+        const { accessToken, refreshToken: newRefreshToken } = refreshResult.data as any;
 
-        // Retry original request
-        result = await baseQuery(args, api, extraOptions);
+        // Save to AsyncStorage and in-memory cache
+        accessTokenCache = accessToken;
+        refreshTokenCache = newRefreshToken;
+
+        await AsyncStorage.setItem("accessToken", accessToken);
+        await AsyncStorage.setItem("refreshToken", newRefreshToken);
+
+        // Retry original request with new token
+        result = await baseQueryWithLatestToken();
       } else {
         api.dispatch({ type: "auth/logout" });
       }
-    } else {
-      api.dispatch({ type: "auth/logout" });
     }
   }
 
   return result;
 };
 
+// Create API
 export const api = createApi({
   reducerPath: "api",
   baseQuery: customBaseQuery,
@@ -84,6 +156,8 @@ export const api = createApi({
       async onQueryStarted(arg, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
+          accessTokenCache = data.accessToken;
+          refreshTokenCache = data.refreshToken;
           await AsyncStorage.setItem("accessToken", data.accessToken);
           await AsyncStorage.setItem("refreshToken", data.refreshToken);
         } catch {}
@@ -146,10 +220,7 @@ export const api = createApi({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),
     }),
     getAllProperties: builder.query({
-      query: (params = "") => ({
-        url: `/api/v1/properties${params}`,
-        method: "GET",
-      }),
+      query: (params = "") => ({ url: `/api/v1/properties${params}`, method: "GET" }),
     }),
     getFilterOptions: builder.query({
       query: () => ({ url: "/api/v1/properties/filters", method: "GET" }),
@@ -177,32 +248,18 @@ export const api = createApi({
     // 🔹 FAVORITES
     getUserFavorites: builder.query({ query: () => "/api/v1/favorites" }),
     AddToFav: builder.mutation({
-      query: ({ propertyId }) => ({
-        url: `/api/v1/favorites/${propertyId}`,
-        method: "POST",
-      }),
+      query: ({ propertyId }) => ({ url: `/api/v1/favorites/${propertyId}`, method: "POST" }),
     }),
     removeUserFavorite: builder.mutation({
-      query: ({ propertyId }) => ({
-        url: `/api/v1/favorites/${propertyId}`,
-        method: "DELETE",
-      }),
+      query: ({ propertyId }) => ({ url: `/api/v1/favorites/${propertyId}`, method: "DELETE" }),
     }),
 
     // 🔹 OTP LOGIN
     sendOtp: builder.mutation({
-      query: ({ phone }) => ({
-        url: "/api/v1/auth/send-otp",
-        method: "POST",
-        body: { phone },
-      }),
+      query: ({ phone }) => ({ url: "/api/v1/auth/send-otp", method: "POST", body: { phone } }),
     }),
     verifyOtp: builder.mutation({
-      query: ({ phone, otp }) => ({
-        url: "/api/v1/auth/verify-otp",
-        method: "POST",
-        body: { phone, otp },
-      }),
+      query: ({ phone, otp }) => ({ url: "/api/v1/auth/verify-otp", method: "POST", body: { phone, otp } }),
     }),
 
     // 🔹 GOOGLE LOGIN
@@ -212,6 +269,7 @@ export const api = createApi({
   }),
 });
 
+// Export hooks
 export const {
   useCreateUserMutation,
   useLoginMutation,

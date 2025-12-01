@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Modal,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { useRouter } from "expo-router";
@@ -16,51 +17,57 @@ import { FormContext, FormData } from "@/contextStore/FormContext";
 import {
   useGetDraftPropertiesQuery,
   useFindPropertyByIdAndDeleteMutation,
+  api,
 } from "@/services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
 export default function DraftProperties() {
   const { theme } = useTheme();
-  const formContext = useContext(FormContext);
   const currentTheme = Colors[theme ?? "light"];
+  const formContext = useContext(FormContext);
   const router = useRouter();
 
+  const [ready, setReady] = useState(false); // Wait for token
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  // ✅ Load token and trigger query
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem("accessToken");
+      if (!token) {
+        // Optionally redirect to login
+        console.log("No access token found");
+        return;
+      }
+      setReady(true); // Now safe to call query
+    };
+    checkToken();
+  }, []);
+
+  // ✅ Query only when token is ready
   const { data, isLoading, isError, refetch } = useGetDraftPropertiesQuery(
     undefined,
-    {
-      refetchOnMountOrArgChange: true,
-    }
+    { skip: !ready, refetchOnMountOrArgChange: true }
   );
-
+console.log("Draft Properties Data:", isError);
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-
-  useEffect(() => {
-    refetch();
-  }, []);
 
   const handleEdit = (data: FormData) => {
     formContext?.setFullFormData({ ...data });
-
-    setTimeout(() => {
-      router.push("/upload/IntroStep1");
-    }, 50);
+    setTimeout(() => router.push("/upload/IntroStep1"), 50);
   };
 
   const onDeleteConfirm = async () => {
     if (!selectedId) return;
     try {
       await deleteProperty(selectedId).unwrap();
-
       Toast.show({
         type: "success",
         text1: "Draft Deleted",
         text2: "Your draft has been removed.",
       });
-
       setShowDeleteModal(false);
       refetch();
     } catch (err) {
@@ -119,9 +126,9 @@ export default function DraftProperties() {
           <Text style={[styles.subText, { color: currentTheme.muted }]}>
             {item.location || "No location"}
           </Text>
-          <Text style={[styles.price, { color: currentTheme.primary }]}>
-            ${item.monthlyRent || "N/A"}/month
-          </Text>
+          <Text style={[styles.price, { color: currentTheme.primary }]}>{`$${
+            item.monthlyRent || "N/A"
+          }/month`}</Text>
         </View>
       </TouchableOpacity>
 
@@ -177,25 +184,31 @@ export default function DraftProperties() {
       {/* Delete Confirmation Modal */}
       <Modal transparent visible={showDeleteModal} animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: currentTheme.card }]}>
+          <View
+            style={[styles.modalBox, { backgroundColor: currentTheme.card }]}
+          >
             <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
               Confirm Deletion
             </Text>
-
             <Text style={[styles.modalText, { color: currentTheme.muted }]}>
               Are you sure you want to delete this draft?
             </Text>
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: currentTheme.border }]}
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: currentTheme.border },
+                ]}
                 onPress={() => setShowDeleteModal(false)}
               >
                 <Text style={{ color: currentTheme.text }}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={[styles.modalBtn, { backgroundColor: currentTheme.danger }]}
+                style={[
+                  styles.modalBtn,
+                  { backgroundColor: currentTheme.danger },
+                ]}
                 onPress={onDeleteConfirm}
               >
                 <Text style={{ color: "#fff" }}>Delete</Text>
@@ -242,19 +255,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalBox: {
-    width: "80%",
-    padding: 20,
-    borderRadius: 12,
-  },
+  modalBox: { width: "80%", padding: 20, borderRadius: 12 },
   modalTitle: { fontSize: 18, fontWeight: "600", marginBottom: 10 },
   modalText: { fontSize: 14, marginBottom: 20 },
   modalButtonsRow: {
@@ -262,10 +269,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  modalBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
+  modalBtn: { flex: 1, padding: 12, borderRadius: 8, alignItems: "center" },
 });
