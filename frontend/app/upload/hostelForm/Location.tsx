@@ -30,7 +30,6 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 
-// --- Mapbox Token Initialization
 const MAPBOX_TOKEN: string =
   (Constants.expoConfig && Constants.expoConfig.extra?.MAPBOX_PUBLIC_TOKEN) ||
   process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN ||
@@ -45,16 +44,19 @@ if (MAPBOX_TOKEN) {
   );
 }
 
-// Constants
-const DEFAULT_COORDS = { latitude: 37.78825, longitude: -122.4324 };
-const DEBOUNCE_DELAY_MS = 450;
-const INITIAL_ZOOM = 14;
+const INITIAL_ZOOM = 15;
+const DEBOUNCE_DELAY_MS = 400;
 
 interface MapboxSuggestion {
   id: string;
   place_name: string;
-  text?: string;
   center: [number, number];
+  text?: string;
+  street?: string;
+  city?: string;
+  region?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 interface Coords {
@@ -62,33 +64,42 @@ interface Coords {
   longitude: number;
 }
 
-// Mapbox search
 const searchMapboxPlaces = async (
   query: string
 ): Promise<MapboxSuggestion[]> => {
-  if (!MAPBOX_TOKEN || !query || query.length < 2) return [];
+  if (!query || query.length < 2 || !MAPBOX_TOKEN) return [];
   try {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
       query
-    )}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=6`;
+    )}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=6&types=address,place,locality,neighborhood,region,country`;
+
     const res = await fetch(url);
     const json = await res.json();
-    return (json.features || []).map((f: any) => ({
-      id: f.id,
-      place_name: f.place_name,
-      center: f.center,
-      text: f.text,
-    }));
+
+    return (json.features || []).map((f: any) => {
+      const context = f.context || [];
+      return {
+        id: f.id,
+        place_name: f.place_name,
+        center: f.center,
+        street: f.text || "",
+        city: context.find((c: any) => c.id.startsWith("place"))?.text || "",
+        region: context.find((c: any) => c.id.startsWith("region"))?.text || "",
+        postalCode:
+          context.find((c: any) => c.id.startsWith("postcode"))?.text || "",
+        country:
+          context.find((c: any) => c.id.startsWith("country"))?.text || "",
+      };
+    });
   } catch (err) {
     console.error("Mapbox search error:", err);
     return [];
   }
 };
 
-const HostelLocationScreen = () => {
+const HostelLocationScreen: React.FC = () => {
   const formContext = useContext(HostelFormContext);
   const { theme } = useTheme();
-  const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
 
   if (!formContext)
@@ -97,9 +108,10 @@ const HostelLocationScreen = () => {
     );
 
   const { data, updateForm } = formContext;
+  const currentTheme = Colors[theme ?? "light"];
 
   const [address, setAddress] = useState<string>(data.location ?? "");
-  const [addressObj, setAddressObj] = useState<Address>({
+  const [finalAddress, setFinalAddress] = useState<Address>({
     aptSuiteUnit: "",
     street: "",
     city: "",
@@ -108,211 +120,231 @@ const HostelLocationScreen = () => {
     country: "",
   });
 
-  const [coords, setCoords] = useState<Coords>(DEFAULT_COORDS);
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(true);
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(
     null
   );
   const [suggestions, setSuggestions] = useState<MapboxSuggestion[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [isPinFixed, setIsPinFixed] = useState(true);
-  const [isMarkerDraggable, setIsMarkerDraggable] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
+  const suppressRegionChangeRef = useRef(false);
   const cameraRef = useRef<Mapbox.Camera | null>(null);
   const mapRef = useRef<Mapbox.MapView | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reverse geocode -> returns structured Address object
-  const reverseGeocode = useCallback(
-    async (location: Coords): Promise<Address> => {
-      try {
-        const geo = await Location.reverseGeocodeAsync(location);
-        if (geo?.[0]) {
-          const { name, street, city, region, postalCode, country } = geo[0];
-          return {
-            aptSuiteUnit: name || "",
-            street: street || "",
-            city: city || "",
-            stateTerritory: region || "",
-            zipCode: postalCode || "",
-            country: country || "",
-          };
-        }
-      } catch (err) {
-        console.error("Reverse geocoding error:", err);
-      }
-      return {
-        aptSuiteUnit: "",
-        street: "",
-        city: "",
-        stateTerritory: "",
-        zipCode: "",
-        country: "",
-      };
-    },
-    []
-  );
+  /** Reverse geocode coords into full address */
+  const getFullAddress = useCallback(async (location: Coords) => {
+    try {
+      const geocode = await Location.reverseGeocodeAsync(location);
+      if (geocode?.[0]) {
+        const { name, street, city, region, postalCode, country } = geocode[0];
 
-  // Initial location
+        const formatted = [name, street, city, region, postalCode, country]
+          .filter(Boolean)
+          .join(", ");
+
+        setAddress(formatted);
+
+        setFinalAddress((prev) => ({
+          aptSuiteUnit: name || prev.aptSuiteUnit || "",
+          street: street || prev.street || "",
+          city: city || prev.city || "",
+          stateTerritory: region || prev.stateTerritory || "",
+          zipCode: postalCode || prev.zipCode || "",
+          country: country || prev.country || "",
+        }));
+
+        return formatted;
+      }
+    } catch (err) {
+      console.error("Reverse geocode error:", err);
+    }
+    return "";
+  }, []);
+
+  /** Fetch device location on mount */
   useEffect(() => {
-    const fetchInitialLocation = async () => {
+    const fetchLocation = async () => {
       try {
         setLoading(true);
         const { status } = await Location.requestForegroundPermissionsAsync();
-        const granted = status === "granted";
-        setPermissionGranted(granted);
-        if (!granted) return;
+        if (status !== "granted") {
+          setPermissionGranted(false);
+          return;
+        }
+        setPermissionGranted(true);
 
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
-        const newCoords = {
+        const newCoords: Coords = {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         };
         setCoords(newCoords);
-
-        const addrObj = await reverseGeocode(newCoords);
-        setAddressObj(addrObj);
-        setAddress(
-          `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
-        );
+        await getFullAddress(newCoords);
       } catch (err) {
-        console.error("Initial location error:", err);
+        console.error("Fetch location error:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchInitialLocation();
-  }, [reverseGeocode]);
+    fetchLocation();
+  }, [getFullAddress]);
 
-  // Update form context
+  /** Center camera on initial coords once map ready */
   useEffect(() => {
+    if (!coords || !mapReady) return;
+    suppressRegionChangeRef.current = true;
+    cameraRef.current?.setCamera({
+      centerCoordinate: [coords.longitude, coords.latitude],
+      zoomLevel: INITIAL_ZOOM,
+      animationDuration: 500,
+    });
+    const t = setTimeout(() => {
+      suppressRegionChangeRef.current = false;
+    }, 700);
+    return () => clearTimeout(t);
+  }, [coords, mapReady]);
+
+  /** Sync coords/address to form context */
+  useEffect(() => {
+    if (!coords) return;
     updateForm("lat", coords.latitude);
     updateForm("lng", coords.longitude);
     updateForm("location", address);
-    updateForm("address", [addressObj]);
-  }, [coords, address, addressObj]);
+    updateForm("address", [finalAddress]);
+  }, [coords, address, finalAddress]);
 
-  // Debounced search
+  /** Handle input changes with debounce */
   const handleAddressChange = useCallback((text: string) => {
     setAddress(text);
     setSuggestions([]);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
     if (!text || text.length < 2) return;
+
     debounceRef.current = setTimeout(async () => {
-      setIsSearching(true);
       const results = await searchMapboxPlaces(text);
       setSuggestions(results);
-      setIsSearching(false);
     }, DEBOUNCE_DELAY_MS);
   }, []);
 
+  /** Handle selecting a Mapbox suggestion */
   const selectSuggestion = useCallback(
     async (item: MapboxSuggestion) => {
       if (!item?.center) return;
-      const [lon, lat] = item.center;
-      const newCoords = { latitude: lat, longitude: lon };
+      const [longitude, latitude] = item.center;
+      const newCoords: Coords = { latitude, longitude };
+
+      suppressRegionChangeRef.current = true;
       setCoords(newCoords);
       setSuggestions([]);
       Keyboard.dismiss();
 
       cameraRef.current?.setCamera({
-        centerCoordinate: [lon, lat],
+        centerCoordinate: [longitude, latitude],
         zoomLevel: INITIAL_ZOOM,
         animationDuration: 500,
       });
 
-      const addrObj = await reverseGeocode(newCoords);
-      setAddressObj(addrObj);
-      setAddress(
-        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
-      );
+      // Merge reverse-geocode info if available
+      setFinalAddress((prev) => ({
+        aptSuiteUnit: prev.aptSuiteUnit || item.street || "",
+        street: prev.street || item.street || "",
+        city: prev.city || item.city || "",
+        stateTerritory: prev.stateTerritory || item.region || "",
+        zipCode: prev.zipCode || item.postalCode || "",
+        country: prev.country || item.country || "",
+      }));
+
+      setAddress(item.place_name);
+
+      // Optionally run reverse geocode to fill missing details
+      await getFullAddress(newCoords);
+
+      setTimeout(() => {
+        suppressRegionChangeRef.current = false;
+      }, 700);
     },
-    [reverseGeocode]
+    [getFullAddress]
   );
 
+  /** Toggle fixed pin mode */
+  const toggleMapMode = useCallback(() => setIsPinFixed((v) => !v), []);
+
+  /** Update coords/address on map movement (fixed pin mode) */
   const onRegionDidChange = useCallback(
     async (e: any) => {
+      if (!mapReady || suppressRegionChangeRef.current) return;
+      if (!isPinFixed || isDragging) return;
       const center = e?.geometry?.coordinates;
       if (!center || center.length < 2) return;
-      const [lon, lat] = center;
-      const newCoords = { latitude: lat, longitude: lon };
+      const [longitude, latitude] = center;
+      const newCoords: Coords = { latitude, longitude };
       setCoords(newCoords);
-
-      const addrObj = await reverseGeocode(newCoords);
-      setAddressObj(addrObj);
-      setAddress(
-        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
-      );
+      await getFullAddress(newCoords);
     },
-    [reverseGeocode]
+    [isPinFixed, isDragging, getFullAddress, mapReady]
   );
 
-  const onMarkerDragEnd = useCallback(
-    async (e: any) => {
-      const coordsArr = e?.geometry?.coordinates;
-      if (!coordsArr || coordsArr.length < 2) return;
-      const [lon, lat] = coordsArr;
-      const newCoords = { latitude: lat, longitude: lon };
-      setCoords(newCoords);
+  /** Marker drag events */
+  const onMarkerDragStart = () => setIsDragging(true);
+  const onMarkerDragEnd = async (e: any) => {
+    setIsDragging(false);
+    const coordsArr = e?.geometry?.coordinates;
+    if (!coordsArr || coordsArr.length < 2) return;
+    const [longitude, latitude] = coordsArr;
+    const newCoords: Coords = { latitude, longitude };
 
-      const addrObj = await reverseGeocode(newCoords);
-      setAddressObj(addrObj);
-      setAddress(
-        `${addrObj.aptSuiteUnit} ${addrObj.street}, ${addrObj.city}, ${addrObj.stateTerritory}`
-      );
-    },
-    [reverseGeocode]
-  );
+    suppressRegionChangeRef.current = true;
+    setCoords(newCoords);
+    await getFullAddress(newCoords);
 
-  const handleNext = () => {
-    if (address && address.length >= 3)
-      router.push("/upload/hostelForm/PropertyDetails");
+    cameraRef.current?.setCamera({
+      centerCoordinate: [longitude, latitude],
+      zoomLevel: INITIAL_ZOOM,
+      animationDuration: 300,
+    });
+
+    setTimeout(() => {
+      suppressRegionChangeRef.current = false;
+    }, 500);
   };
 
-  const toggleMapMode = useCallback(() => {
-    setIsPinFixed((v) => !v);
-    setIsMarkerDraggable((v) => !v);
-  }, []);
+  /** Navigate to next step */
+  const handleNext = useCallback(() => {
+    if (address && address.length >= 3)
+      router.push("/upload/hostelForm/PropertyDetails");
+  }, [address]);
 
-  const renderSuggestion = ({ item }: { item: MapboxSuggestion }) => (
-    <TouchableOpacity
-      style={[styles.suggestionItem, { borderColor: currentTheme.border }]}
-      onPress={() => selectSuggestion(item)}
-    >
-      <Text style={{ color: currentTheme.text }}>{item.place_name}</Text>
-    </TouchableOpacity>
-  );
-
-  if (loading) {
+  /** Loading or permission denied states */
+  if (loading)
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ color: currentTheme.muted, marginTop: 8 }}>
-          Getting your location...
+        <Text style={{ marginTop: 8, color: currentTheme.muted }}>
+          Fetching location...
         </Text>
       </View>
     );
-  }
 
-  if (permissionGranted === false) {
+  if (permissionGranted === false)
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <Text
-          style={{ color: currentTheme.text, padding: 16, textAlign: "center" }}
+          style={{ textAlign: "center", padding: 16, color: currentTheme.text }}
         >
-          Location permission is required to automatically set your location.
-          Please enable location access in your device settings.
+          Location permission denied. Enable location access in settings.
         </Text>
       </View>
     );
-  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
@@ -328,7 +360,7 @@ const HostelLocationScreen = () => {
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.inputContainer}
+          style={{ zIndex: 10 }}
         >
           <View
             style={[
@@ -352,25 +384,18 @@ const HostelLocationScreen = () => {
               style={[styles.input, { color: currentTheme.text }]}
               returnKeyType="done"
               onSubmitEditing={Keyboard.dismiss}
+              autoCorrect={false}
             />
-            {isSearching ? (
-              <ActivityIndicator
-                size="small"
-                style={{ marginRight: 8 }}
+            <TouchableOpacity
+              onPress={toggleMapMode}
+              style={{ paddingHorizontal: 8 }}
+            >
+              <Ionicons
+                name={isPinFixed ? "pin" : "pin-outline"}
+                size={20}
                 color={currentTheme.muted}
               />
-            ) : (
-              <TouchableOpacity
-                style={styles.mapModeToggle}
-                onPress={toggleMapMode}
-              >
-                <Ionicons
-                  name={isPinFixed ? "pin" : "pin-outline"}
-                  size={20}
-                  color={currentTheme.muted}
-                />
-              </TouchableOpacity>
-            )}
+            </TouchableOpacity>
           </View>
 
           {suggestions.length > 0 && (
@@ -386,7 +411,19 @@ const HostelLocationScreen = () => {
               <FlatList
                 data={suggestions}
                 keyExtractor={(i) => i.id}
-                renderItem={renderSuggestion}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[
+                      styles.suggestionItem,
+                      { borderColor: currentTheme.border },
+                    ]}
+                    onPress={() => selectSuggestion(item)}
+                  >
+                    <Text style={{ color: currentTheme.text }}>
+                      {item.place_name}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 keyboardShouldPersistTaps="handled"
               />
             </View>
@@ -394,57 +431,40 @@ const HostelLocationScreen = () => {
         </KeyboardAvoidingView>
 
         <View style={styles.mapArea}>
-          <Mapbox.MapView
-            ref={mapRef}
-            style={styles.map}
-            styleURL="mapbox://styles/mapbox/streets-v12"
-            onRegionDidChange={isPinFixed ? onRegionDidChange : undefined}
-            logoEnabled={false}
-            compassEnabled
-          >
-            <Mapbox.Camera
-              ref={cameraRef}
-              centerCoordinate={[coords.longitude, coords.latitude]}
-              zoomLevel={INITIAL_ZOOM}
-              animationDuration={500}
-            />
+          {coords ? (
+            <Mapbox.MapView
+              ref={mapRef}
+              style={styles.map}
+              styleURL="mapbox://styles/mapbox/streets-v12"
+              logoEnabled={false}
+              compassEnabled
+              onRegionDidChange={onRegionDidChange}
+              onDidFinishLoadingMap={() => setMapReady(true)}
+            >
+              <Mapbox.Camera
+                ref={cameraRef}
+                centerCoordinate={[coords.longitude, coords.latitude]}
+                zoomLevel={INITIAL_ZOOM}
+                animationDuration={500}
+              />
 
-            {isPinFixed && (
-              <View pointerEvents="none" style={styles.centerPinContainer}>
-                <Ionicons name="location" size={42} color="red" />
-              </View>
-            )}
-
-            {!isPinFixed && (
               <Mapbox.PointAnnotation
-                id="draggableMarker"
+                id="marker"
                 coordinate={[coords.longitude, coords.latitude]}
-                draggable={isMarkerDraggable}
+                draggable={!isPinFixed}
+                onDragStart={onMarkerDragStart}
                 onDragEnd={onMarkerDragEnd}
               >
-                <View style={styles.marker}>
-                  <Ionicons name="location" size={34} color="red" />
+                <View
+                  style={{ alignItems: "center", justifyContent: "center" }}
+                >
+                  <Ionicons name="location" size={42} color="red" />
                 </View>
               </Mapbox.PointAnnotation>
-            )}
-
-            {isPinFixed && (
-              <Mapbox.PointAnnotation
-                id="centerCoordinateAnnotation"
-                coordinate={[coords.longitude, coords.latitude]}
-              >
-                <View style={{ width: 1, height: 1 }} />
-              </Mapbox.PointAnnotation>
-            )}
-          </Mapbox.MapView>
-
-          <View style={styles.attribution}>
-            <Text
-              style={[styles.attributionText, { color: currentTheme.muted }]}
-            >
-              © Mapbox © OpenStreetMap
-            </Text>
-          </View>
+            </Mapbox.MapView>
+          ) : (
+            <ActivityIndicator size="large" style={{ marginTop: 40 }} />
+          )}
         </View>
       </StepContainer>
     </SafeAreaView>
@@ -454,7 +474,6 @@ const HostelLocationScreen = () => {
 export default HostelLocationScreen;
 
 const styles = StyleSheet.create({
-  inputContainer: { zIndex: 10 },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -472,7 +491,6 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     height: 20,
   },
-  mapModeToggle: { paddingHorizontal: 8 },
   suggestionsContainer: {
     borderRadius: 8,
     maxHeight: 220,
@@ -489,23 +507,5 @@ const styles = StyleSheet.create({
   suggestionItem: { padding: 14, borderBottomWidth: 1 },
   mapArea: { flex: 1, marginTop: 10, overflow: "hidden", borderRadius: 8 },
   map: { flex: 1 },
-  centerPinContainer: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -21,
-    marginTop: -42,
-    zIndex: 10,
-  },
-  marker: { alignItems: "center", justifyContent: "center" },
-  attribution: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    backgroundColor: "rgba(255,255,255,0.7)",
-    borderRadius: 4,
-    paddingHorizontal: 4,
-  },
-  attributionText: { fontSize: 11 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

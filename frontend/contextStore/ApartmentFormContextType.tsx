@@ -10,14 +10,7 @@ export interface SubmitResult {
   data?: any;
   error?: unknown;
 }
-const initialAddress: Address = {
-  country: "PAKISTAN",
-  street: "",
-  aptSuiteUnit: "",
-  city: "",
-  stateTerritory: "",
-  zipCode: "",
-};
+
 export interface capacityState {
   Persons?: number;
   bedrooms?: number;
@@ -25,7 +18,8 @@ export interface capacityState {
   bathrooms?: number;
   floorLevel?: number;
 }
-// ✅ Apartment-specific form data
+
+// 🔹 Apartment-specific form data
 export interface ApartmentFormData {
   _id?: string;
   propertyType?: "apartment";
@@ -34,19 +28,23 @@ export interface ApartmentFormData {
   address?: Address[];
   hostOption?: string;
   location?: string;
-   lat?: number; // Latitude from map
+  lat?: number;
   lng?: number;
-  // ✅ Apartment-only fields
+
+  // 🔹 Apartment-only fields
   apartmentType?: "studio" | "1BHK" | "2BHK" | "3BHK" | "penthouse";
   capacityState?: capacityState;
   furnishing?: "furnished" | "semi-furnished" | "unfurnished";
   parking?: boolean;
+
   amenities?: string[];
   photos?: string[];
+
   securityDeposit?: number;
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
+
   ALL_BILLS?: BillType[];
   safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
@@ -59,8 +57,8 @@ export interface ApartmentFormContextType {
     value: ApartmentFormData[K]
   ) => void;
   setFullFormData: (newData: ApartmentFormData) => void;
- submitData: (overrideData?: ApartmentFormData) => Promise<SubmitResult>;
-  submitDraftData: () => Promise<SubmitResult>;
+  submitData: (overrideData?: ApartmentFormData) => Promise<SubmitResult>;
+  submitDraftData: (overrideData?: ApartmentFormData) => Promise<SubmitResult>;
 }
 
 export const ApartmentFormContext = createContext<
@@ -73,33 +71,30 @@ export const ApartmentFormProvider = ({
   children: ReactNode;
 }) => {
   const [data, setData] = useState<ApartmentFormData>({});
+
+  // ✔ Same logic: one final publish, one draft
   const [createProperty] = useCreatePropertyMutation();
   const [createDraftProperty] = useCreatePropertyMutation();
 
-  // ✅ Update specific field
+  // ✔ Update specific field (matches FormContext)
   const updateForm: ApartmentFormContextType["updateForm"] = (step, value) => {
-    setData((prev) => {
-      const updated = { ...prev, [step]: value };
-      console.log("📝 Updated Apartment Form:", updated);
-      return updated;
-    });
+    setData((prev) => ({ ...prev, [step]: value }));
   };
 
-  // ✅ Load full draft
+  // ✔ Load full form data (e.g., editing)
   const setFullFormData: ApartmentFormContextType["setFullFormData"] = (
     newData
   ) => {
-    console.log("📥 Loaded Apartment Draft:", newData);
     setData({ ...newData });
   };
 
-  // ✅ Submit published listing
-  // In ApartmentFormContextProvider
+  // ✔ Submit final published apartment
   const submitData: ApartmentFormContextType["submitData"] = async (
-    overrideData?: ApartmentFormData
+    overrideData
   ) => {
     try {
-      const payload = overrideData ?? data; // use latest override if provided
+      const payload = overrideData ?? data;
+
       console.log("🚀 Submitting Apartment:", payload);
 
       const response = await createProperty({
@@ -114,23 +109,26 @@ export const ApartmentFormProvider = ({
     }
   };
 
-  // ✅ Save Draft
-  const submitDraftData: ApartmentFormContextType["submitDraftData"] =
-    async () => {
-      try {
-        console.log("🗂️ Saving Apartment Draft:", data);
+  // ✔ Save apartment as a draft (with overrideData support)
+  const submitDraftData: ApartmentFormContextType["submitDraftData"] = async (
+    overrideData
+  ) => {
+    try {
+      const payload = overrideData ?? data;
 
-        const response = await createDraftProperty({
-          ...data,
-          propertyType: "apartment",
-        }).unwrap();
+      console.log("🗂️ Saving Apartment Draft:", payload);
 
-        return { success: true, data: response };
-      } catch (error) {
-        console.error("❌ Error saving draft:", error);
-        return { success: false, error };
-      }
-    };
+      const response = await createDraftProperty({
+        ...payload,
+        propertyType: "apartment",
+      }).unwrap();
+
+      return { success: true, data: response };
+    } catch (error) {
+      console.error("❌ Error saving draft:", error);
+      return { success: false, error };
+    }
+  };
 
   return (
     <ApartmentFormContext.Provider

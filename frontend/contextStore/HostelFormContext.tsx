@@ -18,11 +18,11 @@ export interface HostelFormData {
   hostOption?: string;
   description?: Description;
   address?: Address[];
-  hostelType?: "male" | "female" | "mixed"; // hostel type
+  hostelType?: "male" | "female" | "mixed";
   location?: string;
-   lat?: number; // Latitude from map
+  lat?: number;
   lng?: number;
-  capacityState?: CapacityState; // total beds, beds per room, etc.
+  capacityState?: CapacityState;
   amenities?: string[];
   photos?: string[];
   title?: string;
@@ -30,11 +30,11 @@ export interface HostelFormData {
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
-  mealPlan?: string[]; // e.g., ["breakfast", "dinner"]
-  rules?: string[]; // hostel rules/policies
+  mealPlan?: string[];
+  rules?: string[];
   safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
-  ALL_BILLS?: BillType[]; // optional
+  ALL_BILLS?: BillType[];
 }
 
 export interface HostelFormContextType {
@@ -45,7 +45,7 @@ export interface HostelFormContextType {
   ) => void;
   setFullFormData: (newData: HostelFormData) => void;
   submitData: (overrideData?: HostelFormData) => Promise<SubmitResult>;
-  submitDraftData: () => Promise<SubmitResult>;
+  submitDraftData: (overrideData?: HostelFormData) => Promise<SubmitResult>;
 }
 
 export const HostelFormContext = createContext<
@@ -54,38 +54,37 @@ export const HostelFormContext = createContext<
 
 export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<HostelFormData>({});
+
+  // ✔ Same API logic (one for final create, one for draft)
   const [createProperty] = useCreatePropertyMutation();
   const [createDraftProperty] = useCreatePropertyMutation();
 
-  // 🔹 Update a specific field/step
+  // ✔ Same update logic as FormContext
   const updateForm: HostelFormContextType["updateForm"] = (step, values) => {
-    setData((prev) => {
-      const newData = { ...prev, [step]: values };
-      console.log("📝 Updated Hostel Form Data:", newData);
-      return newData;
-    });
+    setData((prev) => ({ ...prev, [step]: values }));
   };
 
-  // 🔹 Load full draft form
+  // ✔ Replace full form data (for edit mode/draft loading)
   const setFullFormData: HostelFormContextType["setFullFormData"] = (
     newData
   ) => {
-    console.log("📥 Loaded hostel draft data:", newData);
     setData({ ...newData });
   };
 
-  // 🔹 Submit hostel property
+  // ✔ FINAL submission (same as property)
   const submitData: HostelFormContextType["submitData"] = async (
-    overrideData?: HostelFormData
+    overrideData
   ) => {
     try {
-      const payload = overrideData ?? data;
-      console.log("🚀 Submitting hostel data:", data);
-      const response = await createDraftProperty({
+      const payload: HostelFormData = overrideData ?? data;
+
+      console.log("🚀 Submitting hostel data:", payload);
+
+      const response = await createProperty({
         ...payload,
         propertyType: "hostel",
       }).unwrap();
-      console.log("✅ Hostel created successfully!", response);
+
       return { success: true, data: response };
     } catch (error) {
       console.error("❌ Error submitting hostel:", error);
@@ -93,19 +92,26 @@ export const HostelFormProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // 🔹 Save draft hostel property
-  const submitDraftData: HostelFormContextType["submitDraftData"] =
-    async () => {
-      try {
-        console.log("🗂️ Saving hostel draft data:", data);
-        const response = await createDraftProperty(data).unwrap();
-        console.log("✅ Draft saved successfully!", response);
-        return { success: true, data: response };
-      } catch (error) {
-        console.error("❌ Error saving draft:", error);
-        return { success: false, error };
-      }
-    };
+  // ✔ SAVE DRAFT (same overrideData pattern as FormContext)
+  const submitDraftData: HostelFormContextType["submitDraftData"] = async (
+    overrideData
+  ) => {
+    try {
+      const payload: HostelFormData = overrideData ?? data;
+
+      console.log("🗂️ Saving hostel draft:", payload);
+
+      const response = await createDraftProperty({
+        ...payload,
+        propertyType: "hostel",
+      }).unwrap();
+
+      return { success: true, data: response };
+    } catch (error) {
+      console.error("❌ Error saving draft hostel:", error);
+      return { success: false, error };
+    }
+  };
 
   return (
     <HostelFormContext.Provider

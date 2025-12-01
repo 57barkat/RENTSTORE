@@ -89,7 +89,7 @@ export class PropertyController {
       return true;
     };
 
-    const requiredFields = ["hostOption", "location", "lat", "lng", "address"];
+    const requiredFields = ["hostOption", "location", "lat", "lng", "address","safetyDetailsData"];
     parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
 
     /** ✅ Photo upload */

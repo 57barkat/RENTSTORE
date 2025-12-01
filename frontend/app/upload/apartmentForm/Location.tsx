@@ -47,6 +47,7 @@ if (MAPBOX_TOKEN) {
 // Constants
 const DEFAULT_COORDS = { latitude: 37.78825, longitude: -122.4324 };
 const DEBOUNCE_DELAY_MS = 450;
+const REGION_STOP_DEBOUNCE_MS = 500;
 const INITIAL_ZOOM = 14;
 
 interface MapboxSuggestion {
@@ -110,6 +111,7 @@ const ApartmentLocationScreen = () => {
   const cameraRef = useRef<Mapbox.Camera | null>(null);
   const mapRef = useRef<Mapbox.MapView | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const regionChangeTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Reverse geocode
   const reverseGeocode = useCallback(
@@ -164,7 +166,7 @@ const ApartmentLocationScreen = () => {
     updateForm("location", address);
   }, [coords, address]);
 
-  // Debounced search
+  // Debounced address search
   const handleAddressChange = useCallback((text: string) => {
     setAddress(text);
     setSuggestions([]);
@@ -198,19 +200,26 @@ const ApartmentLocationScreen = () => {
     [reverseGeocode]
   );
 
+  // Debounced map region change
   const onRegionDidChange = useCallback(
-    async (e: any) => {
+    (e: any) => {
       const center = e?.geometry?.coordinates;
       if (!center || center.length < 2) return;
       const [lon, lat] = center;
       const newCoords = { latitude: lat, longitude: lon };
       setCoords(newCoords);
-      const addr = await reverseGeocode(newCoords);
-      setAddress(addr);
+
+      if (regionChangeTimeout.current)
+        clearTimeout(regionChangeTimeout.current);
+      regionChangeTimeout.current = setTimeout(async () => {
+        const addr = await reverseGeocode(newCoords);
+        setAddress(addr);
+      }, REGION_STOP_DEBOUNCE_MS);
     },
     [reverseGeocode]
   );
 
+  // Marker drag end
   const onMarkerDragEnd = useCallback(
     async (e: any) => {
       const coordsArr = e?.geometry?.coordinates;
