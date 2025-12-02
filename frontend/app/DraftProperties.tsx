@@ -51,12 +51,12 @@ export default function DraftProperties() {
     undefined,
     { skip: !ready, refetchOnMountOrArgChange: true }
   );
-console.log("Draft Properties Data:", isError);
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
 
   const handleEdit = (data: FormData) => {
+    console.log("Editing draft:", data);
     formContext?.setFullFormData({ ...data });
-    setTimeout(() => router.push("/upload/IntroStep1"), 50);
+    setTimeout(() => router.push("/upload/CreateStep"), 50);
   };
 
   const onDeleteConfirm = async () => {
