@@ -11,10 +11,9 @@ const CreateStep: FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const seen = AsyncStorage.getItem("seen");
 
   const handleCreateNew = async () => {
-    const seen = await AsyncStorage.getItem("seen");  
+    const seen = await AsyncStorage.getItem("seen");
     if (!seen) {
       router.push("/upload/IntroStep1");
     } else {
