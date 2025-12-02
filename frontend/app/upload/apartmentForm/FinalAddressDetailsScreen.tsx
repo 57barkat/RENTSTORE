@@ -18,7 +18,6 @@ import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { FormContext } from "@/contextStore/FormContext";
 
-
 const ApartmentFinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -91,7 +90,10 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
         type: "success",
         text1: "Apartment listed successfully!",
       });
-      setTimeout(() => router.replace("/MyListingsScreen"), 1500);
+      setTimeout(() => {
+        router.replace("/MyListingsScreen");
+        context?.clearForm();
+      }, 1500);
     } else {
       Toast.show({
         type: "error",

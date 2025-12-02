@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
-  ScrollView, 
+  ScrollView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -16,7 +16,7 @@ import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";  
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 
 const FinalAddressDetailsScreen: FC = () => {
@@ -130,7 +130,10 @@ const FinalAddressDetailsScreen: FC = () => {
         type: "success",
         text1: "Apartment listed successfully!",
       });
-      setTimeout(() => router.replace("/MyListingsScreen"), 1500);
+      setTimeout(() => {
+        router.replace("/MyListingsScreen");
+        context?.clearForm();
+      }, 1500);
     } else {
       Toast.show({
         type: "error",

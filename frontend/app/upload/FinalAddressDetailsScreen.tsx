@@ -23,7 +23,7 @@ const FinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const { data, updateForm, submitData } = useContext(FormContext)!;
+  const { data, updateForm, submitData, clearForm } = useContext(FormContext)!;
 
   const initialAddress: Address = {
     country: "PAKISTAN",
@@ -88,7 +88,10 @@ const FinalAddressDetailsScreen: FC = () => {
         type: "success",
         text1: "Apartment listed successfully!",
       });
-      setTimeout(() => router.replace("/MyListingsScreen"), 1500);
+      setTimeout(() => {
+        router.replace("/MyListingsScreen");
+        clearForm();
+      }, 1500);
     } else {
       Toast.show({
         type: "error",
