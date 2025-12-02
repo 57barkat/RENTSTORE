@@ -12,4 +12,5 @@ export interface CapacityState {
   bedrooms: number;
   beds: number;
   bathrooms: number;
+  floorLevel?: number;
 }
