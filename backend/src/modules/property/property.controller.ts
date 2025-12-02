@@ -34,7 +34,7 @@ export class PropertyController {
 
     console.log("🔥 RAW DTO from frontend:", req.body);
 
-    // Helper to parse JSON
+    // Helper to parse JSON safely
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -44,11 +44,14 @@ export class PropertyController {
       }
     };
 
+    // Parse nested fields
     let parsedDto: any = {
       ...dto,
       capacityState: parseJson(dto.capacityState),
-      description: parseJson(dto.description),
-      safetyDetailsData: parseJson(dto.safetyDetailsData),
+      description: parseJson(dto.description) ?? { highlighted: [] },
+      safetyDetailsData: parseJson(dto.safetyDetailsData) ?? {
+        safetyDetails: [],
+      },
       amenities: parseJson(dto.amenities),
       ALL_BILLS: parseJson(dto.ALL_BILLS),
       lat: dto.lat ? Number(dto.lat) : undefined,
@@ -69,7 +72,7 @@ export class PropertyController {
 
       parsedAddress = parsedAddress
         .map((addr) => {
-          const cleaned = {};
+          const cleaned: Record<string, any> = {};
           Object.keys(addr).forEach((key) => {
             const val = addr[key];
             cleaned[key] = typeof val === "string" ? val.trim() : val;
@@ -80,16 +83,29 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress;
 
-    /** ✅ Status calculation */
-    const isFilled = (value: any) => {
+    /** ✅ Correct status calculation */
+    const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
+
       if (Array.isArray(value)) return value.length > 0;
-      if (typeof value === "object") return Object.keys(value).length > 0;
+
+      if (typeof value === "object") {
+        return Object.values(value).some((v) => isFilled(v));
+      }
+
       if (typeof value === "string") return value.trim() !== "";
-      return true;
+
+      return true; // numbers, booleans
     };
 
-    const requiredFields = ["hostOption", "location", "lat", "lng", "address","safetyDetailsData"];
+    const requiredFields = [
+      "hostOption",
+      "location",
+      "lat",
+      "lng",
+      "address",
+      "safetyDetailsData",
+    ];
     parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
 
     /** ✅ Photo upload */
@@ -104,9 +120,9 @@ export class PropertyController {
       : dto.photos || [];
     parsedDto.photos = photoUrls;
 
-    console.log("Parsed DTO:", parsedDto);
+    console.log("Parsed DTO for saving:", parsedDto);
 
-    return this.propertyService.create(parsedDto, userId);
+    return this.propertyService.createOrUpdate(parsedDto, userId);
   }
 
   @Get()

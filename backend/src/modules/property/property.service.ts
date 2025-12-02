@@ -16,7 +16,7 @@ export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
-    public  readonly cloudinary: CloudinaryService,
+    public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService
   ) {}
 
@@ -33,7 +33,11 @@ export class PropertyService {
     return urls;
   }
 
-  async create(dto: CreatePropertyDto, userId: string): Promise<Property> {
+  // ---------------------- Service ----------------------
+  async createOrUpdate(
+    dto: CreatePropertyDto,
+    userId: string
+  ): Promise<Property> {
     let property: Property | null;
 
     if (dto._id) {
@@ -43,7 +47,13 @@ export class PropertyService {
       if (property.ownerId.toString() !== userId.toString())
         throw new UnauthorizedException("Not allowed");
 
-      Object.assign(property, dto);
+      // Only assign fields that exist in DTO
+      for (const key of Object.keys(dto)) {
+        if (dto[key] !== undefined) {
+          property[key] = dto[key];
+        }
+      }
+
       property = await property.save();
     } else {
       // New property

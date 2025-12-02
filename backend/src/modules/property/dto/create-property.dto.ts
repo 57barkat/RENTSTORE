@@ -9,7 +9,10 @@ import {
 import { Type, Transform } from "class-transformer";
 import { Property } from "../property.schema";
 
+// ------------------------
 // Nested DTOs
+// ------------------------
+
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
   @IsOptional() @IsString() street?: string;
@@ -20,61 +23,65 @@ class AddressDto {
 }
 
 class CapacityStateDto {
-  @IsOptional() @IsNumber() Persons?: number;
-  @IsOptional() @IsNumber() bedrooms?: number;
-  @IsOptional() @IsNumber() beds?: number;
-  @IsOptional() @IsNumber() bathrooms?: number;
+  @IsOptional() @IsNumber() Persons: number = 1;
+  @IsOptional() @IsNumber() bedrooms: number = 0;
+  @IsOptional() @IsNumber() beds: number = 1;
+  @IsOptional() @IsNumber() bathrooms: number = 1;
   @IsOptional() @IsNumber() floorLevel?: number;
 }
 
 class SafetyDetailsDataDto {
-  @IsOptional() @IsArray() @IsString({ each: true }) safetyDetails?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) safetyDetails: string[] =
+    [];
   @IsOptional() @IsString() cameraDescription?: string;
 }
 
 class DescriptionDto {
-  @IsOptional() @IsArray() @IsString({ each: true }) highlighted?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
 }
 
+// ------------------------
 // Unified DTO
+// ------------------------
+
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() hostOption?: string;
-  @IsOptional() @IsString() location?: string; // human-readable
+  @IsOptional() @IsString() location?: string;
 
-  @IsOptional() @IsNumber() lat?: number; // latitude
-  @IsOptional() @IsNumber() lng?: number; // longitude
+  @IsOptional() @IsNumber() lat?: number;
+  @IsOptional() @IsNumber() lng?: number;
 
   @IsOptional() @IsNumber() monthlyRent?: number;
   @IsOptional() @IsNumber() dailyRent?: number;
   @IsOptional() @IsNumber() weeklyRent?: number;
   @IsOptional() @IsNumber() SecuritybasePrice?: number;
 
-  @IsOptional() @IsArray() @IsString({ each: true }) ALL_BILLS?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) ALL_BILLS: string[] = [];
 
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => AddressDto)
-  address?: AddressDto[];
+  address: AddressDto[] = [];
 
-  @IsOptional() @IsArray() @IsString({ each: true }) amenities?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) amenities: string[] = [];
+  @IsOptional() @IsArray() @IsString({ each: true }) photos: string[] = [];
 
   @IsOptional()
   @ValidateNested()
   @Type(() => CapacityStateDto)
-  capacityState?: CapacityStateDto;
+  capacityState: CapacityStateDto = new CapacityStateDto();
 
   @IsOptional()
   @ValidateNested()
   @Type(() => DescriptionDto)
-  description?: DescriptionDto;
+  description: DescriptionDto = new DescriptionDto();
 
   @IsOptional()
   @ValidateNested()
   @Type(() => SafetyDetailsDataDto)
-  safetyDetailsData?: SafetyDetailsDataDto;
+  safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
   // Apartment-specific
   @IsOptional() @IsString() apartmentType?: string;
@@ -83,8 +90,8 @@ export class CreatePropertyDto {
 
   // Hostel-specific
   @IsOptional() @IsString() hostelType?: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) mealPlan?: string[];
-  @IsOptional() @IsArray() @IsString({ each: true }) rules?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) mealPlan: string[] = [];
+  @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
 
   @IsString() ownerId: string;
 

@@ -6,9 +6,9 @@ export class Property extends Document {
   @Prop({ type: String }) title?: string;
   @Prop({ type: String }) hostOption?: string;
 
-  @Prop({ type: String }) location?: string; // human-readable
-  @Prop({ type: Number }) lat?: number;      // latitude
-  @Prop({ type: Number }) lng?: number;      // longitude
+  @Prop({ type: String }) location?: string;
+  @Prop({ type: Number }) lat?: number;
+  @Prop({ type: Number }) lng?: number;
 
   @Prop({ type: Number }) monthlyRent?: number;
   @Prop({ type: Number }) dailyRent?: number;
@@ -16,6 +16,7 @@ export class Property extends Document {
   @Prop({ type: Number }) SecuritybasePrice?: number;
 
   @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];
+
   @Prop({
     type: [
       {
@@ -25,6 +26,7 @@ export class Property extends Document {
         stateTerritory: String,
         country: String,
         zipCode: String,
+        _id: false, // ✅ disable subdocument _id
       },
     ],
     default: [],
@@ -41,21 +43,23 @@ export class Property extends Document {
       beds: Number,
       bathrooms: Number,
       floorLevel: Number,
+      _id: false, // ✅ disable _id
     },
     default: {},
   })
   capacityState?: Record<string, any>;
 
   @Prop({
-    type: { highlighted: [String] },
+    type: { highlighted: { type: [String], default: [] }, _id: false },
     default: {},
   })
   description?: Record<string, any>;
 
   @Prop({
     type: {
-      safetyDetails: [String],
+      safetyDetails: { type: [String], default: [] },
       cameraDescription: String,
+      _id: false, // ✅ disable _id
     },
     default: {},
   })
@@ -67,13 +71,14 @@ export class Property extends Document {
   furnishing?: string;
   @Prop({ type: Boolean }) parking?: boolean;
 
-  @Prop({ type: String, enum: ["male", "female", "mixed"] }) hostelType?: string;
+  @Prop({ type: String, enum: ["male", "female", "mixed"] })
+  hostelType?: string;
   @Prop({ type: [String], default: [] }) mealPlan?: string[];
   @Prop({ type: [String], default: [] }) rules?: string[];
 
   @Prop({ type: String, required: true }) ownerId: string;
 
-  @Prop({ type: Boolean, default: false }) status: boolean; // draft vs complete
+  @Prop({ type: Boolean, default: false }) status: boolean;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
