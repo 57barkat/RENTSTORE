@@ -5,15 +5,11 @@ import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/upload";
 import { FormContext } from "@/contextStore/FormContext";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
 
 const WelcomeScreen = () => {
   const formContext = useContext(FormContext);
-  const hostelFormContext = useContext(HostelFormContext);
-  const appartmentFormContext = useContext(ApartmentFormContext);
 
   const router = useRouter();
   const { theme } = useTheme();
@@ -32,28 +28,14 @@ const WelcomeScreen = () => {
   const handleNext = () => {
     if (!selectedType) return;
 
-    if (selectedType === "hostel") {
-      if (!hostelFormContext)
-        throw new Error(
-          "HostelFormContext is missing! Wrap this screen in <HostelFormProvider>."
-        );
-      hostelFormContext.updateForm("hostOption", selectedType);
-      router.push("/upload/hostelForm/Location");
-    } else if (selectedType === "apartment") {
-      if (!appartmentFormContext)
-        throw new Error(
-          "FormContext is missing! Wrap this screen in <FormProvider>."
-        );
-      appartmentFormContext.updateForm("hostOption", selectedType);
-      router.push("/upload/apartmentForm/Location");
-    } else {
-      // Home
+    if (selectedType) {
       if (!formContext)
         throw new Error(
-          "FormContext is missing! Wrap this screen in <FormProvider>."
+          "formContext is missing! Wrap this screen in <HostelFormProvider>."
         );
       formContext.updateForm("hostOption", selectedType);
-      router.push("/upload/Location");
+      console.log("Selected Host Option:", selectedType);
+      router.push("/upload/hostelForm/Location");
     }
   };
 
