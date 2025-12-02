@@ -16,16 +16,17 @@ import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
+
 
 const ApartmentFinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "ApartmentFinalAddressDetailsScreen must be used within an ApartmentFormProvider"
+      "ApartmentFinalAddressDetailsScreen must be used within an FormContext"
     );
 
   const { data, updateForm, submitData } = context;

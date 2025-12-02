@@ -25,7 +25,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import StepContainer from "../Welcome";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 
@@ -106,14 +106,12 @@ const searchMapboxPlaces = async (
 };
 
 const ApartmentLocationScreen: React.FC = () => {
-  const formContext = useContext(ApartmentFormContext);
+  const formContext = useContext(FormContext);
   const { theme } = useTheme();
   const router = useRouter();
 
   if (!formContext)
-    throw new Error(
-      "ApartmentFormContext is missing! Wrap in <ApartmentFormProvider>."
-    );
+    throw new Error("FormContext is missing! Wrap in <ApartmentFormProvider>.");
 
   const { data, updateForm } = formContext;
   const currentTheme = Colors[theme ?? "light"];

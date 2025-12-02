@@ -5,14 +5,11 @@ import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PropertyDetails";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-import {
-  ApartmentFormContext,
-  ApartmentFormData,
-} from "@/contextStore/ApartmentFormContextType";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCounterInput";
 
 const ApartmentPropertyDetails: FC = () => {
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
@@ -25,9 +22,9 @@ const ApartmentPropertyDetails: FC = () => {
   const { data, updateForm } = context;
 
   // ✅ Use capacityState object for rooms and floor
-  const [apartmentType, setApartmentType] = useState<
-    ApartmentFormData["apartmentType"]
-  >(data.apartmentType ?? "1BHK");
+  const [apartmentType, setApartmentType] = useState<FormData["apartmentType"]>(
+    data.apartmentType ?? "1BHK"
+  );
 
   const [capacityState, setCapacityState] = useState({
     bedrooms: data.capacityState?.bedrooms ?? 1,
@@ -37,7 +34,7 @@ const ApartmentPropertyDetails: FC = () => {
     floorLevel: data.capacityState?.floorLevel ?? 1,
   });
 
-  const [furnishing, setFurnishing] = useState<ApartmentFormData["furnishing"]>(
+  const [furnishing, setFurnishing] = useState<FormData["furnishing"]>(
     data.furnishing ?? "unfurnished"
   );
   const [parking, setParking] = useState<boolean>(data.parking ?? false);
@@ -93,7 +90,7 @@ const ApartmentPropertyDetails: FC = () => {
             >
               <Text
                 onPress={() =>
-                  setApartmentType(type as ApartmentFormData["apartmentType"])
+                  setApartmentType(type as FormData["apartmentType"])
                 }
                 style={{
                   color: apartmentType === type ? "#fff" : currentTheme.text,
@@ -226,9 +223,7 @@ const ApartmentPropertyDetails: FC = () => {
               }}
             >
               <Text
-                onPress={() =>
-                  setFurnishing(furn as ApartmentFormData["furnishing"])
-                }
+                onPress={() => setFurnishing(furn as FormData["furnishing"])}
                 style={{
                   color: furnishing === furn ? "#fff" : currentTheme.text,
                   fontWeight: "bold",

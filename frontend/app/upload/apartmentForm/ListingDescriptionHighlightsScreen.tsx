@@ -2,12 +2,11 @@ import React, { FC, useState, useContext } from "react";
 import { Text, View, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-import { styles } from "@/styles/ListingDescriptionHighlightsScreen";
-import { Chip } from "@/components/UploadPropertyComponents/DiscriptionChip";
+import { styles } from "@/styles/ListingDescriptionHighlightsScreen"; 
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors"; 
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 
 const MAX_SELECTIONS = 2;
@@ -17,7 +16,7 @@ const ApartmentDescriptionHighlightsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context) throw new Error("ApartmentFormContext is missing!");
   const { data, updateForm } = context;
 

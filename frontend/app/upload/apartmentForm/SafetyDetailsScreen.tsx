@@ -8,7 +8,7 @@ import { CheckboxItem } from "@/components/UploadPropertyComponents/SafetyDetail
 import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
 
 export interface SafetyDetailsData {
   safetyDetails: string[];
@@ -20,7 +20,7 @@ const ApartmentSafetyDetailsScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
 
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
       "ApartmentSafetyDetailsScreen must be used within ApartmentFormProvider"

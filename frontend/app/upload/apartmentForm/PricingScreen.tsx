@@ -8,7 +8,7 @@ import { Colors } from "@/constants/Colors";
 import { StyleSheet } from "react-native";
 import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
 
-const MIN_PRICE = 0; // Allow 0 if no deposit
+const MIN_PRICE = 0;
 
 const HostelSecurityDepositScreen: FC = () => {
   const context = useContext(ApartmentFormContext);

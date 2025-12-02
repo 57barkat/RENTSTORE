@@ -12,10 +12,7 @@ import * as ImagePicker from "expo-image-picker";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
-import {
-  ApartmentFormContext,
-  ApartmentFormData,
-} from "@/contextStore/ApartmentFormContextType";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import Toast from "react-native-toast-message";
 
 type ImageUriArray = string[];
@@ -24,7 +21,7 @@ const ApartmentPhotosScreen: FC = () => {
   const router = useRouter();
 
   // --- Context Consumption ---
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context) {
     throw new Error(
       "ApartmentPhotosScreen must be used within an ApartmentFormProvider"
@@ -66,7 +63,7 @@ const ApartmentPhotosScreen: FC = () => {
       const updatedUris = [...selectedImages, ...newUris];
 
       setSelectedImages(updatedUris);
-      updateForm("photos" as keyof ApartmentFormData, updatedUris);
+      updateForm("photos" as keyof FormData, updatedUris);
       Toast.show({
         type: "success",
         text1: "Photos added",
@@ -79,7 +76,7 @@ const ApartmentPhotosScreen: FC = () => {
   const handleRemovePhoto = (uriToRemove: string) => {
     setSelectedImages((prev) => {
       const updatedUris = prev.filter((uri) => uri !== uriToRemove);
-      updateForm("photos" as keyof ApartmentFormData, updatedUris);
+      updateForm("photos" as keyof FormData, updatedUris);
       Toast.show({
         type: "info",
         text1: "Photo removed",

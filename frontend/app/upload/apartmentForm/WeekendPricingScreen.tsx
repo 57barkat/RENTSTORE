@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
+
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 
@@ -20,7 +21,7 @@ const MIN_RENT = 100;
 type RentType = "daily" | "weekly" | "monthly";
 
 const ApartmentRentScreen: FC = () => {
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
       "ApartmentRentScreen must be used within an ApartmentFormProvider"

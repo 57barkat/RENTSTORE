@@ -10,10 +10,7 @@ import {
 import { styles } from "@/styles/AmenitiesScreen";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 import { useTheme } from "@/contextStore/ThemeContext";
-import {
-  ApartmentFormContext,
-  ApartmentFormData,
-} from "@/contextStore/ApartmentFormContextType";
+import { FormContext, FormData } from "@/contextStore/FormContext";
 import { Colors } from "@/constants/Colors";
 
 const ApartmentAmenitiesScreen: FC = () => {
@@ -21,10 +18,10 @@ const ApartmentAmenitiesScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "ApartmentAmenitiesScreen must be used within an ApartmentFormProvider"
+      "ApartmentAmenitiesScreen must be used within an FormContext"
     );
   const { data, updateForm } = context;
 
@@ -38,10 +35,7 @@ const ApartmentAmenitiesScreen: FC = () => {
     setSelectedAmenities((prev) => toggleAmenity(prev, key));
 
   const handleNext = () => {
-    updateForm(
-      "amenities" as keyof ApartmentFormData,
-      Array.from(selectedAmenities)
-    );
+    updateForm("amenities" as keyof FormData, Array.from(selectedAmenities));
     router.push("/upload/apartmentForm/PhotosScreen");
   };
 
@@ -78,7 +72,6 @@ const ApartmentAmenitiesScreen: FC = () => {
                   }
                   selectedBackgroundColor={currentTheme.primary}
                 />
-                
               ))}
             </View>
           </View>
