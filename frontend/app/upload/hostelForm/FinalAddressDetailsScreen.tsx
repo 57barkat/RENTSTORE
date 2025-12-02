@@ -2,8 +2,7 @@ import React, { FC, useState, useEffect, useCallback, useContext } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
+  ScrollView, 
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -17,13 +16,14 @@ import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";  
+import { FormContext } from "@/contextStore/FormContext";
 
 const FinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
       "FinalAddressDetailsScreen must be used within a HostelFormProvider"

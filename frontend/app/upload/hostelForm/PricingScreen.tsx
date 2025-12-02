@@ -3,7 +3,8 @@ import { Text, View, TextInput, Keyboard } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { StyleSheet } from "react-native";
@@ -11,10 +12,10 @@ import { StyleSheet } from "react-native";
 const MIN_PRICE = 0; // Allow 0 if no deposit
 
 const HostelSecurityDepositScreen: FC = () => {
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "HostelSecurityDepositScreen must be used within a HostelFormProvider"
+      "HostelSecurityDepositScreen must be used within a FormContext"
     );
 
   const { data, updateForm } = context;

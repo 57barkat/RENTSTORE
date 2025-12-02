@@ -6,7 +6,9 @@ import { styles } from "@/styles/SafetyDetailsScreen";
 import { SAFETY_DETAILS } from "@/utils/SafetyDetails";
 import { CheckboxItem } from "@/components/UploadPropertyComponents/SafetyDetailsCheckboxItem";
 import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
+
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 
@@ -20,10 +22,10 @@ const SafetyDetailsScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
 
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "SafetyDetailsScreen must be used within HostelFormProvider"
+      "SafetyDetailsScreen must be used within FormProvider"
     );
 
   const { data, updateForm } = context;

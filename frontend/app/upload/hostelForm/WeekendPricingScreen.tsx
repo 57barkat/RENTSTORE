@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 
@@ -20,7 +20,7 @@ const ALL_BILLS: BillType[] = ["electricity", "water", "gas"];
 const MIN_RENT = 100;
 
 const HostelRentScreen: FC = () => {
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
       "HostelRentScreen must be used within a HostelFormProvider"

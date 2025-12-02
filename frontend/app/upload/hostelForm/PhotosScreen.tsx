@@ -12,10 +12,12 @@ import * as ImagePicker from "expo-image-picker";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
-import {
-  HostelFormContext,
-  HostelFormData,
-} from "@/contextStore/HostelFormContext";
+// import {
+//   HostelFormContext,
+//   HostelFormData,
+// } from "@/contextStore/HostelFormContext";
+import { FormContext, FormData } from "@/contextStore/FormContext";
+
 import Toast from "react-native-toast-message";
 
 type ImageUriArray = string[];
@@ -24,10 +26,10 @@ const HostelPhotosScreen: FC = () => {
   const router = useRouter();
 
   // --- Context Consumption ---
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   if (!context) {
     throw new Error(
-      "HostelPhotosScreen must be used within a HostelFormProvider"
+      "HostelPhotosScreen must be used within a FormProvider"
     );
   }
   const { data, updateForm } = context;
@@ -65,7 +67,7 @@ const HostelPhotosScreen: FC = () => {
       const updatedUris = [...selectedImages, ...newUris];
 
       setSelectedImages(updatedUris);
-      updateForm("photos" as keyof HostelFormData, updatedUris);
+      updateForm("photos" as keyof FormData, updatedUris);
     }
   };
 
@@ -73,7 +75,7 @@ const HostelPhotosScreen: FC = () => {
   const handleRemovePhoto = (uriToRemove: string) => {
     const updatedUris = selectedImages.filter((uri) => uri !== uriToRemove);
     setSelectedImages(updatedUris);
-    updateForm("photos" as keyof HostelFormData, updatedUris);
+    updateForm("photos" as keyof FormData, updatedUris);
 
     Toast.show({
       type: "info",

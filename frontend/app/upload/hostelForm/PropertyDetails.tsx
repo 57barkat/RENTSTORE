@@ -7,10 +7,11 @@ import { CapacityState } from "@/types/PropertyDetails.types";
 import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCounterInput";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
 
 const HostelPropertyDetails: FC = () => {
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
@@ -36,7 +37,8 @@ const HostelPropertyDetails: FC = () => {
     action: "increment" | "decrement"
   ) => {
     setCapacity((prev) => {
-      const newValue = action === "increment" ? prev[key] + 1 : prev[key] - 1;
+      const current = prev[key] ?? 0;
+      const newValue = action === "increment" ? current + 1 : current - 1;
       return { ...prev, [key]: newValue < 0 ? 0 : newValue };
     });
   };

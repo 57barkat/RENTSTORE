@@ -25,7 +25,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
 import StepContainer from "../Welcome";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
+
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
@@ -98,7 +100,7 @@ const searchMapboxPlaces = async (
 };
 
 const HostelLocationScreen: React.FC = () => {
-  const formContext = useContext(HostelFormContext);
+  const formContext = useContext(FormContext);
   const { theme } = useTheme();
   const router = useRouter();
 

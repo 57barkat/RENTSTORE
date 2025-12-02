@@ -9,7 +9,9 @@ import {
 } from "@/utils/Aminities";
 import { styles } from "@/styles/AmenitiesScreen";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
-import { HostelFormContext, HostelFormData } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext, HostelFormData } from "@/contextStore/HostelFormContext";
+import { FormContext, FormData } from "@/contextStore/FormContext";
+
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 
@@ -19,7 +21,7 @@ const HostelAmenitiesScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
 
   // --- Context Consumption ---
-  const context = useContext(HostelFormContext);
+  const context = useContext(FormContext);
 
   if (!context) {
     throw new Error(
@@ -44,7 +46,7 @@ const HostelAmenitiesScreen: FC = () => {
 
   const handleNext = () => {
     const amenitiesKeys = Array.from(selectedAmenities);
-    updateForm("amenities" as keyof HostelFormData, amenitiesKeys);
+    updateForm("amenities" as keyof FormData, amenitiesKeys);
     console.log("Selected hostel amenities saved to context:", amenitiesKeys);
 
     // Hostel-specific next screen

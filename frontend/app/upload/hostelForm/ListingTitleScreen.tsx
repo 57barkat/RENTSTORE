@@ -3,7 +3,9 @@ import { Text, View, TextInput, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/ListingTitleScreen";
-import { HostelFormContext } from "@/contextStore/HostelFormContext";
+// import { HostelFormContext } from "@/contextStore/HostelFormContext";
+import { FormContext } from "@/contextStore/FormContext";
+
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 
@@ -11,8 +13,8 @@ const MAX_TITLE_LENGTH = 50;
 const MIN_TITLE_LENGTH = 5;
 
 const HostelTitleScreen: FC = () => {
-  const context = useContext(HostelFormContext);
-  if (!context) throw new Error("HostelFormContext is missing!");
+  const context = useContext(FormContext);
+  if (!context) throw new Error("FormContext is missing!");
 
   const { data, updateForm } = context;
   const router = useRouter();
