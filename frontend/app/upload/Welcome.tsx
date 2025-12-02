@@ -49,11 +49,12 @@ const StepContainer: React.FC<StepContainerProps> = ({
     try {
       setIsSaving(true);
       const result = await formContext.submitDraftData();
+
       if (result.success) {
         Toast.show({
           type: "success",
-          text1: "Draft saved!",
-          text2: "Your progress has been saved successfully.",
+          text1: "Draft Saved",
+          text2: "Your progress has been saved.",
         });
       } else {
         Toast.show({
@@ -61,18 +62,21 @@ const StepContainer: React.FC<StepContainerProps> = ({
           text1: "Error",
           text2: "Failed to save draft.",
         });
-        console.error(result.error);
       }
     } catch (err) {
-      console.error(err);
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: "Something went wrong while saving the draft.",
+        text2: "Something went wrong!",
       });
     } finally {
       setIsSaving(false);
-      router.replace("/homePage");
+
+      // 🔥 Wait for toast to show
+      setTimeout(() => {
+        router.replace("/homePage");
+        formContext?.clearForm();
+      }, 1000);
     }
   };
 
@@ -94,7 +98,12 @@ const StepContainer: React.FC<StepContainerProps> = ({
       setIsSaving(false);
     }
   };
-
+  const handleCrossPress = () => {
+    router.push("/upload");
+    setTimeout(() => {
+      formContext?.clearForm();
+    }, 1000);
+  };
   const nextButtonText = progress >= 100 ? "Finish" : "Next";
 
   return (
@@ -121,10 +130,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
             </TouchableOpacity>
           )}
 
-        <TouchableOpacity
-          onPress={() => router.push("/upload")}
-          style={styles.closeButton}
-        >
+        <TouchableOpacity onPress={handleCrossPress} style={styles.closeButton}>
           <Ionicons name="close" size={24} color={currentTheme.text} />
         </TouchableOpacity>
       </View>

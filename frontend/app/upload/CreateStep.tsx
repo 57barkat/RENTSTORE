@@ -10,7 +10,6 @@ import { Colors } from "@/constants/Colors";
 
 const WelcomeScreen = () => {
   const formContext = useContext(FormContext);
-
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -24,18 +23,23 @@ const WelcomeScreen = () => {
     { title: "Apartment", value: "apartment", icon: "office-building-outline" },
     { title: "Hostel", value: "hostel", icon: "bed-empty" },
   ];
-
   const handleNext = () => {
     if (!selectedType) return;
 
     if (selectedType) {
       if (!formContext)
         throw new Error(
-          "formContext is missing! Wrap this screen in <HostelFormProvider>."
+          "FormContext is missing! Wrap this screen in <HostelFormProvider>."
         );
-      formContext.updateForm("hostOption", selectedType);
-      console.log("Selected Host Option:", selectedType);
-      router.push("/upload/hostelForm/Location");
+      formContext?.updateForm("hostOption", selectedType);
+      if (selectedType === "hostel") {
+        router.push("/upload/hostelForm/Location");
+        return;
+      } else if (selectedType === "apartment") {
+        router.push("/upload/apartmentForm/Location");
+      } else if (selectedType === "home") {
+        router.push("/upload/Location");
+      }
     }
   };
 

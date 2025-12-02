@@ -20,17 +20,34 @@ const PropertyDetails: FC = () => {
 
   const { data, updateForm } = context;
   const router = useRouter();
+  const defaultCapacity: CapacityState = {
+    Persons: 1,
+    bedrooms: 0,
+    beds: 1,
+    bathrooms: 1,
+  };
 
-  const [capacity, setCapacity] = useState<CapacityState>(
-    data.capacityState || { Persons: 1, bedrooms: 0, beds: 1, bathrooms: 1 }
-  );
+  const [capacity, setCapacity] = useState<CapacityState>(() => {
+    const c = data.capacityState;
+
+    if (!c || typeof c !== "object") return defaultCapacity;
+
+    return {
+      Persons: c.Persons ?? 1,
+      bedrooms: c.bedrooms ?? 0,
+      beds: c.beds ?? 1,
+      bathrooms: c.bathrooms ?? 1,
+    };
+  });
 
   const updateCapacity = (
     key: keyof CapacityState,
     action: "increment" | "decrement"
   ) => {
     setCapacity((prev) => {
-      const newValue = action === "increment" ? prev[key] + 1 : prev[key] - 1;
+      // ensure we never operate on undefined values
+      const current = Number(prev[key] ?? 0);
+      const newValue = action === "increment" ? current + 1 : current - 1;
       return { ...prev, [key]: newValue };
     });
   };
