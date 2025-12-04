@@ -24,6 +24,10 @@ export class CloudinaryService {
     });
   }
 
+  /** -----------------------------
+   * Upload file (image or video)
+   * Returns full Cloudinary result (url, public_id, etc.)
+   * ----------------------------- */
   async uploadFile(file: Express.Multer.File | any): Promise<any> {
     if (!file) throw new Error("No file provided for upload");
 
@@ -59,7 +63,7 @@ export class CloudinaryService {
           uploadOptions,
           (error, result) => {
             if (error) return reject(error);
-            resolve(result);
+            resolve(result); // contains secure_url, public_id, etc.
           }
         );
 
@@ -68,5 +72,37 @@ export class CloudinaryService {
         reject(error);
       }
     });
+  }
+
+  /** -----------------------------
+   * Extract Cloudinary public_id from stored URL
+   * Example:
+   * URL: https://res.cloudinary.com/demo/image/upload/v123456/property_photo.jpg
+   * public_id: property_photo
+   * ----------------------------- */
+  getPublicIdFromUrl(url: string): string | null {
+    try {
+      const parts = url.split("/");
+      const fileWithExt = parts[parts.length - 1];
+      const publicId = fileWithExt.split(".")[0];
+      return publicId;
+    } catch (error) {
+      console.error("Failed to extract publicId from URL:", url, error);
+      return null;
+    }
+  }
+
+  async deleteFileByUrl(url: string): Promise<boolean> {
+    try {
+      const publicId = this.getPublicIdFromUrl(url);
+      if (!publicId) return false;
+
+      const result = await cloudinary.uploader.destroy(publicId);
+      console.log("Cloudinary delete result:", result);
+      return result.result === "ok" || result.result === "not_found";
+    } catch (error) {
+      console.error("Cloudinary delete error:", error);
+      return false;
+    }
   }
 }

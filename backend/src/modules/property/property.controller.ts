@@ -225,7 +225,9 @@ export class PropertyController {
   }
 
   @Delete(":id")
-  async deleteProperty(@Param("id") id: string) {
-    return this.propertyService.findPropertyByIdAndDelete(id);
+  async deleteProperty(@Param("id") id: string, @Req() req: any) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+    return this.propertyService.findPropertyByIdAndDelete(id, userId);
   }
 }

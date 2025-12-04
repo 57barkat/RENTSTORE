@@ -10,6 +10,7 @@ import { CreatePropertyDto, PropertyWithFav } from "./dto/create-property.dto";
 import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
 import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
+import { DeletedImagesService } from "src/deletedImages/deletedImages.service";
 
 @Injectable()
 export class PropertyService {
@@ -17,7 +18,8 @@ export class PropertyService {
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
     public readonly cloudinary: CloudinaryService,
-    private readonly favService: AddToFavService
+    private readonly favService: AddToFavService,
+    private readonly deletedImagesService: DeletedImagesService
   ) {}
 
   async uploadFilesToCloudinary(
@@ -46,6 +48,20 @@ export class PropertyService {
       if (!property) throw new NotFoundException("Property not found");
       if (property.ownerId.toString() !== userId.toString())
         throw new UnauthorizedException("Not allowed");
+
+      // Queue old photos that are being removed
+      const oldPhotos = property.photos || [];
+      const newPhotos = dto.photos || [];
+      const photosToDelete = oldPhotos.filter(
+        (url) => !newPhotos.includes(url)
+      );
+      if (photosToDelete.length > 0) {
+        await this.deletedImagesService.addDeletedImages(
+          photosToDelete,
+          userId,
+          "property"
+        );
+      }
 
       // Only assign fields that exist in DTO
       for (const key of Object.keys(dto)) {
@@ -90,23 +106,6 @@ export class PropertyService {
       .lean();
 
     return drafts;
-  }
-
-  async deleteDraftById(draftId: string, userId: string) {
-    const draft = await this.propertyDraftModel.findById(draftId);
-
-    if (!draft) {
-      throw new NotFoundException("Draft not found");
-    }
-
-    if (draft.ownerId.toString() !== userId.toString()) {
-      throw new UnauthorizedException(
-        "You are not allowed to delete this draft"
-      );
-    }
-
-    await this.propertyDraftModel.findByIdAndDelete(draftId);
-    return { message: "Draft deleted successfully" };
   }
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
@@ -332,9 +331,50 @@ export class PropertyService {
     return property.save();
   }
 
-  async findPropertyByIdAndDelete(propertyId: string) {
-    return this.propertyModel
-      .findByIdAndDelete(new Types.ObjectId(propertyId))
-      .exec();
+  // PropertyService.ts
+  async findPropertyByIdAndDelete(propertyId: string, userId: string) {
+    const property = await this.propertyModel.findById(propertyId);
+
+    if (!property) throw new NotFoundException("Property not found");
+
+    // Queue images for later deletion
+    if (property.photos?.length) {
+      await this.deletedImagesService.addDeletedImages(
+        property.photos,
+        userId,
+        "property"
+      );
+    }
+
+    // Delete property from DB
+    await this.propertyModel.findByIdAndDelete(propertyId);
+
+    return {
+      message: "Property deleted, photos queued for Cloudinary cleanup",
+    };
+  }
+
+  async deleteDraftById(draftId: string, userId: string) {
+    const draft = await this.propertyDraftModel.findById(draftId);
+
+    if (!draft) throw new NotFoundException("Draft not found");
+    if (draft.ownerId.toString() !== userId.toString()) {
+      throw new UnauthorizedException(
+        "You are not allowed to delete this draft"
+      );
+    }
+
+    // Queue draft images for later deletion
+    if (draft.photos?.length) {
+      await this.deletedImagesService.addDeletedImages(
+        draft.photos,
+        userId,
+        "draft"
+      );
+    }
+
+    await this.propertyDraftModel.findByIdAndDelete(draftId);
+
+    return { message: "Draft deleted, photos queued for Cloudinary cleanup" };
   }
 }
