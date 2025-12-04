@@ -89,6 +89,15 @@ export default function ListAllProperties() {
   const limit = 5;
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch] = useDebounce(searchInput, 500);
+<<<<<<< Updated upstream
+=======
+  const [rentRange, setRentRange] = useState<RentRange>({
+    min: dummyFilterOptions.rentRange.min,
+    max: dummyFilterOptions.rentRange.max,
+  });
+  const [beds, setBeds] = useState<number | null>(null);
+  const [loadingFavId, setLoadingFavId] = useState<string | null>(null);
+>>>>>>> Stashed changes
 
   const [filters, setFilters] = useState({
     beds: null as number | null,

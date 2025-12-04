@@ -1,2 +1,4 @@
 ./frontend/.env
 frontend/.env*
+config.bat
+node_modules

@@ -34,6 +34,7 @@ const WelcomeScreen = () => {
   const handleNext = () => {
     if (!selectedType) return;
 
+<<<<<<< Updated upstream
     updateForm("hostOption", selectedType);
 
     // Navigate based on type
@@ -41,6 +42,22 @@ const WelcomeScreen = () => {
       router.push("/HostelForm" as `${string}:param`);
     } else {
       router.push("/upload/Location" as `${string}:param`);
+=======
+    if (selectedType) {
+      if (!formContext)
+        throw new Error(
+          "FormContext is missing! Wrap this screen in <HostelFormProvider>."
+        );
+      formContext?.updateForm("hostOption", selectedType);
+      if (selectedType === "hostel") {
+        router.push("/upload/hostelForm/PropertyDetails");
+        return;
+      } else if (selectedType === "apartment") {
+        router.push("/upload/apartmentForm/PropertyDetails");
+      } else if (selectedType === "home") {
+        router.push("/upload/PropertyDetails");
+      }
+>>>>>>> Stashed changes
     }
   };
 
