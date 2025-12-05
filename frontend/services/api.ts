@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl;
+console.log("API_URL from config:", API_URL);
 
 /**
  * Minimal JWT payload decoder (no external dependency).
@@ -95,7 +96,8 @@ const baseQuery = fetchBaseQuery({
 });
 
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
-  const baseQueryWithLatestToken = async () => baseQuery(args, api, extraOptions);
+  const baseQueryWithLatestToken = async () =>
+    baseQuery(args, api, extraOptions);
 
   let result = await baseQueryWithLatestToken();
 
@@ -122,7 +124,8 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
       );
 
       if (refreshResult.data) {
-        const { accessToken, refreshToken: newRefreshToken } = refreshResult.data as any;
+        const { accessToken, refreshToken: newRefreshToken } =
+          refreshResult.data as any;
 
         // Save to AsyncStorage and in-memory cache
         accessTokenCache = accessToken;
@@ -220,8 +223,32 @@ export const api = createApi({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),
     }),
     getAllProperties: builder.query({
-      query: (params = "") => ({ url: `/api/v1/properties${params}`, method: "GET" }),
+      query: (
+        params: { page?: number; limit?: number; hostOption?: string } = {}
+      ) => {
+        const query = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null && key !== "hostOption") {
+            query.append(key, String(value));
+          }
+        });
+
+        if (params.hostOption) {
+          return {
+            url: `/api/v1/properties/type/${
+              params.hostOption
+            }?${query.toString()}`,
+            method: "GET",
+          };
+        }
+
+        return {
+          url: `/api/v1/properties?${query.toString()}`,
+          method: "GET",
+        };
+      },
     }),
+
     getFilterOptions: builder.query({
       query: () => ({ url: "/api/v1/properties/filters", method: "GET" }),
     }),
@@ -248,18 +275,32 @@ export const api = createApi({
     // 🔹 FAVORITES
     getUserFavorites: builder.query({ query: () => "/api/v1/favorites" }),
     AddToFav: builder.mutation({
-      query: ({ propertyId }) => ({ url: `/api/v1/favorites/${propertyId}`, method: "POST" }),
+      query: ({ propertyId }) => ({
+        url: `/api/v1/favorites/${propertyId}`,
+        method: "POST",
+      }),
     }),
     removeUserFavorite: builder.mutation({
-      query: ({ propertyId }) => ({ url: `/api/v1/favorites/${propertyId}`, method: "DELETE" }),
+      query: ({ propertyId }) => ({
+        url: `/api/v1/favorites/${propertyId}`,
+        method: "DELETE",
+      }),
     }),
 
     // 🔹 OTP LOGIN
     sendOtp: builder.mutation({
-      query: ({ phone }) => ({ url: "/api/v1/auth/send-otp", method: "POST", body: { phone } }),
+      query: ({ phone }) => ({
+        url: "/api/v1/auth/send-otp",
+        method: "POST",
+        body: { phone },
+      }),
     }),
     verifyOtp: builder.mutation({
-      query: ({ phone, otp }) => ({ url: "/api/v1/auth/verify-otp", method: "POST", body: { phone, otp } }),
+      query: ({ phone, otp }) => ({
+        url: "/api/v1/auth/verify-otp",
+        method: "POST",
+        body: { phone, otp },
+      }),
     }),
 
     // 🔹 GOOGLE LOGIN

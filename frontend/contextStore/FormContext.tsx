@@ -18,7 +18,7 @@ export interface SubmitResult {
 
 export interface FormData {
   _id?: string;
-  propertyType?: "apartment" | "hostel" | "rental";
+  propertyType?: "apartment" | "hostel" | "home";
 
   // COMMON FIELDS
   title?: string;

@@ -11,7 +11,7 @@ export const Colors = {
 
     tint: tintColorLight,
     primary: "#4CC9F0",
-    secondary: "#6366F1",
+    secondary: "#4F46E5",
     accent: "#F59E0B",
     danger: "#DC2626",
 

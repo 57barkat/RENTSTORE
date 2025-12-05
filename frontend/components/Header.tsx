@@ -1,24 +1,53 @@
 import React from "react";
-import { View, StyleSheet, Platform, StatusBar, Text } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Platform,
+  StatusBar,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import Logo from "./logo";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contextStore/AuthContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function Header() {
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const headerBg = theme === "light" ? "#4CC9F0" : currentTheme.primary;
+  const headerBg = theme === "light" ? "#ffffff" : currentTheme.primary;
 
-  const { isVerified , hasToken} = useAuth();
+  const { isVerified, hasToken } = useAuth();
   const router = useRouter();
+
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   return (
     <>
       <View style={[styles.container, { backgroundColor: headerBg }]}>
-        <Logo />
+        <View style={styles.logoContainer}>
+          <Logo />
+        </View>
+
+        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+          {theme === "dark" ? (
+            <MaterialCommunityIcons
+              name="weather-sunny"
+              size={28}
+              color={currentTheme.text}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="moon-waning-crescent"
+              size={28}
+              color={currentTheme.text}
+            />
+          )}
+        </TouchableOpacity>
       </View>
+
       {!isVerified && hasToken && (
         <View style={styles.cautionBanner}>
           <Text style={styles.cautionText}>
@@ -42,17 +71,27 @@ export default function Header() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
-    paddingBottom: 12,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  logoContainer: {
+    flex: 1,
+    alignItems: "flex-start",
+  },
+  themeToggle: {
+    padding: 4,
   },
   cautionBanner: {
     backgroundColor: "#FFF3CD",
-    padding: 10,
     borderBottomWidth: 1,
     borderColor: "#FFEEBA",
     alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   cautionText: {
     color: "#856404",

@@ -6,7 +6,7 @@ import { Colors } from "../../constants/Colors";
 export default function TabLayout() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const activeTabColor = theme === "light" ? "#4CC9F0" : currentTheme.tabIconSelected;
+  const activeTabColor = theme === "light" ? "#4F46E5" : currentTheme.secondary;
 
   return (
     <Tabs
@@ -29,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="upload"
         options={{
-          title: "Upload" ,
+          title: "Upload",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="cloud-upload" size={size} color={color} />
           ),

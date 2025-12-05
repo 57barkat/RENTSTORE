@@ -3,13 +3,20 @@ import { View, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Provider } from "react-redux";
 import { Stack, useRouter, useSegments } from "expo-router";
-import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useFonts } from "expo-font";
 
 import { store } from "../services/store";
 import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
-import { ThemeProvider as CustomThemeProvider, useTheme } from "@/contextStore/ThemeContext";
+import {
+  ThemeProvider as CustomThemeProvider,
+  useTheme,
+} from "@/contextStore/ThemeContext";
 import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
 import { HostelFormProvider } from "@/contextStore/HostelFormContext";
@@ -30,25 +37,25 @@ const AppContent = () => {
   // --------------------------
   // Redirect logic
   // --------------------------
- const [redirectDone, setRedirectDone] = useState(false);
+  const [redirectDone, setRedirectDone] = useState(false);
 
-useEffect(() => {
-  if (!fontsLoaded || loading || redirectDone) return;
+  useEffect(() => {
+    if (!fontsLoaded || loading || redirectDone) return;
 
-  const currentPath = segments.join("/");
+    const currentPath = segments.join("/");
 
-  if (!isLoggedIn) {
-    router.replace("/signin");
-    setRedirectDone(true); // mark as done
-    return;
-  }
+    if (!isLoggedIn) {
+      router.replace("/signin");
+      setRedirectDone(true); // mark as done
+      return;
+    }
 
-  // Only redirect if logged in and not already on homePage
-  if (isLoggedIn && currentPath !== "homePage") {
-    router.replace("/homePage");
-    setRedirectDone(true); // mark as done
-  }
-}, [fontsLoaded, loading, isLoggedIn, segments, router, redirectDone]);
+    // Only redirect if logged in and not already on homePage
+    if (isLoggedIn && currentPath !== "homePage") {
+      router.replace("/homePage");
+      setRedirectDone(true); // mark as done
+    }
+  }, [fontsLoaded, loading, isLoggedIn, segments, router, redirectDone]);
 
   // --------------------------
   // Loader while fonts or auth are loading
@@ -71,6 +78,7 @@ useEffect(() => {
     "Verification",
     "property/[id]",
     "property/edit/[id]",
+    "property/View/[type]",
   ];
   const currentSegment = segments[segments.length - 1];
   const hideHeader = hideHeaderScreens.includes(currentSegment);
@@ -87,6 +95,8 @@ useEffect(() => {
 
         {/* Property Screens */}
         <Stack.Screen name="property/[id]" />
+        <Stack.Screen name="property/View/[type]" />
+
         <Stack.Screen name="property/edit/[id]" />
 
         {/* Screens with FormProvider */}

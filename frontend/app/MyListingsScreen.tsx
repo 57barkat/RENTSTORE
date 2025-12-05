@@ -9,7 +9,9 @@ export default function MyListingsScreen() {
   const currentTheme = Colors[theme ?? "light"];
 
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
       <MyListingProperties />
     </View>
   );

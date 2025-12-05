@@ -5,7 +5,9 @@ export default function Logo() {
   return (
     <View style={styles.container}>
       <MaterialCommunityIcons name="home-city" size={40} color="#4F46E5" />
-      <Text style={styles.text}>Rent<Text style={styles.accent}>Store</Text></Text>
+      <Text style={styles.text}>
+        Rent<Text style={styles.accent}>Store</Text>
+      </Text>
     </View>
   );
 }
@@ -25,6 +27,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   accent: {
-    color: "#4F46E5", // brand color for "Store"
+    color: "#4F46E5",
   },
 });

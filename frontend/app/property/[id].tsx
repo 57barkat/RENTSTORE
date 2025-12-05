@@ -24,6 +24,7 @@ export const options = { headerShown: false };
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  console.log(id);
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
   const { data: property, isLoading } = useFindPropertyByIdQuery(id);
