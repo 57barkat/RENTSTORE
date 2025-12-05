@@ -1,7 +1,6 @@
 const fs = require("fs");
 const { ObjectId } = require("bson");
 
-// --- Constants ---
 const CITIES = [
   "Lahore",
   "Karachi",
@@ -25,15 +24,15 @@ const AREAS = {
 };
 
 const CITY_COORDS = {
-  Lahore: { lat: [31.45, 31.60], lng: [74.20, 74.40] },
-  Karachi: { lat: [24.80, 25.10], lng: [66.90, 67.20] },
-  Islamabad: { lat: [33.65, 33.75], lng: [72.95, 73.10] },
-  Rawalpindi: { lat: [33.55, 33.65], lng: [72.95, 73.10] },
-  Peshawar: { lat: [34.00, 34.05], lng: [71.45, 71.60] },
-  Quetta: { lat: [30.20, 30.30], lng: [67.00, 67.05] },
+  Lahore: { lat: [31.45, 31.6], lng: [74.2, 74.4] },
+  Karachi: { lat: [24.8, 25.1], lng: [66.9, 67.2] },
+  Islamabad: { lat: [33.65, 33.75], lng: [72.95, 73.1] },
+  Rawalpindi: { lat: [33.55, 33.65], lng: [72.95, 73.1] },
+  Peshawar: { lat: [34.0, 34.05], lng: [71.45, 71.6] },
+  Quetta: { lat: [30.2, 30.3], lng: [67.0, 67.05] },
 };
 
-const HOST_OPTIONS = ["home", "room", "entire_place"];
+const HOST_OPTIONS = ["home", "apartment", "hostel"];
 const AMENITIES = [
   "wifi",
   "tv",
@@ -88,9 +87,9 @@ function generateDummyProperties(count = 30000) {
   for (let i = 0; i < count; i++) {
     const city = randomChoice(CITIES);
     const area = randomChoice(AREAS[city]);
-    const hostOption = randomChoice(HOST_OPTIONS);
+    const hostOption = randomChoice(HOST_OPTIONS); // ✅ Only home/apartment/hostel
 
-    const bedrooms = randomInt(1, hostOption === "room" ? 1 : 5);
+    const bedrooms = randomInt(1, hostOption === "hostel" ? 1 : 5);
     const beds = randomInt(bedrooms, bedrooms + 2);
     const bathrooms = randomInt(1, bedrooms);
     const Persons = beds + 1;
@@ -109,7 +108,7 @@ function generateDummyProperties(count = 30000) {
         country: "PAKISTAN",
         zipCode: `${randomInt(40000, 60000)}`,
         aptSuiteUnit:
-          hostOption === "room"
+          hostOption === "hostel"
             ? `Room ${randomInt(1, 4)}`
             : `Unit ${randomInt(1, 20)}`,
       },
@@ -117,8 +116,10 @@ function generateDummyProperties(count = 30000) {
 
     // Coordinates
     const cityRange = CITY_COORDS[city];
-    const lat = Math.random() * (cityRange.lat[1] - cityRange.lat[0]) + cityRange.lat[0];
-    const lng = Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
+    const lat =
+      Math.random() * (cityRange.lat[1] - cityRange.lat[0]) + cityRange.lat[0];
+    const lng =
+      Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
 
     const photos =
       Math.random() < 0.2
@@ -139,14 +140,20 @@ function generateDummyProperties(count = 30000) {
         : undefined;
 
     // Apartment-specific
-    const apartmentType = hostOption === "entire_place" ? randomChoice(APARTMENT_TYPES) : undefined;
-    const furnishing = hostOption === "entire_place" ? randomChoice(FURNISHINGS) : undefined;
-    const parking = hostOption === "entire_place" ? Math.random() > 0.5 : undefined;
+    const apartmentType =
+      hostOption === "apartment" ? randomChoice(APARTMENT_TYPES) : undefined;
+    const furnishing =
+      hostOption === "apartment" ? randomChoice(FURNISHINGS) : undefined;
+    const parking =
+      hostOption === "apartment" ? Math.random() > 0.5 : undefined;
 
     // Hostel-specific
-    const hostelType = hostOption === "room" ? randomChoice(HOSTEL_TYPES) : undefined;
-    const mealPlan = hostOption === "room" ? randomSubarray(MEAL_PLANS, 1, 3) : undefined;
-    const rules = hostOption === "room" ? randomSubarray(RULES, 1, 3) : undefined;
+    const hostelType =
+      hostOption === "hostel" ? randomChoice(HOSTEL_TYPES) : undefined;
+    const mealPlan =
+      hostOption === "hostel" ? randomSubarray(MEAL_PLANS, 1, 3) : undefined;
+    const rules =
+      hostOption === "hostel" ? randomSubarray(RULES, 1, 3) : undefined;
 
     properties.push({
       _id: new ObjectId().toHexString(),
@@ -154,8 +161,8 @@ function generateDummyProperties(count = 30000) {
       title: `${bedrooms} Bed ${
         hostOption === "home"
           ? "House"
-          : hostOption === "room"
-          ? "Room"
+          : hostOption === "hostel"
+          ? "Hostel"
           : "Apartment"
       } in ${area}`,
       hostOption,
@@ -179,7 +186,8 @@ function generateDummyProperties(count = 30000) {
       hostelType,
       mealPlan,
       rules,
-      status: Math.random() > 0.2, // 80% active
+      status: Math.random() > 0.2,
+      featured: Math.random() > 0.7,
     });
   }
 
@@ -195,4 +203,6 @@ fs.writeFileSync(
   JSON.stringify({ data: properties, total: properties.length }, null, 2)
 );
 
-console.log(`Generated ${PROPERTY_COUNT} properties with full CreatePropertyDto fields.`);
+console.log(
+  `Generated ${PROPERTY_COUNT} properties: only Home, Apartment, Hostel.`
+);

@@ -43,7 +43,7 @@ export class Property extends Document {
       beds: Number,
       bathrooms: Number,
       floorLevel: Number,
-      _id: false, // ✅ disable _id
+      _id: false,
     },
     default: {},
   })
@@ -59,7 +59,7 @@ export class Property extends Document {
     type: {
       safetyDetails: { type: [String], default: [] },
       cameraDescription: String,
-      _id: false, // ✅ disable _id
+      _id: false,
     },
     default: {},
   })
@@ -79,6 +79,7 @@ export class Property extends Document {
   @Prop({ type: String, required: true }) ownerId: string;
 
   @Prop({ type: Boolean, default: false }) status: boolean;
+  @Prop({ type: Boolean, default: false }) featured: boolean;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);

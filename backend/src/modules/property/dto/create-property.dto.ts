@@ -99,6 +99,9 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   status?: boolean;
+  @IsBoolean()
+  @IsOptional()
+  featured?: boolean;
 }
 
 export interface PropertyWithFav extends Property {

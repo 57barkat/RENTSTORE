@@ -18,10 +18,16 @@ import { CreatePropertyDto } from "./dto/create-property.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
 
+interface PaginationQuery {
+  page?: number;
+  limit?: number;
+}
+
 @UseGuards(AuthGuard("jwt"))
 @Controller("properties")
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
+
   @Post("create")
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
   async createProperty(
@@ -58,7 +64,7 @@ export class PropertyController {
       lng: dto.lng ? Number(dto.lng) : undefined,
     };
 
-    /** ✅ Address handling */
+    // Address handling
     let parsedAddress: any[] = [];
     if (dto.address) {
       try {
@@ -83,18 +89,13 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress;
 
-    /** ✅ Correct status calculation */
+    // Status calculation
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
-
       if (Array.isArray(value)) return value.length > 0;
-
-      if (typeof value === "object") {
+      if (typeof value === "object")
         return Object.values(value).some((v) => isFilled(v));
-      }
-
       if (typeof value === "string") return value.trim() !== "";
-
       return true; // numbers, booleans
     };
 
@@ -108,7 +109,7 @@ export class PropertyController {
     ];
     parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
 
-    /** ✅ Photo upload */
+    // Photo upload
     const photoUrls = files?.photos?.length
       ? await Promise.all(
           files.photos.map((file) =>
@@ -125,25 +126,38 @@ export class PropertyController {
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
 
+  // 🔹 Get all properties with pagination
   @Get()
-  async getAll(
-    @Req() req: any,
-    @Query("page") page?: number,
-    @Query("limit") limit?: number
+  async getAll(@Req() req: any, @Query() query: PaginationQuery) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    return this.propertyService.findAll(page, limit);
+  }
+
+  // 🔹 Get properties by hostOption (home, apartment, room)
+  @Get("type/:hostOption")
+  async getByHostOption(
+    @Param("hostOption") hostOption: string,
+    @Query() query: PaginationQuery,
+    @Req() req: any
   ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
     const userId = req.user?.userId;
-    return this.propertyService.findAll(
-      Number(page) || 1,
-      Number(limit) || 10,
+
+    return this.propertyService.findFiltered(
+      page,
+      limit,
+      { hostOption },
       userId
     );
   }
 
+  // 🔹 Search properties
   @Get("search")
   async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
 
-    // Convert numeric filters from string to number
     const numericFields = [
       "page",
       "limit",
@@ -159,7 +173,6 @@ export class PropertyController {
       if (query[field] !== undefined) query[field] = Number(query[field]);
     });
 
-    // Convert array filters (amenities, bills, highlighted, safety) from comma-separated string to array
     const arrayFields = ["amenities", "bills", "highlighted", "safety"];
     arrayFields.forEach((field) => {
       if (query[field] && typeof query[field] === "string") {
@@ -169,30 +182,29 @@ export class PropertyController {
 
     const page = query.page || 1;
     const limit = query.limit || 10;
-
-    // Remove pagination params from query before sending to service
     const filters = { ...query };
     delete filters.page;
     delete filters.limit;
 
     return this.propertyService.findFiltered(page, limit, filters, userId);
   }
+
+  // 🔹 My listings
   @Get("my-listings")
   async getMyProperties(@Req() req: any) {
-    if (!req.user || !req.user.userId) {
-      throw new UnauthorizedException(
-        "User not authenticated not a valid user"
-      );
-    }
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findMyProperties(userId);
   }
 
+  // 🔹 Featured properties
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
     const userId = req.user?.userId;
     return this.propertyService.getFeaturedProperties(userId);
   }
+
+  // 🔹 Drafts
   @Get("drafts")
   async getAllDrafts(@Req() req: any) {
     const userId = req.user?.userId;
@@ -218,10 +230,9 @@ export class PropertyController {
     @Body() dto: Partial<CreatePropertyDto>,
     @Req() req: any
   ) {
-    if (!req.user || !req.user.userId) {
-      throw new UnauthorizedException("User not authenticated");
-    }
-    return this.propertyService.updateProperty(id, dto, req.user.userId);
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+    return this.propertyService.updateProperty(id, dto, userId);
   }
 
   @Delete(":id")
