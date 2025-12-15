@@ -8,7 +8,7 @@ export class DeletedImagesCron {
 
   constructor(private readonly deletedImagesService: DeletedImagesService) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async handleCron() {
     this.logger.log("Running Cloudinary cleanup job...");
     await this.deletedImagesService.cleanUpDeletedImages();

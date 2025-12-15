@@ -16,6 +16,25 @@ export class ProfileService {
     private readonly cloudinary: CloudinaryService,
     private readonly deletedImagesService: DeletedImagesService
   ) {}
+  async deleteProfileImage(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
+
+    if (!user.profileImage) {
+      return { message: "No profile image to delete" };
+    }
+
+    // Delete from Cloudinary
+    await this.cloudinary.deleteFileByUrl(user.profileImage);
+
+    // Remove profile image from database properly
+    await this.userModel.updateOne(
+      { _id: userId },
+      { $unset: { profileImage: "" } } // <-- unsets the field in MongoDB
+    );
+
+    return { message: "Profile image deleted successfully" };
+  }
 
   async uploadProfileImage(userId: string, file: Express.Multer.File) {
     const user = await this.userModel.findById(userId);

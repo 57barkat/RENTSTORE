@@ -6,6 +6,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Req,
+  Delete,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ProfileService } from "./profile.service";
@@ -23,9 +24,15 @@ export class ProfileController {
     @Req() req: any,
     @UploadedFile() file: Express.Multer.File
   ) {
-    console.log("File uploaded:", file);
     const userId = req.user.userId;
     return this.profileService.uploadProfileImage(userId, file);
+  }
+
+  // Delete profile image
+  @Delete("profile-image")
+  async deleteProfileImage(@Req() req: any) {
+    const userId = req.user.userId;
+    return this.profileService.deleteProfileImage(userId);
   }
 
   // Get user stats/profile info
