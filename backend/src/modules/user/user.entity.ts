@@ -44,12 +44,18 @@ export class User {
 
   @Prop({ type: [String], default: [] })
   subscriptions?: string[];
+
   @Prop({ type: [{ type: Types.ObjectId, ref: "Property" }], default: [] })
   favorites: Types.ObjectId[];
+
   @Prop()
   TermsAndConditionsAccepted: boolean;
+
   @Prop({ type: String })
   refreshToken?: string;
+
+  @Prop({ type: String }) // ✅ profile image field
+  profileImage?: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

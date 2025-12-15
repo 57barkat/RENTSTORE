@@ -135,43 +135,24 @@ export class PropertyService {
     };
   }
 
-  async findFiltered(
-    page = 1,
-    limit = 10,
-    filters: {
-      city?: string;
-      country?: string;
-      stateTerritory?: string;
-      minRent?: number;
-      maxRent?: number;
-      minSecurity?: number;
-      maxSecurity?: number;
-      bedrooms?: number;
-      beds?: number;
-      bathrooms?: number;
-      Persons?: number;
-      amenities?: string[];
-      bills?: string[];
-      hostOption?: string;
-      title?: string;
-      highlighted?: string[];
-      safety?: string[];
-    },
-    userId?: string
-  ) {
+  async findFiltered(page = 1, limit = 10, filters: any, userId?: string) {
     const filter: any = { status: true };
 
-    // 🔹 Apply all filters
+    // ----- Apply Filters -----
     if (filters.city)
       filter["address.city"] = { $regex: filters.city, $options: "i" };
+
     if (filters.country)
       filter["address.country"] = { $regex: filters.country, $options: "i" };
+
     if (filters.stateTerritory)
       filter["address.stateTerritory"] = {
         $regex: filters.stateTerritory,
         $options: "i",
       };
+
     if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
+
     if (filters.minRent !== undefined || filters.maxRent !== undefined) {
       filter.monthlyRent = {};
       if (filters.minRent !== undefined)
@@ -179,6 +160,7 @@ export class PropertyService {
       if (filters.maxRent !== undefined)
         filter.monthlyRent.$lte = filters.maxRent;
     }
+
     if (
       filters.minSecurity !== undefined ||
       filters.maxSecurity !== undefined
@@ -189,6 +171,7 @@ export class PropertyService {
       if (filters.maxSecurity !== undefined)
         filter.SecuritybasePrice.$lte = filters.maxSecurity;
     }
+
     if (filters.bedrooms !== undefined)
       filter["capacityState.bedrooms"] = filters.bedrooms;
     if (filters.beds !== undefined) filter["capacityState.beds"] = filters.beds;
@@ -196,68 +179,59 @@ export class PropertyService {
       filter["capacityState.bathrooms"] = filters.bathrooms;
     if (filters.Persons !== undefined)
       filter["capacityState.Persons"] = filters.Persons;
+
     if (filters.amenities?.length)
       filter.amenities = { $all: filters.amenities };
+
     if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
+
     if (filters.highlighted?.length)
       filter["description.highlighted"] = { $all: filters.highlighted };
+
     if (filters.safety?.length)
       filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
+
     if (filters.hostOption) filter.hostOption = filters.hostOption;
 
-    // 🔹 Count total featured properties
-    const totalFeaturedCount = await this.propertyModel.countDocuments({
-      ...filter,
-      featured: true,
-    });
+    // ---- Custom Pagination Logic (5 featured + 5 normal) ----
 
-    // 🔹 Compute featured and non-featured for current page
-    const featuredSkip = Math.max((page - 1) * limit, 0);
-    let featuredToTake = 0;
-    let nonFeaturedSkip = 0;
-    let nonFeaturedToTake = 0;
+    const FEATURED_LIMIT = Math.floor(limit / 2); // 5
+    const NORMAL_LIMIT = limit - FEATURED_LIMIT; // 5
 
-    if (featuredSkip < totalFeaturedCount) {
-      featuredToTake = Math.min(limit, totalFeaturedCount - featuredSkip);
-      nonFeaturedSkip = 0;
-      nonFeaturedToTake = limit - featuredToTake;
-    } else {
-      featuredToTake = 0;
-      nonFeaturedSkip = featuredSkip - totalFeaturedCount;
-      nonFeaturedToTake = limit;
-    }
+    const featuredSkip = (page - 1) * FEATURED_LIMIT;
+    const normalSkip = (page - 1) * NORMAL_LIMIT;
 
-    // 🔹 Fetch featured properties
-    const featured = featuredToTake
-      ? ((await this.propertyModel
-          .find({ ...filter, featured: true })
-          .sort({ _id: -1 })
-          .skip(featuredSkip)
-          .limit(featuredToTake)
-          .populate("ownerId", "name email")
-          .lean()) as unknown as PropertyWithFav[])
-      : [];
+    // Featured properties
+    const featured = await this.propertyModel
+      .find({ ...filter, featured: true })
+      .sort({ _id: -1 })
+      .skip(featuredSkip)
+      .limit(FEATURED_LIMIT)
+      .populate("ownerId", "name email")
+      .lean();
 
-    // 🔹 Fetch non-featured properties
-    const nonFeatured = nonFeaturedToTake
-      ? ((await this.propertyModel
-          .find({ ...filter, featured: { $ne: true } })
-          .sort({ _id: -1 })
-          .skip(nonFeaturedSkip)
-          .limit(nonFeaturedToTake)
-          .populate("ownerId", "name email")
-          .lean()) as unknown as PropertyWithFav[])
-      : [];
+    // Non-featured properties
+    const nonFeatured = await this.propertyModel
+      .find({ ...filter, featured: { $ne: true } })
+      .sort({ _id: -1 })
+      .skip(normalSkip)
+      .limit(NORMAL_LIMIT)
+      .populate("ownerId", "name email")
+      .lean();
 
-    const data: PropertyWithFav[] = [...featured, ...nonFeatured];
+    // Merge results for final output
+    let data = [...featured, ...nonFeatured];
 
-    // 🔹 Attach favorite info
+    // ---- Favorites ----
     if (userId) {
       const favIds = await this.favService.getUserFavoriteIds(userId);
-      data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
+      data = data.map((p) => ({
+        ...p,
+        isFav: favIds.includes(p._id.toString()),
+      }));
     }
 
-    // 🔹 Total matching documents
+    // ---- Total Count ----
     const totalCount = await this.propertyModel.countDocuments(filter);
 
     return {

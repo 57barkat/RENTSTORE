@@ -13,7 +13,8 @@ import { PropertyModule } from "./modules/property/property.module";
 import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.module";
 import { AuthModule } from "./services/auth.module";
 import { AddToFavModule } from "./modules/addToFav/favorite.module";
- 
+import { ProfileModule } from "./profile/profile.module";
+
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -43,7 +44,8 @@ import { AddToFavModule } from "./modules/addToFav/favorite.module";
     PropertyModule,
     CloudinaryModule,
     AuthModule,
-    AddToFavModule
+    AddToFavModule,
+    ProfileModule,
   ],
 })
 export class AppModule {
