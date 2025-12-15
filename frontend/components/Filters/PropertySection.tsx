@@ -25,31 +25,24 @@ const WINDOW_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = WINDOW_WIDTH * 0.55;
 const ITEM_HEIGHT = 200;
 
-export const PropertySection: React.FC<PropertySectionProps> = ({
+export const PropertySection: React.FC<
+  PropertySectionProps & {
+    onToggleFav?: (id: string) => void;
+    cardWidth?: number;
+    cardHeight?: number;
+  }
+> = ({
   sectionTitle,
   properties,
   onViewAll,
   onCardPress,
   loading,
+  onToggleFav,
+  cardWidth = ITEM_WIDTH,
+  cardHeight = ITEM_HEIGHT,
 }) => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-
-  const [addToFav] = useAddToFavMutation();
-  const [removeFav] = useRemoveUserFavoriteMutation();
-
-  const handleToggleFav = async (property: PropertyCardProps) => {
-    try {
-      if (property.isFav) {
-        await removeFav({ propertyId: property.id }).unwrap();
-      } else {
-        await addToFav({ propertyId: property.id }).unwrap();
-      }
-      property.isFav = !property.isFav;
-    } catch (error) {
-      console.log("Fav error:", error);
-    }
-  };
 
   return (
     <View style={{ marginVertical: 15 }}>
@@ -58,11 +51,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           {sectionTitle}
         </Text>
         {onViewAll && (
-          <TouchableOpacity
-            onPress={() => {
-              if (onViewAll) onViewAll();
-            }}
-          >
+          <TouchableOpacity onPress={onViewAll}>
             <Text
               style={[styles.viewAllText, { color: currentTheme.secondary }]}
             >
@@ -71,6 +60,7 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
           </TouchableOpacity>
         )}
       </View>
+
       {loading ? (
         <View style={{ padding: 16 }}>
           <ActivityIndicator size="small" color={currentTheme.secondary} />
@@ -78,40 +68,36 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
       ) : (
         <FlatList
           horizontal
-          data={Array.isArray(properties) ? properties : []}
+          data={properties}
           keyExtractor={(item) => item.id}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 5 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={[styles.card, { backgroundColor: currentTheme.card }]}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: currentTheme.card,
+                  width: cardWidth,
+                  height: cardHeight,
+                },
+              ]}
               onPress={() => onCardPress?.(item.id)}
             >
               <Image
                 source={{ uri: item.image }}
-                style={styles.cardImage}
+                style={[styles.cardImage, { height: cardHeight * 0.6 }]} // keep image height proportional
                 resizeMode="cover"
               />
-
               <TouchableOpacity
                 style={styles.favButton}
-                onPress={() => handleToggleFav(item)}
+                onPress={() => onToggleFav?.(item.id)}
               >
-                <Text style={{ fontSize: 20 }}>
-                  {item.isFav ? (
-                    <Ionicons
-                      name="heart"
-                      size={32}
-                      color={currentTheme.danger}
-                    />
-                  ) : (
-                    <Ionicons
-                      name="heart-outline"
-                      size={32}
-                      color={currentTheme.danger}
-                    />
-                  )}
-                </Text>
+                <Ionicons
+                  name={item.isFav ? "heart" : "heart-outline"}
+                  size={32}
+                  color={currentTheme.danger}
+                />
               </TouchableOpacity>
 
               {item.featured && (
@@ -125,7 +111,6 @@ export const PropertySection: React.FC<PropertySectionProps> = ({
                 </View>
               )}
 
-              {/* Card Content */}
               <View style={styles.cardContent}>
                 <Text
                   style={[styles.cardTitle, { color: currentTheme.text }]}

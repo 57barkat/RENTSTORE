@@ -12,7 +12,8 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/contextStore/AuthContext";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { useSidebar } from "@/contextStore/SidebarContext";
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -21,16 +22,24 @@ export default function Header() {
 
   const { isVerified, hasToken } = useAuth();
   const router = useRouter();
+  const { toggle } = useSidebar();
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   return (
     <>
       <View style={[styles.container, { backgroundColor: headerBg }]}>
+        {/* MENU BUTTON */}
+        <TouchableOpacity style={styles.menuButton} onPress={toggle}>
+          <Ionicons name="menu" size={32} color={currentTheme.text} />
+        </TouchableOpacity>
+
+        {/* LOGO */}
         <View style={styles.logoContainer}>
           <Logo />
         </View>
 
+        {/* THEME TOGGLE */}
         <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
           {theme === "dark" ? (
             <MaterialCommunityIcons
@@ -48,6 +57,7 @@ export default function Header() {
         </TouchableOpacity>
       </View>
 
+      {/* CAUTION BANNER */}
       {!isVerified && hasToken && (
         <View style={styles.cautionBanner}>
           <Text style={styles.cautionText}>
@@ -78,9 +88,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
+  menuButton: {
+    padding: 4,
+  },
   logoContainer: {
     flex: 1,
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   themeToggle: {
     padding: 4,

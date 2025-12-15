@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FlatList, View, Text } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -8,12 +8,16 @@ import HostOptionsRowProps from "@/components/Filters/HostOptions";
 import SearchBar from "@/components/Filters/SearchBar";
 import AdsSliderProps from "@/components/Filters/AdsSlider";
 import { PropertySection } from "@/components/Filters/PropertySection";
+
 import { useApartments, useHomes, useRooms } from "@/hooks/useHomes";
-import { SectionData } from "@/types/TabTypes/TabTypes";
+import { PropertyCardProps, SectionData } from "@/types/TabTypes/TabTypes";
+
 import {
   useAddToFavMutation,
+  useGetUserFavoritesQuery,
   useRemoveUserFavoriteMutation,
 } from "@/services/api";
+
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
 
 const HomePage: React.FC = () => {
@@ -22,65 +26,97 @@ const HomePage: React.FC = () => {
 
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [loadingFavId, setLoadingFavId] = useState<string | null>(null);
 
-  const [addToFav] = useAddToFavMutation();
-  const [removeUserFavorite] = useRemoveUserFavoriteMutation();
+  const [homes, setHomes] = useState<PropertyCardProps[]>([]);
+  const [rooms, setRooms] = useState<PropertyCardProps[]>([]);
+  const [apartments, setApartments] = useState<PropertyCardProps[]>([]);
 
   const { data: homesData, isLoading: homesLoading } = useHomes();
   const { data: apartmentsData, isLoading: apartmentsLoading } =
     useApartments();
   const { data: roomsData, isLoading: roomsLoading } = useRooms();
 
-  const handleToggleFav = async (id: string, isFav?: boolean) => {
+  const { data: favData } = useGetUserFavoritesQuery(null);
+  const favoriteIds = favData?.map((f: any) => f.property?._id).filter(Boolean);
+
+  const [addToFav] = useAddToFavMutation();
+  const [removeUserFavorite] = useRemoveUserFavoriteMutation();
+
+  const mergeFavs = (props: any[]) => {
+    return props.map((p) => ({
+      ...p,
+      isFav: favoriteIds.includes(p.id),
+    }));
+  };
+
+  // Sync properties when data or favorites change
+  useEffect(() => {
+    if (homesData)
+      setHomes(mergeFavs(formatProperties(homesData, selectedCity)));
+  }, [homesData, selectedCity, favData]);
+
+  useEffect(() => {
+    if (roomsData)
+      setRooms(mergeFavs(formatProperties(roomsData, selectedCity)));
+  }, [roomsData, selectedCity, favData]);
+
+  useEffect(() => {
+    if (apartmentsData)
+      setApartments(mergeFavs(formatProperties(apartmentsData, selectedCity)));
+  }, [apartmentsData, selectedCity, favData]);
+
+  // Toggle Favorite
+  const handleToggleFav = async (propertyId: string, type: string) => {
+    let updateState: React.Dispatch<React.SetStateAction<PropertyCardProps[]>>;
+
+    if (type === "home") updateState = setHomes;
+    else if (type === "room") updateState = setRooms;
+    else updateState = setApartments;
+
+    // Optimistic update
+    updateState((prev) =>
+      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
+    );
+
+    // API call
+    const propertyList =
+      type === "home" ? homes : type === "room" ? rooms : apartments;
+    const property = propertyList.find((p) => p.id === propertyId);
+
     try {
-      setLoadingFavId(id);
-      if (isFav) {
-        await removeUserFavorite({ propertyId: id });
+      if (property?.isFav) {
+        await removeUserFavorite({ propertyId });
       } else {
-        await addToFav({ propertyId: id });
+        await addToFav({ propertyId });
       }
     } catch (err) {
       console.log("Fav error:", err);
-    } finally {
-      setLoadingFavId(null);
+      // rollback
+      updateState((prev) =>
+        prev.map((p) =>
+          p.id === propertyId ? { ...p, isFav: property?.isFav ?? false } : p
+        )
+      );
     }
   };
 
+  // Section Data
   const sections: SectionData[] = [
     {
       title: "Homes",
-      properties: formatProperties(
-        homesData,
-        selectedCity,
-        loadingFavId,
-        handleToggleFav,
-        selectedCity
-      ),
+      properties: homes,
       queryLoading: homesLoading,
       hostOption: "home",
     },
     {
       title: "Hostels",
-      properties: formatProperties(
-        roomsData,
-        selectedCity,
-        loadingFavId,
-        handleToggleFav,
-        selectedCity
-      ),
+      properties: rooms,
       queryLoading: roomsLoading,
-      hostOption: "hostel",
+      hostOption: "room",
     },
     {
       title: "Apartments",
-      properties: formatProperties(
-        apartmentsData,
-        selectedCity,
-        loadingFavId,
-        handleToggleFav,
-        selectedCity
-      ),
+      properties: apartments,
       queryLoading: apartmentsLoading,
       hostOption: "apartment",
     },
@@ -98,7 +134,7 @@ const HomePage: React.FC = () => {
       ListHeaderComponent={
         <>
           <HostOptionsRowProps
-            onSelect={(id: any) => console.log("Selected:", id)}
+            onSelect={(id: string) => console.log("Selected:", id)}
           />
           <SearchBar
             value={search}
@@ -123,6 +159,9 @@ const HomePage: React.FC = () => {
             )
           }
           onCardPress={(id) => router.push(`/property/${id}`)}
+          onToggleFav={(id) => handleToggleFav(id, item.hostOption)}
+          cardWidth={250}
+          cardHeight={200}
         />
       )}
       ListEmptyComponent={

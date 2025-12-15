@@ -1,18 +1,37 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  Dimensions,
+  TouchableOpacity,
+  Image,
+} from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useLocalSearchParams, router } from "expo-router";
-import { PropertySection } from "@/components/Filters/PropertySection";
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
-import { useGetFilteredPropertiesQuery } from "@/services/api";
-
+import {
+  useGetFilteredPropertiesQuery,
+  useGetUserFavoritesQuery,
+  useAddToFavMutation,
+  useRemoveUserFavoriteMutation,
+} from "@/services/api";
 import { useDebounce } from "use-debounce";
 import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 import { HostPicker } from "@/components/Filters/HostPicker";
 import { FilterChips } from "@/components/Filters/FilterChips";
 import { FilterModal } from "@/components/Filters/FilterModal";
+import { Ionicons } from "@expo/vector-icons";
+
 type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
+
+const { width: WINDOW_WIDTH } = Dimensions.get("window");
+const CARD_MARGIN = 5;
+const CARD_HEIGHT = 200;
+const CARD_WIDTH = (WINDOW_WIDTH - CARD_MARGIN * 3) / 2;
+
 const PropertiesPage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -27,24 +46,63 @@ const PropertiesPage: React.FC = () => {
   }>({});
   const [debouncedCity] = useDebounce(filters.city, 500);
 
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allProperties, setAllProperties] = useState<any[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const [addToFav] = useAddToFavMutation();
+  const [removeFromFav] = useRemoveUserFavoriteMutation();
+
+  // Fetch filtered properties
   const { data, isLoading, refetch } = useGetFilteredPropertiesQuery({
     hostOption,
     ...filters,
     city: debouncedCity,
+    page,
+    limit: 10,
   });
 
-  const [properties, setProperties] = useState<any[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
+  // Fetch user's favorites
+  const { data: favData } = useGetUserFavoritesQuery(null);
+  const favoriteIds = useMemo(
+    () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
+    [favData]
+  );
 
+  // Update properties when data changes
   useEffect(() => {
     if (data?.data) {
-      setProperties(
-        formatProperties(data.data, filters.city || "", "", () => {})
-      );
-    } else {
-      setProperties([]);
+      const formatted = formatProperties(
+        data.data,
+        filters.city || "",
+        "",
+        () => {}
+      ).map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) }));
+
+      if (page === 1) {
+        setAllProperties(formatted);
+      } else {
+        // Deduplicate newly fetched properties
+        setAllProperties((prev) => [
+          ...prev,
+          ...formatted.filter((p) => !prev.some((pp) => pp.id === p.id)),
+        ]);
+      }
     }
-  }, [data]);
+    setLoadingMore(false);
+  }, [data, favoriteIds, filters.city, page]);
+
+  // Reset page when filters or hostOption change
+  useEffect(() => {
+    setPage(1);
+  }, [
+    hostOption,
+    debouncedCity,
+    filters.minRent,
+    filters.maxRent,
+    filters.beds,
+  ]);
 
   const removeFilter = (key: ChipKey) => {
     if (key !== "hostOption") {
@@ -54,6 +112,87 @@ const PropertiesPage: React.FC = () => {
   };
 
   const selectedChips = buildSelectedChips(hostOption, filters);
+
+  const toggleFavorite = async (propertyId: string, isFav: boolean) => {
+    try {
+      if (isFav) await removeFromFav(propertyId);
+      else await addToFav(propertyId);
+
+      setAllProperties((prev) =>
+        prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
+      );
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+    }
+  };
+
+  const renderPropertyCard = (item: any) => (
+    <TouchableOpacity
+      key={item.id}
+      style={{
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        backgroundColor: currentTheme.card,
+        borderRadius: 12,
+        margin: CARD_MARGIN,
+        overflow: "hidden",
+      }}
+      onPress={() => router.push(`/property/${item.id}`)}
+    >
+      <Image
+        source={{ uri: item.image }}
+        style={{ width: "100%", height: CARD_HEIGHT * 0.6 }}
+        resizeMode="cover"
+      />
+
+      {/* Favorite heart */}
+      <TouchableOpacity
+        style={{ position: "absolute", top: 8, right: 8, zIndex: 20 }}
+        onPress={() => toggleFavorite(item.id, item.isFav)}
+      >
+        <Ionicons
+          name={item.isFav ? "heart" : "heart-outline"}
+          size={24}
+          color={currentTheme.danger}
+        />
+      </TouchableOpacity>
+
+      {/* Featured tag */}
+      {item.featured && (
+        <View
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderRadius: 6,
+            backgroundColor: currentTheme.secondary,
+            zIndex: 10,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "500" }}>
+            FEATURED
+          </Text>
+        </View>
+      )}
+
+      <View style={{ padding: 8, flex: 1, justifyContent: "space-between" }}>
+        <Text
+          style={{ fontWeight: "700", color: currentTheme.text }}
+          numberOfLines={1}
+        >
+          {item.title}
+        </Text>
+        <Text style={{ fontSize: 12, color: currentTheme.muted }}>
+          {item.city}, {item.country}
+        </Text>
+        <Text style={{ fontWeight: "600", color: currentTheme.secondary }}>
+          Rs. {item.rent?.toLocaleString()} / month
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
@@ -75,26 +214,32 @@ const PropertiesPage: React.FC = () => {
         theme={currentTheme}
       />
 
-      {isLoading ? (
+      {isLoading && page === 1 ? (
         <ActivityIndicator size="large" color={currentTheme.secondary} />
-      ) : properties.length === 0 ? (
+      ) : allProperties.length === 0 ? (
         <View style={{ padding: 20 }}>
           <Text style={{ color: currentTheme.text }}>No properties found.</Text>
         </View>
       ) : (
         <FlatList
-          data={properties}
+          data={allProperties}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          renderItem={({ item }) => (
-            <PropertySection
-              sectionTitle=""
-              properties={[item]}
-              loading={false}
-              onCardPress={(id) => router.push(`/property/${id}`)}
-            />
-          )}
+          numColumns={2}
+          contentContainerStyle={{ padding: CARD_MARGIN }}
+          renderItem={({ item }) => renderPropertyCard(item)}
+          onEndReached={() => {
+            if (!loadingMore) {
+              setLoadingMore(true);
+              setPage((prev) => prev + 1);
+            }
+          }}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator size="small" color={currentTheme.secondary} />
+            ) : null
+          }
         />
       )}
 

@@ -1,6 +1,5 @@
 import React from "react";
-import { View, Text } from "react-native";
-import { Picker } from "@react-native-picker/picker";
+import { View, Text, TouchableOpacity } from "react-native";
 import { hostOptions } from "../../utils/homeTabUtils/hostOptions";
 
 interface Props {
@@ -10,40 +9,41 @@ interface Props {
   theme: any;
 }
 
-export const HostPicker: React.FC<Props> = ({
-  value,
-  onChange,
-  title = "Host Type",
-  theme,
-}) => {
+export const HostPicker: React.FC<Props> = ({ value, onChange, theme }) => {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={{ color: theme.text, marginBottom: 6, fontSize: 14 }}>
+      {/* <Text style={{ color: theme.text, marginBottom: 6, fontSize: 14 }}>
         {title}
-      </Text>
+      </Text> */}
 
-      <View
-        style={{
-          borderWidth: 1,
-          borderColor: theme.border,
-          borderRadius: 8,
-        }}
-      >
-        <Picker
-          selectedValue={value}
-          onValueChange={onChange}
-          dropdownIconColor={theme.text}
-          style={{ color: theme.text }}
-        >
-          {hostOptions.map((opt) => (
-            <Picker.Item
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        {hostOptions.map((opt) => {
+          const isSelected = value === opt.value;
+          return (
+            <TouchableOpacity
               key={opt.value}
-              label={opt.label}
-              value={opt.value}
-              color={theme.text}
-            />
-          ))}
-        </Picker>
+              onPress={() => onChange(opt.value)}
+              style={{
+                paddingVertical: 10,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: isSelected ? theme.primary : theme.border,
+                backgroundColor: isSelected ? theme.primary : theme.card,
+              }}
+            >
+              <Text
+                style={{
+                  color: isSelected ? theme.background : theme.text,
+                  fontSize: 14,
+                  fontWeight: isSelected ? "600" : "400",
+                }}
+              >
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </View>
   );

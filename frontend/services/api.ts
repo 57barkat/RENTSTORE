@@ -307,6 +307,19 @@ export const api = createApi({
     loginWithGoogle: builder.mutation({
       query: (body) => ({ url: "/api/v1/users/google", method: "POST", body }),
     }),
+    getUserStats: builder.query({
+      query: () => ({ url: "/api/v1/user/stats", method: "GET" }),
+    }),
+
+    uploadProfileImage: builder.mutation({
+      query: (formData: FormData | null) => {
+        return {
+          url: "/api/v1/user/profile-image",
+          method: "POST",
+          body: formData,
+        };
+      },
+    }),
   }),
 });
 
@@ -331,4 +344,6 @@ export const {
   useVerifyOtpMutation,
   useGetDraftPropertiesQuery,
   useLoginWithGoogleMutation,
+  useGetUserStatsQuery,
+  useUploadProfileImageMutation,
 } = api;

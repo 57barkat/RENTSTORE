@@ -22,6 +22,8 @@ import Header from "@/components/Header";
 import { HostelFormProvider } from "@/contextStore/HostelFormContext";
 import { ApartmentFormProvider } from "@/contextStore/ApartmentFormContextType";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SidebarProvider } from "@/contextStore/SidebarContext";
+import Sidebar from "@/components/SideBar/Sidebar";
 
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
@@ -86,6 +88,7 @@ const AppContent = () => {
   return (
     <>
       {!hideHeader && <Header />}
+
       <Stack screenOptions={{ headerShown: false }}>
         {/* Auth Screens */}
         <Stack.Screen name="signin" />
@@ -128,7 +131,10 @@ export default function RootLayout() {
               <HostelFormProvider>
                 <FormProvider>
                   <CustomThemeProvider>
-                    <AppContent />
+                    <SidebarProvider>
+                      <Sidebar />
+                      <AppContent />
+                    </SidebarProvider>
                   </CustomThemeProvider>
                 </FormProvider>
               </HostelFormProvider>
