@@ -7,6 +7,7 @@ import {
   Modal,
   StyleSheet,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Colors } from "@/constants/Colors";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -25,6 +26,8 @@ interface ProfileHeaderProps {
   theme: "light" | "dark";
   onUpload: (file: FormData) => Promise<void>;
   onDelete: () => Promise<void>;
+  loadingUpload?: boolean; // new
+  loadingDelete?: boolean; // new
 }
 
 const StatBox = ({
@@ -51,6 +54,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   theme,
   onUpload,
   onDelete,
+  loadingUpload = false,
+  loadingDelete = false,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const primaryColor = Colors[theme].primary;
@@ -159,37 +164,56 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             ]}
           >
             <TouchableOpacity
-              style={styles.modalButton}
+              style={[styles.modalButton, loadingUpload && { opacity: 0.6 }]}
               onPress={handlePickImage}
+              disabled={loadingUpload}
             >
-              <MaterialIcons
-                name="add-a-photo"
-                size={24}
-                color={primaryColor}
-              />
-              <Text style={[styles.modalButtonText, { color: primaryColor }]}>
-                Upload New Photo
-              </Text>
+              {loadingUpload ? (
+                <ActivityIndicator size="small" color={primaryColor} />
+              ) : (
+                <>
+                  <MaterialIcons
+                    name="add-a-photo"
+                    size={24}
+                    color={primaryColor}
+                  />
+                  <Text
+                    style={[styles.modalButtonText, { color: primaryColor }]}
+                  >
+                    Upload New Photo
+                  </Text>
+                </>
+              )}
             </TouchableOpacity>
 
             {profileImage && (
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, loadingDelete && { opacity: 0.6 }]}
                 onPress={handleDeleteImage}
+                disabled={loadingDelete}
               >
-                <MaterialIcons
-                  name="delete"
-                  size={24}
-                  color={Colors[theme].danger}
-                />
-                <Text
-                  style={[
-                    styles.modalButtonText,
-                    { color: Colors[theme].danger },
-                  ]}
-                >
-                  Remove Photo
-                </Text>
+                {loadingDelete ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={Colors[theme].danger}
+                  />
+                ) : (
+                  <>
+                    <MaterialIcons
+                      name="delete"
+                      size={24}
+                      color={Colors[theme].danger}
+                    />
+                    <Text
+                      style={[
+                        styles.modalButtonText,
+                        { color: Colors[theme].danger },
+                      ]}
+                    >
+                      Remove Photo
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             )}
 

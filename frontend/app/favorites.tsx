@@ -31,7 +31,6 @@ type Property = {
 
 const Favorites = () => {
   const queryResult = useGetUserFavoritesQuery(null as any);
-  console.log("Favorites query result:", queryResult);
   const [removeFavorite] = useRemoveUserFavoriteMutation();
 
   const { theme } = useTheme();

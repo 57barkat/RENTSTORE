@@ -320,6 +320,12 @@ export const api = createApi({
         };
       },
     }),
+    deleteProfileImage: builder.mutation<void, void>({
+      query: () => ({
+        url: "/api/v1/user/profile-image",
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -346,4 +352,5 @@ export const {
   useLoginWithGoogleMutation,
   useGetUserStatsQuery,
   useUploadProfileImageMutation,
+  useDeleteProfileImageMutation,
 } = api;

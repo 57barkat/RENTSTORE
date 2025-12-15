@@ -18,7 +18,7 @@ import ProfileHeader from "./ProfileHeader";
 import {
   useGetUserStatsQuery,
   useUploadProfileImageMutation,
-  //   useDeleteProfileImageMutation,
+  useDeleteProfileImageMutation, // <-- added
 } from "@/services/api";
 import Toast from "react-native-toast-message";
 
@@ -27,55 +27,66 @@ const Sidebar: React.FC = () => {
   const { isOpen, close } = useSidebar();
   const { theme } = useTheme();
   const { handleNavigate, handleLogout } = useSidebarNavigation();
-
   const themeColors = Colors[theme];
 
-  const { data: stats, refetch: refetchStats } = useGetUserStatsQuery(null);
-  console.log("User stats:", stats);
+  const { data: stats, refetch } = useGetUserStatsQuery(null, {
+    refetchOnFocus: true,
+    pollingInterval: 5000,
+  });
 
   const [uploadProfileImage] = useUploadProfileImageMutation();
-  //   const [deleteProfileImage] = useDeleteProfileImageMutation();
+  const [deleteProfileImage] = useDeleteProfileImageMutation();
+
+  // --------------------------
+  // Loading states
+  // --------------------------
+  const [loadingUpload, setLoadingUpload] = React.useState(false);
+  const [loadingDelete, setLoadingDelete] = React.useState(false);
 
   useEffect(() => {
     slideAnimation(slideAnim, isOpen, SIDEBAR_WIDTH);
   }, [isOpen]);
 
-  // Upload handler
   const handleUpload = async (formData: FormData) => {
     try {
+      setLoadingUpload(true); // start loading
       await uploadProfileImage(formData).unwrap();
       Toast.show({
         type: "success",
         text1: "Success",
         text2: "Profile image uploaded",
       });
-      refetchStats();
+      refetch();
     } catch {
       Toast.show({
         type: "error",
         text1: "Upload Failed",
         text2: "Could not upload profile image",
       });
+    } finally {
+      setLoadingUpload(false); // stop loading
     }
   };
 
-  // Delete handler
   const handleDelete = async () => {
-    // try {
-    //   await deleteProfileImage().unwrap();
-    //   Toast.show({
-    //     type: "success",
-    //     text1: "Deleted",
-    //     text2: "Profile image removed",
-    //   });
-    //   refetchStats();
-    // } catch {
-    //   Toast.show({
-    //     type: "error",
-    //     text1: "Delete Failed",
-    //     text2: "Could not remove profile image",
-    //   });
-    // }
+    try {
+      setLoadingDelete(true); // start loading
+      await deleteProfileImage().unwrap();
+      Toast.show({
+        type: "success",
+        text1: "Deleted",
+        text2: "Profile image removed",
+      });
+      refetch();
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Delete Failed",
+        text2: "Could not remove profile image",
+      });
+    } finally {
+      setLoadingDelete(false); // stop loading
+    }
   };
 
   const mainMenuItems = sidebarMenuItems.filter((item) => !item.isLogout);
@@ -115,6 +126,8 @@ const Sidebar: React.FC = () => {
             theme={theme}
             onUpload={handleUpload}
             onDelete={handleDelete}
+            loadingUpload={loadingUpload} // <-- new
+            loadingDelete={loadingDelete} // <-- new
           />
 
           <View
