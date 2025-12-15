@@ -18,7 +18,7 @@ import ProfileHeader from "./ProfileHeader";
 import {
   useGetUserStatsQuery,
   useUploadProfileImageMutation,
-  useDeleteProfileImageMutation, // <-- added
+  useDeleteProfileImageMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
 
@@ -49,7 +49,7 @@ const Sidebar: React.FC = () => {
 
   const handleUpload = async (formData: FormData) => {
     try {
-      setLoadingUpload(true); // start loading
+      setLoadingUpload(true);
       await uploadProfileImage(formData).unwrap();
       Toast.show({
         type: "success",
@@ -126,8 +126,8 @@ const Sidebar: React.FC = () => {
             theme={theme}
             onUpload={handleUpload}
             onDelete={handleDelete}
-            loadingUpload={loadingUpload} // <-- new
-            loadingDelete={loadingDelete} // <-- new
+            loadingUpload={loadingUpload}
+            loadingDelete={loadingDelete}
           />
 
           <View

@@ -10,9 +10,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Colors } from "@/constants/Colors";
-import { MaterialIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
+import StatBox from "@/components/StatBox";
+import ModalActionButton from "@/components/ModalActionButton";
+import { pickImageFromGallery } from "@/utils/imageUtils";
+import { getColors } from "@/utils/themeUtils";
 import Toast from "react-native-toast-message";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 const IMAGE_SIZE = width * 0.35;
@@ -26,24 +29,9 @@ interface ProfileHeaderProps {
   theme: "light" | "dark";
   onUpload: (file: FormData) => Promise<void>;
   onDelete: () => Promise<void>;
-  loadingUpload?: boolean; // new
-  loadingDelete?: boolean; // new
+  loadingUpload?: boolean;
+  loadingDelete?: boolean;
 }
-
-const StatBox = ({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) => (
-  <View style={styles.statBox}>
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   profileImage,
@@ -58,57 +46,26 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   loadingDelete = false,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const primaryColor = Colors[theme].primary;
-  const secondaryColor = Colors[theme].secondary;
-  const textColor = Colors[theme].secondary;
+  const colors = getColors(theme);
 
-  const handlePickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets?.length) {
-        const file = result.assets[0];
-        const formData = new FormData();
-        formData.append("file", {
-          uri: file.uri,
-          name: "profile.jpg",
-          type: "image/jpeg",
-        } as any);
-
-        await onUpload(formData);
-      }
-    } catch {
-      Toast.show({
-        type: "error",
-        text1: "Upload Failed",
-      });
-    } finally {
-      setModalVisible(false);
-    }
+  const handleUpload = async () => {
+    const file = await pickImageFromGallery();
+    if (file) await onUpload(file);
+    setModalVisible(false);
   };
 
-  const handleDeleteImage = async () => {
+  const handleDelete = async () => {
     try {
       await onDelete();
     } catch {
-      Toast.show({
-        type: "error",
-        text1: "Delete Failed",
-      });
+      Toast.show({ type: "error", text1: "Delete Failed" });
     } finally {
       setModalVisible(false);
     }
   };
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: Colors[theme].background }]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.imageContainer}>
         <Image
           source={
@@ -119,7 +76,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           style={styles.image}
         />
         <TouchableOpacity
-          style={[styles.editIcon, { backgroundColor: primaryColor }]}
+          style={[styles.editIcon, { backgroundColor: colors.primary }]}
           onPress={() => setModalVisible(true)}
         >
           <MaterialIcons name="camera-alt" size={20} color="white" />
@@ -127,25 +84,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.name, { color: textColor }]}>{name}</Text>
+        <Text style={[styles.name, { color: colors.secondary }]}>{name}</Text>
         {phone && (
-          <View style={styles.phoneRow}>
-            <MaterialIcons name="phone" size={16} color={secondaryColor} />
-            <Text style={[styles.phoneText, { color: secondaryColor }]}>
-              {phone}
-            </Text>
-          </View>
+          <Text style={[styles.phoneText, { color: colors.secondary }]}>
+            {phone}
+          </Text>
         )}
       </View>
 
       <View
-        style={[styles.statsContainer, { borderColor: secondaryColor + "20" }]}
+        style={[
+          styles.statsContainer,
+          { borderColor: colors.secondary + "20" },
+        ]}
       >
-        <StatBox label="Uploads" value={uploads} color={textColor} />
-        <StatBox label="Favorites" value={favorites} color={textColor} />
+        <StatBox label="Uploads" value={uploads} color={colors.secondary} />
+        <StatBox label="Favorites" value={favorites} color={colors.secondary} />
       </View>
 
-      {/* Modal for Upload/Delete */}
       <Modal
         transparent
         animationType="slide"
@@ -157,83 +113,29 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          <View
-            style={[
-              styles.modalContent,
-              { backgroundColor: Colors[theme].card },
-            ]}
-          >
-            <TouchableOpacity
-              style={[styles.modalButton, loadingUpload && { opacity: 0.6 }]}
-              onPress={handlePickImage}
-              disabled={loadingUpload}
-            >
-              {loadingUpload ? (
-                <ActivityIndicator size="small" color={primaryColor} />
-              ) : (
-                <>
-                  <MaterialIcons
-                    name="add-a-photo"
-                    size={24}
-                    color={primaryColor}
-                  />
-                  <Text
-                    style={[styles.modalButtonText, { color: primaryColor }]}
-                  >
-                    Upload New Photo
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+            <ModalActionButton
+              text="Upload New Photo"
+              icon="add-a-photo"
+              color={colors.primary}
+              onPress={handleUpload}
+              loading={loadingUpload}
+            />
             {profileImage && (
-              <TouchableOpacity
-                style={[styles.modalButton, loadingDelete && { opacity: 0.6 }]}
-                onPress={handleDeleteImage}
-                disabled={loadingDelete}
-              >
-                {loadingDelete ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={Colors[theme].danger}
-                  />
-                ) : (
-                  <>
-                    <MaterialIcons
-                      name="delete"
-                      size={24}
-                      color={Colors[theme].danger}
-                    />
-                    <Text
-                      style={[
-                        styles.modalButtonText,
-                        { color: Colors[theme].danger },
-                      ]}
-                    >
-                      Remove Photo
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <ModalActionButton
+                text="Remove Photo"
+                icon="delete"
+                color={colors.danger}
+                onPress={handleDelete}
+                loading={loadingDelete}
+              />
             )}
-
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                styles.cancelButton,
-                { borderColor: secondaryColor + "20" },
-              ]}
+            <ModalActionButton
+              text="Cancel"
+              icon="close"
+              color={colors.secondary}
               onPress={() => setModalVisible(false)}
-            >
-              <Text
-                style={[
-                  styles.modalButtonText,
-                  { color: secondaryColor, fontWeight: "600" },
-                ]}
-              >
-                Cancel
-              </Text>
-            </TouchableOpacity>
+            />
           </View>
         </TouchableOpacity>
       </Modal>
@@ -271,8 +173,7 @@ const styles = StyleSheet.create({
   },
   infoContainer: { alignItems: "center", marginBottom: 20 },
   name: { fontWeight: "800", fontSize: 24, marginBottom: 4 },
-  phoneRow: { flexDirection: "row", alignItems: "center" },
-  phoneText: { marginLeft: 4, fontSize: 14 },
+  phoneText: { fontSize: 14 },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -282,9 +183,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.02)",
     borderWidth: 1,
   },
-  statBox: { alignItems: "center", minWidth: 80 },
-  statValue: { fontSize: 20, fontWeight: "800" },
-  statLabel: { fontSize: 12, color: "#777", marginTop: 2 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "#00000080",
@@ -297,18 +195,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 30,
-  },
-  modalButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 15,
-  },
-  modalButtonText: { fontSize: 16, marginLeft: 15 },
-  cancelButton: {
-    marginTop: 10,
-    justifyContent: "center",
-    borderTopWidth: 1,
-    paddingTop: 20,
   },
 });
 
