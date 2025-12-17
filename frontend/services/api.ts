@@ -1,10 +1,30 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import type {
+  FetchBaseQueryError,
+  FetchBaseQueryMeta,
+} from "@reduxjs/toolkit/query";
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
-console.log("API_URL from config:", API_URL);
+import type { QueryReturnValue } from "@reduxjs/toolkit/query";
 
+const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
+
+let accessToken: string | null = null;
+let refreshToken: string | null = null;
+
+let refreshInProgress: Promise<
+  QueryReturnValue<any, FetchBaseQueryError, FetchBaseQueryMeta>
+> | null = null;
+
+const loadTokens = async () => {
+  if (!accessToken) {
+    accessToken = await AsyncStorage.getItem("accessToken");
+  }
+  if (!refreshToken) {
+    refreshToken = await AsyncStorage.getItem("refreshToken");
+  }
+};
 /**
  * Minimal JWT payload decoder (no external dependency).
  * Supports URL-safe base64 and works with environments that provide atob or Buffer.
@@ -80,21 +100,67 @@ const isTokenExpired = (token: string | null) => {
   }
 };
 
-// Base query with dynamic headers
 const baseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: async (headers) => {
-    // Ensure cache is initialized
-    await initTokenCache();
-
-    if (accessTokenCache) {
-      headers.set("Authorization", `Bearer ${accessTokenCache}`);
+    await loadTokens();
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
     }
-
     return headers;
   },
 });
+const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
+  let result = await baseQuery(args, api, extraOptions);
 
+  if (result.error?.status === 401) {
+    await loadTokens();
+
+    if (!refreshToken) {
+      api.dispatch({ type: "auth/logout" });
+      return result;
+    }
+
+    if (!refreshInProgress) {
+      refreshInProgress = Promise.resolve(
+        baseQuery(
+          {
+            url: "/api/v1/users/refresh",
+            method: "POST",
+            body: { refreshToken },
+          },
+          api,
+          extraOptions
+        )
+      );
+    }
+
+    const refreshResult = await refreshInProgress;
+    refreshInProgress = null;
+
+    if (refreshResult?.data?.accessToken) {
+      accessToken = refreshResult.data.accessToken;
+      refreshToken = refreshResult.data.refreshToken;
+
+      if (accessToken !== null && refreshToken !== null) {
+        await AsyncStorage.multiSet([
+          ["accessToken", accessToken],
+          ["refreshToken", refreshToken],
+        ]);
+      }
+
+      result = await baseQuery(args, api, extraOptions);
+    } else {
+      accessToken = null;
+      refreshToken = null;
+
+      await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
+      api.dispatch({ type: "auth/logout" });
+    }
+  }
+
+  return result;
+};
 const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
   const baseQueryWithLatestToken = async () =>
     baseQuery(args, api, extraOptions);
@@ -148,7 +214,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 // Create API
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: customBaseQuery,
+  baseQuery: baseQueryWithRefresh,
   endpoints: (builder) => ({
     // 🔹 USER AUTH
     createUser: builder.mutation({
