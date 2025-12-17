@@ -8,40 +8,42 @@ export interface MenuItem {
 export const sidebarMenuItems: MenuItem[] = [
   {
     iconType: "Ionicons",
+    iconName: "home-outline",
+    label: "Home",
+    screen: "homePage",
+  },
+  {
+    iconType: "Ionicons",
     iconName: "star-outline",
-    label: "Favourites",
-    screen: "Favourites",
-  },
-  {
-    iconType: "Ionicons",
-    iconName: "image-outline",
-    label: "Photos",
-    screen: "Photos",
+    label: "Favorites",
+    screen: "favorites",
   },
   {
     iconType: "Feather",
-    iconName: "file-text",
-    label: "Draft",
-    screen: "Draft",
+    iconName: "grid",
+    label: "View My Listings",
+    screen: "MyListingsScreen",
   },
   {
     iconType: "Feather",
-    iconName: "mail",
-    label: "Message",
-    screen: "Message",
+    iconName: "upload",
+    label: "Upload Property",
+    screen: "upload",
+  },
+
+  {
+    iconType: "Feather",
+    iconName: "trash-2",
+    label: "Delete Account",
+    screen: "DeleteAccount",
   },
   {
     iconType: "Ionicons",
-    iconName: "location-outline",
-    label: "Location",
-    screen: "Location",
+    iconName: "document-text-outline",
+    label: "Privacy Policy",
+    screen: "PrivacyPolicyScreen",
   },
-  {
-    iconType: "Ionicons",
-    iconName: "chatbox-ellipses-outline",
-    label: "Chat",
-    screen: "Chat",
-  },
+
   {
     iconType: "Ionicons",
     iconName: "log-out-outline",

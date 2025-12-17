@@ -74,11 +74,7 @@ export default function SignUpScreen() {
     try {
       const result = await createUser(payload).unwrap();
       if (result.accessToken) {
-        await login(
-          result.accessToken ?? result.token,
-          result.refreshToken,
-          result.isPhoneVerified
-        );
+        await login(result.accessToken ?? result.token, result.refreshToken);
         await AsyncStorage.setItem("userName", values.name);
         await AsyncStorage.setItem("userEmail", values.email);
         await AsyncStorage.setItem("userPhone", values.phone);
@@ -299,7 +295,7 @@ export default function SignUpScreen() {
                         </>
                       )}
 
-                      <View style={styles.inputContainer}>
+                      {/* <View style={styles.inputContainer}>
                         <TextInput
                           style={[styles.input, { color: currentTheme.text }]}
                           placeholder="Preferences (optional)"
@@ -308,7 +304,7 @@ export default function SignUpScreen() {
                           onChangeText={handleChange("preferences")}
                           onBlur={handleBlur("preferences")}
                         />
-                      </View>
+                      </View> */}
 
                       <View style={styles.inputContainer}>
                         <TextInput

@@ -24,6 +24,7 @@ import { HostPicker } from "@/components/Filters/HostPicker";
 import { FilterChips } from "@/components/Filters/FilterChips";
 import { FilterModal } from "@/components/Filters/FilterModal";
 import { Ionicons } from "@expo/vector-icons";
+import { PropertyCardProps } from "@/types/TabTypes/TabTypes";
 
 type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
 
@@ -48,7 +49,7 @@ const PropertiesPage: React.FC = () => {
 
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [allProperties, setAllProperties] = useState<any[]>([]);
+  const [allProperties, setAllProperties] = useState<PropertyCardProps[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
 
   const [addToFav] = useAddToFavMutation();
@@ -64,13 +65,14 @@ const PropertiesPage: React.FC = () => {
   });
 
   // Fetch user's favorites
-  const { data: favData } = useGetUserFavoritesQuery(null);
+  const { data: favData, refetch: refetchFavorites } =
+    useGetUserFavoritesQuery(null);
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
     [favData]
   );
 
-  // Update properties when data changes
+  // Merge favorites with properties whenever data or favorites change
   useEffect(() => {
     if (data?.data) {
       const formatted = formatProperties(
@@ -78,7 +80,10 @@ const PropertiesPage: React.FC = () => {
         filters.city || "",
         "",
         () => {}
-      ).map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) }));
+      ).map((p) => ({
+        ...p,
+        isFav: favoriteIds.includes(p.id),
+      }));
 
       if (page === 1) {
         setAllProperties(formatted);
@@ -104,6 +109,11 @@ const PropertiesPage: React.FC = () => {
     filters.beds,
   ]);
 
+  // Refetch favorites on mount to ensure correct state
+  useEffect(() => {
+    refetchFavorites();
+  }, []);
+
   const removeFilter = (key: ChipKey) => {
     if (key !== "hostOption") {
       setFilters({ ...filters, [key]: undefined });
@@ -113,20 +123,36 @@ const PropertiesPage: React.FC = () => {
 
   const selectedChips = buildSelectedChips(hostOption, filters);
 
-  const toggleFavorite = async (propertyId: string, isFav: boolean) => {
-    try {
-      if (isFav) await removeFromFav(propertyId);
-      else await addToFav(propertyId);
+  // Toggle Favorite
+  const handleToggleFav = async (propertyId: string) => {
+    const property = allProperties.find((p) => p.id === propertyId);
+    if (!property) return;
 
-      setAllProperties((prev) =>
-        prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
-      );
+    // Optimistic update
+    setAllProperties((prev) =>
+      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
+    );
+
+    try {
+      if (property.isFav) {
+        await removeFromFav({ propertyId });
+      } else {
+        await addToFav({ propertyId });
+      }
+      // Refetch favorites to sync backend state
+      refetchFavorites();
     } catch (err) {
-      console.error("Error toggling favorite:", err);
+      console.log("Fav error:", err);
+      // Rollback on error
+      setAllProperties((prev) =>
+        prev.map((p) =>
+          p.id === propertyId ? { ...p, isFav: property.isFav } : p
+        )
+      );
     }
   };
 
-  const renderPropertyCard = (item: any) => (
+  const renderPropertyCard = (item: PropertyCardProps) => (
     <TouchableOpacity
       key={item.id}
       style={{
@@ -147,8 +173,8 @@ const PropertiesPage: React.FC = () => {
 
       {/* Favorite heart */}
       <TouchableOpacity
-        style={{ position: "absolute", top: 8, right: 8, zIndex: 20 }}
-        onPress={() => toggleFavorite(item.id, item.isFav)}
+        style={{ position: "absolute", bottom: 5, right: 8, zIndex: 20 }}
+        onPress={() => handleToggleFav(item.id)}
       >
         <Ionicons
           name={item.isFav ? "heart" : "heart-outline"}

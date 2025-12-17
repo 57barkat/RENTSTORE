@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -10,25 +10,32 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { useSidebar } from "@/contextStore/SidebarContext";
 import { SIDEBAR_WIDTH } from "@/constants/layout";
 import NavItem from "./NavItem";
-import { sidebarMenuItems } from "@/utils/sidebarMenuItems";
+import { sidebarMenuItems, MenuItem } from "@/utils/sidebarMenuItems";
 import { slideAnimation } from "@/utils/animations";
-import { useSidebarNavigation } from "@/hooks/useSidebarNavigation";
 import { Colors } from "@/constants/Colors";
 import ProfileHeader from "./ProfileHeader";
 import {
   useGetUserStatsQuery,
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
+  useDeleteUserMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
+import { useRouter, useSegments } from "expo-router";
 
 const Sidebar: React.FC = () => {
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const { isOpen, close } = useSidebar();
   const { theme } = useTheme();
-  const { handleNavigate, handleLogout } = useSidebarNavigation();
   const themeColors = Colors[theme];
+  const router = useRouter();
+  const segments = useSegments();
 
+  const [activeScreen, setActiveScreen] = useState<string>("homePage");
+
+  // --------------------------
+  // User stats
+  // --------------------------
   const { data: stats, refetch } = useGetUserStatsQuery(null, {
     refetchOnFocus: true,
     pollingInterval: 5000,
@@ -36,17 +43,22 @@ const Sidebar: React.FC = () => {
 
   const [uploadProfileImage] = useUploadProfileImageMutation();
   const [deleteProfileImage] = useDeleteProfileImageMutation();
+  const [deleteAccount] = useDeleteUserMutation();
+
+  const [loadingUpload, setLoadingUpload] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingDeleteAccount, setLoadingDeleteAccount] = useState(false);
 
   // --------------------------
-  // Loading states
+  // Slide animation
   // --------------------------
-  const [loadingUpload, setLoadingUpload] = React.useState(false);
-  const [loadingDelete, setLoadingDelete] = React.useState(false);
-
   useEffect(() => {
     slideAnimation(slideAnim, isOpen, SIDEBAR_WIDTH);
   }, [isOpen]);
 
+  // --------------------------
+  // Profile image handlers
+  // --------------------------
   const handleUpload = async (formData: FormData) => {
     try {
       setLoadingUpload(true);
@@ -54,53 +66,77 @@ const Sidebar: React.FC = () => {
       Toast.show({
         type: "success",
         text1: "Success",
-        text2: "Profile image uploaded",
+        text2: "Profile uploaded",
       });
       refetch();
     } catch {
-      Toast.show({
-        type: "error",
-        text1: "Upload Failed",
-        text2: "Could not upload profile image",
-      });
+      Toast.show({ type: "error", text1: "Upload Failed" });
     } finally {
-      setLoadingUpload(false); // stop loading
+      setLoadingUpload(false);
     }
   };
 
   const handleDelete = async () => {
     try {
-      setLoadingDelete(true); // start loading
+      setLoadingDelete(true);
       await deleteProfileImage().unwrap();
-      Toast.show({
-        type: "success",
-        text1: "Deleted",
-        text2: "Profile image removed",
-      });
+      Toast.show({ type: "success", text1: "Profile deleted" });
       refetch();
     } catch {
-      Toast.show({
-        type: "error",
-        text1: "Delete Failed",
-        text2: "Could not remove profile image",
-      });
+      Toast.show({ type: "error", text1: "Delete Failed" });
     } finally {
-      setLoadingDelete(false); // stop loading
+      setLoadingDelete(false);
     }
   };
 
-  const mainMenuItems = sidebarMenuItems.filter((item) => !item.isLogout);
-  const logoutItem = sidebarMenuItems.find((item) => item.isLogout);
+  // --------------------------
+  // Delete account
+  // --------------------------
+  const handleDeleteAccount = async () => {
+    try {
+      setLoadingDeleteAccount(true);
+      // await deleteAccount().unwrap();
+      Toast.show({ type: "success", text1: "Account Deleted" });
+      router.replace("/signin");
+      close();
+    } catch {
+      Toast.show({ type: "error", text1: "Could not delete account" });
+    } finally {
+      setLoadingDeleteAccount(false);
+    }
+  };
+
+  // --------------------------
+  // Navigation handler
+  // --------------------------
+  const handleNavigate = (item: MenuItem) => {
+    if (item.isLogout) {
+      // Clear auth/token logic
+      router.replace("/signin");
+      close();
+    } else if (item.screen === "DeleteAccount") {
+      handleDeleteAccount();
+    } else if (item.screen) {
+      setActiveScreen(item.screen);
+      router.push(`/${item.screen}`);
+      close();
+    }
+  };
+
+  // --------------------------
+  // Update active screen based on route
+  // --------------------------
+  useEffect(() => {
+    const current = segments[segments.length - 1];
+    if (current) setActiveScreen(current);
+  }, [segments]);
+
+  const mainMenuItems = sidebarMenuItems.filter((i) => !i.isLogout);
+  const logoutItem = sidebarMenuItems.find((i) => i.isLogout);
 
   return (
     <>
-      {isOpen && (
-        <TouchableOpacity
-          style={styles.backdrop}
-          onPress={close}
-          activeOpacity={1}
-        />
-      )}
+      {isOpen && <TouchableOpacity style={styles.backdrop} onPress={close} />}
 
       <Animated.View
         style={[
@@ -109,7 +145,7 @@ const Sidebar: React.FC = () => {
             width: SIDEBAR_WIDTH,
             backgroundColor: themeColors.background,
             transform: [{ translateX: slideAnim }],
-            borderRightColor: themeColors.card,
+            // borderRightColor is replaced by shadow
           },
         ]}
       >
@@ -138,14 +174,14 @@ const Sidebar: React.FC = () => {
           />
 
           <View style={styles.navContainer}>
-            {mainMenuItems.map((item, index) => (
+            {mainMenuItems.map((item, idx) => (
               <NavItem
-                key={index}
+                key={idx}
                 item={item}
                 theme={theme}
                 color={themeColors.secondary}
-                onPress={() => handleNavigate(item.screen!)}
-                isActive={false}
+                onPress={() => handleNavigate(item)}
+                isActive={activeScreen === item.screen}
               />
             ))}
           </View>
@@ -162,7 +198,7 @@ const Sidebar: React.FC = () => {
               item={logoutItem}
               theme={theme}
               color={themeColors.text}
-              onPress={handleLogout}
+              onPress={() => handleNavigate(logoutItem)}
               isActive={false}
             />
           </View>
@@ -189,7 +225,13 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 20,
     paddingTop: 0,
-    borderRightWidth: 1,
+    borderRightWidth: 0, // Removed static border
+    // Added Box Shadow/Elevation for a next-level overlay effect
+    shadowColor: "#000",
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
   scrollContent: {
     paddingHorizontal: 15,
@@ -208,9 +250,9 @@ const styles = StyleSheet.create({
   },
   bottomContainer: {
     paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 30,
-    borderTopWidth: 1,
+    paddingTop: 15, // Increased padding
+    paddingBottom: 35, // Increased bottom padding
+    borderTopWidth: 2, // Thicker border for clear separation
   },
 });
 

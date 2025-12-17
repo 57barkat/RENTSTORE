@@ -64,8 +64,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
+  // Determine if the phone is verified for icon color
+  const isVerified = phone !== "unverified account" && phone !== undefined;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.background, borderBottomColor: colors.card },
+      ]}
+    >
       <View style={styles.imageContainer}>
         <Image
           source={
@@ -73,7 +81,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               ? { uri: profileImage }
               : require("@/assets/images/adaptive-icon.png")
           }
-          style={styles.image}
+          style={[styles.image, { borderColor: colors.primary }]} // Primary colored border
         />
         <TouchableOpacity
           style={[styles.editIcon, { backgroundColor: colors.primary }]}
@@ -85,20 +93,33 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
       <View style={styles.infoContainer}>
         <Text style={[styles.name, { color: colors.secondary }]}>{name}</Text>
-        {phone && (
-          <Text style={[styles.phoneText, { color: colors.secondary }]}>
-            {phone}
-          </Text>
-        )}
+        <View style={styles.phoneRow}>
+          {phone && (
+            <Text style={[styles.phoneText, { color: colors.secondary }]}>
+              {phone}
+            </Text>
+          )}
+          <MaterialIcons
+            name="verified"
+            size={16}
+            color={isVerified ? colors.primary : colors.secondary + "80"} // Dynamic badge color
+            style={{ marginLeft: 5 }}
+          />
+        </View>
       </View>
 
+      {/* Stats as a single, elevated card block */}
       <View
         style={[
           styles.statsContainer,
-          { borderColor: colors.secondary + "20" },
+          {
+            backgroundColor: colors.card, // Use card color for separation/elevation
+          },
         ]}
       >
         <StatBox label="Uploads" value={uploads} color={colors.secondary} />
+        {/* Vertical separator */}
+        <View style={{ width: 1, backgroundColor: colors.secondary + "20" }} />
         <StatBox label="Favorites" value={favorites} color={colors.secondary} />
       </View>
 
@@ -149,15 +170,15 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    // borderBottomColor is now dynamic (colors.card)
   },
   imageContainer: { position: "relative", marginBottom: 15 },
   image: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: IMAGE_SIZE / 2,
-    borderWidth: 4,
-    borderColor: "white",
+    borderWidth: 4, // Increased border width
+    // borderColor is now dynamic (colors.primary)
   },
   editIcon: {
     position: "absolute",
@@ -173,15 +194,18 @@ const styles = StyleSheet.create({
   },
   infoContainer: { alignItems: "center", marginBottom: 20 },
   name: { fontWeight: "800", fontSize: 24, marginBottom: 4 },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   phoneText: { fontSize: 14 },
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    width: "80%",
-    paddingVertical: 15,
-    borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.02)",
-    borderWidth: 1,
+    justifyContent: "space-evenly", // Better spacing
+    width: "100%", // Use full width of container padding
+    paddingVertical: 18, // Slightly more padding
+    borderRadius: 15, // More rounded corners
+    // Background and border are now dynamic, creating a card look
   },
   modalBackdrop: {
     flex: 1,

@@ -22,30 +22,33 @@ const NavItem: React.FC<NavItemProps> = ({
   const IconComponent = item.iconType === "Ionicons" ? Ionicons : Feather;
   const themeColors = Colors[theme];
 
+  // Modified color logic: Active items use themeColors.text for high contrast against primary background
   let itemColor = item.isLogout
     ? themeColors.danger
     : isActive
-    ? themeColors.primary
+    ? themeColors.text
     : color;
 
-  const backgroundColor = isActive ? themeColors.primary + "15" : "transparent";
+  // Modified background/border for a pill-shaped effect:
+  const backgroundColor = isActive ? themeColors.primary : "transparent";
 
   const fontWeight = isActive ? "700" : "500";
 
   return (
     <TouchableOpacity
-      style={[styles.navItem, { backgroundColor: backgroundColor }]}
+      style={[
+        styles.navItem,
+        {
+          backgroundColor: backgroundColor,
+          // Add border to non-active items for better definition in light mode
+          borderColor: isActive ? "transparent" : themeColors.card,
+          borderWidth: isActive ? 0 : 1, // Only show border when not active
+        },
+      ]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.85} // Softer press interaction
     >
-      {isActive && (
-        <View
-          style={[
-            styles.activeIndicator,
-            { backgroundColor: themeColors.primary },
-          ]}
-        />
-      )}
+      {/* Removed the activeIndicator View */}
 
       <View style={styles.contentContainer}>
         <IconComponent
@@ -67,26 +70,19 @@ const styles = StyleSheet.create({
   navItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14, // Increased padding for better hit area and visual weight
     paddingHorizontal: 15,
-    borderRadius: 10,
-    marginBottom: 8,
+    borderRadius: 12, // Increased borderRadius for a defined pill shape
+    marginBottom: 10, // Increased margin for better separation
     overflow: "hidden",
   },
   contentContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    marginLeft: 5,
+    marginLeft: 0, // Adjusted as left indicator is removed
   },
-  activeIndicator: {
-    width: 4,
-    height: "100%",
-    position: "absolute",
-    left: 0,
-    top: 0,
-    borderRadius: 2,
-  },
+  // Removed activeIndicator style
   navText: {
     fontSize: 16,
     marginLeft: 18,

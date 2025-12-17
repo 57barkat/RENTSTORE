@@ -134,7 +134,9 @@ const HomePage: React.FC = () => {
       ListHeaderComponent={
         <>
           <HostOptionsRowProps
-            onSelect={(id: string) => console.log("Selected:", id)}
+            onSelect={(id: string) =>
+              router.push(`/property/View/${id}?type=${id}`)
+            }
           />
           <SearchBar
             value={search}
