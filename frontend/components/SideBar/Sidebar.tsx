@@ -22,12 +22,15 @@ import {
 } from "@/services/api";
 import Toast from "react-native-toast-message";
 import { useRouter, useSegments } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "@/contextStore/AuthContext";
 
 const Sidebar: React.FC = () => {
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const { isOpen, close } = useSidebar();
-  const { theme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const themeColors = Colors[theme];
+  const { logout } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
@@ -122,7 +125,13 @@ const Sidebar: React.FC = () => {
       close();
     }
   };
-
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    setTheme("light");
+    close();
+    router.replace("/signin");
+    await logout();
+  };
   // --------------------------
   // Update active screen based on route
   // --------------------------
@@ -198,7 +207,7 @@ const Sidebar: React.FC = () => {
               item={logoutItem}
               theme={theme}
               color={themeColors.text}
-              onPress={() => handleNavigate(logoutItem)}
+              onPress={() => handleLogout()}
               isActive={false}
             />
           </View>

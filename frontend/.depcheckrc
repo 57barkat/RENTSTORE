@@ -1,0 +1,10 @@
+{
+  "ignoreMatches": [
+    "expo",
+    "expo-*",
+    "@expo/*",
+    "react-native",
+    "react-native-*",
+    "@react-navigation/*"
+  ]
+}
