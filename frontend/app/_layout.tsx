@@ -10,6 +10,7 @@ import {
 } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useFonts } from "expo-font";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { store } from "../services/store";
 import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
@@ -21,7 +22,6 @@ import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
 import { HostelFormProvider } from "@/contextStore/HostelFormContext";
 import { ApartmentFormProvider } from "@/contextStore/ApartmentFormContextType";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
 
@@ -31,14 +31,9 @@ const AppContent = () => {
   });
 
   const { hasToken, loading } = useAuth();
-  const isLoggedIn = hasToken;
+  const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
-  const { theme = "light" } = useTheme();
-
-  // --------------------------
-  // Redirect logic
-  // --------------------------
   const [redirectDone, setRedirectDone] = useState(false);
 
   useEffect(() => {
@@ -46,22 +41,18 @@ const AppContent = () => {
 
     const currentPath = segments.join("/");
 
-    if (!isLoggedIn) {
+    if (!hasToken) {
       router.replace("/signin");
-      setRedirectDone(true); // mark as done
+      setRedirectDone(true);
       return;
     }
 
-    // Only redirect if logged in and not already on homePage
-    if (isLoggedIn && currentPath !== "homePage") {
+    if (hasToken && currentPath !== "homePage") {
       router.replace("/homePage");
-      setRedirectDone(true); // mark as done
+      setRedirectDone(true);
     }
-  }, [fontsLoaded, loading, isLoggedIn, segments, router, redirectDone]);
+  }, [fontsLoaded, loading, hasToken, segments, redirectDone]);
 
-  // --------------------------
-  // Loader while fonts or auth are loading
-  // --------------------------
   if (!fontsLoaded || loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -70,9 +61,6 @@ const AppContent = () => {
     );
   }
 
-  // --------------------------
-  // Hide header on specific screens
-  // --------------------------
   const hideHeaderScreens = [
     "signin",
     "signup",
@@ -82,64 +70,54 @@ const AppContent = () => {
     "property/edit/[id]",
     "property/View/[type]",
   ];
+
   const currentSegment = segments[segments.length - 1];
   const hideHeader = hideHeaderScreens.includes(currentSegment);
 
   return (
-    <>
+    <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
       {!hideHeader && <Header />}
+      <Sidebar />
 
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Auth Screens */}
         <Stack.Screen name="signin" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="choose-role" />
         <Stack.Screen name="Verification" />
-
-        {/* Property Screens */}
         <Stack.Screen name="property/[id]" />
         <Stack.Screen name="property/View/[type]" />
-
         <Stack.Screen name="property/edit/[id]" />
-
-        {/* Screens with FormProvider */}
         <Stack.Screen name="MyListingsScreen" />
         <Stack.Screen name="DraftProperties" />
         <Stack.Screen name="upload" />
-
-        {/* Other Screens */}
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
+
       <StatusBar style="auto" />
       <Toast />
-    </>
+    </ThemeProvider>
   );
 };
 
 export default function RootLayout() {
-  const { theme = "light" } = useTheme();
-
   return (
     <SafeAreaProvider>
       <Provider store={store}>
         <AuthProvider>
-          <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+          <CustomThemeProvider>
             <ApartmentFormProvider>
               <HostelFormProvider>
                 <FormProvider>
-                  <CustomThemeProvider>
-                    <SidebarProvider>
-                      <Sidebar />
-                      <AppContent />
-                    </SidebarProvider>
-                  </CustomThemeProvider>
+                  <SidebarProvider>
+                    <AppContent />
+                  </SidebarProvider>
                 </FormProvider>
               </HostelFormProvider>
             </ApartmentFormProvider>
-          </ThemeProvider>
+          </CustomThemeProvider>
         </AuthProvider>
       </Provider>
     </SafeAreaProvider>
