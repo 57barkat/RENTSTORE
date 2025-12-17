@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text, View, StyleSheet } from "react-native";
 import Constants from "expo-constants";
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl;
+const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
 
 type AuthContextType = {
   token: string | null;
@@ -29,88 +35,75 @@ const AuthContext = createContext<AuthContextType>({
   setVerified: async () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [isVerified, setIsVerifiedState] = useState<boolean>(false);
+  const [isVerified, setIsVerified] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [progress, setProgress] = useState<number>(1); // 1% start
+  const [progress, setProgress] = useState<number>(1);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadAuth = async () => {
       try {
-        const steps = [
-          async () => {
-            const storedToken = await AsyncStorage.getItem("accessToken");
-            const storedRefresh = await AsyncStorage.getItem("refreshToken");
-            const storedVerified = await AsyncStorage.getItem("isVerified");
-            setIsVerifiedState(storedVerified === "true");
-            setProgress(20); // 20% after reading AsyncStorage
-            return { storedToken, storedRefresh };
-          },
-          async ({ storedToken, storedRefresh }: any) => {
-            if (storedToken) {
-              const response = await fetch(`${API_URL}/api/v1/users/refresh`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${storedToken}`,
-                },
-                body: JSON.stringify({ refreshToken: storedRefresh }),
-              });
+        const storedAccessToken = await AsyncStorage.getItem("accessToken");
+        const storedRefreshToken = await AsyncStorage.getItem("refreshToken");
+        const storedVerified = await AsyncStorage.getItem("isVerified");
 
-              setProgress(50); // 50% after sending refresh request
+        if (!mounted) return;
 
-              if (response.ok) {
-                const data = await response.json();
-                setToken(data.accessToken);
-                await AsyncStorage.setItem("accessToken", data.accessToken);
-                await AsyncStorage.setItem("refreshToken", data.refreshToken);
-                setProgress(100); // 100% on success
-                return;
-              } else {
-                await logout();
-                setProgress(100);
-              }
-            } else {
-              setProgress(100); // No token, done
-            }
-          },
-        ];
+        setIsVerified(storedVerified === "true");
+        setProgress(30);
 
-        let stepData: any = {};
-        for (const step of steps) {
-          stepData = await step(stepData);
+        if (storedAccessToken && storedRefreshToken) {
+          const response = await fetch(`${API_URL}/api/v1/users/refresh`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              refreshToken: storedRefreshToken,
+            }),
+          });
+
+          setProgress(60);
+
+          if (response.ok) {
+            const data = await response.json();
+
+            if (!mounted) return;
+
+            setToken(data.accessToken);
+
+            await AsyncStorage.multiSet([
+              ["accessToken", data.accessToken],
+              ["refreshToken", data.refreshToken],
+            ]);
+
+            setProgress(100);
+          } else {
+            await logout();
+            setProgress(100);
+          }
+        } else {
+          setProgress(100);
         }
-      } catch (error) {
-        console.warn("Error refreshing token:", error);
+      } catch (err) {
+        console.warn("Auth bootstrap error:", err);
         await logout();
         setProgress(100);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    // Animate progress smoothly
-    const animateProgress = () => {
-      let current = 1;
-      const interval = setInterval(() => {
-        if (current < progress) {
-          current += 1;
-          setProgress(current);
-        } else {
-          clearInterval(interval);
-        }
-      }, 20); // adjust speed
-    };
+    loadAuth();
 
-    const run = async () => {
-      await loadAuth();
-      animateProgress();
+    return () => {
+      mounted = false;
     };
-
-    run();
   }, []);
 
   const login = async (
@@ -119,23 +112,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     verified = false
   ) => {
     setToken(accessToken);
-    setIsVerifiedState(verified);
-    await AsyncStorage.setItem("accessToken", accessToken);
-    await AsyncStorage.setItem("refreshToken", refreshToken);
-    await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
-  };
+    setIsVerified(verified);
 
-  const setVerified = async (verified: boolean) => {
-    setIsVerifiedState(verified);
-    await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
+    await AsyncStorage.multiSet([
+      ["accessToken", accessToken],
+      ["refreshToken", refreshToken],
+      ["isVerified", verified ? "true" : "false"],
+    ]);
   };
 
   const logout = async () => {
     setToken(null);
-    setIsVerifiedState(false);
-    await AsyncStorage.removeItem("accessToken");
-    await AsyncStorage.removeItem("refreshToken");
-    await AsyncStorage.removeItem("isVerified");
+    setIsVerified(false);
+
+    await AsyncStorage.multiRemove([
+      "accessToken",
+      "refreshToken",
+      "isVerified",
+    ]);
+  };
+
+  const setVerifiedFlag = async (verified: boolean) => {
+    setIsVerified(verified);
+    await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
   };
 
   return (
@@ -147,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         login,
         logout,
-        setVerified,
+        setVerified: setVerifiedFlag,
       }}
     >
       {loading ? (
