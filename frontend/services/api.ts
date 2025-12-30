@@ -6,7 +6,7 @@ import { isTokenExpired } from "../auth/jwt";
 const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
 
 /* ----------------------------------------------------
-   BASE QUERY
+   RAW BASE QUERY
 ---------------------------------------------------- */
 
 const rawBaseQuery = fetchBaseQuery({
@@ -21,67 +21,70 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 /* ----------------------------------------------------
-   REFRESH HANDLING (SINGLE FLIGHT)
+   SINGLE-FLIGHT REFRESH
 ---------------------------------------------------- */
 
 let refreshPromise: Promise<void> | null = null;
 
+const refreshTokens = async (api: any, extraOptions: any) => {
+  const refreshToken = tokenManager.getRefreshToken();
+
+  if (!refreshToken) {
+    await tokenManager.clear();
+    api.dispatch({ type: "auth/logout" });
+    return;
+  }
+
+  const result = await rawBaseQuery(
+    {
+      url: "/api/v1/users/refresh",
+      method: "POST",
+      body: { refreshToken },
+    },
+    api,
+    extraOptions
+  );
+
+  if (result.data) {
+    const { accessToken, refreshToken: newRefresh } = result.data as any;
+    await tokenManager.setTokens(accessToken, newRefresh);
+  } else {
+    await tokenManager.clear();
+    api.dispatch({ type: "auth/logout" });
+  }
+};
+
 const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
   await tokenManager.load();
 
-  let result = await rawBaseQuery(args, api, extraOptions);
+  const accessToken = tokenManager.getAccessToken();
 
-  if (result.error?.status === 401) {
-    const accessToken = tokenManager.getAccessToken();
-
-    // Only refresh if token actually expired
-    if (!isTokenExpired(accessToken)) {
-      return result;
-    }
-
+  /**
+   * 🟢 PRE-EMPTIVE REFRESH
+   * Happens BEFORE request
+   * No 401 delay
+   */
+  if (isTokenExpired(accessToken)) {
     if (!refreshPromise) {
-      refreshPromise = (async () => {
-        const refreshToken = tokenManager.getRefreshToken();
-        if (!refreshToken) {
-          await tokenManager.clear();
-          api.dispatch({ type: "auth/logout" });
-          return;
-        }
-
-        const refreshResult = await rawBaseQuery(
-          {
-            url: "/api/v1/users/refresh",
-            method: "POST",
-            body: { refreshToken },
-          },
-          api,
-          extraOptions
-        );
-
-        if (refreshResult.data) {
-          const { accessToken, refreshToken: newRefresh } =
-            refreshResult.data as any;
-
-          await tokenManager.setTokens(accessToken, newRefresh);
-        } else {
-          await tokenManager.clear();
-          api.dispatch({ type: "auth/logout" });
-        }
-      })().finally(() => {
+      refreshPromise = refreshTokens(api, extraOptions).finally(() => {
         refreshPromise = null;
       });
     }
-
     await refreshPromise;
-    result = await rawBaseQuery(args, api, extraOptions);
+  }
+
+  let result = await rawBaseQuery(args, api, extraOptions);
+
+  /**
+   * 🔴 HARD FAILURE (token invalid / revoked)
+   */
+  if (result.error?.status === 401) {
+    await tokenManager.clear();
+    api.dispatch({ type: "auth/logout" });
   }
 
   return result;
 };
-
-/* ----------------------------------------------------
-   API
----------------------------------------------------- */
 
 export const api = createApi({
   reducerPath: "api",
@@ -251,7 +254,10 @@ export const api = createApi({
       query: (body) => ({ url: "/api/v1/users/google", method: "POST", body }),
     }),
     getUserStats: builder.query({
-      query: () => ({ url: "/api/v1/user/stats", method: "GET" }),
+      query: () => ({
+        url: "/api/v1/user/stats",
+        method: "GET",
+      }),
     }),
 
     uploadProfileImage: builder.mutation({
