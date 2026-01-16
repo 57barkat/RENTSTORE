@@ -92,9 +92,11 @@ export default function SignInScreen() {
 
       // Save user details to AsyncStorage
       if (res.name && res.email) {
+        await AsyncStorage.setItem("userId", res.id);
         await AsyncStorage.setItem("userName", res.name);
         await AsyncStorage.setItem("userEmail", res.email);
         await AsyncStorage.setItem("userPhone", res.phone);
+
         await AsyncStorage.setItem(
           "isVerified",
           JSON.stringify(res.isPhoneVerified)

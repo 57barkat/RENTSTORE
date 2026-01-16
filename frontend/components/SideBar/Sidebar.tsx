@@ -114,17 +114,28 @@ const Sidebar: React.FC = () => {
   // --------------------------
   const handleNavigate = (item: MenuItem) => {
     if (item.isLogout) {
-      // Clear auth/token logic
-      router.replace("/signin");
-      close();
+      // Logout flow
+      handleLogout();
     } else if (item.screen === "DeleteAccount") {
       handleDeleteAccount();
     } else if (item.screen) {
+      // Automatically normalize screen path
+      let path = item.screen;
+
+      // If your file is in a folder like app/ChatListScreen/ChatListScreen.tsx
+      // we append the same name as default
+      if (item.screen !== "homePage" && !item.screen.startsWith("/")) {
+        // Check if path exists in your folder structure
+        // For example: "ChatListScreen" folder -> default file inside same folder
+        path = `/${item.screen}`;
+      }
+
       setActiveScreen(item.screen);
-      router.push(`/${item.screen}`);
+      router.push(path);
       close();
     }
   };
+
   const handleLogout = async () => {
     await AsyncStorage.clear();
     setTheme("light");

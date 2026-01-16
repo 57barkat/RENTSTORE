@@ -20,6 +20,7 @@ class AddressDto {
   @IsOptional() @IsString() stateTerritory?: string;
   @IsOptional() @IsString() country?: string;
   @IsOptional() @IsString() zipCode?: string;
+  @IsOptional() @IsString() addressQuery?: string;
 }
 
 class CapacityStateDto {
@@ -94,16 +95,21 @@ export class CreatePropertyDto {
   @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
 
   @IsString() ownerId: string;
+  @IsOptional() @IsString() addressQuery?: string;
+  @IsOptional() @IsString() searchText?: string;
+  @IsOptional() @IsString() addressText?: string;
 
   @Transform(({ value }) => value === "true" || value === true)
   @IsOptional()
   @IsBoolean()
   status?: boolean;
+
   @IsBoolean()
   @IsOptional()
   featured?: boolean;
 }
 
+// Interface for response with favorite info
 export interface PropertyWithFav extends Property {
   _id: string;
   isFav?: boolean;

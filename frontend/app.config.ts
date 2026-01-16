@@ -3,15 +3,18 @@ import { ConfigContext, ExpoConfig } from "@expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+
   name: "Rent Store",
   slug: "rent-store",
   scheme: "rentstoreapp",
   version: "1.0.0",
   platforms: ["android", "ios"],
   orientation: "portrait",
+
   icon: "./assets/images/icon.png",
   userInterfaceStyle: "automatic",
   newArchEnabled: true, // Fabric + TurboModules
+
   ios: {
     ...config.ios,
     supportsTablet: true,
@@ -24,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "This app needs access to your location",
     },
   },
+
   android: {
     ...(config.android as any),
     package: "com.usman_naeem.frontend",
@@ -35,31 +39,44 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     jsEngine: "hermes",
     enableProguardInReleaseBuilds: true,
-    shrinkResources: true, // remove unused resources
+    shrinkResources: true,
     config: {
       mapbox: {
         apiKey: process.env.MAPBOX_PUBLIC_TOKEN,
       },
     },
   },
+
   web: {
     ...config.web,
     bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
+
   extra: {
     ...config.extra,
+
+    // ✅ GOOGLE MAPS / PLACES API KEY
+    GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+
+    // ✅ MAPBOX KEYS
     MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
     MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
+
+    // ✅ BACKEND API
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
+
     eas: {
       projectId: "44299887-b9d1-4e31-8ce5-0b8686a8f699",
     },
+
     router: {},
   },
+
   plugins: [
     "expo-router",
+
     [
       "expo-build-properties",
       {
@@ -68,6 +85,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+
     [
       "expo-splash-screen",
       {
@@ -77,6 +95,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         backgroundColor: "#ffffff",
       },
     ],
+
     "expo-video",
     "expo-web-browser",
     "expo-secure-store",

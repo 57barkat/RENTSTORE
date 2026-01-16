@@ -105,15 +105,20 @@ const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randomSubarray = (arr, min = 0, max = arr.length) =>
   arr.sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
+// --- Owner Pool ---
+const OWNER_COUNT = 5000; // number of unique owners
+const owners = Array.from({ length: OWNER_COUNT }, () =>
+  new ObjectId().toHexString()
+);
+
 // --- Main Generator ---
 function generateDummyProperties(count = 30000) {
   const properties = [];
-  const baseOwnerId = new ObjectId().toHexString();
 
   for (let i = 0; i < count; i++) {
     const city = randomChoice(CITIES);
     const area = randomChoice(AREAS[city]);
-    const hostOption = randomChoice(HOST_OPTIONS); // ✅ Only home/apartment/hostel
+    const hostOption = randomChoice(HOST_OPTIONS);
 
     const bedrooms = randomInt(1, hostOption === "hostel" ? 1 : 5);
     const beds = randomInt(bedrooms, bedrooms + 2);
@@ -147,6 +152,7 @@ function generateDummyProperties(count = 30000) {
     const lng =
       Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
 
+    // Randomized data
     const photos =
       Math.random() < 0.2
         ? []
@@ -183,7 +189,7 @@ function generateDummyProperties(count = 30000) {
 
     properties.push({
       _id: new ObjectId().toHexString(),
-      ownerId: baseOwnerId,
+      ownerId: randomChoice(owners), // <-- random owner from pool
       title: `${bedrooms} Bed ${
         hostOption === "home"
           ? "House"
@@ -221,7 +227,7 @@ function generateDummyProperties(count = 30000) {
 }
 
 // --- Execution ---
-const PROPERTY_COUNT = 30000;
+const PROPERTY_COUNT = 5;
 const properties = generateDummyProperties(PROPERTY_COUNT);
 
 fs.writeFileSync(

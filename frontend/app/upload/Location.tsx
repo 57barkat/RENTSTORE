@@ -14,7 +14,7 @@ import {
 import Mapbox from "@rnmapbox/maps";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
@@ -24,6 +24,8 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 
+import { searchPlaces, placeDetails } from "../../services/googlePlaces";
+
 const MAPBOX_TOKEN: string =
   (Constants.expoConfig && Constants.expoConfig.extra?.MAPBOX_PUBLIC_TOKEN) ||
   process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN ||
@@ -32,61 +34,15 @@ const MAPBOX_TOKEN: string =
 if (MAPBOX_TOKEN) {
   Mapbox.setAccessToken(MAPBOX_TOKEN);
   Mapbox.setTelemetryEnabled(false);
-} else {
-  console.warn("Mapbox token missing. Map features may break.");
 }
 
 const INITIAL_ZOOM = 15;
-const DEBOUNCE_DELAY_MS = 400;
+const DEBOUNCE_DELAY_MS = 800;
 
 interface Coords {
   latitude: number;
   longitude: number;
 }
-
-interface MapboxSuggestion {
-  id: string;
-  place_name: string;
-  center: [number, number];
-  street?: string;
-  city?: string;
-  region?: string;
-  postalCode?: string;
-  country?: string;
-}
-
-const searchMapboxPlaces = async (
-  query: string
-): Promise<MapboxSuggestion[]> => {
-  if (!query || query.length < 2 || !MAPBOX_TOKEN) return [];
-  try {
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-      query
-    )}.json?access_token=${MAPBOX_TOKEN}&autocomplete=true&limit=6&types=address,place,locality,neighborhood,region,country`;
-
-    const res = await fetch(url);
-    const json = await res.json();
-
-    return (json.features || []).map((f: any) => {
-      const context = f.context || [];
-      return {
-        id: f.id,
-        place_name: f.place_name,
-        center: f.center,
-        street: f.text || "",
-        city: context.find((c: any) => c.id.startsWith("place"))?.text || "",
-        region: context.find((c: any) => c.id.startsWith("region"))?.text || "",
-        postalCode:
-          context.find((c: any) => c.id.startsWith("postcode"))?.text || "",
-        country:
-          context.find((c: any) => c.id.startsWith("country"))?.text || "",
-      };
-    });
-  } catch (err) {
-    console.error("Mapbox search error:", err);
-    return [];
-  }
-};
 
 const LocationScreen: React.FC = () => {
   const formContext = React.useContext(FormContext);
@@ -112,7 +68,7 @@ const LocationScreen: React.FC = () => {
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(
     null
   );
-  const [suggestions, setSuggestions] = useState<MapboxSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isPinFixed, setIsPinFixed] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -124,19 +80,15 @@ const LocationScreen: React.FC = () => {
 
   const currentTheme = Colors[theme ?? "light"];
 
-  /** Reverse geocode coords into full address */
   const getFullAddress = useCallback(async (location: Coords) => {
     try {
       const geocode = await Location.reverseGeocodeAsync(location);
       if (geocode?.[0]) {
         const { name, street, city, region, postalCode, country } = geocode[0];
-
         const formatted = [name, street, city, region, postalCode, country]
           .filter(Boolean)
           .join(", ");
-
         setAddress(formatted);
-
         setFinalAddress((prev) => ({
           aptSuiteUnit: name || prev.aptSuiteUnit || "",
           street: street || prev.street || "",
@@ -145,7 +97,6 @@ const LocationScreen: React.FC = () => {
           zipCode: postalCode || prev.zipCode || "",
           country: country || prev.country || "",
         }));
-
         return formatted;
       }
     } catch (err) {
@@ -154,7 +105,6 @@ const LocationScreen: React.FC = () => {
     return "";
   }, []);
 
-  /** Fetch device location on mount */
   useEffect(() => {
     const fetchLocation = async () => {
       try {
@@ -165,18 +115,17 @@ const LocationScreen: React.FC = () => {
           return;
         }
         setPermissionGranted(true);
-
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
-        const newCoords: Coords = {
+        const newCoords = {
           latitude: loc.coords.latitude,
           longitude: loc.coords.longitude,
         };
         setCoords(newCoords);
         await getFullAddress(newCoords);
       } catch (err) {
-        console.error("Fetch location error:", err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -184,7 +133,6 @@ const LocationScreen: React.FC = () => {
     fetchLocation();
   }, [getFullAddress]);
 
-  /** Center camera on initial coords */
   useEffect(() => {
     if (!coords || !mapReady) return;
     suppressRegionChangeRef.current = true;
@@ -193,13 +141,10 @@ const LocationScreen: React.FC = () => {
       zoomLevel: INITIAL_ZOOM,
       animationDuration: 500,
     });
-    const t = setTimeout(() => {
-      suppressRegionChangeRef.current = false;
-    }, 700);
+    const t = setTimeout(() => (suppressRegionChangeRef.current = false), 700);
     return () => clearTimeout(t);
   }, [coords, mapReady]);
 
-  /** Sync coords/address to form context */
   useEffect(() => {
     if (coords) {
       updateForm("lat", coords.latitude);
@@ -209,129 +154,71 @@ const LocationScreen: React.FC = () => {
     }
   }, [coords, address, finalAddress]);
 
-  /** Handle input changes with debounce */
-  const handleAddressChange = useCallback((text: string) => {
+  const handleAddressChange = (text: string) => {
     setAddress(text);
-    setSuggestions([]);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!text || text.length < 2) return;
-
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchMapboxPlaces(text);
-      setSuggestions(results);
-    }, DEBOUNCE_DELAY_MS);
-  }, []);
-
-  /** Handle selecting a Mapbox suggestion */
-  const selectSuggestion = useCallback(
-    async (item: MapboxSuggestion) => {
-      if (!item?.center) return;
-      const [longitude, latitude] = item.center;
-      const newCoords: Coords = { latitude, longitude };
-
-      suppressRegionChangeRef.current = true;
-      setCoords(newCoords);
+    if (!text || text.length < 2) {
       setSuggestions([]);
-      Keyboard.dismiss();
-
-      cameraRef.current?.setCamera({
-        centerCoordinate: [longitude, latitude],
-        zoomLevel: INITIAL_ZOOM,
-        animationDuration: 500,
-      });
-
-      // Merge reverse-geocode info if available
-      setFinalAddress((prev) => ({
-        aptSuiteUnit: prev.aptSuiteUnit || item.street || "",
-        street: prev.street || item.street || "",
-        city: prev.city || item.city || "",
-        stateTerritory: prev.stateTerritory || item.region || "",
-        zipCode: prev.zipCode || item.postalCode || "",
-        country: prev.country || item.country || "",
-      }));
-
-      setAddress(item.place_name);
-
-      // Optionally run reverse geocode to fill missing details
-      await getFullAddress(newCoords);
-
-      setTimeout(() => {
-        suppressRegionChangeRef.current = false;
-      }, 700);
-    },
-    [getFullAddress]
-  );
-
-  /** Navigate to next step */
-  const handleNext = useCallback(() => {
-    if (address && address.length >= 3) router.push("/upload/PropertyDetails");
-  }, [address]);
-
-  /** Toggle fixed pin mode */
-  const toggleMapMode = useCallback(() => setIsPinFixed((v) => !v), []);
-
-  /** Update coords/address on map movement (fixed pin mode) */
-  const onRegionDidChange = useCallback(
-    async (e: any) => {
-      if (!mapReady || suppressRegionChangeRef.current) return;
-      if (!isPinFixed || isDragging) return;
-      const center = e?.geometry?.coordinates;
-      if (!center || center.length < 2) return;
-      const [longitude, latitude] = center;
-      const newCoords: Coords = { latitude, longitude };
-      setCoords(newCoords);
-      await getFullAddress(newCoords);
-    },
-    [isPinFixed, isDragging, getFullAddress, mapReady]
-  );
-
-  /** Marker drag events */
-  const onMarkerDragStart = () => setIsDragging(true);
-  const onMarkerDragEnd = async (e: any) => {
-    setIsDragging(false);
-    const coordsArr = e?.geometry?.coordinates;
-    if (!coordsArr || coordsArr.length < 2) return;
-    const [longitude, latitude] = coordsArr;
-    const newCoords: Coords = { latitude, longitude };
-
-    suppressRegionChangeRef.current = true;
-    setCoords(newCoords);
-    await getFullAddress(newCoords);
-
-    cameraRef.current?.setCamera({
-      centerCoordinate: [longitude, latitude],
-      zoomLevel: INITIAL_ZOOM,
-      animationDuration: 300,
-    });
-
-    setTimeout(() => {
-      suppressRegionChangeRef.current = false;
-    }, 500);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await searchPlaces(text);
+        setSuggestions(results);
+      } catch (err) {
+        console.error(err);
+      }
+    }, DEBOUNCE_DELAY_MS);
   };
 
-  /** Loading or permission denied states */
+  const selectSuggestion = async (item: any) => {
+    Keyboard.dismiss();
+    const details = await placeDetails(item.place_id);
+    if (!details) return;
+
+    const newCoords = {
+      latitude: details.geometry.location.lat,
+      longitude: details.geometry.location.lng,
+    };
+
+    setCoords(newCoords);
+    setAddress(item.description);
+    setSuggestions([]);
+
+    suppressRegionChangeRef.current = true;
+    cameraRef.current?.setCamera({
+      centerCoordinate: [newCoords.longitude, newCoords.latitude],
+      zoomLevel: INITIAL_ZOOM,
+      animationDuration: 1000,
+    });
+    setTimeout(() => (suppressRegionChangeRef.current = false), 1200);
+  };
+
+  const handleNext = () => {
+    if (address && address.length >= 3) router.push("/upload/PropertyDetails");
+  };
+
+  const onRegionDidChange = async (e: any) => {
+    if (
+      !mapReady ||
+      suppressRegionChangeRef.current ||
+      !isPinFixed ||
+      isDragging
+    )
+      return;
+    const center = e?.geometry?.coordinates;
+    if (!center) return;
+    const newCoords = { latitude: center[1], longitude: center[0] };
+    setCoords(newCoords);
+    await getFullAddress(newCoords);
+  };
+
   if (loading)
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={{ marginTop: 8, color: currentTheme.muted }}>
-          Fetching location...
-        </Text>
-      </View>
-    );
-
-  if (permissionGranted === false)
-    return (
-      <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
-      >
-        <Text
-          style={{ textAlign: "center", padding: 16, color: currentTheme.text }}
-        >
-          Location permission denied. Enable location access in settings.
-        </Text>
       </View>
     );
 
@@ -340,119 +227,141 @@ const LocationScreen: React.FC = () => {
       <StepContainer
         onNext={handleNext}
         isNextDisabled={!address || address.length < 3}
-        title="Where's your place located?"
+        title="Where's your place?"
         progress={20}
       >
-        <Text style={{ color: currentTheme.text, marginBottom: 8 }}>
-          Your address is only shared after a reservation is confirmed.
-        </Text>
+        <View style={styles.content}>
+          <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
+            Address is only shared after booking confirmation.
+          </Text>
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{ zIndex: 10 }}
-        >
-          <View
-            style={[
-              styles.searchBox,
-              {
-                backgroundColor: currentTheme.card,
-                borderColor: currentTheme.border,
-              },
-            ]}
-          >
-            <Ionicons
-              name="location-sharp"
-              size={20}
-              color={currentTheme.primary}
-            />
-            <TextInput
-              placeholder="Enter your address"
-              placeholderTextColor={currentTheme.muted}
-              value={address}
-              onChangeText={handleAddressChange}
-              style={[styles.input, { color: currentTheme.text }]}
-              returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              onPress={toggleMapMode}
-              style={{ paddingHorizontal: 8 }}
-            >
-              <Ionicons
-                name={isPinFixed ? "pin" : "pin-outline"}
-                size={20}
-                color={currentTheme.muted}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {suggestions.length > 0 && (
+          {/* Search Section - High Z-Index for typing ability */}
+          <View style={styles.searchWrapper}>
             <View
               style={[
-                styles.suggestionsContainer,
+                styles.searchBar,
                 {
                   backgroundColor: currentTheme.card,
                   borderColor: currentTheme.border,
                 },
               ]}
             >
-              <FlatList
-                data={suggestions}
-                keyExtractor={(i) => i.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.suggestionItem,
-                      { borderColor: currentTheme.border },
-                    ]}
-                    onPress={() => selectSuggestion(item)}
-                  >
-                    <Text style={{ color: currentTheme.text }}>
-                      {item.place_name}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                keyboardShouldPersistTaps="handled"
+              <Ionicons name="search" size={20} color={currentTheme.primary} />
+              <TextInput
+                placeholder="Type your address..."
+                placeholderTextColor={currentTheme.muted}
+                value={address}
+                onChangeText={handleAddressChange}
+                style={[styles.input, { color: currentTheme.text }]}
+                autoFocus={false}
               />
-            </View>
-          )}
-        </KeyboardAvoidingView>
-
-        <View style={styles.mapArea}>
-          {coords ? (
-            <Mapbox.MapView
-              ref={mapRef}
-              style={styles.map}
-              styleURL="mapbox://styles/mapbox/streets-v12"
-              logoEnabled={false}
-              compassEnabled
-              onRegionDidChange={onRegionDidChange}
-              onDidFinishLoadingMap={() => setMapReady(true)}
-            >
-              <Mapbox.Camera
-                ref={cameraRef}
-                centerCoordinate={[coords.longitude, coords.latitude]}
-                zoomLevel={INITIAL_ZOOM}
-                animationDuration={500}
-              />
-              <Mapbox.PointAnnotation
-                id="marker"
-                coordinate={[coords.longitude, coords.latitude]}
-                draggable={!isPinFixed}
-                onDragStart={onMarkerDragStart}
-                onDragEnd={onMarkerDragEnd}
-              >
-                <View
-                  style={{ alignItems: "center", justifyContent: "center" }}
+              {address.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setAddress("");
+                    setSuggestions([]);
+                  }}
                 >
-                  <Ionicons name="location" size={42} color="red" />
-                </View>
-              </Mapbox.PointAnnotation>
-            </Mapbox.MapView>
-          ) : (
-            <ActivityIndicator size="large" style={{ marginTop: 40 }} />
-          )}
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color={currentTheme.muted}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {suggestions.length > 0 && (
+              <View
+                style={[
+                  styles.suggestionsBox,
+                  {
+                    backgroundColor: currentTheme.card,
+                    borderColor: currentTheme.border,
+                  },
+                ]}
+              >
+                <FlatList
+                  data={suggestions}
+                  keyExtractor={(item) => item.place_id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.suggestionItem}
+                      onPress={() => selectSuggestion(item)}
+                    >
+                      <Ionicons
+                        name="location-sharp"
+                        size={18}
+                        color={currentTheme.muted}
+                        style={{ marginRight: 10 }}
+                      />
+                      <Text style={{ color: currentTheme.text, flex: 1 }}>
+                        {item.description}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  keyboardShouldPersistTaps="always"
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Map Container */}
+          <View
+            style={[styles.mapWrapper, { borderColor: currentTheme.border }]}
+          >
+            {coords && (
+              <Mapbox.MapView
+                ref={mapRef}
+                style={styles.map}
+                styleURL={
+                  theme === "dark"
+                    ? Mapbox.StyleURL.Dark
+                    : Mapbox.StyleURL.Street
+                }
+                onRegionDidChange={onRegionDidChange}
+                onDidFinishLoadingMap={() => setMapReady(true)}
+              >
+                <Mapbox.Camera
+                  ref={cameraRef}
+                  centerCoordinate={[coords.longitude, coords.latitude]}
+                  zoomLevel={INITIAL_ZOOM}
+                />
+                <Mapbox.PointAnnotation
+                  id="marker"
+                  coordinate={[coords.longitude, coords.latitude]}
+                >
+                  <View style={styles.markerContainer}>
+                    <View
+                      style={[
+                        styles.pulse,
+                        { backgroundColor: currentTheme.primary + "30" },
+                      ]}
+                    />
+                    <MaterialCommunityIcons
+                      name="map-marker-radius"
+                      size={45}
+                      color={currentTheme.primary}
+                    />
+                  </View>
+                </Mapbox.PointAnnotation>
+              </Mapbox.MapView>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.mapModeFab,
+                { backgroundColor: currentTheme.card },
+              ]}
+              onPress={() => setIsPinFixed(!isPinFixed)}
+            >
+              <Ionicons
+                name={isPinFixed ? "lock-closed" : "move"}
+                size={22}
+                color={currentTheme.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </StepContainer>
     </SafeAreaView>
@@ -462,38 +371,66 @@ const LocationScreen: React.FC = () => {
 export default LocationScreen;
 
 const styles = StyleSheet.create({
-  searchBox: {
+  content: { flex: 1 },
+  subtitle: { fontSize: 14, marginBottom: 15 },
+  searchWrapper: { zIndex: 999, position: "relative" },
+  searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 8,
+    borderRadius: 15,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 6,
-    marginHorizontal: 2,
+    paddingHorizontal: 15,
+    height: 55,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  input: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    paddingVertical: 0,
-    height: 20,
-  },
-  suggestionsContainer: {
-    borderRadius: 8,
-    maxHeight: 220,
-    marginHorizontal: 2,
-    marginTop: 4,
-    overflow: "hidden",
-    borderWidth: 1,
+  input: { flex: 1, marginLeft: 10, fontSize: 16, height: "100%" },
+  suggestionsBox: {
     position: "absolute",
-    top: 50,
+    top: 60,
     left: 0,
     right: 0,
-    zIndex: 11,
+    borderRadius: 15,
+    borderWidth: 1,
+    maxHeight: 250,
+    elevation: 5,
+    zIndex: 1000,
   },
-  suggestionItem: { padding: 14, borderBottomWidth: 1 },
-  mapArea: { flex: 1, marginTop: 10, overflow: "hidden", borderRadius: 8 },
+  suggestionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#eee",
+  },
+  mapWrapper: {
+    flex: 1,
+    marginTop: 15,
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
   map: { flex: 1 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
+  markerContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 60,
+    height: 60,
+  },
+  pulse: { position: "absolute", width: 40, height: 40, borderRadius: 20 },
+  mapModeFab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+  },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });

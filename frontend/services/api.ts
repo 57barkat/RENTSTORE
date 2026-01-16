@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import { tokenManager } from "../auth/tokenManager";
 import { isTokenExpired } from "../auth/jwt";
 
-const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
+export const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
 
 /* ----------------------------------------------------
    RAW BASE QUERY

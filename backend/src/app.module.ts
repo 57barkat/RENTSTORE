@@ -14,6 +14,8 @@ import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.modul
 import { AuthModule } from "./services/auth.module";
 import { AddToFavModule } from "./modules/addToFav/favorite.module";
 import { ProfileModule } from "./profile/profile.module";
+import { VoiceSearchModule } from "./voice-search/voice-search.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { ProfileModule } from "./profile/profile.module";
     AuthModule,
     AddToFavModule,
     ProfileModule,
+    VoiceSearchModule,
+    ChatModule,
   ],
 })
 export class AppModule {

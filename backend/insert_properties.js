@@ -3,9 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 async function insertProperties() {
-  const client = new MongoClient(
-    "mongodb+srv://naeemusmanengr:v0k89UVI7dQbibL0@cluster0.8ypcy68.mongodb.net"
-  );
+  const client = new MongoClient("mongodb://localhost:27017/RentStore");
   await client.connect();
 
   const db = client.db("RentStore"); // Use exact existing DB

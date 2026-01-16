@@ -14,6 +14,12 @@ export const sidebarMenuItems: MenuItem[] = [
   },
   {
     iconType: "Ionicons",
+    iconName: "chatbubble-outline",
+    label: "Chats",
+    screen: "ChatListScreen",
+  },
+  {
+    iconType: "Ionicons",
     iconName: "star-outline",
     label: "Favorites",
     screen: "favorites",
