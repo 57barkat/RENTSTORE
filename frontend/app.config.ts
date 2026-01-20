@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   icon: "./assets/images/icon.png",
   userInterfaceStyle: "automatic",
-  newArchEnabled: true, // Fabric + TurboModules
+  newArchEnabled: true,
 
   ios: {
     ...config.ios,
@@ -36,7 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     permissions: [
       "ACCESS_FINE_LOCATION",
       "ACCESS_COARSE_LOCATION",
-      "RECORD_AUDIO", // 🎤 for expo-audio
+      "RECORD_AUDIO",
     ],
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
@@ -45,16 +45,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     jsEngine: "hermes",
 
-    // 🔥 BUILD SIZE OPTIMIZATIONS
-    enableProguardInReleaseBuilds: true,
-    shrinkResources: true,
-
-    // ✅ Mapbox config from env variables
+    // 🔑 REQUIRED for Mapbox Android SDK download
     config: {
       mapbox: {
-        apiKey: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
+        apiKey: process.env.MAPBOX_PUBLIC_TOKEN,
       },
     },
+
+    enableProguardInReleaseBuilds: true,
+    shrinkResources: true,
   },
 
   web: {
@@ -66,10 +65,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     ...config.extra,
-    GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-    MAPBOX_PUBLIC_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
-    MAPBOX_DOWNLOADS_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN,
+
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
+
+    MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
+    MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
 
     eas: {
       projectId: "44299887-b9d1-4e31-8ce5-0b8686a8f699",
@@ -80,6 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   plugins: [
     "expo-router",
+
     [
       "expo-build-properties",
       {
@@ -92,6 +94,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
+
     [
       "expo-splash-screen",
       {
@@ -101,17 +104,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         backgroundColor: "#ffffff",
       },
     ],
-    // 🎤 Audio/video + web/browser plugins
+
     "expo-audio",
     "expo-video",
     "expo-web-browser",
     "expo-secure-store",
+
+    // 🗺️ Mapbox plugin — THIS IS CRITICAL
     [
       "@rnmapbox/maps",
       {
         RNMapboxMapsImpl: "mapbox",
-        RNMapboxMapsDownloadToken:
-          process.env.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN,
+        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
       },
     ],
   ],
