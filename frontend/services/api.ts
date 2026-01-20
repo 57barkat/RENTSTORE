@@ -275,6 +275,23 @@ export const api = createApi({
         method: "DELETE",
       }),
     }),
+    voiceSearch: builder.mutation<any, { uri: string }>({
+      query: ({ uri }) => {
+        const formData = new FormData();
+
+        formData.append("audio", {
+          uri,
+          name: "voice-search.m4a",
+          type: "audio/m4a",
+        } as any);
+
+        return {
+          url: "/search/voice",
+          method: "POST",
+          body: formData,
+        };
+      },
+    }),
   }),
 });
 
@@ -302,4 +319,5 @@ export const {
   useGetUserStatsQuery,
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
+  useVoiceSearchMutation,
 } = api;

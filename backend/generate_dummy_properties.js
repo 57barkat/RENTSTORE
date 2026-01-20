@@ -227,7 +227,7 @@ function generateDummyProperties(count = 30000) {
 }
 
 // --- Execution ---
-const PROPERTY_COUNT = 5;
+const PROPERTY_COUNT = 30000;
 const properties = generateDummyProperties(PROPERTY_COUNT);
 
 fs.writeFileSync(

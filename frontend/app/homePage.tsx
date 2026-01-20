@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { FlatList, View, Text } from "react-native";
+import { FlatList, View, Text, Alert } from "react-native";
+import { Audio } from "expo-av";
+
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { router } from "expo-router";
@@ -19,6 +21,11 @@ import {
 } from "@/services/api";
 
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
+import Constants from "expo-constants";
+
+/* ======================================================
+   HOME PAGE
+====================================================== */
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -42,14 +49,30 @@ const HomePage: React.FC = () => {
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
 
+  /* ======================================================
+     VOICE STATE
+  ====================================================== */
+
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
+
+  /* ======================================================
+     FAVORITES MERGE
+  ====================================================== */
+
   const mergeFavs = (props: any[]) => {
     return props.map((p) => ({
       ...p,
-      isFav: favoriteIds.includes(p.id),
+      isFav: favoriteIds?.includes(p.id),
     }));
   };
 
-  // Sync properties when data or favorites change
+  /* ======================================================
+     SYNC NORMAL DATA
+  ====================================================== */
+
   useEffect(() => {
     if (homesData)
       setHomes(mergeFavs(formatProperties(homesData, selectedCity)));
@@ -65,7 +88,10 @@ const HomePage: React.FC = () => {
       setApartments(mergeFavs(formatProperties(apartmentsData, selectedCity)));
   }, [apartmentsData, selectedCity, favData]);
 
-  // Toggle Favorite
+  /* ======================================================
+     FAVORITE TOGGLE
+  ====================================================== */
+
   const handleToggleFav = async (propertyId: string, type: string) => {
     let updateState: React.Dispatch<React.SetStateAction<PropertyCardProps[]>>;
 
@@ -73,15 +99,12 @@ const HomePage: React.FC = () => {
     else if (type === "room") updateState = setRooms;
     else updateState = setApartments;
 
-    // Optimistic update
     updateState((prev) =>
       prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
     );
 
-    // API call
-    const propertyList =
-      type === "home" ? homes : type === "room" ? rooms : apartments;
-    const property = propertyList.find((p) => p.id === propertyId);
+    const list = type === "home" ? homes : type === "room" ? rooms : apartments;
+    const property = list.find((p) => p.id === propertyId);
 
     try {
       if (property?.isFav) {
@@ -89,9 +112,7 @@ const HomePage: React.FC = () => {
       } else {
         await addToFav({ propertyId });
       }
-    } catch (err) {
-      console.log("Fav error:", err);
-      // rollback
+    } catch {
       updateState((prev) =>
         prev.map((p) =>
           p.id === propertyId ? { ...p, isFav: property?.isFav ?? false } : p
@@ -100,7 +121,85 @@ const HomePage: React.FC = () => {
     }
   };
 
-  // Section Data
+  /* ======================================================
+     VOICE RECORDING
+  ====================================================== */
+
+  const startRecording = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      await rec.startAsync();
+      setRecording(rec);
+      setIsRecording(true);
+    } catch {
+      Alert.alert("Error", "Microphone permission required");
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    await recording.stopAndUnloadAsync();
+    const uri = recording.getURI();
+    setRecording(null);
+    setIsRecording(false);
+
+    if (!uri) return;
+
+    await uploadVoice(uri);
+  };
+
+  /* ======================================================
+     VOICE SEARCH API CALL
+  ====================================================== */
+
+  const uploadVoice = async (uri: string) => {
+    try {
+      const formData = new FormData();
+      formData.append("audio", {
+        uri,
+        name: "voice-search.m4a",
+        type: "audio/m4a",
+      } as any);
+
+      const res = await fetch(`${API_URL}/search/voice`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!data?.result?.data) {
+        Alert.alert("No results", data?.error || "Try again");
+        return;
+      }
+
+      // Show transcription
+      setSearch(data.transcription || "");
+
+      const formatted = mergeFavs(formatProperties(data.result.data, ""));
+
+      setHomes(formatted.filter((p) => p.type === "home"));
+      setRooms(formatted.filter((p) => p.type === "room"));
+      setApartments(formatted.filter((p) => p.type === "apartment"));
+    } catch {
+      Alert.alert("Error", "Voice search failed");
+    }
+  };
+
+  /* ======================================================
+     SECTIONS
+  ====================================================== */
+
   const sections: SectionData[] = [
     {
       title: "Homes",
@@ -122,6 +221,10 @@ const HomePage: React.FC = () => {
     },
   ];
 
+  /* ======================================================
+     UI
+  ====================================================== */
+
   return (
     <FlatList
       data={sections}
@@ -138,15 +241,20 @@ const HomePage: React.FC = () => {
               router.push(`/property/View/${id}?type=${id}`)
             }
           />
+
           <SearchBar
             value={search}
+            placeholder={isRecording ? "Listening..." : "Search properties..."}
             onChangeText={(text) => {
               setSearch(text);
               setSelectedCity(text);
             }}
-            placeholder="Search properties..."
             onFavPress={() => router.push("/favorites")}
+            onVoicePressIn={startRecording}
+            onVoicePressOut={stopRecording}
+            isRecording={isRecording}
           />
+
           <AdsSliderProps />
         </>
       }
