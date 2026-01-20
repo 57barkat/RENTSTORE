@@ -37,10 +37,3 @@ expoAutolinking.useExpoVersionCatalog()
 
 include ':app'
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
-
-
-// ---- FIX MAPLIBRE RELATIVE PATH ----
-def maplibreProject = findProject(":@maplibre_maplibre-react-native")
-if (maplibreProject != null) {
-    maplibreProject.projectDir = file("../node_modules/@maplibre/maplibre-react-native/android")
-}
