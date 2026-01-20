@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { FlatList, View, Text, Alert } from "react-native";
-import { Audio } from "expo-av";
+import { FlatList, View, Text, Alert, Platform } from "react-native";
+import { useAudioRecorder, AudioModule, RecordingPresets } from "expo-audio"; // Corrected Imports
 
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -23,17 +23,12 @@ import {
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
 import Constants from "expo-constants";
 
-/* ======================================================
-   HOME PAGE
-====================================================== */
-
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-
   const [homes, setHomes] = useState<PropertyCardProps[]>([]);
   const [rooms, setRooms] = useState<PropertyCardProps[]>([]);
   const [apartments, setApartments] = useState<PropertyCardProps[]>([]);
@@ -42,7 +37,6 @@ const HomePage: React.FC = () => {
   const { data: apartmentsData, isLoading: apartmentsLoading } =
     useApartments();
   const { data: roomsData, isLoading: roomsLoading } = useRooms();
-
   const { data: favData } = useGetUserFavoritesQuery(null);
   const favoriteIds = favData?.map((f: any) => f.property?._id).filter(Boolean);
 
@@ -50,28 +44,13 @@ const HomePage: React.FC = () => {
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
 
   /* ======================================================
-     VOICE STATE
+      VOICE STATE (EXPO-AUDIO 2026)
   ====================================================== */
-
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
 
-  /* ======================================================
-     FAVORITES MERGE
-  ====================================================== */
-
-  const mergeFavs = (props: any[]) => {
-    return props.map((p) => ({
-      ...p,
-      isFav: favoriteIds?.includes(p.id),
-    }));
-  };
-
-  /* ======================================================
-     SYNC NORMAL DATA
-  ====================================================== */
+  const mergeFavs = (props: any[]) =>
+    props.map((p) => ({ ...p, isFav: favoriteIds?.includes(p.id) }));
 
   useEffect(() => {
     if (homesData)
@@ -88,30 +67,18 @@ const HomePage: React.FC = () => {
       setApartments(mergeFavs(formatProperties(apartmentsData, selectedCity)));
   }, [apartmentsData, selectedCity, favData]);
 
-  /* ======================================================
-     FAVORITE TOGGLE
-  ====================================================== */
-
   const handleToggleFav = async (propertyId: string, type: string) => {
-    let updateState: React.Dispatch<React.SetStateAction<PropertyCardProps[]>>;
-
-    if (type === "home") updateState = setHomes;
-    else if (type === "room") updateState = setRooms;
-    else updateState = setApartments;
-
+    let updateState =
+      type === "home" ? setHomes : type === "room" ? setRooms : setApartments;
     updateState((prev) =>
       prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
     );
-
     const list = type === "home" ? homes : type === "room" ? rooms : apartments;
     const property = list.find((p) => p.id === propertyId);
-
     try {
-      if (property?.isFav) {
-        await removeUserFavorite({ propertyId });
-      } else {
-        await addToFav({ propertyId });
-      }
+      property?.isFav
+        ? await removeUserFavorite({ propertyId })
+        : await addToFav({ propertyId });
     } catch {
       updateState((prev) =>
         prev.map((p) =>
@@ -121,52 +88,40 @@ const HomePage: React.FC = () => {
     }
   };
 
-  /* ======================================================
-     VOICE RECORDING
-  ====================================================== */
-
   const startRecording = async () => {
     try {
-      await Audio.requestPermissionsAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      if (!status.granted) {
+        Alert.alert("Permission Denied", "Microphone access is required.");
+        return;
+      }
+      // Set audio mode for recording
+      await AudioModule.setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
-
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      await rec.startAsync();
-      setRecording(rec);
-      setIsRecording(true);
-    } catch {
-      Alert.alert("Error", "Microphone permission required");
+      audioRecorder.record();
+    } catch (err) {
+      console.error("Failed to start recording", err);
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
-
-    await recording.stopAndUnloadAsync();
-    const uri = recording.getURI();
-    setRecording(null);
-    setIsRecording(false);
-
-    if (!uri) return;
-
-    await uploadVoice(uri);
+    try {
+      await audioRecorder.stop();
+      if (audioRecorder.uri) {
+        await uploadVoice(audioRecorder.uri);
+      }
+    } catch (err) {
+      console.error("Failed to stop recording", err);
+    }
   };
-
-  /* ======================================================
-     VOICE SEARCH API CALL
-  ====================================================== */
 
   const uploadVoice = async (uri: string) => {
     try {
       const formData = new FormData();
       formData.append("audio", {
-        uri,
+        uri: Platform.OS === "android" ? uri : uri.replace("file://", ""),
         name: "voice-search.m4a",
         type: "audio/m4a",
       } as any);
@@ -174,31 +129,22 @@ const HomePage: React.FC = () => {
       const res = await fetch(`${API_URL}/search/voice`, {
         method: "POST",
         body: formData,
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       const data = await res.json();
+      if (!data?.result?.data)
+        return Alert.alert("No results", data?.error || "Try again");
 
-      if (!data?.result?.data) {
-        Alert.alert("No results", data?.error || "Try again");
-        return;
-      }
-
-      // Show transcription
       setSearch(data.transcription || "");
-
       const formatted = mergeFavs(formatProperties(data.result.data, ""));
-
       setHomes(formatted.filter((p) => p.type === "home"));
       setRooms(formatted.filter((p) => p.type === "room"));
       setApartments(formatted.filter((p) => p.type === "apartment"));
-    } catch {
+    } catch (error) {
       Alert.alert("Error", "Voice search failed");
     }
   };
-
-  /* ======================================================
-     SECTIONS
-  ====================================================== */
 
   const sections: SectionData[] = [
     {
@@ -221,15 +167,10 @@ const HomePage: React.FC = () => {
     },
   ];
 
-  /* ======================================================
-     UI
-  ====================================================== */
-
   return (
     <FlatList
       data={sections}
       keyExtractor={(item) => item.title}
-      showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingBottom: 20,
         backgroundColor: currentTheme.background,
@@ -241,10 +182,13 @@ const HomePage: React.FC = () => {
               router.push(`/property/View/${id}?type=${id}`)
             }
           />
-
           <SearchBar
             value={search}
-            placeholder={isRecording ? "Listening..." : "Search properties..."}
+            placeholder={
+              audioRecorder.isRecording
+                ? "Listening..."
+                : "Search properties..."
+            }
             onChangeText={(text) => {
               setSearch(text);
               setSelectedCity(text);
@@ -252,9 +196,8 @@ const HomePage: React.FC = () => {
             onFavPress={() => router.push("/favorites")}
             onVoicePressIn={startRecording}
             onVoicePressOut={stopRecording}
-            isRecording={isRecording}
+            isRecording={audioRecorder.isRecording}
           />
-
           <AdsSliderProps />
         </>
       }
@@ -274,11 +217,6 @@ const HomePage: React.FC = () => {
           cardHeight={200}
         />
       )}
-      ListEmptyComponent={
-        <View style={{ padding: 20 }}>
-          <Text style={{ color: currentTheme.text }}>No properties found.</Text>
-        </View>
-      }
     />
   );
 };

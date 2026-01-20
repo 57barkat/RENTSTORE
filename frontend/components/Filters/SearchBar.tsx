@@ -78,10 +78,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
 export default SearchBar;
 
-/* ======================================================
-   STYLES
-====================================================== */
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -91,7 +87,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginHorizontal: 16,
     marginTop: 12,
-    // Optional: add a subtle shadow for elevation
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -107,7 +102,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   micButton: {
-    backgroundColor: "#4f46e5", // Indigo
+    backgroundColor: "#4f46e5",
     width: 38,
     height: 38,
     borderRadius: 19,
@@ -116,7 +111,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   micActive: {
-    backgroundColor: "#dc2626", // Red
+    backgroundColor: "#dc2626",
   },
   favButton: {
     padding: 6,

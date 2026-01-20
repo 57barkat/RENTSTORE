@@ -22,24 +22,35 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
-        "This app needs access to your location",
+        "This app needs access to your location to show nearby rentals.",
       NSLocationAlwaysAndWhenInUseUsageDescription:
-        "This app needs access to your location",
+        "This app needs access to your location to show nearby rentals.",
+      /* 🎤 Added for expo-audio */
+      NSMicrophoneUsageDescription:
+        "This app uses the microphone for voice-based property searching.",
     },
   },
 
   android: {
     ...(config.android as any),
     package: "com.usman_naeem.frontend",
-    permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+    /* 🎤 Added RECORD_AUDIO for expo-audio */
+    permissions: [
+      "ACCESS_FINE_LOCATION",
+      "ACCESS_COARSE_LOCATION",
+      "RECORD_AUDIO",
+    ],
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
     jsEngine: "hermes",
+
+    // 🔥 BUILD SIZE OPTIMIZATIONS
     enableProguardInReleaseBuilds: true,
     shrinkResources: true,
+
     config: {
       mapbox: {
         apiKey: process.env.MAPBOX_PUBLIC_TOKEN,
@@ -76,16 +87,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   plugins: [
     "expo-router",
-
     [
       "expo-build-properties",
       {
         android: {
           kotlinVersion: "2.0.21",
+          // 🔥 Forces the compiler to remove unused code to reduce that 700MB
+          extraProguardRules: "-keep public class com.horcrux.svg.** { *; }",
+        },
+        ios: {
+          // Optimization for iOS
+          useFrameworks: "static",
         },
       },
     ],
-
     [
       "expo-splash-screen",
       {
@@ -95,10 +110,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         backgroundColor: "#ffffff",
       },
     ],
-
+    // 🎤 Added expo-audio plugin if required by your SDK version
+    "expo-audio",
     "expo-video",
     "expo-web-browser",
     "expo-secure-store",
-    "@rnmapbox/maps",
+    [
+      "@rnmapbox/maps",
+      {
+        RNMapboxMapsImpl: "mapbox",
+        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
+      },
+    ],
   ],
 });
