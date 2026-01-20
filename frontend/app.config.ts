@@ -25,7 +25,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "This app needs access to your location to show nearby rentals.",
       NSLocationAlwaysAndWhenInUseUsageDescription:
         "This app needs access to your location to show nearby rentals.",
-      /* 🎤 Added for expo-audio */
       NSMicrophoneUsageDescription:
         "This app uses the microphone for voice-based property searching.",
     },
@@ -34,11 +33,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     ...(config.android as any),
     package: "com.usman_naeem.frontend",
-    /* 🎤 Added RECORD_AUDIO for expo-audio */
     permissions: [
       "ACCESS_FINE_LOCATION",
       "ACCESS_COARSE_LOCATION",
-      "RECORD_AUDIO",
+      "RECORD_AUDIO", // 🎤 for expo-audio
     ],
     adaptiveIcon: {
       foregroundImage: "./assets/images/adaptive-icon.png",
@@ -51,9 +49,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     enableProguardInReleaseBuilds: true,
     shrinkResources: true,
 
+    // ✅ Mapbox config from env variables
     config: {
       mapbox: {
-        apiKey: process.env.MAPBOX_PUBLIC_TOKEN,
+        apiKey: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
       },
     },
   },
@@ -67,15 +66,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     ...config.extra,
-
-    // ✅ GOOGLE MAPS / PLACES API KEY
     GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
-
-    // ✅ MAPBOX KEYS
-    MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
-    MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
-
-    // ✅ BACKEND API
+    MAPBOX_PUBLIC_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN,
+    MAPBOX_DOWNLOADS_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN,
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
 
     eas: {
@@ -92,11 +85,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         android: {
           kotlinVersion: "2.0.21",
-          // 🔥 Forces the compiler to remove unused code to reduce that 700MB
           extraProguardRules: "-keep public class com.horcrux.svg.** { *; }",
         },
         ios: {
-          // Optimization for iOS
           useFrameworks: "static",
         },
       },
@@ -110,7 +101,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         backgroundColor: "#ffffff",
       },
     ],
-    // 🎤 Added expo-audio plugin if required by your SDK version
+    // 🎤 Audio/video + web/browser plugins
     "expo-audio",
     "expo-video",
     "expo-web-browser",
@@ -119,7 +110,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "@rnmapbox/maps",
       {
         RNMapboxMapsImpl: "mapbox",
-        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
+        RNMapboxMapsDownloadToken:
+          process.env.EXPO_PUBLIC_MAPBOX_DOWNLOADS_TOKEN,
       },
     ],
   ],
