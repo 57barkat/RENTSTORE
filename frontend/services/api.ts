@@ -42,7 +42,7 @@ const refreshTokens = async (api: any, extraOptions: any) => {
       body: { refreshToken },
     },
     api,
-    extraOptions
+    extraOptions,
   );
 
   if (result.data) {
@@ -170,7 +170,7 @@ export const api = createApi({
     }),
     getAllProperties: builder.query({
       query: (
-        params: { page?: number; limit?: number; hostOption?: string } = {}
+        params: { page?: number; limit?: number; hostOption?: string } = {},
       ) => {
         const query = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
@@ -286,7 +286,7 @@ export const api = createApi({
         } as any);
 
         return {
-          url: "/search/voice",
+          url: "/api/v1/search/voice",
           method: "POST",
           body: formData,
         };

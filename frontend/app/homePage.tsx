@@ -17,6 +17,7 @@ import {
   useAddToFavMutation,
   useGetUserFavoritesQuery,
   useRemoveUserFavoriteMutation,
+  useVoiceSearchMutation,
 } from "@/services/api";
 
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
@@ -41,6 +42,7 @@ const HomePage: React.FC = () => {
 
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
+  const [voiceSearch] = useVoiceSearchMutation();
 
   /* ======================================================
       VOICE STATE (EXPO-AV)
@@ -53,9 +55,9 @@ const HomePage: React.FC = () => {
   /* ======================================================
       AUTO-UPLOAD LOGIC
   ====================================================== */
-  // Smartly trigger upload only when recording stops and a URI exists
   useEffect(() => {
     if (!isRecording && uri) {
+      console.log("Recording stopped. Triggering upload for URI:", uri);
       uploadVoice(uri);
     }
   }, [isRecording, uri]);
@@ -104,38 +106,24 @@ const HomePage: React.FC = () => {
   ====================================================== */
   const uploadVoice = async (audioUri: string) => {
     try {
-      const formData = new FormData();
+      console.log("Uploading audio URI:", audioUri);
 
-      // Smartly format the URI for Multipart upload
-      const cleanUri =
-        Platform.OS === "android" ? audioUri : audioUri.replace("file://", "");
+      const response = await voiceSearch({ uri: audioUri }).unwrap();
 
-      formData.append("audio", {
-        uri: cleanUri,
-        name: "voice-search.m4a",
-        type: "audio/m4a",
-      } as any);
+      console.log("Voice API response:", response);
 
-      const res = await fetch(`${API_URL}/search/voice`, {
-        method: "POST",
-        body: formData,
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      const data = await res.json();
-
-      if (!data?.result?.data) {
-        return Alert.alert("No results", data?.error || "Try again");
+      if (!response?.result?.data) {
+        return Alert.alert("No results", response?.error || "Try again");
       }
 
       // Update search text and list results
-      setSearch(data.transcription || "");
-      const formatted = mergeFavs(formatProperties(data.result.data, ""));
+      setSearch(response.transcription || "");
+      const formatted = mergeFavs(formatProperties(response.result.data, ""));
       setHomes(formatted.filter((p) => p.type === "home"));
       setRooms(formatted.filter((p) => p.type === "room"));
       setApartments(formatted.filter((p) => p.type === "apartment"));
     } catch (error) {
-      console.error(error);
+      console.error("Voice search mutation failed:", error);
       Alert.alert("Error", "Voice search failed");
     }
   };
