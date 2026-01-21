@@ -1,41 +1,107 @@
-import { useAudioRecorder, AudioModule, RecordingPresets } from "expo-audio";
+import { useState, useEffect } from "react";
+import { Audio } from "expo-av";
+import { Alert } from "react-native";
 
 export const useVoiceRecorder = () => {
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [uri, setUri] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
+  // Cleanup sound on unmount to prevent memory leaks
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  // Start recording
   const start = async () => {
     try {
-      const { granted } = await AudioModule.requestRecordingPermissionsAsync();
-      if (!granted) return;
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission Denied", "Microphone access is required.");
+        return;
+      }
 
-      await AudioModule.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
+      // Essential for iOS to hear/record correctly
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: true,
       });
 
-      await recorder.record();
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY,
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
     } catch (err) {
-      console.error("Failed to start recording", err);
+      console.error("Failed to start recording:", err);
+      Alert.alert("Error", "Could not start recording.");
     }
   };
 
-  const stop = async (): Promise<string | null> => {
+  // Stop recording
+  const stop = async () => {
     try {
-      await recorder.stop();
-      return recorder.uri; // recorded file URI
+      if (!recording) return null;
+
+      setIsRecording(false);
+      await recording.stopAndUnloadAsync();
+      const recordedUri = recording.getURI() ?? null;
+
+      setUri(recordedUri);
+      setRecording(null);
+      return recordedUri;
     } catch (err) {
-      console.error("Failed to stop recording", err);
+      console.error("Failed to stop recording:", err);
       return null;
     }
   };
 
-  const play = async (uri: string) => {
+  // Play the recorded audio
+  const play = async () => {
     try {
-      const soundObject = AudioModule;
-      await soundObject.loadAsync({ uri });
-      await soundObject.playAsync();
+      if (!uri) return;
+
+      // If a sound is already playing, stop it first
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true },
+      );
+
+      setSound(newSound);
+      setIsPlaying(true);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+        }
+      });
     } catch (err) {
-      console.error("Failed to play audio", err);
+      console.error("Failed to play recording:", err);
+    }
+  };
+
+  // Stop playback
+  const stopPlayback = async () => {
+    if (!sound) return;
+    try {
+      await sound.stopAsync();
+      setIsPlaying(false);
+    } catch (err) {
+      console.error("Playback stop error:", err);
     }
   };
 
@@ -43,7 +109,9 @@ export const useVoiceRecorder = () => {
     start,
     stop,
     play,
-    uri: recorder.uri,
-    isRecording: recorder.isRecording,
+    stopPlayback,
+    uri,
+    isRecording,
+    isPlaying,
   };
 };

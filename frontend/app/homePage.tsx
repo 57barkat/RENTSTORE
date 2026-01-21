@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { FlatList, View, Alert, Platform, Button } from "react-native";
-import Constants from "expo-constants";
-
+import { FlatList, Alert, Platform, View, Text } from "react-native";
+import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import SearchBar from "@/components/Filters/SearchBar";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { router } from "expo-router";
 
 import HostOptionsRowProps from "@/components/Filters/HostOptions";
-import SearchBar from "@/components/Filters/SearchBar";
 import AdsSliderProps from "@/components/Filters/AdsSlider";
 import { PropertySection } from "@/components/Filters/PropertySection";
 
@@ -21,7 +20,7 @@ import {
 } from "@/services/api";
 
 import { formatProperties } from "@/utils/homeTabUtils/formatProperties";
-import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
+import Constants from "expo-constants";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -32,11 +31,6 @@ const HomePage: React.FC = () => {
   const [homes, setHomes] = useState<PropertyCardProps[]>([]);
   const [rooms, setRooms] = useState<PropertyCardProps[]>([]);
   const [apartments, setApartments] = useState<PropertyCardProps[]>([]);
-  const [voiceUri, setVoiceUri] = useState<string | null>(null);
-
-  const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
-
-  const { start, stop, play, isRecording } = useVoiceRecorder();
 
   const { data: homesData, isLoading: homesLoading } = useHomes();
   const { data: apartmentsData, isLoading: apartmentsLoading } =
@@ -47,6 +41,24 @@ const HomePage: React.FC = () => {
 
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
+
+  /* ======================================================
+      VOICE STATE (EXPO-AV)
+  ====================================================== */
+  const { start, stop, play, stopPlayback, uri, isRecording, isPlaying } =
+    useVoiceRecorder();
+
+  const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "";
+
+  /* ======================================================
+      AUTO-UPLOAD LOGIC
+  ====================================================== */
+  // Smartly trigger upload only when recording stops and a URI exists
+  useEffect(() => {
+    if (!isRecording && uri) {
+      uploadVoice(uri);
+    }
+  }, [isRecording, uri]);
 
   const mergeFavs = (props: any[]) =>
     props.map((p) => ({ ...p, isFav: favoriteIds?.includes(p.id) }));
@@ -87,52 +99,43 @@ const HomePage: React.FC = () => {
     }
   };
 
-  /** =========================
-   * Voice recording flow
-   * ========================= */
-  const handleVoiceStart = async () => {
-    setVoiceUri(null);
-    await start();
-  };
-
-  const handleVoiceStop = async () => {
-    const uri = await stop();
-    if (uri) setVoiceUri(uri);
-  };
-
-  const playRecording = async () => {
-    if (!voiceUri) return;
-    await play(voiceUri);
-  };
-
-  const sendRecording = async () => {
-    if (!voiceUri) return;
-
-    const formData = new FormData();
-    formData.append("audio", {
-      uri:
-        Platform.OS === "android" ? voiceUri : voiceUri.replace("file://", ""),
-      name: "voice.m4a",
-      type: "audio/m4a",
-    } as any);
-
+  /* ======================================================
+      VOICE SEARCH API CALL
+  ====================================================== */
+  const uploadVoice = async (audioUri: string) => {
     try {
+      const formData = new FormData();
+
+      // Smartly format the URI for Multipart upload
+      const cleanUri =
+        Platform.OS === "android" ? audioUri : audioUri.replace("file://", "");
+
+      formData.append("audio", {
+        uri: cleanUri,
+        name: "voice-search.m4a",
+        type: "audio/m4a",
+      } as any);
+
       const res = await fetch(`${API_URL}/search/voice`, {
         method: "POST",
         body: formData,
         headers: { "Content-Type": "multipart/form-data" },
       });
-      const data = await res.json();
-      if (!data?.result?.data)
-        return Alert.alert("No results", data?.error || "Try again");
 
+      const data = await res.json();
+
+      if (!data?.result?.data) {
+        return Alert.alert("No results", data?.error || "Try again");
+      }
+
+      // Update search text and list results
       setSearch(data.transcription || "");
       const formatted = mergeFavs(formatProperties(data.result.data, ""));
       setHomes(formatted.filter((p) => p.type === "home"));
       setRooms(formatted.filter((p) => p.type === "room"));
       setApartments(formatted.filter((p) => p.type === "apartment"));
-      setVoiceUri(null); // clear after send
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Voice search failed");
     }
   };
@@ -162,6 +165,7 @@ const HomePage: React.FC = () => {
     <FlatList
       data={sections}
       keyExtractor={(item) => item.title}
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={{
         paddingBottom: 20,
         backgroundColor: currentTheme.background,
@@ -173,7 +177,6 @@ const HomePage: React.FC = () => {
               router.push(`/property/View/${id}?type=${id}`)
             }
           />
-
           <SearchBar
             value={search}
             placeholder={isRecording ? "Listening..." : "Search properties..."}
@@ -182,25 +185,13 @@ const HomePage: React.FC = () => {
               setSelectedCity(text);
             }}
             onFavPress={() => router.push("/favorites")}
-            onVoicePressIn={handleVoiceStart}
-            onVoicePressOut={handleVoiceStop}
+            onVoiceStart={start}
+            onVoiceStop={stop}
+            onVoicePlay={play}
+            onVoiceStopPlayback={stopPlayback}
             isRecording={isRecording}
+            isPlaying={isPlaying}
           />
-
-          {voiceUri && (
-            <View
-              style={{
-                flexDirection: "row",
-                marginHorizontal: 16,
-                marginTop: 10,
-                justifyContent: "space-between",
-              }}
-            >
-              <Button title="▶ Play" onPress={playRecording} />
-              <Button title="📤 Send" onPress={sendRecording} />
-            </View>
-          )}
-
           <AdsSliderProps />
         </>
       }
@@ -220,6 +211,11 @@ const HomePage: React.FC = () => {
           cardHeight={200}
         />
       )}
+      ListEmptyComponent={
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: currentTheme.text }}>No properties found.</Text>
+        </View>
+      }
     />
   );
 };

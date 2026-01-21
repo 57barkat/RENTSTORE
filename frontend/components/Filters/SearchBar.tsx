@@ -1,3 +1,4 @@
+// components/Filters/SearchBar.tsx
 import React from "react";
 import {
   View,
@@ -17,9 +18,12 @@ interface SearchBarProps {
   onFavPress: () => void;
 
   /* 🎤 Voice props */
-  onVoicePressIn?: () => void;
-  onVoicePressOut?: () => void;
+  onVoiceStart?: () => void;
+  onVoiceStop?: () => void;
+  onVoicePlay?: () => void;
+  onVoiceStopPlayback?: () => void;
   isRecording?: boolean;
+  isPlaying?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -27,9 +31,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = "Search...",
   onChangeText,
   onFavPress,
-  onVoicePressIn,
-  onVoicePressOut,
+  onVoiceStart,
+  onVoiceStop,
+  onVoicePlay,
+  onVoiceStopPlayback,
   isRecording = false,
+  isPlaying = false,
 }) => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -54,10 +61,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
       />
 
       {/* 🎤 Voice Button */}
-      {onVoicePressIn && onVoicePressOut && (
+      {onVoiceStart && onVoiceStop && (
         <Pressable
-          onPressIn={onVoicePressIn}
-          onPressOut={onVoicePressOut}
+          onPressIn={onVoiceStart}
+          onPressOut={onVoiceStop}
           style={[styles.micButton, isRecording && styles.micActive]}
         >
           {isRecording ? (
@@ -65,6 +72,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
           ) : (
             <Ionicons name="mic" size={18} color="#fff" />
           )}
+        </Pressable>
+      )}
+
+      {/* ▶️ Play Button */}
+      {onVoicePlay && (
+        <Pressable
+          onPress={isPlaying ? onVoiceStopPlayback : onVoicePlay}
+          style={[styles.micButton, isPlaying && styles.micActive]}
+        >
+          <Ionicons name={isPlaying ? "stop" : "play"} size={18} color="#fff" />
         </Pressable>
       )}
 

@@ -27,6 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "This app needs access to your location to show nearby rentals.",
       NSMicrophoneUsageDescription:
         "This app uses the microphone for voice-based property searching.",
+      // Optional: background audio for iOS if you want long recordings
+      // UIBackgroundModes: ["audio"],
     },
   },
 
@@ -105,7 +107,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
 
-    "expo-audio",
+    // Removed "expo-audio" since we are using expo-av
     "expo-video",
     "expo-web-browser",
     "expo-secure-store",
