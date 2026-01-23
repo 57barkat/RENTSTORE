@@ -1,8 +1,7 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-
-type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
+import { ChipKey } from "@/utils/homeTabUtils/filterUtils";
 
 interface Props {
   chips: { key: ChipKey; label: string; removable: boolean }[];

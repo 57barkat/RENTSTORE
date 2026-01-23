@@ -18,7 +18,7 @@ export class VoiceSearchService {
   }
 
   /* ============================================================
-     PUBLIC ENTRY
+     PUBLIC ENTRY POINT
      ============================================================ */
   async voiceSearch(file: Express.Multer.File, userId?: string) {
     if (!file?.path) {
@@ -26,25 +26,26 @@ export class VoiceSearchService {
     }
 
     try {
+      // 1️⃣ Transcribe audio to English text
       const transcription = await this.audioToEnglishText(file.path);
 
-      // ❌ HARD BLOCK: No transcription
       if (!transcription.trim()) {
         return this.emptyResponse(
           "Could not understand the audio. Please speak clearly.",
         );
       }
 
+      // 2️⃣ Extract filters from transcription
       const extractedFilters = await this.textToFilters(transcription);
       const filters = this.normalizeFilters(extractedFilters);
 
-      // ❌ HARD BLOCK: No usable filters
       if (!Object.keys(filters).length) {
         return this.emptyResponse(
           "No searchable criteria detected from voice.",
         );
       }
 
+      // 3️⃣ Call updated property search
       const result = await this.propertyService.findFiltered(
         1,
         10,
@@ -58,9 +59,8 @@ export class VoiceSearchService {
         result,
       };
     } finally {
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
+      // 4️⃣ Cleanup audio file
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
   }
 
@@ -68,9 +68,8 @@ export class VoiceSearchService {
      AUDIO → ENGLISH TEXT (URDU / MIXED SUPPORTED)
      ============================================================ */
   private async audioToEnglishText(filePath: string): Promise<string> {
-    console.log("Transcribing audio file:", filePath);
+    this.logger.log(`Transcribing audio file: ${filePath}`);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-
     const audioBase64 = fs.readFileSync(filePath).toString("base64");
 
     const body = {
@@ -110,9 +109,7 @@ Rules:
       const text =
         data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
 
-      if (!text) {
-        this.logger.warn("⚠️ Gemini returned empty transcription");
-      }
+      if (!text) this.logger.warn("⚠️ Gemini returned empty transcription");
 
       return text;
     } catch (error) {
@@ -122,10 +119,10 @@ Rules:
   }
 
   /* ============================================================
-     TEXT → FILTER EXTRACTION (ANY CITY / MUHALLA)
+     TEXT → FILTER EXTRACTION
      ============================================================ */
   private async textToFilters(userText: string) {
-    console.log("Extracting filters from text:", userText);
+    this.logger.log(`Extracting filters from text: ${userText}`);
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
@@ -135,24 +132,15 @@ Rules:
           parts: [
             {
               text: `
-You are a Pakistan Real Estate Expert and Geographic Assistant.
+You are a Pakistan Real Estate Expert.
 
 User text: "${userText}"
 
 TASK:
-1. Extract search filters for rental properties.
-2. If language is Urdu or mixed, translate the intent to English.
-3. INFER THE CITY: If the user mentions an area but NOT the city, use your internal knowledge of Pakistan's geography to fill the "city" field.
-   - Example: "G-13" or "B-17" or "E-11" -> city: "Islamabad"
-   - Example: "DHA Phase 6" or "Model Town" -> city: "Lahore" (unless context suggests otherwise)
-   - Example: "Bahria Phase 8" -> city: "Rawalpindi"
-   - Example: "Clifton" or "Gulistan-e-Johar" -> city: "Karachi"
-
-RULES:
-- addressQuery: Should contain the specific sector, block, or society name (e.g., "Sector G-13", "DHA Phase 5").
-- city: Always try to provide a city name. If completely unknown, omit the field.
-- minRent/maxRent: Normalize (1 lakh = 100000, 50k = 50000).
-- hostOption: Must be "home", "room", or "apartment".
+- Extract search filters for rental properties.
+- Translate Urdu/mixed text to English.
+- Infer city if user only mentions sector/block/society.
+- Normalize rent numbers (1 lakh = 100000, 50k = 50000).
 
 JSON STRUCTURE:
 {
@@ -164,7 +152,7 @@ JSON STRUCTURE:
   "hostOption": "home" | "room" | "apartment"
 }
 
-Return ONLY valid JSON. Nothing else.
+Return ONLY valid JSON.
 `,
             },
           ],
@@ -186,7 +174,6 @@ Return ONLY valid JSON. Nothing else.
       const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      // Ensure we return valid JSON
       return JSON.parse(rawText);
     } catch (error) {
       this.logger.error("❌ Filter extraction failed", error);
@@ -195,15 +182,13 @@ Return ONLY valid JSON. Nothing else.
   }
 
   /* ============================================================
-     FILTER NORMALIZATION (SAFETY)
+     NORMALIZE FILTERS FOR SAFETY
      ============================================================ */
   private normalizeFilters(filters: any) {
-    console.log("Normalizing extracted filters:", filters);
+    this.logger.log("Normalizing extracted filters:", filters);
     const normalized: any = {};
 
     if (filters.city) normalized.city = filters.city;
-    if (filters.stateTerritory)
-      normalized.stateTerritory = filters.stateTerritory;
     if (filters.addressQuery) normalized.addressQuery = filters.addressQuery;
 
     if (Number.isFinite(filters.minRent))
@@ -214,18 +199,18 @@ Return ONLY valid JSON. Nothing else.
     if (Number.isFinite(filters.bedrooms))
       normalized.bedrooms = Number(filters.bedrooms);
 
-    if (Array.isArray(filters.amenities) && filters.amenities.length) {
-      normalized.amenities = filters.amenities;
+    if (["home", "room", "apartment"].includes(filters.hostOption)) {
+      normalized.hostOption = filters.hostOption;
     }
 
     return normalized;
   }
 
   /* ============================================================
-     EMPTY SAFE RESPONSE
+     EMPTY RESPONSE HANDLER
      ============================================================ */
   private emptyResponse(message: string) {
-    console.log("Returning empty response:", message);
+    this.logger.warn(message);
     return {
       transcription: "",
       filters: {},

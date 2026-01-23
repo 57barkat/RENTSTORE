@@ -4,8 +4,8 @@ import {
   TextInput,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
   Animated,
+  Text,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -16,14 +16,13 @@ interface SearchBarProps {
   placeholder?: string;
   onChangeText: (text: string) => void;
   onFavPress: () => void;
-
-  /* 🎤 Voice props */
-  onVoiceStart?: () => void;
-  onVoiceStop?: () => void;
-  onVoicePlay?: () => void;
-  onVoiceStopPlayback?: () => void;
+  onVoiceStart: () => void;
+  onVoiceStop: () => void;
+  onSendVoice: () => void;
+  onCancelVoice: () => void;
   isRecording?: boolean;
-  isPlaying?: boolean;
+  hasAudio?: boolean;
+  timer?: number;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -33,15 +32,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onFavPress,
   onVoiceStart,
   onVoiceStop,
-  onVoicePlay,
-  onVoiceStopPlayback,
+  onSendVoice,
+  onCancelVoice,
   isRecording = false,
-  isPlaying = false,
+  hasAudio = false,
+  timer = 0,
 }) => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-
-  // Animation reference for pulsing effect
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -49,13 +47,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.3,
-            duration: 600,
+            toValue: 1.25,
+            duration: 500,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 600,
+            duration: 500,
             useNativeDriver: true,
           }),
         ]),
@@ -65,64 +63,83 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   }, [isRecording]);
 
-  const handleMicPress = () => {
-    if (isRecording) {
-      onVoiceStop?.();
-    } else {
-      onVoiceStart?.();
-    }
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.card }]}>
-      {/* 🔍 Search Icon */}
-      <Ionicons
-        name="search-outline"
-        size={20}
-        color={currentTheme.text}
-        style={styles.icon}
-      />
+    <View style={styles.outerContainer}>
+      <View style={[styles.container, { backgroundColor: currentTheme.card }]}>
+        <Ionicons
+          name="search-outline"
+          size={20}
+          color={currentTheme.text}
+          style={styles.icon}
+        />
 
-      {/* ✍️ Input */}
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={currentTheme.muted}
-        style={[styles.input, { color: currentTheme.text }]}
-      />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={
+            isRecording
+              ? `Recording... ${15 - (timer ?? 0)}s`
+              : hasAudio
+                ? "Voice ready to send..."
+                : placeholder
+          }
+          placeholderTextColor={isRecording ? "#ef4444" : currentTheme.muted}
+          style={[styles.input, { color: currentTheme.text }]}
+          editable={!isRecording && !hasAudio}
+        />
 
-      {/* 🎤 Voice Button - Pulse logic added here */}
-      {onVoiceStart && onVoiceStop && (
-        <View style={styles.micWrapper}>
-          {isRecording && (
-            <Animated.View
-              style={[
-                styles.pulseCircle,
-                {
-                  transform: [{ scale: pulseAnim }],
-                  backgroundColor: "#dc2626",
-                },
-              ]}
-            />
-          )}
-          <Pressable
-            onPress={handleMicPress}
-            style={[styles.micButton, isRecording && styles.micActive]}
-          >
-            {isRecording ? (
-              <Ionicons name="stop" size={18} color="#fff" />
-            ) : (
-              <Ionicons name="mic" size={18} color="#fff" />
+        {!hasAudio ? (
+          <View style={styles.micWrapper}>
+            {isRecording && (
+              <Animated.View
+                style={[
+                  styles.pulseCircle,
+                  {
+                    transform: [{ scale: pulseAnim }],
+                    backgroundColor: "#ef4444",
+                  },
+                ]}
+              />
             )}
-          </Pressable>
-        </View>
-      )}
+            <Pressable
+              onPress={isRecording ? onVoiceStop : onVoiceStart}
+              style={[
+                styles.micButton,
+                { backgroundColor: isRecording ? "#ef4444" : "#4f46e5" },
+              ]}
+            >
+              <Ionicons
+                name={isRecording ? "stop" : "mic"}
+                size={20}
+                color="#fff"
+              />
+            </Pressable>
+          </View>
+        ) : (
+          <View style={styles.reviewActions}>
+            <Pressable
+              onPress={onCancelVoice}
+              style={[styles.actionBtn, { backgroundColor: "#fee2e2" }]}
+            >
+              <Ionicons name="trash" size={18} color="#ef4444" />
+            </Pressable>
+            <Pressable
+              onPress={onSendVoice}
+              style={[styles.actionBtn, { backgroundColor: "#10b981" }]}
+            >
+              <Ionicons name="send" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        )}
 
-      {/* ❤️ Favorites */}
-      <Pressable onPress={onFavPress} style={styles.favButton}>
-        <Ionicons name="heart-outline" size={20} color={currentTheme.primary} />
-      </Pressable>
+        <Pressable onPress={onFavPress} style={styles.favButton}>
+          <Ionicons
+            name="heart-outline"
+            size={22}
+            color={currentTheme.primary}
+          />
+        </Pressable>
+      </View>
     </View>
   );
 };
@@ -130,27 +147,29 @@ const SearchBar: React.FC<SearchBarProps> = ({
 export default SearchBar;
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 14,
-    paddingHorizontal: 12,
+    borderRadius: 22,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 10,
+    elevation: 4,
   },
   icon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    paddingVertical: 6,
+    fontSize: 15,
+    fontWeight: "500",
   },
   micWrapper: {
     justifyContent: "center",
@@ -158,26 +177,34 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   micButton: {
-    backgroundColor: "#4f46e5",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 2,
+  },
+  pulseCircle: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    opacity: 0.3,
+    zIndex: 1,
+  },
+  reviewActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginRight: 10,
+  },
+  actionBtn: {
     width: 38,
     height: 38,
     borderRadius: 19,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 2,
-  },
-  micActive: {
-    backgroundColor: "#dc2626",
-  },
-  pulseCircle: {
-    position: "absolute",
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    opacity: 0.4,
-    zIndex: 1,
   },
   favButton: {
-    padding: 6,
+    padding: 4,
   },
 });

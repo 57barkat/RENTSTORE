@@ -1,9 +1,6 @@
-type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
+import { ChipKey, Filters } from "./filterUtils";
 
-export const buildSelectedChips = (
-  hostOption: string,
-  filters: { city?: string; minRent?: number; maxRent?: number; beds?: number },
-) => {
+export const buildSelectedChips = (hostOption: string, filters: Filters) => {
   const selectedChips: { key: ChipKey; label: string; removable: boolean }[] = [
     {
       key: "hostOption",
@@ -13,8 +10,9 @@ export const buildSelectedChips = (
     ...Object.entries(filters)
       .filter(([_, value]) => value !== undefined && value !== "")
       .map(([key, value]) => ({
-        key: key as Exclude<ChipKey, "hostOption">, // cast to correct type
-        label: `${key}: ${value}`,
+        key: key as Exclude<ChipKey, "hostOption">,
+        label:
+          key === "addressQuery" ? `Address: ${value}` : `${key}: ${value}`,
         removable: true,
       })),
   ];

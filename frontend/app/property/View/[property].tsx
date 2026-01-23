@@ -19,21 +19,13 @@ import {
   useRemoveUserFavoriteMutation,
 } from "@/services/api";
 import { useDebounce } from "use-debounce";
-import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 import { HostPicker } from "@/components/Filters/HostPicker";
 import { FilterChips } from "@/components/Filters/FilterChips";
 import { FilterModal } from "@/components/Filters/FilterModal";
 import { Ionicons } from "@expo/vector-icons";
 import { PropertyCardProps } from "@/types/TabTypes/TabTypes";
-import Toast from "react-native-toast-message";
-
-type ChipKey =
-  | "city"
-  | "minRent"
-  | "maxRent"
-  | "beds"
-  | "bathrooms"
-  | "hostOption";
+import { ChipKey, Filters } from "@/utils/homeTabUtils/filterUtils";
+import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 
 const { width: WINDOW_WIDTH } = Dimensions.get("window");
 const CARD_MARGIN = 5;
@@ -44,21 +36,23 @@ const PropertiesPage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  // PARAMS FROM HOME PAGE VOICE REDIRECT (including fromVoice flag)
-  const { type, city, minRent, maxRent, beds, bathrooms, fromVoice } =
+  // Params from navigation / voice redirect
+  const { type, city, addressQuery, minRent, maxRent, beds, bathrooms } =
     useLocalSearchParams<{
       type: string;
       city?: string;
+      addressQuery?: string;
       minRent?: string;
       maxRent?: string;
       beds?: string;
       bathrooms?: string;
-      fromVoice?: string;
     }>();
 
   const [hostOption, setHostOption] = useState(type ?? "home");
-  const [filters, setFilters] = useState({
+
+  const [filters, setFilters] = useState<Filters>({
     city: city || undefined,
+    addressQuery: addressQuery || undefined,
     minRent: minRent ? parseInt(minRent) : undefined,
     maxRent: maxRent ? parseInt(maxRent) : undefined,
     beds: beds ? parseInt(beds) : undefined,
@@ -66,6 +60,8 @@ const PropertiesPage: React.FC = () => {
   });
 
   const [debouncedCity] = useDebounce(filters.city, 500);
+  const [debouncedAddress] = useDebounce(filters.addressQuery, 500);
+
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [allProperties, setAllProperties] = useState<PropertyCardProps[]>([]);
@@ -74,59 +70,48 @@ const PropertiesPage: React.FC = () => {
   const [addToFav] = useAddToFavMutation();
   const [removeFromFav] = useRemoveUserFavoriteMutation();
 
-  // API Call - will now include beds and bathrooms
+  // ✅ API call including addressQuery
   const { data, isLoading, refetch } = useGetFilteredPropertiesQuery({
     hostOption,
-    ...filters,
     city: debouncedCity,
+    addressQuery: debouncedAddress,
+    minRent: filters.minRent,
+    maxRent: filters.maxRent,
+    beds: filters.beds,
+    bathrooms: filters.bathrooms,
     page,
     limit: 10,
   });
 
   const { data: favData, refetch: refetchFavorites } =
     useGetUserFavoritesQuery(null);
+
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
     [favData],
   );
-
-  /* ======================================================
-      VOICE FEEDBACK LOGIC (TOAST)
-  ====================================================== */
-  useEffect(() => {
-    if (fromVoice === "true") {
-      Toast.show({
-        type: "success",
-        text1: "Voice Search Applied",
-        text2: `Found properties in ${filters.city || "your area"}`,
-        position: "bottom",
-        bottomOffset: 100,
-      });
-
-      // Clear the param so the toast doesn't re-trigger on every render
-      router.setParams({ fromVoice: undefined });
-    }
-  }, [fromVoice, filters.city]);
 
   // Sync state if navigation params change
   useEffect(() => {
     if (type) setHostOption(type);
     setFilters({
       city: city || undefined,
+      addressQuery: addressQuery || undefined,
       minRent: minRent ? parseInt(minRent) : undefined,
       maxRent: maxRent ? parseInt(maxRent) : undefined,
       beds: beds ? parseInt(beds) : undefined,
       bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
     });
     setPage(1);
-  }, [type, city, minRent, maxRent, beds, bathrooms]);
+  }, [type, city, addressQuery, minRent, maxRent, beds, bathrooms]);
 
+  // Merge new data with existing properties for infinite scroll
   useEffect(() => {
     if (data?.data) {
       const formatted = formatProperties(
         data.data,
         filters.city || "",
-        "",
+        filters.addressQuery || "",
         () => {},
       ).map((p) => ({
         ...p,
@@ -143,13 +128,15 @@ const PropertiesPage: React.FC = () => {
       }
     }
     setLoadingMore(false);
-  }, [data, favoriteIds, filters.city, page]);
+  }, [data, favoriteIds, filters.city, filters.addressQuery, page]);
 
+  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [
     hostOption,
     debouncedCity,
+    debouncedAddress,
     filters.minRent,
     filters.maxRent,
     filters.beds,
@@ -158,10 +145,7 @@ const PropertiesPage: React.FC = () => {
 
   const removeFilter = (key: ChipKey) => {
     if (key !== "hostOption") {
-      setFilters((prev) => ({ ...prev, [key]: undefined }));
-      // Extra check: if price is cleared, clear both min/max
-      if (key === "minRent")
-        setFilters((prev) => ({ ...prev, maxRent: undefined }));
+      setFilters({ ...filters, [key]: undefined });
       refetch();
     }
   };
@@ -171,15 +155,17 @@ const PropertiesPage: React.FC = () => {
   const handleToggleFav = async (propertyId: string) => {
     const property = allProperties.find((p) => p.id === propertyId);
     if (!property) return;
+
     setAllProperties((prev) =>
       prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p)),
     );
+
     try {
       property.isFav
         ? await removeFromFav({ propertyId })
         : await addToFav({ propertyId });
       refetchFavorites();
-    } catch (err) {
+    } catch {
       setAllProperties((prev) =>
         prev.map((p) =>
           p.id === propertyId ? { ...p, isFav: property.isFav } : p,
@@ -240,14 +226,16 @@ const PropertiesPage: React.FC = () => {
           value={hostOption}
           onChange={(value) => {
             setHostOption(value);
+            setPage(1);
             refetch();
           }}
           theme={currentTheme}
         />
       </View>
+
       <FilterChips
-        chips={selectedChips as any}
-        onRemove={(key) => removeFilter(key as ChipKey)}
+        chips={selectedChips}
+        onRemove={removeFilter}
         onOpenModal={() => setModalVisible(true)}
         theme={currentTheme}
       />
@@ -293,6 +281,7 @@ const PropertiesPage: React.FC = () => {
         onClose={() => setModalVisible(false)}
         onApply={() => {
           setModalVisible(false);
+          setPage(1);
           refetch();
         }}
         hostOption={hostOption}

@@ -21,8 +21,11 @@ export interface Filters {
   title?: string;
   highlighted?: string[];
   safety?: string[];
+  addressQuery?: string;
 }
 
+// unified ChipKey type
+export type ChipKey = keyof Filters | "hostOption";
 /**
  * Converts filters to query string
  */
@@ -44,6 +47,6 @@ export const buildQueryParams = (filters: Filters) => {
  * Formats array of options to dropdown-friendly objects
  */
 export const formatFilterOptions = (
-  items: string[] | number[]
+  items: string[] | number[],
 ): FilterOption[] =>
   items.map((item) => ({ label: item.toString(), value: item }));

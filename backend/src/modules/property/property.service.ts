@@ -149,6 +149,7 @@ export class PropertyService {
         $options: "i",
       };
     if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
+
     if (filters.minRent !== undefined || filters.maxRent !== undefined) {
       filter.monthlyRent = {};
       if (filters.minRent !== undefined)
@@ -156,6 +157,7 @@ export class PropertyService {
       if (filters.maxRent !== undefined)
         filter.monthlyRent.$lte = filters.maxRent;
     }
+
     if (
       filters.minSecurity !== undefined ||
       filters.maxSecurity !== undefined
@@ -166,6 +168,7 @@ export class PropertyService {
       if (filters.maxSecurity !== undefined)
         filter.SecuritybasePrice.$lte = filters.maxSecurity;
     }
+
     if (filters.bedrooms !== undefined)
       filter["capacityState.bedrooms"] = filters.bedrooms;
     if (filters.beds !== undefined) filter["capacityState.beds"] = filters.beds;
@@ -173,6 +176,7 @@ export class PropertyService {
       filter["capacityState.bathrooms"] = filters.bathrooms;
     if (filters.Persons !== undefined)
       filter["capacityState.Persons"] = filters.Persons;
+
     if (filters.amenities?.length)
       filter.amenities = { $all: filters.amenities };
     if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
@@ -182,18 +186,26 @@ export class PropertyService {
       filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
     if (filters.hostOption) filter.hostOption = filters.hostOption;
 
+    // ===== Smart Address Query Search =====
     if (filters.addressQuery) {
-      const regex = new RegExp(filters.addressQuery, "i");
-      filter.$or = [
-        { "address.street": regex },
-        { "address.city": regex },
-        { "address.stateTerritory": regex },
-        { "address.country": regex },
-        { location: regex },
-        { title: regex },
-      ];
+      const tokens = filters.addressQuery
+        .toLowerCase()
+        .split(/[\s\-\/,]+/)
+        .filter(Boolean);
+
+      filter.$and = tokens.map((token) => ({
+        $or: [
+          { "address.street": { $regex: token, $options: "i" } },
+          { "address.city": { $regex: token, $options: "i" } },
+          { "address.stateTerritory": { $regex: token, $options: "i" } },
+          { "address.country": { $regex: token, $options: "i" } },
+          { location: { $regex: token, $options: "i" } },
+          { title: { $regex: token, $options: "i" } },
+        ],
+      }));
     }
 
+    // ---- Custom Pagination Logic (Featured / Normal) ----
     const FEATURED_LIMIT = Math.floor(limit / 2);
     const NORMAL_LIMIT = limit - FEATURED_LIMIT;
 
@@ -218,7 +230,7 @@ export class PropertyService {
 
     let data = [...featured, ...nonFeatured];
 
-    // ---- Favorites ----
+    // ---- Add Favorite Info ----
     if (userId) {
       const favIds = await this.favService.getUserFavoriteIds(userId);
       data = data.map((p) => ({
