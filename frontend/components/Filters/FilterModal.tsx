@@ -21,6 +21,7 @@ interface Props {
     minRent?: number;
     maxRent?: number;
     beds?: number;
+    bathrooms?: number; // Added
   };
   setFilters: (v: any) => void;
   theme: any;
@@ -38,105 +39,134 @@ export const FilterModal: React.FC<Props> = ({
 }) => {
   return (
     <Modal visible={visible} animationType="slide">
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: theme.background,
-          padding: 16,
-        }}
-      >
+      <View style={{ flex: 1, backgroundColor: theme.background, padding: 16 }}>
         <Text
           style={{
-            fontSize: 18,
-            fontWeight: "600",
+            fontSize: 20,
+            fontWeight: "700",
             color: theme.text,
-            marginBottom: 16,
+            marginBottom: 20,
           }}
         >
-          Filters
+          Filter Properties
         </Text>
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <HostPicker
-            title="Host Type"
+            title="I am looking for..."
             value={hostOption}
             onChange={onHostChange}
             theme={theme}
           />
 
-          {/* City */}
-          <Text style={{ color: theme.text, marginTop: 10 }}>City</Text>
+          <Text style={[styles.label, { color: theme.text }]}>City</Text>
           <TextInput
             style={[
               styles.modalInput,
               { borderColor: theme.border, color: theme.text },
             ]}
-            placeholder="City"
+            placeholder="e.g. Rawalpindi"
             placeholderTextColor={theme.muted}
             value={filters.city || ""}
             onChangeText={(txt) => setFilters({ ...filters, city: txt })}
           />
 
-          {/* Min Rent */}
-          <Text style={{ color: theme.text, marginTop: 12 }}>Min Rent</Text>
-          <TextInput
-            style={[
-              styles.modalInput,
-              { borderColor: theme.border, color: theme.text },
-            ]}
-            keyboardType="numeric"
-            placeholder="Min Rent"
-            placeholderTextColor={theme.muted}
-            value={filters.minRent?.toString() || ""}
-            onChangeText={(txt) =>
-              setFilters({
-                ...filters,
-                minRent: txt ? parseInt(txt) : undefined,
-              })
-            }
-          />
+          <View
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
+          >
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Min Rent
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { borderColor: theme.border, color: theme.text },
+                ]}
+                keyboardType="numeric"
+                value={filters.minRent?.toString() || ""}
+                onChangeText={(txt) =>
+                  setFilters({
+                    ...filters,
+                    minRent: txt ? parseInt(txt) : undefined,
+                  })
+                }
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Max Rent
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { borderColor: theme.border, color: theme.text },
+                ]}
+                keyboardType="numeric"
+                value={filters.maxRent?.toString() || ""}
+                onChangeText={(txt) =>
+                  setFilters({
+                    ...filters,
+                    maxRent: txt ? parseInt(txt) : undefined,
+                  })
+                }
+              />
+            </View>
+          </View>
 
-          {/* Max Rent */}
-          <Text style={{ color: theme.text, marginTop: 12 }}>Max Rent</Text>
-          <TextInput
-            style={[
-              styles.modalInput,
-              { borderColor: theme.border, color: theme.text },
-            ]}
-            keyboardType="numeric"
-            placeholder="Max Rent"
-            placeholderTextColor={theme.muted}
-            value={filters.maxRent?.toString() || ""}
-            onChangeText={(txt) =>
-              setFilters({
-                ...filters,
-                maxRent: txt ? parseInt(txt) : undefined,
-              })
-            }
-          />
-
-          {/* Beds */}
-          <Text style={{ color: theme.text, marginTop: 12 }}>Beds</Text>
-          <TextInput
-            style={[
-              styles.modalInput,
-              { borderColor: theme.border, color: theme.text },
-            ]}
-            keyboardType="numeric"
-            placeholder="Beds"
-            placeholderTextColor={theme.muted}
-            value={filters.beds?.toString() || ""}
-            onChangeText={(txt) =>
-              setFilters({
-                ...filters,
-                beds: txt ? parseInt(txt) : undefined,
-              })
-            }
-          />
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginTop: 12,
+            }}
+          >
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Bedrooms
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { borderColor: theme.border, color: theme.text },
+                ]}
+                keyboardType="numeric"
+                placeholder="0"
+                value={filters.beds?.toString() || ""}
+                onChangeText={(txt) =>
+                  setFilters({
+                    ...filters,
+                    beds: txt ? parseInt(txt) : undefined,
+                  })
+                }
+              />
+            </View>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={[styles.label, { color: theme.text }]}>
+                Bathrooms
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { borderColor: theme.border, color: theme.text },
+                ]}
+                keyboardType="numeric"
+                placeholder="0"
+                value={filters.bathrooms?.toString() || ""}
+                onChangeText={(txt) =>
+                  setFilters({
+                    ...filters,
+                    bathrooms: txt ? parseInt(txt) : undefined,
+                  })
+                }
+              />
+            </View>
+          </View>
         </ScrollView>
 
-        {/* Buttons */}
-        <View style={{ flexDirection: "row", marginTop: 20 }}>
+        <View
+          style={{ flexDirection: "row", marginTop: 20, paddingBottom: 20 }}
+        >
           <TouchableOpacity
             onPress={onClose}
             style={[
@@ -144,14 +174,16 @@ export const FilterModal: React.FC<Props> = ({
               { borderColor: theme.border, backgroundColor: theme.card },
             ]}
           >
-            <Text style={{ color: theme.text }}>Close</Text>
+            <Text style={{ color: theme.text, fontWeight: "600" }}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={onApply}
             style={[styles.applyBtn, { backgroundColor: theme.secondary }]}
           >
-            <Text style={{ color: "#fff" }}>Apply</Text>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>
+              Apply Filters
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -160,24 +192,21 @@ export const FilterModal: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
+  label: { marginTop: 15, fontWeight: "600", fontSize: 14 },
   modalInput: {
     borderWidth: 1,
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 10,
     marginTop: 6,
+    fontSize: 16,
   },
   closeBtn: {
     flex: 1,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
-    marginRight: 8,
+    marginRight: 10,
   },
-  applyBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-  },
+  applyBtn: { flex: 2, padding: 16, borderRadius: 12, alignItems: "center" },
 });

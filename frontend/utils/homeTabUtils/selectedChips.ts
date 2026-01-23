@@ -2,7 +2,7 @@ type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
 
 export const buildSelectedChips = (
   hostOption: string,
-  filters: { city?: string; minRent?: number; maxRent?: number; beds?: number }
+  filters: { city?: string; minRent?: number; maxRent?: number; beds?: number },
 ) => {
   const selectedChips: { key: ChipKey; label: string; removable: boolean }[] = [
     {

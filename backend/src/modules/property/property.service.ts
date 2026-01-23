@@ -19,18 +19,18 @@ export class PropertyService {
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
     public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService,
-    private readonly deletedImagesService: DeletedImagesService
+    private readonly deletedImagesService: DeletedImagesService,
   ) {}
 
   async uploadFilesToCloudinary(
-    files: Express.Multer.File[]
+    files: Express.Multer.File[],
   ): Promise<string[]> {
     if (!files || files.length === 0) return [];
     const urls = await Promise.all(
       files.map(async (file) => {
         const uploaded = await this.cloudinary.uploadFile(file);
         return uploaded.secure_url;
-      })
+      }),
     );
     return urls;
   }
@@ -38,7 +38,7 @@ export class PropertyService {
   // ---------------------- Service ----------------------
   async createOrUpdate(
     dto: CreatePropertyDto,
-    userId: string
+    userId: string,
   ): Promise<Property> {
     let property: Property | null;
 
@@ -53,13 +53,13 @@ export class PropertyService {
       const oldPhotos = property.photos || [];
       const newPhotos = dto.photos || [];
       const photosToDelete = oldPhotos.filter(
-        (url) => !newPhotos.includes(url)
+        (url) => !newPhotos.includes(url),
       );
       if (photosToDelete.length > 0) {
         await this.deletedImagesService.addDeletedImages(
           photosToDelete,
           userId,
-          "property"
+          "property",
         );
       }
 
@@ -83,7 +83,7 @@ export class PropertyService {
   async saveDraft(
     dto: Partial<CreatePropertyDto>,
     imageFiles?: Express.Multer.File[],
-    userId?: string
+    userId?: string,
   ) {
     const photos: string[] = imageFiles?.length
       ? await this.uploadFilesToCloudinary(imageFiles)
@@ -138,21 +138,17 @@ export class PropertyService {
   async findFiltered(page = 1, limit = 10, filters: any, userId?: string) {
     const filter: any = { status: true };
 
-    // ----- Apply Filters -----
+    // ===== Existing Filters =====
     if (filters.city)
       filter["address.city"] = { $regex: filters.city, $options: "i" };
-
     if (filters.country)
       filter["address.country"] = { $regex: filters.country, $options: "i" };
-
     if (filters.stateTerritory)
       filter["address.stateTerritory"] = {
         $regex: filters.stateTerritory,
         $options: "i",
       };
-
     if (filters.title) filter.title = { $regex: filters.title, $options: "i" };
-
     if (filters.minRent !== undefined || filters.maxRent !== undefined) {
       filter.monthlyRent = {};
       if (filters.minRent !== undefined)
@@ -160,7 +156,6 @@ export class PropertyService {
       if (filters.maxRent !== undefined)
         filter.monthlyRent.$lte = filters.maxRent;
     }
-
     if (
       filters.minSecurity !== undefined ||
       filters.maxSecurity !== undefined
@@ -171,7 +166,6 @@ export class PropertyService {
       if (filters.maxSecurity !== undefined)
         filter.SecuritybasePrice.$lte = filters.maxSecurity;
     }
-
     if (filters.bedrooms !== undefined)
       filter["capacityState.bedrooms"] = filters.bedrooms;
     if (filters.beds !== undefined) filter["capacityState.beds"] = filters.beds;
@@ -179,29 +173,33 @@ export class PropertyService {
       filter["capacityState.bathrooms"] = filters.bathrooms;
     if (filters.Persons !== undefined)
       filter["capacityState.Persons"] = filters.Persons;
-
     if (filters.amenities?.length)
       filter.amenities = { $all: filters.amenities };
-
     if (filters.bills?.length) filter.ALL_BILLS = { $all: filters.bills };
-
     if (filters.highlighted?.length)
       filter["description.highlighted"] = { $all: filters.highlighted };
-
     if (filters.safety?.length)
       filter["safetyDetailsData.safetyDetails"] = { $all: filters.safety };
-
     if (filters.hostOption) filter.hostOption = filters.hostOption;
 
-    // ---- Custom Pagination Logic (5 featured + 5 normal) ----
+    if (filters.addressQuery) {
+      const regex = new RegExp(filters.addressQuery, "i");
+      filter.$or = [
+        { "address.street": regex },
+        { "address.city": regex },
+        { "address.stateTerritory": regex },
+        { "address.country": regex },
+        { location: regex },
+        { title: regex },
+      ];
+    }
 
-    const FEATURED_LIMIT = Math.floor(limit / 2); // 5
-    const NORMAL_LIMIT = limit - FEATURED_LIMIT; // 5
+    const FEATURED_LIMIT = Math.floor(limit / 2);
+    const NORMAL_LIMIT = limit - FEATURED_LIMIT;
 
     const featuredSkip = (page - 1) * FEATURED_LIMIT;
     const normalSkip = (page - 1) * NORMAL_LIMIT;
 
-    // Featured properties
     const featured = await this.propertyModel
       .find({ ...filter, featured: true })
       .sort({ _id: -1 })
@@ -210,7 +208,6 @@ export class PropertyService {
       .populate("ownerId", "name email")
       .lean();
 
-    // Non-featured properties
     const nonFeatured = await this.propertyModel
       .find({ ...filter, featured: { $ne: true } })
       .sort({ _id: -1 })
@@ -219,7 +216,6 @@ export class PropertyService {
       .populate("ownerId", "name email")
       .lean();
 
-    // Merge results for final output
     let data = [...featured, ...nonFeatured];
 
     // ---- Favorites ----
@@ -231,7 +227,6 @@ export class PropertyService {
       }));
     }
 
-    // ---- Total Count ----
     const totalCount = await this.propertyModel.countDocuments(filter);
 
     return {
@@ -300,14 +295,14 @@ export class PropertyService {
   async updateProperty(
     id: string,
     dto: Partial<CreatePropertyDto>,
-    userId: string
+    userId: string,
   ) {
     const property = await this.propertyModel.findById(id);
     if (!property) throw new NotFoundException("Property not found");
 
     if (property.ownerId.toString() !== userId.toString()) {
       throw new UnauthorizedException(
-        "You are not allowed to edit this property"
+        "You are not allowed to edit this property",
       );
     }
 
@@ -335,7 +330,7 @@ export class PropertyService {
     ];
 
     property.status = requiredFields.every((field) =>
-      isFilled(property[field])
+      isFilled(property[field]),
     );
 
     return property.save();
@@ -352,7 +347,7 @@ export class PropertyService {
       await this.deletedImagesService.addDeletedImages(
         property.photos,
         userId,
-        "property"
+        "property",
       );
     }
 
@@ -370,7 +365,7 @@ export class PropertyService {
     if (!draft) throw new NotFoundException("Draft not found");
     if (draft.ownerId.toString() !== userId.toString()) {
       throw new UnauthorizedException(
-        "You are not allowed to delete this draft"
+        "You are not allowed to delete this draft",
       );
     }
 
@@ -379,7 +374,7 @@ export class PropertyService {
       await this.deletedImagesService.addDeletedImages(
         draft.photos,
         userId,
-        "draft"
+        "draft",
       );
     }
 

@@ -25,8 +25,15 @@ import { FilterChips } from "@/components/Filters/FilterChips";
 import { FilterModal } from "@/components/Filters/FilterModal";
 import { Ionicons } from "@expo/vector-icons";
 import { PropertyCardProps } from "@/types/TabTypes/TabTypes";
+import Toast from "react-native-toast-message";
 
-type ChipKey = "city" | "minRent" | "maxRent" | "beds" | "hostOption";
+type ChipKey =
+  | "city"
+  | "minRent"
+  | "maxRent"
+  | "beds"
+  | "bathrooms"
+  | "hostOption";
 
 const { width: WINDOW_WIDTH } = Dimensions.get("window");
 const CARD_MARGIN = 5;
@@ -36,17 +43,29 @@ const CARD_WIDTH = (WINDOW_WIDTH - CARD_MARGIN * 3) / 2;
 const PropertiesPage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const { type } = useLocalSearchParams<{ type: string }>();
+
+  // PARAMS FROM HOME PAGE VOICE REDIRECT (including fromVoice flag)
+  const { type, city, minRent, maxRent, beds, bathrooms, fromVoice } =
+    useLocalSearchParams<{
+      type: string;
+      city?: string;
+      minRent?: string;
+      maxRent?: string;
+      beds?: string;
+      bathrooms?: string;
+      fromVoice?: string;
+    }>();
 
   const [hostOption, setHostOption] = useState(type ?? "home");
-  const [filters, setFilters] = useState<{
-    city?: string;
-    minRent?: number;
-    maxRent?: number;
-    beds?: number;
-  }>({});
-  const [debouncedCity] = useDebounce(filters.city, 500);
+  const [filters, setFilters] = useState({
+    city: city || undefined,
+    minRent: minRent ? parseInt(minRent) : undefined,
+    maxRent: maxRent ? parseInt(maxRent) : undefined,
+    beds: beds ? parseInt(beds) : undefined,
+    bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
+  });
 
+  const [debouncedCity] = useDebounce(filters.city, 500);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [allProperties, setAllProperties] = useState<PropertyCardProps[]>([]);
@@ -55,7 +74,7 @@ const PropertiesPage: React.FC = () => {
   const [addToFav] = useAddToFavMutation();
   const [removeFromFav] = useRemoveUserFavoriteMutation();
 
-  // Fetch filtered properties
+  // API Call - will now include beds and bathrooms
   const { data, isLoading, refetch } = useGetFilteredPropertiesQuery({
     hostOption,
     ...filters,
@@ -64,22 +83,51 @@ const PropertiesPage: React.FC = () => {
     limit: 10,
   });
 
-  // Fetch user's favorites
   const { data: favData, refetch: refetchFavorites } =
     useGetUserFavoritesQuery(null);
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
-    [favData]
+    [favData],
   );
 
-  // Merge favorites with properties whenever data or favorites change
+  /* ======================================================
+      VOICE FEEDBACK LOGIC (TOAST)
+  ====================================================== */
+  useEffect(() => {
+    if (fromVoice === "true") {
+      Toast.show({
+        type: "success",
+        text1: "Voice Search Applied",
+        text2: `Found properties in ${filters.city || "your area"}`,
+        position: "bottom",
+        bottomOffset: 100,
+      });
+
+      // Clear the param so the toast doesn't re-trigger on every render
+      router.setParams({ fromVoice: undefined });
+    }
+  }, [fromVoice, filters.city]);
+
+  // Sync state if navigation params change
+  useEffect(() => {
+    if (type) setHostOption(type);
+    setFilters({
+      city: city || undefined,
+      minRent: minRent ? parseInt(minRent) : undefined,
+      maxRent: maxRent ? parseInt(maxRent) : undefined,
+      beds: beds ? parseInt(beds) : undefined,
+      bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
+    });
+    setPage(1);
+  }, [type, city, minRent, maxRent, beds, bathrooms]);
+
   useEffect(() => {
     if (data?.data) {
       const formatted = formatProperties(
         data.data,
         filters.city || "",
         "",
-        () => {}
+        () => {},
       ).map((p) => ({
         ...p,
         isFav: favoriteIds.includes(p.id),
@@ -88,7 +136,6 @@ const PropertiesPage: React.FC = () => {
       if (page === 1) {
         setAllProperties(formatted);
       } else {
-        // Deduplicate newly fetched properties
         setAllProperties((prev) => [
           ...prev,
           ...formatted.filter((p) => !prev.some((pp) => pp.id === p.id)),
@@ -98,7 +145,6 @@ const PropertiesPage: React.FC = () => {
     setLoadingMore(false);
   }, [data, favoriteIds, filters.city, page]);
 
-  // Reset page when filters or hostOption change
   useEffect(() => {
     setPage(1);
   }, [
@@ -107,47 +153,37 @@ const PropertiesPage: React.FC = () => {
     filters.minRent,
     filters.maxRent,
     filters.beds,
+    filters.bathrooms,
   ]);
-
-  // Refetch favorites on mount to ensure correct state
-  useEffect(() => {
-    refetchFavorites();
-  }, []);
 
   const removeFilter = (key: ChipKey) => {
     if (key !== "hostOption") {
-      setFilters({ ...filters, [key]: undefined });
+      setFilters((prev) => ({ ...prev, [key]: undefined }));
+      // Extra check: if price is cleared, clear both min/max
+      if (key === "minRent")
+        setFilters((prev) => ({ ...prev, maxRent: undefined }));
       refetch();
     }
   };
 
   const selectedChips = buildSelectedChips(hostOption, filters);
 
-  // Toggle Favorite
   const handleToggleFav = async (propertyId: string) => {
     const property = allProperties.find((p) => p.id === propertyId);
     if (!property) return;
-
-    // Optimistic update
     setAllProperties((prev) =>
-      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p))
+      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p)),
     );
-
     try {
-      if (property.isFav) {
-        await removeFromFav({ propertyId });
-      } else {
-        await addToFav({ propertyId });
-      }
-      // Refetch favorites to sync backend state
+      property.isFav
+        ? await removeFromFav({ propertyId })
+        : await addToFav({ propertyId });
       refetchFavorites();
     } catch (err) {
-      console.log("Fav error:", err);
-      // Rollback on error
       setAllProperties((prev) =>
         prev.map((p) =>
-          p.id === propertyId ? { ...p, isFav: property.isFav } : p
-        )
+          p.id === propertyId ? { ...p, isFav: property.isFav } : p,
+        ),
       );
     }
   };
@@ -170,8 +206,6 @@ const PropertiesPage: React.FC = () => {
         style={{ width: "100%", height: CARD_HEIGHT * 0.6 }}
         resizeMode="cover"
       />
-
-      {/* Favorite heart */}
       <TouchableOpacity
         style={{ position: "absolute", bottom: 5, right: 8, zIndex: 20 }}
         onPress={() => handleToggleFav(item.id)}
@@ -182,27 +216,6 @@ const PropertiesPage: React.FC = () => {
           color={currentTheme.danger}
         />
       </TouchableOpacity>
-
-      {/* Featured tag */}
-      {item.featured && (
-        <View
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 6,
-            backgroundColor: currentTheme.secondary,
-            zIndex: 10,
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "500" }}>
-            FEATURED
-          </Text>
-        </View>
-      )}
-
       <View style={{ padding: 8, flex: 1, justifyContent: "space-between" }}>
         <Text
           style={{ fontWeight: "700", color: currentTheme.text }}
@@ -211,10 +224,10 @@ const PropertiesPage: React.FC = () => {
           {item.title}
         </Text>
         <Text style={{ fontSize: 12, color: currentTheme.muted }}>
-          {item.city}, {item.country}
+          {item.city}
         </Text>
         <Text style={{ fontWeight: "600", color: currentTheme.secondary }}>
-          Rs. {item.rent?.toLocaleString()} / month
+          Rs. {item.rent?.toLocaleString()}
         </Text>
       </View>
     </TouchableOpacity>
@@ -232,20 +245,19 @@ const PropertiesPage: React.FC = () => {
           theme={currentTheme}
         />
       </View>
-
       <FilterChips
-        chips={selectedChips}
-        onRemove={removeFilter}
+        chips={selectedChips as any}
+        onRemove={(key) => removeFilter(key as ChipKey)}
         onOpenModal={() => setModalVisible(true)}
         theme={currentTheme}
       />
 
       {isLoading && page === 1 ? (
-        <ActivityIndicator size="large" color={currentTheme.secondary} />
-      ) : allProperties.length === 0 ? (
-        <View style={{ padding: 20 }}>
-          <Text style={{ color: currentTheme.text }}>No properties found.</Text>
-        </View>
+        <ActivityIndicator
+          size="large"
+          color={currentTheme.secondary}
+          style={{ marginTop: 50 }}
+        />
       ) : (
         <FlatList
           data={allProperties}
@@ -265,6 +277,13 @@ const PropertiesPage: React.FC = () => {
             loadingMore ? (
               <ActivityIndicator size="small" color={currentTheme.secondary} />
             ) : null
+          }
+          ListEmptyComponent={
+            <View style={{ padding: 20 }}>
+              <Text style={{ color: currentTheme.text }}>
+                No properties found.
+              </Text>
+            </View>
           }
         />
       )}

@@ -31,7 +31,7 @@ export class VoiceSearchService {
       // ❌ HARD BLOCK: No transcription
       if (!transcription.trim()) {
         return this.emptyResponse(
-          "Could not understand the audio. Please speak clearly."
+          "Could not understand the audio. Please speak clearly.",
         );
       }
 
@@ -41,7 +41,7 @@ export class VoiceSearchService {
       // ❌ HARD BLOCK: No usable filters
       if (!Object.keys(filters).length) {
         return this.emptyResponse(
-          "No searchable criteria detected from voice."
+          "No searchable criteria detected from voice.",
         );
       }
 
@@ -49,7 +49,7 @@ export class VoiceSearchService {
         1,
         10,
         filters,
-        userId
+        userId,
       );
 
       return {
@@ -68,6 +68,7 @@ export class VoiceSearchService {
      AUDIO → ENGLISH TEXT (URDU / MIXED SUPPORTED)
      ============================================================ */
   private async audioToEnglishText(filePath: string): Promise<string> {
+    console.log("Transcribing audio file:", filePath);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
     const audioBase64 = fs.readFileSync(filePath).toString("base64");
@@ -89,7 +90,7 @@ Rules:
             },
             {
               inline_data: {
-                mime_type: "audio/mpeg",
+                mime_type: "audio/mp4",
                 data: audioBase64,
               },
             },
@@ -124,6 +125,8 @@ Rules:
      TEXT → FILTER EXTRACTION (ANY CITY / MUHALLA)
      ============================================================ */
   private async textToFilters(userText: string) {
+    console.log("Extracting filters from text:", userText);
+
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
     const body = {
@@ -132,33 +135,36 @@ Rules:
           parts: [
             {
               text: `
-You are a Pakistan real estate search engine.
+You are a Pakistan Real Estate Expert and Geographic Assistant.
 
-Extract filters from:
-"${userText}"
+User text: "${userText}"
 
-Rules:
-- Support ANY city, town, muhalla, gali, sector, society.
-- If exact area not known, store it in "addressQuery".
-- Always extract any sector, society, muhalla, phase, block, gali, road
-into "addressQuery" even if city is known.
-- Convert price slang:
-  - 1 lakh = 100000
-  - 50 hazar = 50000
-  - 70k = 70000
-- If single rent mentioned → set both minRent & maxRent.
-- Bedrooms must be numeric.
+TASK:
+1. Extract search filters for rental properties.
+2. If language is Urdu or mixed, translate the intent to English.
+3. INFER THE CITY: If the user mentions an area but NOT the city, use your internal knowledge of Pakistan's geography to fill the "city" field.
+   - Example: "G-13" or "B-17" or "E-11" -> city: "Islamabad"
+   - Example: "DHA Phase 6" or "Model Town" -> city: "Lahore" (unless context suggests otherwise)
+   - Example: "Bahria Phase 8" -> city: "Rawalpindi"
+   - Example: "Clifton" or "Gulistan-e-Johar" -> city: "Karachi"
 
-Return ONLY valid JSON:
+RULES:
+- addressQuery: Should contain the specific sector, block, or society name (e.g., "Sector G-13", "DHA Phase 5").
+- city: Always try to provide a city name. If completely unknown, omit the field.
+- minRent/maxRent: Normalize (1 lakh = 100000, 50k = 50000).
+- hostOption: Must be "home", "room", or "apartment".
+
+JSON STRUCTURE:
 {
-  "city": string,
-  "stateTerritory": string,
-  "addressQuery": string,
+  "city": "string",
+  "addressQuery": "string",
   "minRent": number,
   "maxRent": number,
   "bedrooms": number,
-  "amenities": string[]
+  "hostOption": "home" | "room" | "apartment"
 }
+
+Return ONLY valid JSON. Nothing else.
 `,
             },
           ],
@@ -166,7 +172,7 @@ Return ONLY valid JSON:
       ],
       generationConfig: {
         response_mime_type: "application/json",
-        temperature: 0.1,
+        temperature: 0.0,
       },
     };
 
@@ -180,6 +186,7 @@ Return ONLY valid JSON:
       const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
+      // Ensure we return valid JSON
       return JSON.parse(rawText);
     } catch (error) {
       this.logger.error("❌ Filter extraction failed", error);
@@ -191,6 +198,7 @@ Return ONLY valid JSON:
      FILTER NORMALIZATION (SAFETY)
      ============================================================ */
   private normalizeFilters(filters: any) {
+    console.log("Normalizing extracted filters:", filters);
     const normalized: any = {};
 
     if (filters.city) normalized.city = filters.city;
@@ -217,6 +225,7 @@ Return ONLY valid JSON:
      EMPTY SAFE RESPONSE
      ============================================================ */
   private emptyResponse(message: string) {
+    console.log("Returning empty response:", message);
     return {
       transcription: "",
       filters: {},
