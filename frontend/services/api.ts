@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import Constants from "expo-constants";
-import { tokenManager } from "../auth/tokenManager";
 import { isTokenExpired } from "../auth/jwt";
+import { tokenManager } from "./tokenManager";
+import Constants from "expo-constants";
 
-export const API_URL = "http://localhost:3000";
+export const API_URL =
+  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000";
 
 /* ----------------------------------------------------
    RAW BASE QUERY
@@ -303,6 +304,14 @@ export const api = createApi({
         };
       },
     }),
+
+    verifyEmail: builder.mutation({
+      query: (body) => ({
+        url: "/api/v1/users/verify-email",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -331,4 +340,5 @@ export const {
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
   useVoiceSearchMutation,
+  useVerifyEmailMutation,
 } = api;
