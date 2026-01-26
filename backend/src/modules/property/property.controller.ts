@@ -33,7 +33,7 @@ export class PropertyController {
   async createProperty(
     @Body() dto: CreatePropertyDto,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
@@ -115,8 +115,8 @@ export class PropertyController {
           files.photos.map((file) =>
             this.propertyService.cloudinary
               .uploadFile(file)
-              .then((r) => r.secure_url)
-          )
+              .then((r) => r.secure_url),
+          ),
         )
       : dto.photos || [];
     parsedDto.photos = photoUrls;
@@ -139,7 +139,7 @@ export class PropertyController {
   async getByHostOption(
     @Param("hostOption") hostOption: string,
     @Query() query: PaginationQuery,
-    @Req() req: any
+    @Req() req: any,
   ) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
@@ -149,7 +149,7 @@ export class PropertyController {
       page,
       limit,
       { hostOption },
-      userId
+      userId,
     );
   }
 
@@ -157,6 +157,7 @@ export class PropertyController {
   @Get("search")
   async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
+    console.log("Search query params:", query);
 
     const numericFields = [
       "page",
@@ -228,7 +229,7 @@ export class PropertyController {
   async updateProperty(
     @Param("id") id: string,
     @Body() dto: Partial<CreatePropertyDto>,
-    @Req() req: any
+    @Req() req: any,
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");

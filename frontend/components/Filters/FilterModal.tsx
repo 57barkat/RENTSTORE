@@ -13,6 +13,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { HostPicker } from "./HostPicker";
 import { Filters } from "@/utils/homeTabUtils/filterUtils";
+import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
 
 interface Props {
   visible: boolean;
@@ -35,6 +36,8 @@ export const FilterModal: React.FC<Props> = ({
   setFilters,
   theme,
 }) => {
+  const [citySuggestions, setCitySuggestions] = React.useState<string[]>([]);
+
   const BedOption = ({ value }: { value: number }) => (
     <TouchableOpacity
       onPress={() => setFilters({ ...filters, beds: value })}
@@ -68,13 +71,16 @@ export const FilterModal: React.FC<Props> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1, backgroundColor: theme.background }}
       >
+        {/* ===== Header ===== */}
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close-outline" size={28} color={theme.text} />
           </TouchableOpacity>
+
           <Text style={[styles.headerTitle, { color: theme.text }]}>
             Filters
           </Text>
+
           <TouchableOpacity onPress={() => setFilters({})}>
             <Text style={{ color: theme.secondary, fontWeight: "600" }}>
               Reset
@@ -86,6 +92,7 @@ export const FilterModal: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          {/* ===== Property Category ===== */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Property Category</Text>
             <HostPicker
@@ -96,8 +103,11 @@ export const FilterModal: React.FC<Props> = ({
             />
           </View>
 
+          {/* ===== Location ===== */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Location</Text>
+
+            {/* City Input */}
             <View
               style={[
                 styles.inputWrapper,
@@ -115,17 +125,44 @@ export const FilterModal: React.FC<Props> = ({
                 placeholder="Search by city..."
                 placeholderTextColor={theme.muted}
                 value={filters.city || ""}
-                onChangeText={(txt) => setFilters({ ...filters, city: txt })}
+                onChangeText={(txt) => {
+                  setFilters({ ...filters, city: txt });
+                  setCitySuggestions(getCitySuggestions(txt, pakistaniCities));
+                }}
               />
             </View>
 
+            {/* City Suggestions */}
+            {citySuggestions.length > 0 && (
+              <View
+                style={[
+                  styles.suggestionBox,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                {citySuggestions.map((city) => (
+                  <TouchableOpacity
+                    key={city}
+                    style={styles.suggestionItem}
+                    onPress={() => {
+                      setFilters({ ...filters, city });
+                      setCitySuggestions([]);
+                    }}
+                  >
+                    <Text style={{ color: theme.text }}>{city}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Address Search */}
             <View
               style={[
                 styles.inputWrapper,
                 {
                   backgroundColor: theme.card,
                   borderColor: theme.border,
-                  marginTop: 10,
+                  marginTop: 12,
                 },
               ]}
             >
@@ -147,6 +184,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
+          {/* ===== Price Range ===== */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Price Range (Monthly)</Text>
             <View style={styles.row}>
@@ -175,7 +213,9 @@ export const FilterModal: React.FC<Props> = ({
                   }
                 />
               </View>
+
               <View style={styles.rangeDivider} />
+
               <View
                 style={[
                   styles.inputWrapper,
@@ -204,6 +244,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
+          {/* ===== Bedrooms ===== */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Bedrooms</Text>
             <View style={styles.chipRow}>
@@ -214,6 +255,7 @@ export const FilterModal: React.FC<Props> = ({
           </View>
         </ScrollView>
 
+        {/* ===== Footer ===== */}
         <View
           style={[
             styles.footer,
@@ -290,6 +332,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+  },
+  suggestionBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 6,
+    overflow: "hidden",
+  },
+  suggestionItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
   footer: {
     padding: 20,

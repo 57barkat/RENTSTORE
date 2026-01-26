@@ -2,20 +2,20 @@ import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { DeletedImage } from "./deletedImage.schema";
-import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
+import { CloudinaryService } from "../services/Cloudinary Service/cloudinary.service";
 
 @Injectable()
 export class DeletedImagesService {
   constructor(
     @InjectModel(DeletedImage.name)
     private deletedImageModel: Model<DeletedImage>,
-    private cloudinary: CloudinaryService
+    private cloudinary: CloudinaryService,
   ) {}
 
   async addDeletedImages(
     urls: string[],
     userId: string,
-    entityType: "property" | "draft" = "property"
+    entityType: "property" | "draft" = "property",
   ) {
     if (!urls?.length) return;
     const docs = urls.map((url) => ({ url, userId, entityType }));
@@ -34,7 +34,7 @@ export class DeletedImagesService {
         } catch (error) {
           console.error(`Failed to delete image ${img.url}:`, error);
         }
-      })
+      }),
     );
   }
 }

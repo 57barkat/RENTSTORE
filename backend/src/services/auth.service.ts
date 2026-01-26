@@ -3,13 +3,13 @@ import { JwtService } from "@nestjs/jwt";
 
 import * as bcrypt from "bcrypt";
 import { User, UserDocument } from "src/modules/user/user.entity";
-import { UserService } from "src/modules/user/user.service";
+import { UserService } from "../modules/user/user.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
-    public jwtService: JwtService
+    public jwtService: JwtService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -23,12 +23,14 @@ export class AuthService {
   async login(user: UserDocument) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
 
     // Save hashed refresh token in DB
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.userService.update(user.id, { refreshToken: hashedRefreshToken });
+    await this.userService.update(user.id, {
+      refreshToken: hashedRefreshToken,
+    });
 
     return { accessToken, refreshToken };
   }
@@ -41,11 +43,13 @@ export class AuthService {
     if (!isMatch) throw new UnauthorizedException();
 
     const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
 
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.userService.update(user.id, { refreshToken: hashedRefreshToken });
+    await this.userService.update(user.id, {
+      refreshToken: hashedRefreshToken,
+    });
 
     return { accessToken, refreshToken };
   }

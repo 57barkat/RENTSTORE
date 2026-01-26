@@ -42,5 +42,20 @@ export const pakistaniCities = [
   "Sukkur",
   "Vehari",
   "Wah Cantonment",
-  "Wazirabad"
+  "Wazirabad",
 ];
+export const normalizeText = (value?: string) =>
+  value?.trim().replace(/\s+/g, " ").toLowerCase();
+
+export const getCitySuggestions = (
+  input: string,
+  cities: string[],
+  limit = 5,
+) => {
+  const q = normalizeText(input);
+  if (!q) return [];
+
+  return cities
+    .filter((city) => city.toLowerCase().startsWith(q))
+    .slice(0, limit);
+};

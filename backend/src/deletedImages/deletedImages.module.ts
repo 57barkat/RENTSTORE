@@ -3,7 +3,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { DeletedImage, DeletedImageSchema } from "./deletedImage.schema";
 import { DeletedImagesService } from "./deletedImages.service";
 import { DeletedImagesCron } from "./deletedImages.cron";
-import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
+import { CloudinaryService } from "../services/Cloudinary Service/cloudinary.service";
 
 @Module({
   imports: [

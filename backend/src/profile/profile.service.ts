@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
-import { CloudinaryService } from "src/services/Cloudinary Service/cloudinary.service";
-import { User, UserDocument } from "src/modules/user/user.entity";
-import { Property } from "src/modules/property/property.schema";
-import { AddToFavService } from "src/modules/addToFav/favorites.service";
-import { DeletedImagesService } from "src/deletedImages/deletedImages.service";
+import { CloudinaryService } from "../services/Cloudinary Service/cloudinary.service";
+import { User, UserDocument } from "../modules/user/user.entity";
+import { Property } from "../modules/property/property.schema";
+import { AddToFavService } from "../modules/addToFav/favorites.service";
+import { DeletedImagesService } from "../deletedImages/deletedImages.service";
 
 @Injectable()
 export class ProfileService {
@@ -14,7 +14,7 @@ export class ProfileService {
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     private readonly favService: AddToFavService,
     private readonly cloudinary: CloudinaryService,
-    private readonly deletedImagesService: DeletedImagesService
+    private readonly deletedImagesService: DeletedImagesService,
   ) {}
   async deleteProfileImage(userId: string) {
     const user = await this.userModel.findById(userId);
@@ -30,7 +30,7 @@ export class ProfileService {
     // Remove profile image from database properly
     await this.userModel.updateOne(
       { _id: userId },
-      { $unset: { profileImage: "" } } // <-- unsets the field in MongoDB
+      { $unset: { profileImage: "" } }, // <-- unsets the field in MongoDB
     );
 
     return { message: "Profile image deleted successfully" };

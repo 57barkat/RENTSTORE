@@ -7,7 +7,7 @@ import { CloudinaryModule } from "../../services/Cloudinary Service/cloudinary.m
 import { AuthModule } from "../../services/auth.module";
 import { AddToFavModule } from "../addToFav/favorite.module";
 import { PropertyDraftSchema } from "./draft.schema";
-import { DeletedImagesModule } from "src/deletedImages/deletedImages.module";
+import { DeletedImagesModule } from "../../deletedImages/deletedImages.module";
 // import { DeletedImagesModule } from "../deletedImages/deletedImages.module";
 
 @Module({

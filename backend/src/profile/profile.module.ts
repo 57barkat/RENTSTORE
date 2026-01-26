@@ -2,13 +2,13 @@ import { Module, forwardRef } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ProfileService } from "./profile.service";
 import { ProfileController } from "./profile.controller";
-import { User, UserSchema } from "src/modules/user/user.entity";
-import { Property, PropertySchema } from "src/modules/property/property.schema";
-import { AddToFav, AddToFavSchema } from "src/modules/addToFav/favorite.entity";
-import { AuthModule } from "src/services/auth.module";
-import { CloudinaryModule } from "src/services/Cloudinary Service/cloudinary.module";
-import { AddToFavModule } from "src/modules/addToFav/favorite.module";
-import { DeletedImagesModule } from "src/deletedImages/deletedImages.module";
+import { User, UserSchema } from "../modules/user/user.entity";
+import { Property, PropertySchema } from "../modules/property/property.schema";
+import { AddToFav, AddToFavSchema } from "../modules/addToFav/favorite.entity";
+import { AuthModule } from "../services/auth.module";
+import { CloudinaryModule } from "../services/Cloudinary Service/cloudinary.module";
+import { AddToFavModule } from "../modules/addToFav/favorite.module";
+import { DeletedImagesModule } from "../deletedImages/deletedImages.module";
 
 @Module({
   imports: [

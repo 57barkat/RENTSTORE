@@ -20,14 +20,14 @@ import { UserService } from "./user.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
-import { AuthService } from "src/services/auth.service";
+import { AuthService } from "../../services/auth.service";
 import { find } from "rxjs";
 
 @Controller("users")
 export class UserController {
   constructor(
     private readonly userService: UserService,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
   ) {}
   @Post("google")
   async googleLogin(@Body("access_token") accessToken: string) {
@@ -35,7 +35,7 @@ export class UserController {
   }
   @Post("signup")
   async signup(
-    @Body() createUserDto: CreateUserDto
+    @Body() createUserDto: CreateUserDto,
   ): Promise<UserResponseDto & { accessToken: string; refreshToken: string }> {
     const user = await this.userService.create(createUserDto);
 
@@ -43,23 +43,23 @@ export class UserController {
       switch (user) {
         case "EMAIL_EXISTS":
           throw new BadRequestException(
-            "A user with this email already exists."
+            "A user with this email already exists.",
           );
         case "PHONE_EXISTS":
           throw new BadRequestException(
-            "A user with this phone number already exists."
+            "A user with this phone number already exists.",
           );
         case "CNIC_EXISTS":
           throw new BadRequestException(
-            "A user with this CNIC already exists."
+            "A user with this CNIC already exists.",
           );
         case "AGENCY_EXISTS":
           throw new BadRequestException(
-            "An agency with this name already exists."
+            "An agency with this name already exists.",
           );
         default:
           throw new BadRequestException(
-            "Unknown error occurred during signup."
+            "Unknown error occurred during signup.",
           );
       }
     }
@@ -94,7 +94,7 @@ export class UserController {
       email?: string;
       phone?: string;
       password: string;
-    }
+    },
   ): Promise<UserResponseDto & { accessToken: string; refreshToken: string }> {
     const emailOrPhone = body.emailOrPhone || body.email || body.phone;
     const { password } = body;
@@ -133,7 +133,7 @@ export class UserController {
   async refresh(
     @Req() req: any,
     @Res({ passthrough: true }) res: any,
-    @Body("refreshToken") bodyToken?: string
+    @Body("refreshToken") bodyToken?: string,
   ) {
     // accept token from body (mobile) or cookie (web)
     const token = bodyToken || req.cookies?.["refreshToken"];
@@ -145,7 +145,7 @@ export class UserController {
 
     const { accessToken, refreshToken } = await this.authService.refresh(
       payload.sub,
-      token
+      token,
     );
 
     res.cookie("refreshToken", refreshToken, {
