@@ -110,6 +110,7 @@ const HomePage: React.FC = () => {
           maxRent: extracted.maxRent?.toString(),
           beds: extracted.bedrooms?.toString(),
           bathrooms: extracted.bathrooms?.toString(),
+          addressQuery: extracted.addressQuery || "",
           fromVoice: "true",
         },
       });

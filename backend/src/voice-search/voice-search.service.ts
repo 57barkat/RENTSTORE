@@ -7,8 +7,6 @@ import { PropertyService } from "../modules/property/property.service";
 export class VoiceSearchService {
   private readonly logger = new Logger(VoiceSearchService.name);
   private readonly geminiApiKey = process.env.GOOGLE_API_KEY;
-
-  // Stable free-tier Gemini model
   private readonly geminiModel = "gemini-2.5-flash-lite";
 
   constructor(private readonly propertyService: PropertyService) {
@@ -19,14 +17,11 @@ export class VoiceSearchService {
 
   /* ============================================================
      PUBLIC ENTRY POINT
-     ============================================================ */
+  ============================================================ */
   async voiceSearch(file: Express.Multer.File, userId?: string) {
-    if (!file?.path) {
-      throw new Error("Audio file path missing");
-    }
+    if (!file?.path) throw new Error("Audio file path missing");
 
     try {
-      // 1️⃣ Transcribe audio to English text
       const transcription = await this.audioToEnglishText(file.path);
 
       if (!transcription.trim()) {
@@ -35,7 +30,6 @@ export class VoiceSearchService {
         );
       }
 
-      // 2️⃣ Extract filters from transcription
       const extractedFilters = await this.textToFilters(transcription);
       const filters = this.normalizeFilters(extractedFilters);
 
@@ -45,7 +39,6 @@ export class VoiceSearchService {
         );
       }
 
-      // 3️⃣ Call updated property search
       const result = await this.propertyService.findFiltered(
         1,
         10,
@@ -59,14 +52,13 @@ export class VoiceSearchService {
         result,
       };
     } finally {
-      // 4️⃣ Cleanup audio file
       if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
   }
 
   /* ============================================================
-     AUDIO → ENGLISH TEXT (URDU / MIXED SUPPORTED)
-     ============================================================ */
+     AUDIO → ENGLISH TEXT
+  ============================================================ */
   private async audioToEnglishText(filePath: string): Promise<string> {
     this.logger.log(`Transcribing audio file: ${filePath}`);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
@@ -79,19 +71,13 @@ export class VoiceSearchService {
             {
               text: `
 You are a speech-to-text engine.
-
-Rules:
-- If language is Urdu or mixed Urdu-English, translate to fluent English.
-- If already English, return as-is.
-- Normalize numbers (lakh, hazar, k).
-- Return ONLY the final English sentence.
+- Translate Urdu/mixed Urdu-English to fluent English.
+- Normalize numbers (lakh, hazar, k) to numeric values.
+- Return only the final English text.
 `,
             },
             {
-              inline_data: {
-                mime_type: "audio/mp4",
-                data: audioBase64,
-              },
+              inline_data: { mime_type: "audio/mp4", data: audioBase64 },
             },
           ],
         },
@@ -120,7 +106,7 @@ Rules:
 
   /* ============================================================
      TEXT → FILTER EXTRACTION
-     ============================================================ */
+  ============================================================ */
   private async textToFilters(userText: string) {
     this.logger.log(`Extracting filters from text: ${userText}`);
 
@@ -138,9 +124,15 @@ User text: "${userText}"
 
 TASK:
 - Extract search filters for rental properties.
-- Translate Urdu/mixed text to English.
+- Translate Urdu/mixed Urdu-English into English.
 - Infer city if user only mentions sector/block/society.
 - Normalize rent numbers (1 lakh = 100000, 50k = 50000).
+
+CRITICAL RULES:
+- "addressQuery" must contain ONLY the LOCAL AREA (sector/block/society).
+- DO NOT include city names in "addressQuery".
+- Remove commas, dots, slashes, hyphens, or special characters.
+- If multiple locations mentioned, return only the most specific.
 
 JSON STRUCTURE:
 {
@@ -174,7 +166,15 @@ Return ONLY valid JSON.
       const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-      return JSON.parse(rawText);
+      const parsed = JSON.parse(rawText);
+
+      // Sanitize addressQuery
+      parsed.addressQuery = this.sanitizeAddressQuery(
+        parsed.addressQuery,
+        parsed.city,
+      );
+
+      return parsed;
     } catch (error) {
       this.logger.error("❌ Filter extraction failed", error);
       return {};
@@ -182,45 +182,60 @@ Return ONLY valid JSON.
   }
 
   /* ============================================================
-     NORMALIZE FILTERS FOR SAFETY
-     ============================================================ */
+     SANITIZE ADDRESS QUERY
+     - Remove city names
+     - Remove punctuation
+     - Trim and deduplicate
+  ============================================================ */
+  private sanitizeAddressQuery(addressQuery: string, city: string): string {
+    if (!addressQuery) return "";
+    let sanitized = addressQuery;
+
+    // Remove city name (case-insensitive)
+    if (city) {
+      const cityRegex = new RegExp(city, "gi");
+      sanitized = sanitized.replace(cityRegex, "");
+    }
+
+    // Remove punctuation: , . / -
+    sanitized = sanitized.replace(/[.,\/\-]/g, " ");
+
+    // Collapse multiple spaces
+    sanitized = sanitized.replace(/\s+/g, " ").trim();
+
+    return sanitized;
+  }
+
+  /* ============================================================
+     NORMALIZE FILTERS
+  ============================================================ */
   private normalizeFilters(filters: any) {
     this.logger.log("Normalizing extracted filters:", filters);
     const normalized: any = {};
 
     if (filters.city) normalized.city = filters.city;
     if (filters.addressQuery) normalized.addressQuery = filters.addressQuery;
-
     if (Number.isFinite(filters.minRent))
       normalized.minRent = Number(filters.minRent);
     if (Number.isFinite(filters.maxRent))
       normalized.maxRent = Number(filters.maxRent);
-
     if (Number.isFinite(filters.bedrooms))
       normalized.bedrooms = Number(filters.bedrooms);
-
-    if (["home", "room", "apartment"].includes(filters.hostOption)) {
+    if (["home", "room", "apartment"].includes(filters.hostOption))
       normalized.hostOption = filters.hostOption;
-    }
 
     return normalized;
   }
 
   /* ============================================================
      EMPTY RESPONSE HANDLER
-     ============================================================ */
+  ============================================================ */
   private emptyResponse(message: string) {
     this.logger.warn(message);
     return {
       transcription: "",
       filters: {},
-      result: {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0,
-      },
+      result: { data: [], total: 0, page: 1, limit: 10, totalPages: 0 },
       error: message,
     };
   }
