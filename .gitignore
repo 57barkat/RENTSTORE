@@ -1,2 +1,3 @@
 frontend/.env 
 backend/insert_properties.js
+backend/src/services/firebase-service.json
