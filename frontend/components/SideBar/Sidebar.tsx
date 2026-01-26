@@ -137,10 +137,11 @@ const Sidebar: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    console.log("Logging out...");
     await AsyncStorage.clear();
     setTheme("light");
     close();
-    router.replace("/signin");
+    router.push("/signin");
     await logout();
   };
   // --------------------------

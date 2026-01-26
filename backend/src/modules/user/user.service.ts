@@ -1,139 +1,190 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import { User, UserDocument } from "./user.entity";
+import { User, UserDocument, UserRole } from "./user.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
-import { JwtService } from "@nestjs/jwt";
 import { OAuth2Client } from "google-auth-library";
+import * as admin from "firebase-admin";
+import { MailerService } from "@nestjs-modules/mailer";
+import * as serviceAccount from "../../services/firebase-service.json";
+
 @Injectable()
 export class UserService {
+  private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private jwtService: JwtService
-  ) {}
-  private client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  private async cleanupUnverifiedUsers() {
-    const fiveHoursAgo = new Date(Date.now() - 5 * 60 * 60 * 1000);
-
-    await this.userModel.deleteMany({
-      isPhoneVerified: false,
-      createdAt: { $lt: fiveHoursAgo },
-    });
-  }
-  async googleLogin(accessToken: string) {
-    try {
-      const ticket = await this.client.verifyIdToken({
-        idToken: accessToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
+    private readonly mailerService: MailerService,
+  ) {
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(
+          serviceAccount as admin.ServiceAccount,
+        ),
       });
-
-      const payload = ticket.getPayload();
-      if (!payload?.email)
-        throw new UnauthorizedException("Invalid Google token");
-
-      // find or create user
-      let user = await this.userModel.findOne({ email: payload.email });
-
-      if (!user) {
-        user = await this.userModel.create({
-          name: payload.name,
-          email: payload.email,
-          isPhoneVerified: true,
-          password: null, // Google users don't have password
-          picture: payload.picture,
-        });
-      }
-
-      const jwt = this.jwtService.sign({ email: user.email, sub: user._id });
-      return { accessToken: jwt, user };
-    } catch (error) {
-      throw new UnauthorizedException("Google login failed");
     }
   }
-  async create(createUserDto: CreateUserDto): Promise<User | string> {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+  /* -------------------------------------------------------------------------- */
+  /*                                SIGNUP FLOW                                 */
+  /* -------------------------------------------------------------------------- */
+
+  async createUser(dto: CreateUserDto): Promise<UserDocument> {
     await this.cleanupUnverifiedUsers();
 
     const conflict = await this.userModel.findOne({
-      $or: [
-        { email: createUserDto.email },
-        { phone: createUserDto.phone },
-        { cnic: createUserDto.cnic },
-        ...(createUserDto.agencyName
-          ? [{ agencyName: createUserDto.agencyName }]
-          : []),
-      ],
+      $or: [{ email: dto.email }, { phone: dto.phone }, { cnic: dto.cnic }],
     });
 
     if (conflict) {
-      if (conflict.email === createUserDto.email) return "EMAIL_EXISTS";
-      if (conflict.phone === createUserDto.phone) return "PHONE_EXISTS";
-      if (conflict.cnic === createUserDto.cnic) return "CNIC_EXISTS";
+      if (conflict.email === dto.email)
+        throw new BadRequestException("EMAIL_EXISTS");
+      if (conflict.phone === dto.phone)
+        throw new BadRequestException("PHONE_EXISTS");
+      if (conflict.cnic === dto.cnic)
+        throw new BadRequestException("CNIC_EXISTS");
     }
 
-    const createdUser = new this.userModel({
-      ...createUserDto,
-      password: hashedPassword,
+    const password = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.userModel.create({
+      ...dto,
+      password,
+      role: UserRole.USER,
+      isEmailVerified: false,
       isPhoneVerified: false,
-      TermsAndConditionsAccepted: createUserDto.acceptedTerms,
-    });
-    return createdUser.save();
-  }
-  async validateUser(
-    emailOrPhone: string,
-    password: string
-  ): Promise<UserDocument | null> {
-    const user = await this.userModel.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+      TermsAndConditionsAccepted: dto.acceptedTerms,
     });
 
-    if (!user) return null;
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return null;
+    await this.sendEmailVerificationCode(user.email);
 
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userModel.find().exec();
-  }
+  /* -------------------------------------------------------------------------- */
+  /*                             EMAIL VERIFICATION                              */
+  /* -------------------------------------------------------------------------- */
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.userModel.findOne({ email }).exec();
-  }
+  async sendEmailVerificationCode(email: string) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-  async updateFcmToken(userId: string, fcmToken: string): Promise<User | null> {
-    return this.userModel.findByIdAndUpdate(
-      userId,
-      { fcmToken },
-      { new: true }
+    await this.userModel.updateOne(
+      { email },
+      {
+        emailVerificationCode: code,
+        emailVerificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
+      },
     );
+
+    await this.mailerService.sendMail({
+      to: email,
+      subject: "Verify your email",
+      html: `<h2>Your verification code</h2><h1>${code}</h1>`,
+    });
   }
 
-  async updateSubscriptions(
-    userId: string,
-    categories: string[]
-  ): Promise<User | null> {
-    return this.userModel.findByIdAndUpdate(
-      userId,
-      { subscriptions: categories },
-      { new: true }
-    );
+  async verifyEmail(email: string, code: string): Promise<UserDocument> {
+    const user = await this.userModel.findOne({ email });
+
+    if (!user) throw new BadRequestException("User not found");
+    if (user.isEmailVerified)
+      throw new BadRequestException("Email already verified");
+    if (user.emailVerificationCode !== code)
+      throw new BadRequestException("Invalid code");
+    if (
+      !user.emailVerificationCodeExpires ||
+      user.emailVerificationCodeExpires < new Date()
+    )
+      throw new BadRequestException("Code expired");
+
+    user.isEmailVerified = true;
+    user.emailVerificationCode = undefined;
+    user.emailVerificationCodeExpires = undefined;
+    await user.save();
+
+    try {
+      const fbUser = await admin.auth().getUserByEmail(email);
+      await admin.auth().updateUser(fbUser.uid, { emailVerified: true });
+    } catch {}
+
+    return user;
   }
-  async findByIdAndDelete(userId: string): Promise<User | null> {
-    return this.userModel.findByIdAndDelete(userId).exec();
+
+  /* -------------------------------------------------------------------------- */
+  /*                               GOOGLE LOGIN                                  */
+  /* -------------------------------------------------------------------------- */
+
+  async googleLogin(idToken: string): Promise<UserDocument> {
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload?.email) throw new UnauthorizedException();
+
+    let user = await this.userModel.findOne({ email: payload.email });
+
+    if (!user) {
+      user = await this.userModel.create({
+        name: payload.name,
+        email: payload.email,
+        password: await bcrypt.hash(Math.random().toString(), 10),
+        isEmailVerified: true,
+        isPhoneVerified: true,
+        profileImage: payload.picture,
+        role: UserRole.USER,
+        phone: `GOOGLE_${Date.now()}`,
+        cnic: `GOOGLE_${Date.now()}`,
+        TermsAndConditionsAccepted: true,
+      });
+    }
+
+    return user;
   }
-  async findByPhone(phone: string): Promise<UserDocument  | null> {
+
+  /* -------------------------------------------------------------------------- */
+  /*                               AUTH HELPERS                                  */
+  /* -------------------------------------------------------------------------- */
+
+  async validatePassword(emailOrPhone: string, password: string) {
+    const user = await this.userModel.findOne({
+      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
+    });
+
+    if (!user || !user.password) return null;
+    if (!(await bcrypt.compare(password, user.password))) return null;
+
+    return user;
+  }
+
+  async findById(id: string) {
+    return this.userModel.findById(id);
+  }
+  async findByPhone(phone: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ phone }).exec();
   }
-  async findById(id: string): Promise<UserDocument  | null> {
-    return this.userModel.findById(id).exec();
+  async update(id: string, data: Partial<User>) {
+    return this.userModel.findByIdAndUpdate(id, data, { new: true });
   }
 
-  async update(id: string, data: Partial<User>): Promise<User | null> {
-    await this.userModel.updateOne({ _id: id }, data);
-    return this.findById(id);
+  async delete(id: string) {
+    return this.userModel.findByIdAndDelete(id);
+  }
+
+  async findAll() {
+    return this.userModel.find();
+  }
+
+  private async cleanupUnverifiedUsers() {
+    await this.userModel.deleteMany({
+      isEmailVerified: false,
+      createdAt: { $lt: new Date(Date.now() - 5 * 60 * 60 * 1000) },
+    });
   }
 }

@@ -17,63 +17,118 @@ import { useSidebar } from "@/contextStore/SidebarContext";
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
-  const currentTheme = Colors[theme ?? "light"];
-  const headerBg = theme === "light" ? "#ffffff" : currentTheme.primary;
-
-  const { isVerified, hasToken } = useAuth();
+  const { isAuthenticated, isPhoneVerified } = useAuth();
   const router = useRouter();
   const { toggle } = useSidebar();
 
-  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const isDark = theme === "dark";
+  const currentTheme = Colors[isDark ? "dark" : "light"];
+
+  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
 
   return (
     <>
-      <View style={[styles.container, { backgroundColor: headerBg }]}>
-        {/* MENU BUTTON */}
-        <TouchableOpacity style={styles.menuButton} onPress={toggle}>
-          <Ionicons name="menu" size={32} color={currentTheme.text} />
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor="transparent"
+        translucent
+      />
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: isDark
+              ? "rgba(20, 20, 25, 0.95)"
+              : "rgba(255, 255, 255, 0.98)",
+            borderBottomColor: currentTheme.border,
+          },
+        ]}
+      >
+        {/* Left Action: Sidebar */}
+        <TouchableOpacity
+          onPress={toggle}
+          style={[
+            styles.iconButton,
+            { backgroundColor: isDark ? "#2A2A32" : "#F3F4F6" },
+          ]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="menu-outline" size={26} color={currentTheme.text} />
         </TouchableOpacity>
 
-        {/* LOGO */}
-        <View style={styles.logoContainer}>
+        {/* Center: Logo */}
+        <View style={styles.logoWrapper}>
           <Logo />
         </View>
 
-        {/* THEME TOGGLE */}
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          {theme === "dark" ? (
-            <MaterialCommunityIcons
-              name="weather-sunny"
-              size={28}
-              color={currentTheme.text}
-            />
-          ) : (
-            <MaterialCommunityIcons
-              name="moon-waning-crescent"
-              size={28}
-              color={currentTheme.text}
-            />
-          )}
+        {/* Right Action: Theme */}
+        <TouchableOpacity
+          onPress={toggleTheme}
+          style={[
+            styles.iconButton,
+            { backgroundColor: isDark ? "#2A2A32" : "#F3F4F6" },
+          ]}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name={isDark ? "weather-sunny" : "weather-night"}
+            size={22}
+            color={isDark ? "#FDB813" : "#4B5563"}
+          />
         </TouchableOpacity>
       </View>
 
-      {/* CAUTION BANNER */}
-      {!isVerified && hasToken && (
-        <View style={styles.cautionBanner}>
-          <Text style={styles.cautionText}>
-            ⚠️ Your phone number is not verified. Your account may be deleted
-            soon, and some services may be unavailable.
-          </Text>
-          <Text
-            style={[
-              styles.cautionText,
-              { textDecorationLine: "underline", marginTop: 5 },
-            ]}
-            onPress={() => router.push("/Verification")}
-          >
-            Click here to verify
-          </Text>
-        </View>
+      {/* Modern Phone Verification Banner */}
+      {isAuthenticated && !isPhoneVerified && (
+        <TouchableOpacity
+          style={[
+            styles.cautionBanner,
+            {
+              backgroundColor: isDark ? "#2D2010" : "#FFFBEB",
+              borderColor: isDark ? "#78350F" : "#FEF3C7",
+            },
+          ]}
+          onPress={() => router.push("/Verification")}
+          activeOpacity={0.9}
+        >
+          <View style={styles.bannerContent}>
+            <View
+              style={[
+                styles.warningIconCircle,
+                { backgroundColor: isDark ? "#78350F" : "#FDE68A" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="shield-alert-outline"
+                size={16}
+                color={isDark ? "#FCD34D" : "#92400E"}
+              />
+            </View>
+            <Text
+              style={[
+                styles.cautionText,
+                { color: isDark ? "#FDE68A" : "#92400E" },
+              ]}
+            >
+              Verify your phone number
+            </Text>
+          </View>
+          <View style={styles.verifyLinkWrapper}>
+            <Text
+              style={[
+                styles.verifyLink,
+                { color: isDark ? "#FBBF24" : "#D97706" },
+              ]}
+            >
+              Verify
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={isDark ? "#FBBF24" : "#D97706"}
+            />
+          </View>
+        </TouchableOpacity>
       )}
     </>
   );
@@ -84,32 +139,68 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 44,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop:
+      Platform.OS === "android" ? (StatusBar.currentHeight ?? 20) + 12 : 54,
+    paddingHorizontal: 20,
+    // paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    // Shadow for iOS
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    // Elevation for Android
+    elevation: 4,
+    zIndex: 10,
   },
-  menuButton: {
-    padding: 4,
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  logoContainer: {
+  logoWrapper: {
     flex: 1,
     alignItems: "center",
-  },
-  themeToggle: {
-    padding: 4,
+    justifyContent: "center",
   },
   cautionBanner: {
-    backgroundColor: "#FFF3CD",
-    borderBottomWidth: 1,
-    borderColor: "#FFEEBA",
-    alignItems: "center",
-    paddingVertical: 8,
+    marginHorizontal: 6,
+    marginTop: 2,
+    marginBottom: 2,
+    borderRadius: 12,
+    paddingVertical: 10,
     paddingHorizontal: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  warningIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cautionText: {
-    color: "#856404",
-    fontSize: 14,
-    fontWeight: "500",
-    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: -0.2,
+  },
+  verifyLinkWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  verifyLink: {
+    fontSize: 13,
+    fontWeight: "700",
   },
 });

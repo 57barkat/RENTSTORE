@@ -51,7 +51,8 @@ const HomePage: React.FC = () => {
   const { data: apartmentsData, isLoading: apartmentsLoading } =
     useApartments();
   const { data: roomsData, isLoading: roomsLoading } = useRooms();
-  const { data: favData } = useGetUserFavoritesQuery(null);
+  const { data: favData, refetch: refetchFavorites } =
+    useGetUserFavoritesQuery(null);
 
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
@@ -59,14 +60,11 @@ const HomePage: React.FC = () => {
 
   const { start, stop, uri, isRecording } = useVoiceRecorder();
 
-  // Sync Hook URI to Local State when recording finishes
+  // Voice recording timer
   useEffect(() => {
-    if (!isRecording && uri) {
-      setLocalAudioUri(uri);
-    }
+    if (!isRecording && uri) setLocalAudioUri(uri);
   }, [isRecording, uri]);
 
-  // 15-Second Limit Logic
   useEffect(() => {
     if (isRecording) {
       setTimerCount(0);
@@ -79,9 +77,8 @@ const HomePage: React.FC = () => {
           return prev + 1;
         });
       }, 1000);
-    } else {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    }
+    } else if (intervalRef.current) clearInterval(intervalRef.current);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -104,7 +101,6 @@ const HomePage: React.FC = () => {
       }
 
       const extracted = response.filters;
-
       router.push({
         pathname: `/property/View/${extracted.type || "home"}`,
         params: {
@@ -119,7 +115,7 @@ const HomePage: React.FC = () => {
       });
 
       setLocalAudioUri(null);
-    } catch (error) {
+    } catch {
       Alert.alert(
         "Connection Error",
         "Please check your internet and try again.",
@@ -134,43 +130,65 @@ const HomePage: React.FC = () => {
     setTimerCount(0);
   };
 
-  const favoriteIds = useMemo(() => {
-    return favData?.map((f: any) => f.property?._id).filter(Boolean) || [];
-  }, [favData]);
+  const favoriteIds = useMemo(
+    () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
+    [favData],
+  );
 
   const attachFavStatus = useCallback(
-    (properties: PropertyCardProps[]) => {
-      return properties.map((p) => ({
-        ...p,
-        isFav: favoriteIds.includes(p.id),
-      }));
-    },
+    (properties: PropertyCardProps[]) =>
+      properties.map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) })),
     [favoriteIds],
   );
 
-  const homes = useMemo(
-    () => attachFavStatus(formatProperties(homesData || [], selectedCity)),
-    [homesData, selectedCity, favoriteIds, attachFavStatus],
-  );
-  const rooms = useMemo(
-    () => attachFavStatus(formatProperties(roomsData || [], selectedCity)),
-    [roomsData, selectedCity, favoriteIds, attachFavStatus],
-  );
-  const apartments = useMemo(
-    () => attachFavStatus(formatProperties(apartmentsData || [], selectedCity)),
-    [apartmentsData, selectedCity, favoriteIds, attachFavStatus],
-  );
+  const [homes, setHomes] = useState<PropertyCardProps[]>([]);
+  const [rooms, setRooms] = useState<PropertyCardProps[]>([]);
+  const [apartments, setApartments] = useState<PropertyCardProps[]>([]);
 
-  const handleToggleFav = async (propertyId: string) => {
-    const isCurrentlyFav = favoriteIds.includes(propertyId);
+  useEffect(() => {
+    setHomes(attachFavStatus(formatProperties(homesData || [], selectedCity)));
+  }, [homesData, selectedCity, favoriteIds, attachFavStatus]);
+
+  useEffect(() => {
+    setRooms(attachFavStatus(formatProperties(roomsData || [], selectedCity)));
+  }, [roomsData, selectedCity, favoriteIds, attachFavStatus]);
+
+  useEffect(() => {
+    setApartments(
+      attachFavStatus(formatProperties(apartmentsData || [], selectedCity)),
+    );
+  }, [apartmentsData, selectedCity, favoriteIds, attachFavStatus]);
+
+  const handleToggleFav = async (
+    propertyId: string,
+    section: "homes" | "rooms" | "apartments",
+  ) => {
+    const updateSection = (list: PropertyCardProps[], setList: any) => {
+      setList(
+        list.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p)),
+      );
+    };
+
     try {
+      // Update UI immediately
+      if (section === "homes") updateSection(homes, setHomes);
+      if (section === "rooms") updateSection(rooms, setRooms);
+      if (section === "apartments") updateSection(apartments, setApartments);
+
+      const isCurrentlyFav = favoriteIds.includes(propertyId);
       if (isCurrentlyFav) {
         await removeUserFavorite({ propertyId }).unwrap();
       } else {
         await addToFav({ propertyId }).unwrap();
       }
-    } catch (error) {
+
+      refetchFavorites();
+    } catch {
       Alert.alert("Error", "Could not update favorites");
+      // Revert UI on error
+      if (section === "homes") updateSection(homes, setHomes);
+      if (section === "rooms") updateSection(rooms, setRooms);
+      if (section === "apartments") updateSection(apartments, setApartments);
     }
   };
 
@@ -178,19 +196,19 @@ const HomePage: React.FC = () => {
     {
       title: "Homes",
       properties: homes,
-      queryLoading: homesLoading,
+      queryLoading: false,
       hostOption: "home",
     },
     {
       title: "Hostels",
       properties: rooms,
-      queryLoading: roomsLoading,
-      hostOption: "room",
+      queryLoading: false,
+      hostOption: "hostel",
     },
     {
       title: "Apartments",
       properties: apartments,
-      queryLoading: apartmentsLoading,
+      queryLoading: false,
       hostOption: "apartment",
     },
   ];
@@ -254,8 +272,16 @@ const HomePage: React.FC = () => {
                 `/property/View/${item.hostOption}?type=${item.hostOption}`,
               )
             }
-            onCardPress={(id) => router.push(`/property/${id}`)}
-            onToggleFav={(id) => handleToggleFav(id)}
+            onCardPress={(id: any) => router.push(`/property/${id}`)}
+            onToggleFav={(id: any) => {
+              const sectionKey =
+                item.hostOption === "home"
+                  ? "homes"
+                  : item.hostOption === "hostel"
+                    ? "rooms"
+                    : "apartments";
+              handleToggleFav(id, sectionKey);
+            }}
             cardWidth={250}
             cardHeight={200}
           />

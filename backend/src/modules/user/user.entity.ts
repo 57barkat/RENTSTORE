@@ -39,6 +39,12 @@ export class User {
   @Prop({ default: false })
   isPhoneVerified: boolean;
 
+  @Prop({ default: false })
+  isEmailVerified: boolean;
+
+  @Prop()
+  TermsAndConditionsAccepted: boolean;
+
   @Prop({ type: String })
   fcmToken?: string;
 
@@ -48,14 +54,17 @@ export class User {
   @Prop({ type: [{ type: Types.ObjectId, ref: "Property" }], default: [] })
   favorites: Types.ObjectId[];
 
-  @Prop()
-  TermsAndConditionsAccepted: boolean;
-
   @Prop({ type: String })
   refreshToken?: string;
 
-  @Prop({ type: String }) // ✅ profile image field
+  @Prop({ type: String })
   profileImage?: string;
+
+  @Prop()
+  emailVerificationCode?: string;
+
+  @Prop()
+  emailVerificationCodeExpires?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

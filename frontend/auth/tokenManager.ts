@@ -1,43 +1,75 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+/**
+ * Safely decode Base64URL strings
+ */
+export function base64UrlDecode(input: string): string {
+  try {
+    const base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
 
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+    // Browser environments
+    if (typeof atob === "function") {
+      return atob(padded);
+    }
 
-export const tokenManager = {
-  async load() {
-    if (accessToken && refreshToken) return;
+    // React Native / Node fallback
+    // @ts-ignore
+    return Buffer.from(padded, "base64").toString("utf8");
+  } catch {
+    throw new Error("Base64URL decode failed");
+  }
+}
 
-    const [[, a], [, r]] = await AsyncStorage.multiGet([
-      "accessToken",
-      "refreshToken",
-    ]);
+/**
+ * Decode JWT payload safely
+ */
+export function jwtDecode<T = any>(token: string): T {
+  if (!token || typeof token !== "string") {
+    throw new Error("Invalid JWT token");
+  }
 
-    accessToken = a;
-    refreshToken = r;
-  },
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    throw new Error("Malformed JWT");
+  }
 
-  getAccessToken() {
-    return accessToken;
-  },
+  const payload = parts[1];
+  if (!payload) {
+    throw new Error("Missing JWT payload");
+  }
 
-  getRefreshToken() {
-    return refreshToken;
-  },
+  const decoded = base64UrlDecode(payload);
 
-  async setTokens(a: string, r: string) {
-    accessToken = a;
-    refreshToken = r;
+  try {
+    return JSON.parse(decoded) as T;
+  } catch {
+    throw new Error("Invalid JWT payload JSON");
+  }
+}
 
-    await AsyncStorage.multiSet([
-      ["accessToken", a],
-      ["refreshToken", r],
-    ]);
-  },
+/**
+ * Token expiration check
+ *
+ * - Includes clock skew tolerance
+ * - Fails closed (invalid tokens = expired)
+ */
+export function isTokenExpired(
+  token: string | null,
+  skewSeconds: number = 30, // ⏱ clock drift tolerance
+): boolean {
+  if (!token) return true;
 
-  async clear() {
-    accessToken = null;
-    refreshToken = null;
+  try {
+    const decoded = jwtDecode<{ exp?: number }>(token);
 
-    await AsyncStorage.multiRemove(["accessToken", "refreshToken"]);
-  },
-};
+    if (!decoded.exp || typeof decoded.exp !== "number") {
+      return true;
+    }
+
+    const now = Date.now();
+    const expiry = decoded.exp * 1000;
+
+    return now >= expiry - skewSeconds * 1000;
+  } catch {
+    return true;
+  }
+}

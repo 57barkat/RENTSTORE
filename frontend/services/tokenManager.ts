@@ -2,37 +2,103 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const ACCESS_TOKEN_KEY = "ACCESS_TOKEN";
 const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
+const PHONE_VERIFIED_KEY = "IS_PHONE_VERIFIED";
+const USER_DATA_KEY = "USER_DATA";
 
-export const tokenManager = {
-  async load() {
-    this.accessToken = await AsyncStorage.getItem(ACCESS_TOKEN_KEY);
-    this.refreshToken = await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
-  },
+class TokenManager {
+  private accessToken: string | null = null;
+  private refreshToken: string | null = null;
+  private userData: any | null = null;
+  private loaded = false;
 
-  async setTokens(accessToken: string, refreshToken: string) {
+  async load(): Promise<void> {
+    if (this.loaded) return;
+
+    try {
+      const [access, refresh, user] = await AsyncStorage.multiGet([
+        ACCESS_TOKEN_KEY,
+        REFRESH_TOKEN_KEY,
+        USER_DATA_KEY,
+      ]);
+
+      this.accessToken = access[1];
+      this.refreshToken = refresh[1];
+      this.userData = user[1] ? JSON.parse(user[1]) : null;
+    } catch (error) {
+      console.warn("TokenManager load failed:", error);
+    } finally {
+      this.loaded = true;
+    }
+  }
+
+  async setTokens(accessToken: string, refreshToken: string): Promise<void> {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    await AsyncStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-    console.log("Storing refresh token:", accessToken);
-    console.log("Type of refresh token:", typeof refreshToken);
-    await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-  },
+    try {
+      await AsyncStorage.multiSet([
+        [ACCESS_TOKEN_KEY, accessToken],
+        [REFRESH_TOKEN_KEY, refreshToken],
+      ]);
+    } catch (error) {
+      console.warn("TokenManager setTokens failed:", error);
+    }
+  }
 
-  getAccessToken() {
+  async setUserData(user: any): Promise<void> {
+    this.userData = user;
+    try {
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
+    } catch (error) {
+      console.warn("TokenManager setUserData failed:", error);
+    }
+  }
+
+  getUserData(): any | null {
+    return this.userData;
+  }
+
+  getAccessToken(): string | null {
     return this.accessToken;
-  },
+  }
 
-  getRefreshToken() {
+  getRefreshToken(): string | null {
     return this.refreshToken;
-  },
+  }
 
-  async clear() {
+  async clear(): Promise<void> {
     this.accessToken = null;
     this.refreshToken = null;
-    await AsyncStorage.removeItem(ACCESS_TOKEN_KEY);
-    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
-  },
+    this.userData = null;
+    try {
+      await AsyncStorage.multiRemove([
+        ACCESS_TOKEN_KEY,
+        REFRESH_TOKEN_KEY,
+        PHONE_VERIFIED_KEY,
+        USER_DATA_KEY,
+      ]);
+    } catch (error) {
+      console.warn("TokenManager clear failed:", error);
+    }
+  }
 
-  accessToken: null as string | null,
-  refreshToken: null as string | null,
-};
+  async setPhoneVerified(verified: boolean) {
+    try {
+      await AsyncStorage.setItem(
+        PHONE_VERIFIED_KEY,
+        verified ? "true" : "false",
+      );
+    } catch (err) {
+      console.warn("TokenManager setPhoneVerified failed:", err);
+    }
+  }
+
+  async getPhoneVerified(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(PHONE_VERIFIED_KEY);
+    } catch (err) {
+      return null;
+    }
+  }
+}
+
+export const tokenManager = new TokenManager();

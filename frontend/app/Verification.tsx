@@ -1,183 +1,260 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { useSendOtpMutation, useVerifyOtpMutation } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function Verification() {
   const { theme } = useTheme();
-  const currentTheme = Colors[theme ?? "light"];
+  const isDark = theme === "dark";
+  const currentTheme = Colors[isDark ? "dark" : "light"];
+  const { setVerified } = useAuth();
 
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [phoneSent, setPhoneSent] = useState(false);
   const [verified, setVerifiedState] = useState(false);
-  const { setVerified } = useAuth();
+  const [isFocused, setIsFocused] = useState(false);
 
   const [sendOtp, { isLoading: sending }] = useSendOtpMutation();
   const [verifyOtp, { isLoading: verifying }] = useVerifyOtpMutation();
-  const userPhone = AsyncStorage.getItem("userPhone");
-  console.log(userPhone)
+
+  useEffect(() => {
+    const loadUserPhone = async () => {
+      const storedPhone = await AsyncStorage.getItem("userPhone");
+      if (storedPhone) setPhone(storedPhone);
+    };
+    loadUserPhone();
+  }, []);
 
   const handleSendOtp = async () => {
-    if (!phone) return;
+    if (!phone)
+      return showErrorToast("Phone Required", "Please enter your phone number");
     try {
       const res = await sendOtp({ phone }).unwrap();
-      console.log("Send OTP response:", res);
+      showSuccessToast(
+        "OTP Sent",
+        res.message || "OTP has been sent to your phone",
+      );
       setPhoneSent(true);
     } catch (err: any) {
-      console.error("Send OTP failed:", err.data || err);
+      showErrorToast(
+        "Send OTP Failed",
+        err?.data?.message || "Unable to send OTP",
+      );
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) return;
+    if (!otp) return showErrorToast("OTP Required", "Please enter OTP");
     try {
       const res = await verifyOtp({ phone, otp }).unwrap();
-      console.log("Verify OTP response:", res);
       if (res.success) {
         await setVerified(true);
         setVerifiedState(true);
+        showSuccessToast(
+          "Phone Verified",
+          "Your phone number is verified successfully",
+        );
       }
     } catch (err: any) {
-      console.error("Verify OTP failed:", err.data || err);
+      showErrorToast(
+        "Verification Failed",
+        err?.data?.message || "OTP verification failed",
+      );
     }
   };
 
   return (
-    <View
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: currentTheme.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {!verified && (
-        <>
-          <Text style={[styles.label, { color: currentTheme.text }]}>
-            Phone Number
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                borderColor: currentTheme.border,
-                color: currentTheme.text,
-                backgroundColor: currentTheme.card,
-              },
-            ]}
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            editable={!phoneSent}
-            placeholder="Enter phone number"
-            placeholderTextColor={currentTheme.muted}
-          />
-          {!phoneSent && (
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: currentTheme.primary }]}
-              onPress={handleSendOtp}
-              disabled={sending}
-            >
-              <Text style={styles.buttonText}>
-                {sending ? "Sending..." : "Send OTP"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {phoneSent && (
-            <>
-              <Text
+      <View style={styles.content}>
+        {!verified ? (
+          <>
+            {/* Header Section */}
+            <View style={styles.headerSection}>
+              <View
                 style={[
-                  styles.label,
-                  { color: currentTheme.text, marginTop: 20 },
+                  styles.iconCircle,
+                  { backgroundColor: currentTheme.primary + "15" },
                 ]}
               >
-                Enter OTP
+                <MaterialCommunityIcons
+                  name={phoneSent ? "shield-check-outline" : "cellphone-lock"}
+                  size={40}
+                  color={currentTheme.primary}
+                />
+              </View>
+              <Text style={[styles.title, { color: currentTheme.text }]}>
+                {phoneSent ? "Enter Verification Code" : "Verify Phone Number"}
+              </Text>
+              <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
+                {phoneSent
+                  ? `We've sent a 6-digit code to ${phone}`
+                  : "We need to verify your number to ensure your account security."}
+              </Text>
+            </View>
+
+            {/* Input Section */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: currentTheme.text }]}>
+                {phoneSent ? "One-Time Password" : "Phone Number"}
               </Text>
               <TextInput
                 style={[
                   styles.input,
                   {
-                    borderColor: currentTheme.border,
-                    color: currentTheme.text,
+                    borderColor: isFocused
+                      ? currentTheme.primary
+                      : currentTheme.border,
                     backgroundColor: currentTheme.card,
+                    color: currentTheme.text,
                   },
                 ]}
-                keyboardType="number-pad"
-                value={otp}
-                onChangeText={setOtp}
-                placeholder="Enter OTP"
+                keyboardType={phoneSent ? "number-pad" : "phone-pad"}
+                value={phoneSent ? otp : phone}
+                onChangeText={phoneSent ? setOtp : setPhone}
+                editable={phoneSent ? !verifying : !sending}
+                placeholder={phoneSent ? "000000" : "e.g. +1 234 567 890"}
                 placeholderTextColor={currentTheme.muted}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                maxLength={phoneSent ? 6 : 15}
               />
-              {otp.length > 0 && (
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    { backgroundColor: currentTheme.success },
-                  ]}
-                  onPress={handleVerifyOtp}
-                  disabled={verifying}
-                >
-                  <Text style={styles.buttonText}>
-                    {verifying ? "Verifying..." : "Submit OTP"}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </>
-          )}
-        </>
-      )}
+            </View>
 
-      {verified && (
-        <View style={styles.verifiedContainer}>
-          <Text style={[styles.verifiedText, { color: currentTheme.success }]}>
-            ✅ Your phone is verified!
-          </Text>
-        </View>
-      )}
-    </View>
+            {/* Action Button */}
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: currentTheme.primary },
+                (sending || verifying) && { opacity: 0.7 },
+              ]}
+              onPress={phoneSent ? handleVerifyOtp : handleSendOtp}
+              disabled={sending || verifying}
+              activeOpacity={0.8}
+            >
+              {sending || verifying ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {phoneSent ? "Confirm & Verify" : "Get Verification Code"}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {phoneSent && (
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={() => setPhoneSent(false)}
+              >
+                <Text style={{ color: currentTheme.muted }}>
+                  Wrong number?{" "}
+                  <Text
+                    style={{ color: currentTheme.primary, fontWeight: "700" }}
+                  >
+                    Edit
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+            )}
+          </>
+        ) : (
+          /* Success State */
+          <View style={styles.successWrapper}>
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={80}
+              color={currentTheme.success}
+            />
+            <Text style={[styles.successTitle, { color: currentTheme.text }]}>
+              Verified!
+            </Text>
+            <Text
+              style={[styles.successSubtitle, { color: currentTheme.muted }]}
+            >
+              Your phone number has been successfully linked to your account.
+            </Text>
+          </View>
+        )}
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  container: { flex: 1 },
+  content: { flex: 1, paddingHorizontal: 24, justifyContent: "center" },
+  headerSection: { alignItems: "center", marginBottom: 40 },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: "500",
+  title: {
+    fontSize: 24,
+    fontWeight: "800",
+    textAlign: "center",
     marginBottom: 8,
   },
+  subtitle: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: 20,
+  },
+  inputGroup: { marginBottom: 24 },
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-  button: {
-    marginTop: 15,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  verifiedContainer: {
-    marginTop: 30,
-    alignItems: "center",
-  },
-  verifiedText: {
+    borderWidth: 2,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 18,
     fontWeight: "600",
   },
+  primaryButton: {
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+  resendButton: { marginTop: 20, alignItems: "center" },
+  successWrapper: { alignItems: "center", padding: 20 },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  successSubtitle: { fontSize: 16, textAlign: "center", color: "#666" },
 });

@@ -2,6 +2,7 @@ import { ConfigService } from "@nestjs/config";
 import { Module, MiddlewareConsumer } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
+import { MailerModule } from "@nestjs-modules/mailer"; // Added
 import appConfig from "./config/app.config";
 import dbConfig from "./config/database.config";
 import { validationSchema } from "./config/validation";
@@ -26,6 +27,24 @@ import { ChatModule } from "./chat/chat.module";
       validationSchema,
     }),
 
+    MailerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>("MAIL_HOST") || "smtp.gmail.com",
+          port: config.get<number>("MAIL_PORT") || 465,
+          secure: true,
+          auth: {
+            user: config.get<string>("MAIL_USER"),
+            pass: config.get<string>("MAIL_PASS"),
+          },
+        },
+        defaults: {
+          from: config.get<string>("MAIL_FROM"),
+        },
+      }),
+    }),
+
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
@@ -41,6 +60,7 @@ import { ChatModule } from "./chat/chat.module";
         };
       },
     }),
+
     UserModule,
     ServiceModule,
     PropertyModule,

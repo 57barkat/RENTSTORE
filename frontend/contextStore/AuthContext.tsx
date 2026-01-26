@@ -1,120 +1,130 @@
 import React, {
   createContext,
   useContext,
-  useState,
   useEffect,
+  useState,
   ReactNode,
+  useCallback,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { tokenManager } from "../services/tokenManager";
 
-type AuthContextType = {
-  token: string | null;
-  isVerified: boolean;
-  hasToken: boolean;
-  loading: boolean;
-  login: (
-    accessToken: string,
-    refreshToken: string,
-    verified?: boolean
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-  setVerified: (verified: boolean) => Promise<void>;
+export type UserType = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  isPhoneVerified: boolean;
 };
 
-const AuthContext = createContext<AuthContextType>({
-  token: null,
-  isVerified: false,
-  hasToken: false,
-  loading: true,
-  login: async () => {},
-  logout: async () => {},
-  setVerified: async () => {},
-});
+type AuthContextType = {
+  user: UserType | null;
+  isAuthenticated: boolean;
+  isPhoneVerified: boolean;
+  loading: boolean;
+  login: (response: any) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshAuthState: () => Promise<void>;
+  setVerified: (status: boolean) => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(null);
-  const [isVerified, setIsVerified] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<UserType | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const refreshAuthState = useCallback(async () => {
+    await tokenManager.load();
+
+    const accessToken = tokenManager.getAccessToken();
+    const userData = tokenManager.getUserData();
+    const verified = await tokenManager.getPhoneVerified();
+
+    if (accessToken && userData) {
+      setUser(userData);
+      setIsAuthenticated(true);
+      setIsPhoneVerified(verified === "true");
+    }
+  }, []);
 
   useEffect(() => {
-    let mounted = true;
-
-    const bootstrapAuth = async () => {
+    const bootstrap = async () => {
       try {
-        const [[, accessToken], [, verified]] = await AsyncStorage.multiGet([
-          "accessToken",
-          "isVerified",
-        ]);
-
-        if (!mounted) return;
-
-        setToken(accessToken ?? null);
-        setIsVerified(verified === "true");
-      } catch (error) {
-        console.warn("Auth bootstrap error:", error);
+        await refreshAuthState();
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
-    bootstrapAuth();
+    bootstrap();
+  }, [refreshAuthState]);
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  /**
+   * ✅ Login adjusted for flat backend structure
+   */
+  const login = async (response: any) => {
+    // Extract tokens from root
+    const { accessToken, refreshToken, ...userData } = response;
 
-  const login = async (
-    accessToken: string,
-    refreshToken: string,
-    verified = false
-  ) => {
-    setToken(accessToken);
-    setIsVerified(verified);
+    if (!accessToken || !refreshToken) {
+      throw new Error("Missing tokens in server response");
+    }
 
-    await AsyncStorage.multiSet([
-      ["accessToken", accessToken],
-      ["refreshToken", refreshToken],
-      ["isVerified", verified ? "true" : "false"],
-    ]);
+    // Save to persistent storage
+    await tokenManager.setTokens(accessToken, refreshToken);
+    await tokenManager.setUserData(userData);
+    await tokenManager.setPhoneVerified(userData.isPhoneVerified);
+
+    // Update state
+    setUser(userData as UserType);
+    setIsAuthenticated(true);
+    setIsPhoneVerified(userData.isPhoneVerified);
   };
 
   const logout = async () => {
-    setToken(null);
-    setIsVerified(false);
-
-    await AsyncStorage.multiRemove([
-      "accessToken",
-      "refreshToken",
-      "isVerified",
-    ]);
+    await tokenManager.clear();
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsPhoneVerified(false);
   };
 
-  const setVerifiedFlag = async (verified: boolean) => {
-    setIsVerified(verified);
-    await AsyncStorage.setItem("isVerified", verified ? "true" : "false");
+  const setVerified = async (status: boolean) => {
+    await tokenManager.setPhoneVerified(status);
+    setIsPhoneVerified(status);
+
+    if (user) {
+      const updatedUser = { ...user, isPhoneVerified: status };
+      setUser(updatedUser);
+      await tokenManager.setUserData(updatedUser);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
 
   return (
     <AuthContext.Provider
       value={{
-        token,
-        isVerified,
-        hasToken: !!token,
+        user,
+        isAuthenticated,
+        isPhoneVerified,
         loading,
         login,
         logout,
-        setVerified: setVerifiedFlag,
+        refreshAuthState,
+        setVerified,
       }}
     >
-      {loading ? (
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      ) : (
-        children
-      )}
+      {children}
     </AuthContext.Provider>
   );
 };

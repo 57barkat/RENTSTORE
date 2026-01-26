@@ -1,35 +1,41 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-
 import * as bcrypt from "bcrypt";
-import { User, UserDocument } from "src/modules/user/user.entity";
+import { UserDocument } from "../modules/user/user.entity";
 import { UserService } from "../modules/user/user.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UserService,
-    public jwtService: JwtService,
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string): Promise<User | null> {
-    const user = await this.userService.findByEmail(email);
-    if (user && (await bcrypt.compare(password, user.password))) {
-      return user;
+  async loginWithPassword(emailOrPhone: string, password: string) {
+    const user = await this.userService.validatePassword(
+      emailOrPhone,
+      password,
+    );
+    if (!user) throw new UnauthorizedException("Invalid credentials");
+
+    if (!user.isEmailVerified) {
+      await this.userService.sendEmailVerificationCode(user.email);
+      throw new UnauthorizedException("VERIFY_EMAIL_REQUIRED");
     }
-    return null;
+
+    const tokens = await this.issueTokens(user);
+
+    return { user, tokens };
   }
 
-  async login(user: UserDocument) {
+  async issueTokens(user: UserDocument) {
     const payload = { sub: user.id, email: user.email, role: user.role };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
 
-    // Save hashed refresh token in DB
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     await this.userService.update(user.id, {
-      refreshToken: hashedRefreshToken,
+      refreshToken: await bcrypt.hash(refreshToken, 10),
     });
 
     return { accessToken, refreshToken };
@@ -39,22 +45,13 @@ export class AuthService {
     const user = await this.userService.findById(userId);
     if (!user || !user.refreshToken) throw new UnauthorizedException();
 
-    const isMatch = await bcrypt.compare(token, user.refreshToken);
-    if (!isMatch) throw new UnauthorizedException();
+    const valid = await bcrypt.compare(token, user.refreshToken);
+    if (!valid) throw new UnauthorizedException();
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
-
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-    await this.userService.update(user.id, {
-      refreshToken: hashedRefreshToken,
-    });
-
-    return { accessToken, refreshToken };
+    return this.issueTokens(user);
   }
 
   async logout(userId: string) {
-    return this.userService.update(userId, { refreshToken: undefined });
+    await this.userService.update(userId, { refreshToken: undefined });
   }
 }

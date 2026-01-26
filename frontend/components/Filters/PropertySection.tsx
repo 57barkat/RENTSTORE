@@ -12,10 +12,6 @@ import {
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import {
-  useAddToFavMutation,
-  useRemoveUserFavoriteMutation,
-} from "@/services/api";
-import {
   PropertyCardProps,
   PropertySectionProps,
 } from "@/types/TabTypes/TabTypes";
@@ -86,7 +82,7 @@ export const PropertySection: React.FC<
             >
               <Image
                 source={{ uri: item.image }}
-                style={[styles.cardImage, { height: cardHeight * 0.6 }]} // keep image height proportional
+                style={[styles.cardImage, { height: cardHeight * 0.6 }]}
                 resizeMode="cover"
               />
               <TouchableOpacity

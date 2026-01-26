@@ -1,139 +1,132 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
+  ScrollView,
   View,
-  TextInput,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   ImageBackground,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
-import { useLoginMutation } from "@/services/api";
-import { useAuth } from "@/contextStore/AuthContext";
-import Toast from "react-native-toast-message";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Feather, AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Colors } from "../constants/Colors";
 import AuthImage from "../assets/images/authimage.jpg";
-
-// --- Social Login Button ---
-// Assuming SocialButton props are defined externally, using `any` here.
-const SocialButton = ({ iconName, label, onPress }: any) => (
-  <TouchableOpacity style={socialStyles.button} onPress={onPress}>
-    {iconName === "phone" ? (
-      <Feather name="phone" size={20} color="#333" style={socialStyles.icon} />
-    ) : (
-      <AntDesign
-        name="google"
-        size={20}
-        color="#333"
-        style={socialStyles.icon}
-      />
-    )}
-    <Text style={socialStyles.buttonText}>{label}</Text>
-  </TouchableOpacity>
-);
-
-const socialStyles = StyleSheet.create({
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderColor: "#E5E7EB",
-    borderWidth: 1,
-    marginTop: 15,
-    // Modern touch with subtle shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  icon: { marginRight: 10 },
-  buttonText: { color: "#333", fontSize: 16, fontWeight: "600" },
-});
+import { useAuth } from "@/contextStore/AuthContext";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { useLoginMutation, useVerifyEmailMutation } from "@/services/api";
+import { showErrorToast, showSuccessToast } from "@/utils/toast";
+import { InputField } from "@/components/InputField";
+import { PrimaryButton } from "@/components/PrimaryButton";
+import VerificationModal from "@/components/VerificationModal";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function SignInScreen() {
-  // Added explicit string typing for state variables
-  const [emailOrPhone, setEmailOrPhone] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-
-  const [login, { isLoading }] = useLoginMutation();
-  const { login: saveToken, token } = useAuth();
   const router = useRouter();
+  const { isAuthenticated, login } = useAuth();
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [actualEmail, setActualEmail] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const [loginMutation, { isLoading }] = useLoginMutation();
+  const [verifyEmail] = useVerifyEmailMutation();
 
   useEffect(() => {
-    // Navigate to homepage if token exists
-    if (token) router.replace("/homePage");
-  }, [token]);
+    if (isAuthenticated) {
+      router.replace("/homePage");
+    }
+  }, [isAuthenticated]);
 
   const handleSignIn = async () => {
-    if (!emailOrPhone || !password) {
-      Toast.show({
-        type: "error",
-        text1: "Missing Credentials",
-        text2: "Enter email/phone and password.",
-      });
-      return;
+    if (!emailOrPhone.trim() || !password.trim()) {
+      return showErrorToast("Required", "Please enter email and password");
     }
 
     try {
-      // API call to log in
-      const res = await login({ emailOrPhone, password }).unwrap();
+      // 1. Get raw response from backend
+      const response = await loginMutation({
+        emailOrPhone,
+        password,
+      }).unwrap();
 
-      // Save tokens and phone verification status
-      await saveToken(res.accessToken, res.refreshToken, res.isPhoneVerified);
+      // 2. Process login and tokens
+      await login(response);
 
-      // Save user details to AsyncStorage
-      if (res.name && res.email) {
-        await AsyncStorage.setItem("userId", res.id);
-        await AsyncStorage.setItem("userName", res.name);
-        await AsyncStorage.setItem("userEmail", res.email);
-        await AsyncStorage.setItem("userPhone", res.phone);
-
-        await AsyncStorage.setItem(
-          "isVerified",
-          JSON.stringify(res.isPhoneVerified)
+      // 3. Check verification status directly from flat response
+      if (response.isPhoneVerified === false) {
+        showErrorToast(
+          "Phone Not Verified",
+          "Please verify your phone number to continue.",
         );
+        router.push("/Verification");
+        return;
       }
 
-      // Show success toast
-      Toast.show({
-        type: "success",
-        text1: "Login successful!",
-        text2: `Welcome back ${res.name}.`,
-      });
-
-      // Navigate to the home page
       router.replace("/homePage");
     } catch (err: any) {
-      // Show error toast on failure
-      Toast.show({
-        type: "error",
-        text1: "Login failed",
-        text2: err?.data?.message || "Please try again.",
-      });
+      const message = err?.data?.message;
+
+      if (message === "VERIFY_EMAIL_REQUIRED") {
+        setActualEmail(emailOrPhone);
+        setShowEmailModal(true);
+        return;
+      }
+
+      showErrorToast(
+        "Login Failed",
+        typeof message === "string" ? message : "Invalid credentials",
+      );
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!verificationCode.trim()) {
+      return showErrorToast("Required", "Please enter verification code");
+    }
+
+    setIsVerifying(true);
+    try {
+      const response = await verifyEmail({
+        email: actualEmail,
+        code: verificationCode,
+      }).unwrap();
+
+      showSuccessToast("Email Verified", "You are now logged in.");
+
+      setVerificationCode("");
+      setShowEmailModal(false);
+
+      // Save verified user session
+      await login(response);
+
+      router.replace("/homePage");
+    } catch (error: any) {
+      showErrorToast(
+        "Verification Failed",
+        error?.data?.message || "Invalid or expired code",
+      );
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
-      // Use 'padding' for iOS and 'height' for Android to handle keyboard
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      // Adjusted vertical offset for better placement on iOS
-      keyboardVerticalOffset={Platform.OS === "ios" ? -60 : 0}
     >
-      {/* ScrollView allows content to be pushed up and scrolled when the keyboard is open */}
       <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        keyboardShouldPersistTaps="handled" // Allows interaction outside of TextInput
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
       >
         <ImageBackground
           source={AuthImage}
@@ -141,88 +134,96 @@ export default function SignInScreen() {
           resizeMode="cover"
         >
           <View style={styles.overlay}>
-            <View style={styles.authContainer}>
-              <Text style={styles.welcomeTitle}>Welcome!</Text>
-              <Text style={styles.signInInstruction}>
-                Sign in to continue using the app
-              </Text>
-
-              {/* Email Input Field */}
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={styles.inputContainer}>
-                <MaterialCommunityIcons
-                  name="email-outline"
-                  size={20}
-                  color="#A0AEC0"
-                  style={styles.icon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email or Phone Number"
-                  placeholderTextColor="#A0AEC0"
-                  autoCapitalize="none"
-                  value={emailOrPhone}
-                  onChangeText={setEmailOrPhone}
-                  keyboardType="email-address"
-                />
-              </View>
-
-              {/* Password Input Field */}
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={styles.inputContainer}>
-                <Feather
-                  name="lock"
-                  size={20}
-                  color="#A0AEC0"
-                  style={styles.icon}
-                />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Password"
-                  placeholderTextColor="#A0AEC0"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                />
-              </View>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={handleSignIn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.loginButtonText}>Login</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Sign Up Link */}
-              <View style={styles.signUpRow}>
-                <Text style={styles.linkTextBase}>
-                  Don&apos;t have an account?
+            <View
+              style={[
+                styles.formContainer,
+                { backgroundColor: currentTheme.card },
+              ]}
+            >
+              <View style={styles.headerSection}>
+                <Text style={[styles.title, { color: currentTheme.text }]}>
+                  Welcome Back
                 </Text>
-                {/* Note: Ensure Link is correctly imported from expo-router */}
-                <Link href="/choose-role">
-                  <Text style={styles.linkTextHighlight}> Sign up</Text>
-                </Link>
+                <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
+                  Login to continue
+                </Text>
               </View>
 
-              {/* Social Buttons (Commented out in original) */}
-              {/* <SocialButton
-                iconName="phone"
-                label="Continue with phone number"
-                onPress={() => console.log("Phone")}
+              <View style={styles.inputGroup}>
+                <InputField
+                  icon={
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={22}
+                      color={currentTheme.muted}
+                    />
+                  }
+                  placeholder="Email or Phone"
+                  value={emailOrPhone}
+                  onChange={setEmailOrPhone}
+                  backgroundColor={currentTheme.background}
+                  textColor={currentTheme.text}
+                />
+
+                <InputField
+                  icon={
+                    <Feather name="lock" size={20} color={currentTheme.muted} />
+                  }
+                  placeholder="Password"
+                  value={password}
+                  onChange={setPassword}
+                  secureTextEntry={!showPassword}
+                  backgroundColor={currentTheme.background}
+                  textColor={currentTheme.text}
+                  rightIcon={
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Feather
+                        name={showPassword ? "eye" : "eye-off"}
+                        size={18}
+                        color={currentTheme.muted}
+                      />
+                    </TouchableOpacity>
+                  }
+                />
+              </View>
+
+              <PrimaryButton
+                title="Login"
+                onPress={handleSignIn}
+                loading={isLoading}
               />
-              <SocialButton
-                iconName="google"
-                label="Continue with Google"
-                onPress={() => console.log("Google")}
-              /> */}
+
+              <TouchableOpacity
+                style={styles.footerLink}
+                onPress={() => router.push("/signup")}
+              >
+                <Text style={{ color: currentTheme.muted }}>
+                  Don&apos;t have an account?{" "}
+                  <Text
+                    style={{
+                      color: currentTheme.primary,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Sign Up
+                  </Text>
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
+
+          <VerificationModal
+            visible={showEmailModal}
+            theme={currentTheme}
+            email={actualEmail}
+            code={verificationCode}
+            setCode={setVerificationCode}
+            loading={isVerifying}
+            onVerify={handleVerifyEmail}
+            onCancel={() => setShowEmailModal(false)}
+          />
         </ImageBackground>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -233,105 +234,35 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: "100%",
-    height: "100%",
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)", // Darkened overlay for better contrast
-    justifyContent: "flex-end", // Anchors the auth container to the bottom
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
   },
-  scrollViewContent: {
-    flexGrow: 1, // Ensures ScrollView takes full height
-    // Removed justifyContent: "center" here, as 'overlay' handles vertical positioning
-  },
-  authContainer: {
-    // Responsive card design anchored at the bottom
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 32, // Increased radius for a softer look
+  formContainer: {
+    borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    paddingHorizontal: 25, // Slightly reduced horizontal padding
-    paddingTop: 40, // Increased top padding
-    paddingBottom: Platform.OS === "ios" ? 50 : 30, // Platform-specific bottom padding
-    // minHeight: "65%", // Set a smaller minimum height to be more flexible
-    width: "100%",
-    // Enhanced Shadow for a lifted card effect (Modern Aesthetic)
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 20,
+    paddingHorizontal: 28,
+    paddingTop: 45,
+    paddingBottom: Platform.OS === "ios" ? 60 : 40,
   },
-  welcomeTitle: {
-    fontSize: 30, // Slightly larger title
-    fontWeight: "800", // Bolder
-    color: "#1A202C",
-    marginBottom: 4,
+  headerSection: {
+    marginBottom: 30,
   },
-  signInInstruction: {
-    fontSize: 15,
-    color: "#718096", // Softer instruction text
-    marginBottom: 30, // Increased spacing after instruction
+  title: {
+    fontSize: 32,
+    fontWeight: "800",
   },
-  inputLabel: {
-    fontSize: 14,
-    color: "#4A5568",
-    fontWeight: "600",
-    marginBottom: 8,
-    marginTop: 15,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#CBD5E0", // Lighter, more subtle border
-    borderRadius: 16, // Larger radius for a modern pill shape
-    paddingHorizontal: 15,
-    marginBottom: 10,
-    backgroundColor: "#FFFFFF", // Ensure clear background
-    height: 55, // Fixed height for consistency
-    // Subtle inner shadow effect
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 1,
-    elevation: 0.5,
-  },
-  icon: { marginRight: 12 }, // More space for icon
-  input: {
-    flex: 1,
-    paddingVertical: 10,
+  subtitle: {
     fontSize: 16,
-    color: "#1A202C",
   },
-  loginButton: {
-    backgroundColor: "#2B6CB0", // A bolder blue
-    paddingVertical: 16, // More vertical padding
-    borderRadius: 16,
+  inputGroup: {
+    gap: 16,
+    marginBottom: 25,
+  },
+  footerLink: {
+    marginTop: 25,
     alignItems: "center",
-    marginTop: 30, // More margin above button
-    marginBottom: 10,
-    // Stronger button shadow
-    shadowColor: "#2B6CB0",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  loginButtonText: {
-    color: "#fff",
-    fontWeight: "800", // Extra bold text
-    fontSize: 18,
-  },
-  signUpRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 20,
-    marginBottom: 15,
-  },
-  linkTextBase: { fontSize: 15, color: "#4A5568" },
-  linkTextHighlight: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#2B6CB0",
   },
 });

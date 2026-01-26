@@ -47,8 +47,8 @@ const PropertiesPage: React.FC = () => {
       beds?: string;
       bathrooms?: string;
     }>();
-
   const [hostOption, setHostOption] = useState(type ?? "home");
+  console.log("Navigation Params:", hostOption);
 
   const [filters, setFilters] = useState<Filters>({
     city: city || undefined,
@@ -151,6 +151,7 @@ const PropertiesPage: React.FC = () => {
   };
 
   const selectedChips = buildSelectedChips(hostOption, filters);
+  console.log("Selected Chips:", selectedChips);
 
   const handleToggleFav = async (propertyId: string) => {
     const property = allProperties.find((p) => p.id === propertyId);

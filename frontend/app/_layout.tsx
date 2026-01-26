@@ -30,28 +30,33 @@ const AppContent = () => {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  const { hasToken, loading } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const [redirectDone, setRedirectDone] = useState(false);
 
+  /**
+   * Redirect logic
+   *  - If not authenticated, go to signin
+   *  - If authenticated, go to homePage
+   */
   useEffect(() => {
     if (!fontsLoaded || loading || redirectDone) return;
 
     const currentPath = segments.join("/");
 
-    if (!hasToken) {
+    if (!isAuthenticated) {
       router.replace("/signin");
       setRedirectDone(true);
       return;
     }
 
-    if (hasToken && currentPath !== "homePage") {
+    if (isAuthenticated && currentPath !== "homePage") {
       router.replace("/homePage");
       setRedirectDone(true);
     }
-  }, [fontsLoaded, loading, hasToken, segments, redirectDone]);
+  }, [fontsLoaded, loading, isAuthenticated, segments, redirectDone]);
 
   if (!fontsLoaded || loading) {
     return (
@@ -61,7 +66,8 @@ const AppContent = () => {
     );
   }
 
-  const hideHeaderScreens = [
+  // Screens where Header should be hidden
+  const hideHeaderScreens = new Set([
     "signin",
     "signup",
     "choose-role",
@@ -69,10 +75,9 @@ const AppContent = () => {
     "property/[id]",
     "property/edit/[id]",
     "property/View/[type]",
-  ];
-
+  ]);
   const currentSegment = segments[segments.length - 1];
-  const hideHeader = hideHeaderScreens.includes(currentSegment);
+  const hideHeader = hideHeaderScreens.has(currentSegment);
 
   return (
     <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
@@ -80,16 +85,21 @@ const AppContent = () => {
       <Sidebar />
 
       <Stack screenOptions={{ headerShown: false }}>
+        {/* Auth / User */}
         <Stack.Screen name="signin" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="choose-role" />
         <Stack.Screen name="Verification" />
+
+        {/* Properties */}
         <Stack.Screen name="property/[id]" />
         <Stack.Screen name="property/View/[type]" />
         <Stack.Screen name="property/edit/[id]" />
         <Stack.Screen name="MyListingsScreen" />
         <Stack.Screen name="DraftProperties" />
         <Stack.Screen name="upload" />
+
+        {/* Misc */}
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />
         <Stack.Screen name="ChatListScreen" />

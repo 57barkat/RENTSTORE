@@ -1,18 +1,17 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
-import Constants from "expo-constants";
 
 export const API_URL =
-  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000";
-
-/* ----------------------------------------------------
-   RAW BASE QUERY
----------------------------------------------------- */
+  process.env.EXPO_PUBLIC_API_URL ||
+  "http://172.16.18.99:3000" ||
+  "http://10.98.91.143:3000";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
-  prepareHeaders: (headers) => {
+  prepareHeaders: async (headers) => {
+    // Ensure tokens are loaded from storage
+    await tokenManager.load();
     const token = tokenManager.getAccessToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -21,18 +20,12 @@ const rawBaseQuery = fetchBaseQuery({
   },
 });
 
-/* ----------------------------------------------------
-   SINGLE-FLIGHT REFRESH
----------------------------------------------------- */
-
 let refreshPromise: Promise<void> | null = null;
 
 const refreshTokens = async (api: any, extraOptions: any) => {
   const refreshToken = tokenManager.getRefreshToken();
-
   if (!refreshToken) {
     await tokenManager.clear();
-    api.dispatch({ type: "auth/logout" });
     return;
   }
 
@@ -51,21 +44,14 @@ const refreshTokens = async (api: any, extraOptions: any) => {
     await tokenManager.setTokens(accessToken, newRefresh);
   } else {
     await tokenManager.clear();
-    api.dispatch({ type: "auth/logout" });
   }
 };
 
 const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
   await tokenManager.load();
-
   const accessToken = tokenManager.getAccessToken();
 
-  /**
-   * 🟢 PRE-EMPTIVE REFRESH
-   * Happens BEFORE request
-   * No 401 delay
-   */
-  if (isTokenExpired(accessToken)) {
+  if (accessToken && isTokenExpired(accessToken)) {
     if (!refreshPromise) {
       refreshPromise = refreshTokens(api, extraOptions).finally(() => {
         refreshPromise = null;
@@ -74,16 +60,10 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
     await refreshPromise;
   }
 
-  let result = await rawBaseQuery(args, api, extraOptions);
-
-  /**
-   * 🔴 HARD FAILURE (token invalid / revoked)
-   */
+  const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
     await tokenManager.clear();
-    api.dispatch({ type: "auth/logout" });
   }
-
   return result;
 };
 
@@ -92,48 +72,28 @@ export const api = createApi({
   baseQuery: baseQueryWithRefresh,
   tagTypes: ["Property", "Favorites", "User"],
   endpoints: (builder) => ({
-    /* ---------- AUTH ---------- */
-
     createUser: builder.mutation({
-      query: (body) => ({
-        url: "/api/v1/users/signup",
-        method: "POST",
-        body,
-      }),
+      query: (body) => ({ url: "/api/v1/users/signup", method: "POST", body }),
     }),
-
     login: builder.mutation({
-      query: (body) => ({
-        url: "/api/v1/users/login",
-        method: "POST",
-        body,
-      }),
-      async onQueryStarted(_, { queryFulfilled }) {
-        const { data } = await queryFulfilled;
-        await tokenManager.setTokens(data.accessToken, data.refreshToken);
-      },
+      query: (body) => ({ url: "/api/v1/users/login", method: "POST", body }),
     }),
     deleteUser: builder.mutation({
       query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
     }),
-
-    // 🔹 PROPERTY MUTATIONS
     createProperty: builder.mutation({
       query: (body) => {
         const formData = new FormData();
-
         Object.entries(body).forEach(([key, value]) => {
           if (key === "photos") return;
-
           if (value !== undefined && value !== null) {
             if (typeof value === "object") {
-              formData.append(key, JSON.stringify(value ?? []));
+              formData.append(key, JSON.stringify(value));
             } else {
               formData.append(key, String(value));
             }
           }
         });
-
         if (Array.isArray(body.photos)) {
           body.photos.forEach((uri: string, idx: number) => {
             formData.append("photos", {
@@ -143,7 +103,6 @@ export const api = createApi({
             } as any);
           });
         }
-
         return {
           url: "/api/v1/properties/create",
           method: "POST",
@@ -161,8 +120,6 @@ export const api = createApi({
     findPropertyByIdAndDelete: builder.mutation({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "DELETE" }),
     }),
-
-    // 🔹 PROPERTY QUERIES
     findMyProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/my-listings", method: "GET" }),
     }),
@@ -179,58 +136,39 @@ export const api = createApi({
             query.append(key, String(value));
           }
         });
-
-        if (params.hostOption) {
-          return {
-            url: `/api/v1/properties/type/${
-              params.hostOption
-            }?${query.toString()}`,
-            method: "GET",
-          };
-        }
-
-        return {
-          url: `/api/v1/properties?${query.toString()}`,
-          method: "GET",
-        };
+        const url = params.hostOption
+          ? `/api/v1/properties/type/${params.hostOption}?${query.toString()}`
+          : `/api/v1/properties?${query.toString()}`;
+        return { url, method: "GET" };
       },
     }),
-
     getFilterOptions: builder.query({
       query: () => ({ url: "/api/v1/properties/filters", method: "GET" }),
     }),
     getFilteredProperties: builder.query({
       query: (params) => {
         const queryParams = new URLSearchParams();
-
         if (params) {
           Object.entries(params).forEach(([key, value]) => {
             if (value === undefined || value === null) return;
-
-            // Convert arrays to comma-separated strings
-            if (Array.isArray(value)) {
-              queryParams.append(key, value.join(","));
-            } else {
-              queryParams.append(key, String(value));
-            }
+            queryParams.append(
+              key,
+              Array.isArray(value) ? value.join(",") : String(value),
+            );
           });
         }
-
         return {
           url: `/api/v1/properties/search?${queryParams.toString()}`,
           method: "GET",
         };
       },
     }),
-
     getFeaturedProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/featured", method: "GET" }),
     }),
     getDraftProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/drafts", method: "GET" }),
     }),
-
-    // 🔹 FAVORITES
     getUserFavorites: builder.query({ query: () => "/api/v1/favorites" }),
     AddToFav: builder.mutation({
       query: ({ propertyId }) => ({
@@ -244,8 +182,6 @@ export const api = createApi({
         method: "DELETE",
       }),
     }),
-
-    // 🔹 OTP LOGIN
     sendOtp: builder.mutation({
       query: ({ phone }) => ({
         url: "/api/v1/auth/send-otp",
@@ -260,51 +196,33 @@ export const api = createApi({
         body: { phone, otp },
       }),
     }),
-
-    // 🔹 GOOGLE LOGIN
     loginWithGoogle: builder.mutation({
       query: (body) => ({ url: "/api/v1/users/google", method: "POST", body }),
     }),
     getUserStats: builder.query({
-      query: () => ({
-        url: "/api/v1/user/stats",
-        method: "GET",
-      }),
+      query: () => ({ url: "/api/v1/user/stats", method: "GET" }),
     }),
-
     uploadProfileImage: builder.mutation({
-      query: (formData: FormData | null) => {
-        return {
-          url: "/api/v1/user/profile-image",
-          method: "POST",
-          body: formData,
-        };
-      },
+      query: (formData: FormData | null) => ({
+        url: "/api/v1/user/profile-image",
+        method: "POST",
+        body: formData,
+      }),
     }),
     deleteProfileImage: builder.mutation<void, void>({
-      query: () => ({
-        url: "/api/v1/user/profile-image",
-        method: "DELETE",
-      }),
+      query: () => ({ url: "/api/v1/user/profile-image", method: "DELETE" }),
     }),
     voiceSearch: builder.mutation<any, { uri: string }>({
       query: ({ uri }) => {
         const formData = new FormData();
-
         formData.append("audio", {
           uri,
           name: "voice-search.m4a",
           type: "audio/m4a",
         } as any);
-
-        return {
-          url: "/api/v1/search/voice",
-          method: "POST",
-          body: formData,
-        };
+        return { url: "/api/v1/search/voice", method: "POST", body: formData };
       },
     }),
-
     verifyEmail: builder.mutation({
       query: (body) => ({
         url: "/api/v1/users/verify-email",
@@ -315,7 +233,6 @@ export const api = createApi({
   }),
 });
 
-// Export hooks
 export const {
   useCreateUserMutation,
   useLoginMutation,
