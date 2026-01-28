@@ -11,6 +11,7 @@ import {
 import Toast from "react-native-toast-message";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as NavigationBar from "expo-navigation-bar";
 
 import { store } from "../services/store";
 import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
@@ -36,12 +37,18 @@ const AppContent = () => {
   const segments = useSegments();
   const [redirectDone, setRedirectDone] = useState(false);
 
-  /**
-   * Redirect logic
-   *  - If not authenticated, go to signin
-   *  - If authenticated, go to homePage
-   */
   useEffect(() => {
+    const hideSystemUI = async () => {
+      try {
+        await NavigationBar.setVisibilityAsync("hidden");
+        await NavigationBar.setBehaviorAsync("sticky-immersive" as any);
+      } catch (e) {
+        console.warn("Navigation Bar Error: ", e);
+      }
+    };
+
+    hideSystemUI();
+
     if (!fontsLoaded || loading || redirectDone) return;
 
     const currentPath = segments.join("/");
@@ -85,21 +92,17 @@ const AppContent = () => {
       <Sidebar />
 
       <Stack screenOptions={{ headerShown: false }}>
-        {/* Auth / User */}
         <Stack.Screen name="signin" />
         <Stack.Screen name="signup" />
         <Stack.Screen name="choose-role" />
         <Stack.Screen name="Verification" />
 
-        {/* Properties */}
         <Stack.Screen name="property/[id]" />
         <Stack.Screen name="property/View/[type]" />
         <Stack.Screen name="property/edit/[id]" />
         <Stack.Screen name="MyListingsScreen" />
         <Stack.Screen name="DraftProperties" />
         <Stack.Screen name="upload" />
-
-        {/* Misc */}
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />
         <Stack.Screen name="ChatListScreen" />
