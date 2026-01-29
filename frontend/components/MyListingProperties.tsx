@@ -7,12 +7,13 @@ import {
   useWindowDimensions,
   TouchableOpacity,
   Modal,
+  RefreshControl,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useContext, useState } from "react";
+import { useContext, useState, useCallback } from "react";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import {
   useFindMyPropertiesQuery,
@@ -24,6 +25,7 @@ const MyListingProperties = () => {
   const {
     data: myProperties,
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useFindMyPropertiesQuery(undefined);
@@ -35,8 +37,16 @@ const MyListingProperties = () => {
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
-    null
+    null,
   );
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
   const handleOpenDetails = (id: string) => {
     router.push(`/property/${id}`);
@@ -72,7 +82,7 @@ const MyListingProperties = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !refreshing) {
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
@@ -114,6 +124,14 @@ const MyListingProperties = () => {
     <>
       <FlatList
         style={{ flex: 1, backgroundColor: currentTheme.background }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[currentTheme.primary]}
+            tintColor={currentTheme.primary}
+          />
+        }
         data={myProperties ?? []}
         keyExtractor={(item, index) => item._id ?? index.toString()}
         ListHeaderComponent={
@@ -179,17 +197,17 @@ const MyListingProperties = () => {
                 {renderCapacity(
                   "account-group-outline",
                   item.capacityState?.Persons,
-                  "Persons"
+                  "Persons",
                 )}
                 {renderCapacity(
                   "bed-outline",
                   item.capacityState?.beds,
-                  "Beds"
+                  "Beds",
                 )}
                 {renderCapacity(
                   "bathtub-outline",
                   item.capacityState?.bathrooms,
-                  "Baths"
+                  "Baths",
                 )}
               </View>
 
@@ -259,7 +277,6 @@ const MyListingProperties = () => {
         }}
       />
 
-      {/* DELETE CONFIRMATION MODAL */}
       <Modal visible={deleteModalVisible} transparent animationType="fade">
         <View style={modalStyles.overlay}>
           <View

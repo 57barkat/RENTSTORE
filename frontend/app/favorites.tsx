@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Text,
   View,
@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Modal,
+  RefreshControl,
 } from "react-native";
 import {
   useGetUserFavoritesQuery,
@@ -40,6 +41,13 @@ const Favorites = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await queryResult.refetch();
+    setRefreshing(false);
+  }, [queryResult]);
 
   const handleOpenDetails = (id: string) => {
     router.push(`/property/${id}`);
@@ -72,7 +80,7 @@ const Favorites = () => {
     }
   };
 
-  if (queryResult.isLoading) {
+  if (queryResult.isLoading && !refreshing) {
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
@@ -101,7 +109,7 @@ const Favorites = () => {
     ? queryResult.data
         .map((fav: any) => fav.property)
         .filter(
-          (property: Property | null): property is Property => property != null
+          (property: Property | null): property is Property => property != null,
         )
     : [];
 
@@ -211,6 +219,14 @@ const Favorites = () => {
         style={{ flex: 1, backgroundColor: currentTheme.background }}
         data={favoritesArray}
         keyExtractor={(item) => item._id}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[currentTheme.primary]}
+            tintColor={currentTheme.primary}
+          />
+        }
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <Text style={[styles.header, { color: currentTheme.text }]}>
@@ -223,7 +239,6 @@ const Favorites = () => {
         contentContainerStyle={styles.listContentContainer}
       />
 
-      {/* Delete Confirmation Modal */}
       <Modal transparent visible={showModal} animationType="fade">
         <View style={styles.modalOverlay}>
           <View
@@ -350,8 +365,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
-
-  // Modal UI
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

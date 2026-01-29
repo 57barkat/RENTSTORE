@@ -42,26 +42,45 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const currentTheme = Colors[theme ?? "light"];
+
+  // Design values
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (isRecording) {
+      // Parallel animation for a more "alive" feel
       Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.4,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(pulseAnim, {
+              toValue: 1.6,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(pulseAnim, {
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(opacityAnim, {
+              toValue: 0.3,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacityAnim, {
+              toValue: 1,
+              duration: 1000,
+              useNativeDriver: true,
+            }),
+          ]),
         ]),
       ).start();
     } else {
       pulseAnim.setValue(1);
+      opacityAnim.setValue(1);
     }
   }, [isRecording]);
 
@@ -71,10 +90,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         style={[
           styles.container,
           {
-            backgroundColor: isDark
-              ? "rgba(42, 42, 50, 0.8)"
-              : "rgba(255, 255, 255, 0.95)",
-            borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+            backgroundColor: isDark ? "rgba(30, 31, 36, 0.95)" : "#FFFFFF",
+            borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
             borderWidth: 1,
           },
         ]}
@@ -82,7 +99,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name="search-outline"
           size={20}
-          color={isDark ? "#9CA3AF" : "#6B7280"}
+          color={isDark ? "#9BA1A6" : "#6B7280"}
           style={styles.icon}
         />
 
@@ -91,13 +108,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onChangeText={onChangeText}
           placeholder={
             isRecording
-              ? `Recording... ${15 - (timer ?? 0)}s`
+              ? `Listening... ${15 - (timer ?? 0)}s`
               : hasAudio
                 ? "Voice ready to send..."
                 : placeholder
           }
-          placeholderTextColor={isRecording ? "#EF4444" : "#9CA3AF"}
-          style={[styles.input, { color: currentTheme.text }]}
+          placeholderTextColor={isRecording ? currentTheme.danger : "#9CA3AF"}
+          style={[
+            styles.input,
+            {
+              color: currentTheme.text,
+              // Soften the font weight for better readability
+              fontWeight: "400",
+            },
+          ]}
           editable={!isRecording && !hasAudio}
         />
 
@@ -109,21 +133,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   styles.pulseCircle,
                   {
                     transform: [{ scale: pulseAnim }],
-                    backgroundColor: "rgba(239, 68, 68, 0.3)",
+                    opacity: opacityAnim,
+                    backgroundColor: "rgba(239, 68, 68, 0.25)",
                   },
                 ]}
               />
             )}
             <Pressable
               onPress={isRecording ? onVoiceStop : onVoiceStart}
-              style={[
+              style={({ pressed }) => [
                 styles.micButton,
                 {
                   backgroundColor: isRecording
                     ? "#EF4444"
-                    : isDark
-                      ? "#4F46E5"
-                      : "#6366F1",
+                    : currentTheme.secondary,
+                  opacity: pressed ? 0.8 : 1,
+                  transform: [{ scale: pressed ? 0.95 : 1 }],
                 },
               ]}
             >
@@ -138,25 +163,40 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <View style={styles.reviewActions}>
             <Pressable
               onPress={onCancelVoice}
-              style={[
+              style={({ pressed }) => [
                 styles.actionBtn,
-                { backgroundColor: isDark ? "#451A1A" : "#FEE2E2" },
+                {
+                  backgroundColor: isDark ? "#451A1A" : "#FEE2E2",
+                  opacity: pressed ? 0.7 : 1,
+                },
               ]}
             >
-              <Ionicons name="trash" size={16} color="#EF4444" />
+              <Ionicons name="trash-outline" size={16} color="#EF4444" />
             </Pressable>
             <Pressable
               onPress={onSendVoice}
-              style={[styles.actionBtn, { backgroundColor: "#10B981" }]}
+              style={({ pressed }) => [
+                styles.actionBtn,
+                {
+                  backgroundColor: currentTheme.success,
+                  opacity: pressed ? 0.8 : 1,
+                },
+              ]}
             >
-              <Ionicons name="send" size={16} color="#fff" />
+              <Ionicons name="paper-plane" size={16} color="#fff" />
             </Pressable>
           </View>
         )}
 
         <View style={styles.divider} />
 
-        <Pressable onPress={onFavPress} style={styles.favButton}>
+        <Pressable
+          onPress={onFavPress}
+          style={({ pressed }) => [
+            styles.favButton,
+            { opacity: pressed ? 0.5 : 1 },
+          ]}
+        >
           <Ionicons
             name="heart-outline"
             size={22}
@@ -172,72 +212,76 @@ export default SearchBar;
 
 const styles = StyleSheet.create({
   outerContainer: {
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16, // Matching the header/host option radius style
+    borderRadius: 18,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    // Premium Shadow
+    height: 54, // Fixed height for a more stable UI feel
+    // High-end subtle shadow
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    elevation: 5,
   },
   icon: {
     marginLeft: 4,
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    fontWeight: "500",
-    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    fontSize: 15,
+    height: "100%",
+    paddingVertical: 0, // Centering text vertically on Android
   },
   micWrapper: {
     justifyContent: "center",
     alignItems: "center",
-    marginHorizontal: 8,
+    width: 40,
+    height: 40,
   },
   micButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12, // Using the same "squircle" radius as header buttons
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 2,
   },
   pulseCircle: {
     position: "absolute",
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     zIndex: 1,
   },
   reviewActions: {
     flexDirection: "row",
-    gap: 6,
-    marginRight: 8,
+    alignItems: "center",
+    gap: 8,
+    marginRight: 4,
   },
   actionBtn: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   divider: {
     width: 1,
-    height: 20,
-    backgroundColor: "rgba(156, 163, 175, 0.2)",
+    height: 24,
+    backgroundColor: "rgba(156, 163, 175, 0.15)",
     marginHorizontal: 8,
   },
   favButton: {
-    padding: 6,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

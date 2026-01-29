@@ -1,5 +1,5 @@
-export const normalizeText = (value?: string): string | undefined => {
-  if (!value || typeof value !== "string") return undefined;
+export const normalizeText = (value?: string): string => {
+  if (!value || typeof value !== "string") return "";
 
   return value
     .trim()

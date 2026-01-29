@@ -27,7 +27,7 @@ export class FavoritesController {
     const userId = req.user.userId;
     const deleted = await this.favoritesService.removeFavorite(
       userId,
-      propertyId
+      propertyId,
     );
     return { message: "Favorite removed", deleted };
   }

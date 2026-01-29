@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { RefreshControl, SafeAreaView } from "react-native";
 import {
   View,
   Text,
@@ -28,15 +29,14 @@ import { ChipKey, Filters } from "@/utils/homeTabUtils/filterUtils";
 import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 
 const { width: WINDOW_WIDTH } = Dimensions.get("window");
-const CARD_MARGIN = 5;
-const CARD_HEIGHT = 200;
-const CARD_WIDTH = (WINDOW_WIDTH - CARD_MARGIN * 3) / 2;
+const GUTTER = 16;
+const CARD_WIDTH = (WINDOW_WIDTH - GUTTER * 3) / 2;
+const IMAGE_HEIGHT = CARD_WIDTH * 1.1;
 
 const PropertiesPage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  // Params from navigation / voice redirect
   const { type, city, addressQuery, minRent, maxRent, beds, bathrooms } =
     useLocalSearchParams<{
       type: string;
@@ -47,9 +47,8 @@ const PropertiesPage: React.FC = () => {
       beds?: string;
       bathrooms?: string;
     }>();
-  const [hostOption, setHostOption] = useState(type ?? "home");
-  console.log("Navigation Params:", hostOption);
 
+  const [hostOption, setHostOption] = useState(type ?? "home");
   const [filters, setFilters] = useState<Filters>({
     city: city || undefined,
     addressQuery: addressQuery || undefined,
@@ -66,11 +65,11 @@ const PropertiesPage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [allProperties, setAllProperties] = useState<PropertyCardProps[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [addToFav] = useAddToFavMutation();
   const [removeFromFav] = useRemoveUserFavoriteMutation();
 
-  // ✅ API call including addressQuery
   const { data, isLoading, refetch } = useGetFilteredPropertiesQuery({
     hostOption,
     city: debouncedCity,
@@ -82,7 +81,7 @@ const PropertiesPage: React.FC = () => {
     page,
     limit: 10,
   });
-
+  console.log("Filtered Properties Data:", data);
   const { data: favData, refetch: refetchFavorites } =
     useGetUserFavoritesQuery(null);
 
@@ -91,7 +90,14 @@ const PropertiesPage: React.FC = () => {
     [favData],
   );
 
-  // Sync state if navigation params change
+  // Pull to Refresh Handler
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    setPage(1); // Reset page to 1 for fresh data
+    await Promise.all([refetch(), refetchFavorites()]);
+    setRefreshing(false);
+  }, [refetch, refetchFavorites]);
+
   useEffect(() => {
     if (type) setHostOption(type);
     setFilters({
@@ -105,7 +111,6 @@ const PropertiesPage: React.FC = () => {
     setPage(1);
   }, [type, city, addressQuery, minRent, maxRent, beds, bathrooms]);
 
-  // Merge new data with existing properties for infinite scroll
   useEffect(() => {
     if (data?.data) {
       const formatted = formatProperties(
@@ -130,7 +135,6 @@ const PropertiesPage: React.FC = () => {
     setLoadingMore(false);
   }, [data, favoriteIds, filters.city, filters.addressQuery, page]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [
@@ -151,71 +155,108 @@ const PropertiesPage: React.FC = () => {
   };
 
   const selectedChips = buildSelectedChips(hostOption, filters);
-  console.log("Selected Chips:", selectedChips);
 
   const handleToggleFav = async (propertyId: string) => {
     const property = allProperties.find((p) => p.id === propertyId);
     if (!property) return;
 
+    const wasFav = property.isFav;
     setAllProperties((prev) =>
-      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p)),
+      prev.map((p) => (p.id === propertyId ? { ...p, isFav: !wasFav } : p)),
     );
 
     try {
-      property.isFav
-        ? await removeFromFav({ propertyId })
-        : await addToFav({ propertyId });
+      wasFav
+        ? await removeFromFav({ propertyId }).unwrap()
+        : await addToFav({ propertyId }).unwrap();
       refetchFavorites();
     } catch {
       setAllProperties((prev) =>
-        prev.map((p) =>
-          p.id === propertyId ? { ...p, isFav: property.isFav } : p,
-        ),
+        prev.map((p) => (p.id === propertyId ? { ...p, isFav: wasFav } : p)),
       );
     }
   };
 
+  // ✅ Fixed: Removed the ScrollView wrapper from individual items
   const renderPropertyCard = (item: PropertyCardProps) => (
     <TouchableOpacity
-      key={item.id}
+      activeOpacity={0.9}
       style={{
         width: CARD_WIDTH,
-        height: CARD_HEIGHT,
         backgroundColor: currentTheme.card,
-        borderRadius: 12,
-        margin: CARD_MARGIN,
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: currentTheme.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+        elevation: 4,
         overflow: "hidden",
       }}
       onPress={() => router.push(`/property/${item.id}`)}
     >
-      <Image
-        source={{ uri: item.image }}
-        style={{ width: "100%", height: CARD_HEIGHT * 0.6 }}
-        resizeMode="cover"
-      />
-      <TouchableOpacity
-        style={{ position: "absolute", bottom: 5, right: 8, zIndex: 20 }}
-        onPress={() => handleToggleFav(item.id)}
-      >
-        <Ionicons
-          name={item.isFav ? "heart" : "heart-outline"}
-          size={24}
-          color={currentTheme.danger}
+      <View>
+        <Image
+          source={{ uri: item.image }}
+          style={{ width: "100%", height: IMAGE_HEIGHT }}
+          resizeMode="cover"
         />
-      </TouchableOpacity>
-      <View style={{ padding: 8, flex: 1, justifyContent: "space-between" }}>
+        <TouchableOpacity
+          activeOpacity={0.7}
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            borderRadius: 20,
+            padding: 6,
+            zIndex: 20,
+          }}
+          onPress={() => handleToggleFav(item.id)}
+        >
+          <Ionicons
+            name={item.isFav ? "heart" : "heart-outline"}
+            size={20}
+            color={item.isFav ? currentTheme.danger : "#11181C"}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <View style={{ padding: 12 }}>
         <Text
-          style={{ fontWeight: "700", color: currentTheme.text }}
+          style={{
+            fontSize: 11,
+            fontWeight: "700",
+            color: currentTheme.primary,
+            textTransform: "uppercase",
+            marginBottom: 2,
+          }}
+        >
+          {item.city}
+        </Text>
+        <Text
+          style={{
+            fontSize: 15,
+            fontWeight: "600",
+            color: currentTheme.text,
+            marginBottom: 8,
+          }}
           numberOfLines={1}
         >
           {item.title}
         </Text>
-        <Text style={{ fontSize: 12, color: currentTheme.muted }}>
-          {item.city}
-        </Text>
-        <Text style={{ fontWeight: "600", color: currentTheme.secondary }}>
-          Rs. {item.rent?.toLocaleString()}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+          <Text
+            style={{
+              fontSize: 16,
+              fontWeight: "800",
+              color: currentTheme.text,
+            }}
+          >
+            Rs. {item.rent?.toLocaleString()}
+          </Text>
+          <Text style={{ fontSize: 12, color: currentTheme.muted }}> /mo</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -228,7 +269,6 @@ const PropertiesPage: React.FC = () => {
           onChange={(value) => {
             setHostOption(value);
             setPage(1);
-            refetch();
           }}
           theme={currentTheme}
         />
@@ -242,21 +282,34 @@ const PropertiesPage: React.FC = () => {
       />
 
       {isLoading && page === 1 ? (
-        <ActivityIndicator
-          size="large"
-          color={currentTheme.secondary}
-          style={{ marginTop: 50 }}
-        />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color={currentTheme.primary} />
+        </View>
       ) : (
         <FlatList
           data={allProperties}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           numColumns={2}
-          contentContainerStyle={{ padding: CARD_MARGIN }}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            paddingHorizontal: GUTTER,
+          }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
           renderItem={({ item }) => renderPropertyCard(item)}
+          // ✅ Correct implementation: RefreshControl goes on the list
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[currentTheme.primary]} // Android
+              tintColor={currentTheme.primary} // iOS
+            />
+          }
           onEndReached={() => {
-            if (!loadingMore) {
+            if (!loadingMore && allProperties.length >= 10) {
               setLoadingMore(true);
               setPage((prev) => prev + 1);
             }
@@ -264,13 +317,48 @@ const PropertiesPage: React.FC = () => {
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator size="small" color={currentTheme.secondary} />
-            ) : null
+              <ActivityIndicator
+                size="small"
+                color={currentTheme.primary}
+                style={{ marginVertical: 20 }}
+              />
+            ) : (
+              <View style={{ height: 20 }} />
+            )
           }
           ListEmptyComponent={
-            <View style={{ padding: 20 }}>
-              <Text style={{ color: currentTheme.text }}>
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                marginTop: 80,
+                paddingHorizontal: 40,
+              }}
+            >
+              <Ionicons
+                name="search-outline"
+                size={60}
+                color={currentTheme.muted}
+              />
+              <Text
+                style={{
+                  color: currentTheme.text,
+                  fontSize: 18,
+                  fontWeight: "600",
+                  marginTop: 16,
+                  textAlign: "center",
+                }}
+              >
                 No properties found.
+              </Text>
+              <Text
+                style={{
+                  color: currentTheme.muted,
+                  textAlign: "center",
+                  marginTop: 8,
+                }}
+              >
+                Try adjusting your filters or search area to find more results.
               </Text>
             </View>
           }

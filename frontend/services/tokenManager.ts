@@ -96,6 +96,7 @@ class TokenManager {
     try {
       return await AsyncStorage.getItem(PHONE_VERIFIED_KEY);
     } catch (err) {
+      console.log(err);
       return null;
     }
   }

@@ -22,6 +22,7 @@ export class VoiceSearchService {
     if (!file?.path) throw new Error("Audio file path missing");
 
     try {
+      // 1️⃣ Transcribe audio to text
       const transcription = await this.audioToEnglishText(file.path);
 
       if (!transcription.trim()) {
@@ -30,7 +31,10 @@ export class VoiceSearchService {
         );
       }
 
+      // 2️⃣ Extract filters from text using AI
       const extractedFilters = await this.textToFilters(transcription);
+
+      // 3️⃣ Normalize filters for backend search
       const filters = this.normalizeFilters(extractedFilters);
 
       if (!Object.keys(filters).length) {
@@ -39,6 +43,7 @@ export class VoiceSearchService {
         );
       }
 
+      // 4️⃣ Call backend to find properties
       const result = await this.propertyService.findFiltered(
         1,
         10,
@@ -105,7 +110,7 @@ You are a speech-to-text engine.
   }
 
   /* ============================================================
-     TEXT → FILTER EXTRACTION
+     TEXT → FILTER EXTRACTION (Full Filters)
   ============================================================ */
   private async textToFilters(userText: string) {
     this.logger.log(`Extracting filters from text: ${userText}`);
@@ -123,16 +128,36 @@ You are a Pakistan Real Estate Expert.
 User text: "${userText}"
 
 TASK:
-- Extract search filters for rental properties.
-- Translate Urdu/mixed Urdu-English into English.
-- Infer city if user only mentions sector/block/society.
-- Normalize rent numbers (1 lakh = 100000, 50k = 50000).
 
-CRITICAL RULES:
-- "addressQuery" must contain ONLY the LOCAL AREA (sector/block/society).
-- DO NOT include city names in "addressQuery".
-- Remove commas, dots, slashes, hyphens, or special characters.
-- If multiple locations mentioned, return only the most specific.
+Extract search filters for rental properties.
+
+Translate Urdu/mixed Urdu-English into English.
+
+Infer city if user only mentions sector/block/society.
+
+Normalize rent numbers (1 lakh = 100000, 50k = 50000).
+
+Infer other filters if mentioned: bedrooms, bathrooms, Persons, amenities, bills, highlighted, safety.
+
+Ensure "addressQuery" contains ONLY the most specific local area (sector/block/society), never the city.
+
+If multiple locations mentioned, return only the most specific one.
+
+IMPORTANT SEARCH RULES:
+
+If the text in voice is meaningless, irrelevant, or “trash talk”, return nothing (empty JSON {}) to avoid wrong search results.
+
+Only extract filters if the user’s input is clearly about rental property needs.
+
+Remove all punctuation (., / -) from addressQuery.
+
+Trim, deduplicate, and normalize spaces.
+
+addressQuery should match partially and across multiple fields (title, location, description, address.street).
+
+City must always be prioritized; if nothing matches the addressQuery in the city, fallback to all properties in the city.
+
+Relax secondary filters (minRent, maxRent, bedrooms, bathrooms, Persons) if needed.
 
 JSON STRUCTURE:
 {
@@ -141,7 +166,14 @@ JSON STRUCTURE:
   "minRent": number,
   "maxRent": number,
   "bedrooms": number,
-  "hostOption": "home" | "room" | "apartment"
+  "bathrooms": number,
+  "Persons": number,
+  "hostOption": "home" | "hostel" | "apartment",
+  "amenities": ["string"],
+  "bills": ["string"],
+  "highlighted": ["string"],
+  "safety": ["string"],
+  "relaxed": boolean
 }
 
 Return ONLY valid JSON.
@@ -183,9 +215,6 @@ Return ONLY valid JSON.
 
   /* ============================================================
      SANITIZE ADDRESS QUERY
-     - Remove city names
-     - Remove punctuation
-     - Trim and deduplicate
   ============================================================ */
   private sanitizeAddressQuery(addressQuery: string, city: string): string {
     if (!addressQuery) return "";
@@ -221,8 +250,20 @@ Return ONLY valid JSON.
       normalized.maxRent = Number(filters.maxRent);
     if (Number.isFinite(filters.bedrooms))
       normalized.bedrooms = Number(filters.bedrooms);
+    if (Number.isFinite(filters.bathrooms))
+      normalized.bathrooms = Number(filters.bathrooms);
+    if (Number.isFinite(filters.Persons))
+      normalized.Persons = Number(filters.Persons);
     if (["home", "room", "apartment"].includes(filters.hostOption))
       normalized.hostOption = filters.hostOption;
+    if (Array.isArray(filters.amenities))
+      normalized.amenities = filters.amenities;
+    if (Array.isArray(filters.bills)) normalized.bills = filters.bills;
+    if (Array.isArray(filters.highlighted))
+      normalized.highlighted = filters.highlighted;
+    if (Array.isArray(filters.safety)) normalized.safety = filters.safety;
+    if (typeof filters.relaxed === "boolean")
+      normalized.relaxed = filters.relaxed;
 
     return normalized;
   }

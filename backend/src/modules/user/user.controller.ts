@@ -56,7 +56,12 @@ export class UserController {
   async getAll(): Promise<UserResponseDto[]> {
     return (await this.userService.findAll()).map(this.mapUser);
   }
+  // modules/user/user.controller.ts
 
+  @Post("refresh")
+  async refresh(@Body("refreshToken") token: string) {
+    return await this.authService.refresh(token);
+  }
   @UseGuards(AuthGuard("jwt"))
   @Delete("delete")
   async delete(@Req() req) {

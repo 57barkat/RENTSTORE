@@ -26,8 +26,8 @@ const NavItem: React.FC<NavItemProps> = ({
   let itemColor = item.isLogout
     ? themeColors.danger
     : isActive
-    ? themeColors.text
-    : color;
+      ? themeColors.text
+      : color;
 
   // Modified background/border for a pill-shaped effect:
   const backgroundColor = isActive ? themeColors.primary : "transparent";

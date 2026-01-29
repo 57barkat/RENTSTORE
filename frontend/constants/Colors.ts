@@ -24,6 +24,7 @@ export const Colors = {
     tabIconDefault: "#687076",
     tabIconSelected: tintColorLight,
     placeholder: "#555",
+    shadow: "rgba(15, 23, 42, 0.08)",
   },
 
   dark: {
@@ -47,6 +48,7 @@ export const Colors = {
 
     icon: "#9BA1A6",
     tabIconDefault: "#9BA1A6",
+    shadow: "rgba(0,0,0,0.6)",
     tabIconSelected: tintColorDark,
   },
 };

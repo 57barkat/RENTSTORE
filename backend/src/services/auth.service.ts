@@ -41,14 +41,22 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refresh(userId: string, token: string) {
-    const user = await this.userService.findById(userId);
-    if (!user || !user.refreshToken) throw new UnauthorizedException();
+  async refresh(token: string) {
+    console.log("Refreshing token:", token);
+    try {
+      const payload = this.jwtService.verify(token);
+      const userId = payload.sub;
 
-    const valid = await bcrypt.compare(token, user.refreshToken);
-    if (!valid) throw new UnauthorizedException();
+      const user = await this.userService.findById(userId);
+      if (!user || !user.refreshToken) throw new UnauthorizedException();
 
-    return this.issueTokens(user);
+      const valid = await bcrypt.compare(token, user.refreshToken);
+      if (!valid) throw new UnauthorizedException();
+
+      return this.issueTokens(user);
+    } catch (e) {
+      throw new UnauthorizedException("Invalid or expired refresh token");
+    }
   }
 
   async logout(userId: string) {

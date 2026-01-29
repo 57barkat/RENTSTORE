@@ -1,12 +1,24 @@
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 export default function Logo() {
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons name="home-city" size={40} color="#4F46E5" />
-      <Text style={styles.text}>
-        Rent<Text style={styles.accent}>Store</Text>
+      <MaterialCommunityIcons
+        name="home-city"
+        size={40}
+        color={currentTheme.secondary}
+      />
+      <Text style={[styles.text, { color: currentTheme.text }]}>
+        Rent
+        <Text style={[styles.accent, { color: currentTheme.secondary }]}>
+          Store
+        </Text>
       </Text>
     </View>
   );
@@ -23,10 +35,9 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#333",
     marginLeft: 8,
   },
   accent: {
-    color: "#4F46E5",
+    // Color is now handled dynamically via props
   },
 });

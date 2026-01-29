@@ -37,10 +37,9 @@ export default function Header() {
         style={[
           styles.container,
           {
-            backgroundColor: isDark
-              ? "rgba(20, 20, 25, 0.95)"
-              : "rgba(255, 255, 255, 0.98)",
+            backgroundColor: currentTheme.background,
             borderBottomColor: currentTheme.border,
+            shadowColor: currentTheme.shadow,
           },
         ]}
       >
@@ -49,11 +48,14 @@ export default function Header() {
           onPress={toggle}
           style={[
             styles.iconButton,
-            { backgroundColor: isDark ? "#2A2A32" : "#F3F4F6" },
+            {
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+            },
           ]}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
-          <Ionicons name="menu-outline" size={26} color={currentTheme.text} />
+          <Ionicons name="grid-outline" size={22} color={currentTheme.text} />
         </TouchableOpacity>
 
         {/* Center: Logo */}
@@ -61,74 +63,101 @@ export default function Header() {
           <Logo />
         </View>
 
-        {/* Right Action: Theme */}
+        {/* Right Action: Theme Toggle */}
         <TouchableOpacity
           onPress={toggleTheme}
           style={[
             styles.iconButton,
-            { backgroundColor: isDark ? "#2A2A32" : "#F3F4F6" },
+            {
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+            },
           ]}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
           <MaterialCommunityIcons
-            name={isDark ? "weather-sunny" : "weather-night"}
+            name={isDark ? "moon-waning-crescent" : "white-balance-sunny"}
             size={22}
-            color={isDark ? "#FDB813" : "#4B5563"}
+            color={isDark ? currentTheme.primary : currentTheme.accent}
           />
         </TouchableOpacity>
       </View>
 
       {/* Modern Phone Verification Banner */}
       {isAuthenticated && !isPhoneVerified && (
-        <TouchableOpacity
+        <View
           style={[
-            styles.cautionBanner,
-            {
-              backgroundColor: isDark ? "#2D2010" : "#FFFBEB",
-              borderColor: isDark ? "#78350F" : "#FEF3C7",
-            },
+            styles.bannerWrapper,
+            { backgroundColor: currentTheme.background },
           ]}
-          onPress={() => router.push("/Verification")}
-          activeOpacity={0.9}
         >
-          <View style={styles.bannerContent}>
+          <TouchableOpacity
+            style={[
+              styles.cautionBanner,
+              {
+                backgroundColor: isDark ? "#1E1A11" : "#FFFBEB", // Keeping specialized warning hues
+                borderColor: currentTheme.warning,
+              },
+            ]}
+            onPress={() => router.push("/Verification")}
+            activeOpacity={0.8}
+          >
+            <View style={styles.bannerContent}>
+              <View
+                style={[
+                  styles.warningIconCircle,
+                  { backgroundColor: isDark ? "#453008" : "#FDE68A" },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={16}
+                  color={currentTheme.warning}
+                />
+              </View>
+              <View>
+                <Text
+                  style={[
+                    styles.cautionText,
+                    { color: isDark ? currentTheme.accent : "#92400E" },
+                  ]}
+                >
+                  Security Check
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 11,
+                    color: isDark ? currentTheme.accent : "#8b4e28",
+                    fontWeight: "500",
+                  }}
+                >
+                  Verify phone to secure account
+                </Text>
+              </View>
+            </View>
             <View
               style={[
-                styles.warningIconCircle,
-                { backgroundColor: isDark ? "#78350F" : "#FDE68A" },
+                styles.verifyLinkWrapper,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255,255,255,0.05)"
+                    : "rgba(0,0,0,0.03)",
+                },
               ]}
             >
-              <MaterialCommunityIcons
-                name="shield-alert-outline"
-                size={16}
-                color={isDark ? "#FCD34D" : "#92400E"}
+              <Text
+                style={[styles.verifyLink, { color: currentTheme.warning }]}
+              >
+                Verify
+              </Text>
+              <Ionicons
+                name="arrow-forward"
+                size={14}
+                color={currentTheme.warning}
               />
             </View>
-            <Text
-              style={[
-                styles.cautionText,
-                { color: isDark ? "#FDE68A" : "#92400E" },
-              ]}
-            >
-              Verify your phone number
-            </Text>
-          </View>
-          <View style={styles.verifyLinkWrapper}>
-            <Text
-              style={[
-                styles.verifyLink,
-                { color: isDark ? "#FBBF24" : "#D97706" },
-              ]}
-            >
-              Verify
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={isDark ? "#FBBF24" : "#D97706"}
-            />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       )}
     </>
   );
@@ -140,67 +169,71 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingTop:
-      Platform.OS === "android" ? (StatusBar.currentHeight ?? 20) + 12 : 54,
+      Platform.OS === "android" ? (StatusBar.currentHeight ?? 20) + 12 : 60,
     paddingHorizontal: 20,
-    // paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    // Shadow for iOS
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    // Elevation for Android
-    elevation: 4,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
     zIndex: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   iconButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
   logoWrapper: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+  bannerWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
   cautionBanner: {
-    marginHorizontal: 6,
-    marginTop: 2,
-    marginBottom: 2,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    elevation: 2,
   },
   bannerContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
   },
   warningIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   cautionText: {
-    fontSize: 13,
-    fontWeight: "600",
-    letterSpacing: -0.2,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.3,
   },
   verifyLinkWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
   },
   verifyLink: {
-    fontSize: 13,
-    fontWeight: "700",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
 });

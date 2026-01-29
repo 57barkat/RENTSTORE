@@ -13,6 +13,7 @@ import {
   Modal,
   ActivityIndicator,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import SearchBar from "@/components/Filters/SearchBar";
@@ -40,27 +41,62 @@ const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
+  // Search & Audio States
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [timerCount, setTimerCount] = useState(0);
   const [localAudioUri, setLocalAudioUri] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: homesData, isLoading: homesLoading } = useHomes();
-  const { data: apartmentsData, isLoading: apartmentsLoading } =
-    useApartments();
-  const { data: roomsData, isLoading: roomsLoading } = useRooms();
-  const { data: favData, refetch: refetchFavorites } =
-    useGetUserFavoritesQuery(null);
+  // API Queries
+  const {
+    data: homesData,
+    isLoading: homesLoading,
+    refetch: refetchHomes,
+  } = useHomes();
+  const {
+    data: apartmentsData,
+    isLoading: apartmentsLoading,
+    refetch: refetchApartments,
+  } = useApartments();
+  const {
+    data: roomsData,
+    isLoading: roomsLoading,
+    refetch: refetchRooms,
+  } = useRooms();
+  const {
+    data: favData,
+    isLoading: favLoading,
+    refetch: refetchFavorites,
+  } = useGetUserFavoritesQuery(null);
 
+  // Mutations
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
   const [voiceSearch] = useVoiceSearchMutation();
 
   const { start, stop, uri, isRecording } = useVoiceRecorder();
 
-  // Voice recording timer
+  // Refresh Logic
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchHomes(),
+        refetchApartments(),
+        refetchRooms(),
+        refetchFavorites(),
+      ]);
+    } catch (error) {
+      console.error("Refresh failed", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchHomes, refetchApartments, refetchRooms, refetchFavorites]);
+
+  // Voice Recording Timer Effect
   useEffect(() => {
     if (!isRecording && uri) setLocalAudioUri(uri);
   }, [isRecording, uri]);
@@ -84,6 +120,7 @@ const HomePage: React.FC = () => {
     };
   }, [isRecording]);
 
+  // Voice Search Handler
   const handleSendVoice = async () => {
     if (!localAudioUri) return;
     setIsProcessing(true);
@@ -131,6 +168,7 @@ const HomePage: React.FC = () => {
     setTimerCount(0);
   };
 
+  // Favorites logic
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
     [favData],
@@ -171,7 +209,6 @@ const HomePage: React.FC = () => {
     };
 
     try {
-      // Update UI immediately
       if (section === "homes") updateSection(homes, setHomes);
       if (section === "rooms") updateSection(rooms, setRooms);
       if (section === "apartments") updateSection(apartments, setApartments);
@@ -182,40 +219,54 @@ const HomePage: React.FC = () => {
       } else {
         await addToFav({ propertyId }).unwrap();
       }
-
       refetchFavorites();
     } catch {
       Alert.alert("Error", "Could not update favorites");
-      // Revert UI on error
       if (section === "homes") updateSection(homes, setHomes);
       if (section === "rooms") updateSection(rooms, setRooms);
       if (section === "apartments") updateSection(apartments, setApartments);
     }
   };
 
+  // Sections Configuration
   const sections: SectionData[] = [
     {
       title: "Homes",
       properties: homes,
-      queryLoading: false,
+      queryLoading: homesLoading, // Dynamic loading
       hostOption: "home",
     },
     {
       title: "Hostels",
       properties: rooms,
-      queryLoading: false,
+      queryLoading: roomsLoading, // Dynamic loading
       hostOption: "hostel",
     },
     {
       title: "Apartments",
       properties: apartments,
-      queryLoading: false,
+      queryLoading: apartmentsLoading, // Dynamic loading
       hostOption: "apartment",
     },
   ];
 
+  // Global Loading State for first mount
+  if ((homesLoading || apartmentsLoading || roomsLoading) && !refreshing) {
+    return (
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <ActivityIndicator size="large" color={currentTheme.primary} />
+        <Text style={{ marginTop: 10, color: currentTheme.text }}>
+          Loading Properties...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
+      {/* Processing Modal for Voice Search */}
       <Modal transparent visible={isProcessing} animationType="fade">
         <View style={styles.modalOverlay}>
           <View
@@ -237,6 +288,14 @@ const HomePage: React.FC = () => {
         keyExtractor={(item) => item.title}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[currentTheme.primary]}
+            tintColor={currentTheme.primary}
+          />
+        }
         ListHeaderComponent={
           <>
             <HostOptionsRowProps
@@ -293,6 +352,11 @@ const HomePage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",

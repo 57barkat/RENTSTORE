@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFindPropertyByIdQuery } from "@/services/api";
@@ -20,18 +21,25 @@ import {
   MaterialCommunityIcons,
   MaterialIcons,
   Feather,
+  Ionicons,
 } from "@expo/vector-icons";
 import { useCreateRoomMutation } from "@/hooks/chat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const options = { headerShown: false };
 
+// Helper for currency formatting
+const formatPrice = (amount: number | string | undefined) => {
+  if (amount === undefined || amount === null) return "N/A";
+  const num = typeof amount === "string" ? parseInt(amount) : amount;
+  return `Rs. ${num.toLocaleString()}`;
+};
+
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
-  const currentTheme = Colors[theme];
+  const currentTheme = Colors[theme ?? "light"];
   const { data: property, isLoading } = useFindPropertyByIdQuery(id);
-  console.log("Property ID:", property);
   const window = useWindowDimensions();
   const router = useRouter();
   const [createRoom] = useCreateRoomMutation();
@@ -42,130 +50,80 @@ export default function PropertyDetails() {
       const ownerId = property?.ownerId;
 
       if (!userId || !ownerId) {
-        console.warn("Cannot create chat: missing participants");
+        alert("Please login to contact the owner");
         return;
       }
 
-      // Make sure participants array is unique
       const participants = Array.from(new Set([userId, ownerId]));
+      const room: any = await createRoom({ participants }).unwrap();
 
-      // Create or get room
-      const room: { _id: string } = await createRoom({ participants }).unwrap();
       router.push({
         pathname: "/chat/[roomId]",
         params: { roomId: room._id, otherUserId: ownerId },
       });
     } catch (err: any) {
-      console.error("Chat creation error:", err?.message || err);
+      console.error("Chat Error:", err);
     }
   };
 
-  const getResponsiveSizes = () => {
-    const isSmallPhone = window.width < 375;
-    const isTablet = window.width >= 768;
-    const baseFontSize = window.width * 0.04;
-
-    return {
-      containerPadding: isTablet ? window.width * 0.08 : 20,
-      titleFontSize: baseFontSize * (isSmallPhone ? 1.4 : 1.6),
-      carouselHeight: isTablet ? window.height * 0.45 : window.height * 0.38,
-    };
-  };
-
-  const sizes = getResponsiveSizes();
-
-  const dynamicStyles = getDynamicStyles(window, sizes, currentTheme);
-
   const handleMapRedirect = () => {
     if (property?.lat && property?.lng) {
-      const scheme = Platform.select({
-        ios: "maps:0,0?q=",
-        android: "geo:0,0?q=",
-      });
       const latLng = `${property.lat},${property.lng}`;
-      const label = property.title;
       const url = Platform.select({
-        ios: `${scheme}${label}@${latLng}`,
-        android: `${scheme}${latLng}(${label})`,
+        ios: `maps:0,0?q=${property.title}@${latLng}`,
+        android: `geo:0,0?q=${latLng}(${property.title})`,
       });
       if (url) Linking.openURL(url);
     }
   };
 
-  if (isLoading || !property) {
+  if (isLoading) {
     return (
       <View
-        style={[
-          dynamicStyles.center,
-          { backgroundColor: currentTheme.background },
-        ]}
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
-        <Text style={{ color: currentTheme.muted }}>
-          {isLoading ? "Loading Property..." : "Property not found"}
-        </Text>
+        <ActivityIndicator size="large" color={currentTheme.primary} />
       </View>
     );
   }
 
-  const {
-    title,
-    location,
-    monthlyRent,
-    weeklyRent,
-    dailyRent,
-    SecuritybasePrice,
-    ALL_BILLS,
-    amenities,
-    capacityState,
-    description,
-    photos,
-  } = property;
-
-  const renderCapacity = (
-    label: string,
-    value: number | string | undefined,
-    icon: any
-  ) => (
-    <View style={dynamicStyles.capacityItem}>
-      <View style={dynamicStyles.capacityCircle}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={22}
-          color={currentTheme.primary}
-        />
-      </View>
-      <Text style={[dynamicStyles.capacityValue, { color: currentTheme.text }]}>
-        {value ?? "-"}
-      </Text>
-      <Text
-        style={[dynamicStyles.capacityLabel, { color: currentTheme.muted }]}
+  if (!property) {
+    return (
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
-        {label}
-      </Text>
-    </View>
-  );
+        <Text style={{ color: currentTheme.text }}>Property not found</Text>
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaView style={dynamicStyles.safeArea}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <StatusBar
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
       />
 
+      {/* Custom Header with Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="chevron-back" size={28} color="black" />
+      </TouchableOpacity>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <View style={{ height: sizes.carouselHeight }}>
-          {photos?.length ? (
+        {/* Top Image Section */}
+        <View style={{ height: window.height * 0.4 }}>
+          {property.photos?.length ? (
             <ImageCarousel
-              media={photos.map((uri: string) => ({ uri, type: "image" }))}
+              media={property.photos.map((uri: string) => ({
+                uri,
+                type: "image",
+              }))}
             />
           ) : (
             <View
-              style={[
-                dynamicStyles.noImage,
-                { backgroundColor: currentTheme.card },
-              ]}
+              style={[styles.noImage, { backgroundColor: currentTheme.card }]}
             >
               <MaterialCommunityIcons
                 name="image-off-outline"
@@ -176,118 +134,144 @@ export default function PropertyDetails() {
           )}
         </View>
 
-        <View style={dynamicStyles.detailsBox}>
-          <View style={dynamicStyles.handle} />
-          <Text style={[dynamicStyles.title, { color: currentTheme.text }]}>
-            {title}
+        {/* Content Box */}
+        <View
+          style={[
+            styles.detailsBox,
+            { backgroundColor: currentTheme.background },
+          ]}
+        >
+          <View
+            style={[styles.handle, { backgroundColor: currentTheme.border }]}
+          />
+
+          <Text style={[styles.title, { color: currentTheme.text }]}>
+            {property.title}
           </Text>
 
           <TouchableOpacity
             onPress={handleMapRedirect}
-            style={dynamicStyles.locationRow}
+            style={styles.locationRow}
           >
-            <MaterialIcons
-              name="location-on"
-              size={16}
-              color={currentTheme.primary}
-            />
-            <Text
-              style={[
-                dynamicStyles.locationText,
-                { color: currentTheme.muted },
-              ]}
-            >
-              {location}
+            <Ionicons name="location" size={18} color={currentTheme.primary} />
+            <Text style={[styles.locationText, { color: currentTheme.muted }]}>
+              {property.location}
             </Text>
-            <Text style={dynamicStyles.mapLinkText}>View Map</Text>
+            <Text style={[styles.mapLink, { color: currentTheme.primary }]}>
+              Map
+            </Text>
           </TouchableOpacity>
 
-          <View style={dynamicStyles.card}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {[
-                { value: monthlyRent, label: "/month" },
-                { value: weeklyRent, label: "/week" },
-                { value: dailyRent, label: "/day" },
-              ].map((item, i) => (
-                <View key={i} style={dynamicStyles.priceItem}>
-                  <Text
-                    style={[
-                      dynamicStyles.priceValue,
-                      {
-                        color:
-                          i === 0 ? currentTheme.primary : currentTheme.text,
-                      },
-                    ]}
-                  >
-                    {item.value}
-                  </Text>
-                  <Text
-                    style={[
-                      dynamicStyles.priceLabel,
-                      { color: currentTheme.muted },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  {i < 2 && <View style={dynamicStyles.priceDivider} />}
-                </View>
-              ))}
-            </ScrollView>
-            <Text
-              style={[dynamicStyles.depositText, { color: currentTheme.muted }]}
-            >
-              Security Deposit:{" "}
-              <Text style={{ color: currentTheme.text, fontWeight: "600" }}>
-                {SecuritybasePrice}
+          {/* Key Features Row */}
+          <View style={styles.capacityRow}>
+            <View style={styles.capItem}>
+              <MaterialCommunityIcons
+                name="account-group-outline"
+                size={24}
+                color={currentTheme.text}
+              />
+              <Text style={[styles.capVal, { color: currentTheme.text }]}>
+                {property.capacityState?.Persons || 0}
               </Text>
+              <Text style={styles.capLabel}>Guests</Text>
+            </View>
+            <View style={styles.capItem}>
+              <MaterialCommunityIcons
+                name="bed-outline"
+                size={24}
+                color={currentTheme.text}
+              />
+              <Text style={[styles.capVal, { color: currentTheme.text }]}>
+                {property.capacityState?.beds || 0}
+              </Text>
+              <Text style={styles.capLabel}>Beds</Text>
+            </View>
+            <View style={styles.capItem}>
+              <MaterialCommunityIcons
+                name="bathtub-outline"
+                size={24}
+                color={currentTheme.text}
+              />
+              <Text style={[styles.capVal, { color: currentTheme.text }]}>
+                {property.capacityState?.bathrooms || 0}
+              </Text>
+              <Text style={styles.capLabel}>Baths</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Description Section */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              Description
+            </Text>
+            <Text style={[styles.descText, { color: currentTheme.text }]}>
+              {property.description?.overview || "No details provided."}
             </Text>
           </View>
 
-          <View style={dynamicStyles.capacityRow}>
-            {renderCapacity(
-              "Guests",
-              capacityState?.Persons,
-              "account-group-outline"
-            )}
-            {renderCapacity("Beds", capacityState?.beds, "bed-outline")}
-            {renderCapacity(
-              "Baths",
-              capacityState?.bathrooms,
-              "bathtub-outline"
-            )}
-          </View>
-
-          <View style={dynamicStyles.section}>
-            <Text style={dynamicStyles.sectionHeader}>About this space</Text>
+          {/* Pricing Details Card */}
+          <View
+            style={[
+              styles.priceCard,
+              {
+                backgroundColor: currentTheme.card,
+                borderColor: currentTheme.border,
+              },
+            ]}
+          >
             <Text
-              style={[dynamicStyles.infoText, { color: currentTheme.text }]}
+              style={[
+                styles.sectionTitle,
+                { color: currentTheme.text, marginBottom: 15 },
+              ]}
             >
-              {description?.overview || "No description available."}
+              Pricing Plan
             </Text>
+            <View style={styles.priceRow}>
+              <Text style={{ color: currentTheme.muted }}>Monthly</Text>
+              <Text style={[styles.priceText, { color: currentTheme.primary }]}>
+                {formatPrice(property.monthlyRent)}
+              </Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={{ color: currentTheme.muted }}>Weekly</Text>
+              <Text style={[styles.priceText, { color: currentTheme.text }]}>
+                {formatPrice(property.weeklyRent)}
+              </Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={{ color: currentTheme.muted }}>
+                Security Deposit
+              </Text>
+              <Text style={[styles.priceText, { color: currentTheme.text }]}>
+                {formatPrice(property.SecuritybasePrice)}
+              </Text>
+            </View>
           </View>
 
-          <View style={dynamicStyles.section}>
-            <Text style={dynamicStyles.sectionHeader}>Amenities</Text>
-            <View style={dynamicStyles.badgeContainer}>
-              {amenities?.map((item: string, i: number) => (
+          {/* Amenities */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              Amenities
+            </Text>
+            <View style={styles.amenityGrid}>
+              {property.amenities?.map((item: string, i: number) => (
                 <View
                   key={i}
                   style={[
-                    dynamicStyles.badge,
+                    styles.amenityBadge,
                     { backgroundColor: currentTheme.card },
                   ]}
                 >
                   <Feather
-                    name="check"
-                    size={12}
+                    name="check-circle"
+                    size={14}
                     color={currentTheme.primary}
-                    style={{ marginRight: 6 }}
                   />
                   <Text
-                    style={[
-                      dynamicStyles.badgeText,
-                      { color: currentTheme.text },
-                    ]}
+                    style={[styles.amenityText, { color: currentTheme.text }]}
                   >
                     {item}
                   </Text>
@@ -296,28 +280,27 @@ export default function PropertyDetails() {
             </View>
           </View>
 
-          <View style={dynamicStyles.section}>
-            <Text style={dynamicStyles.sectionHeader}>Bills Included</Text>
-            <View style={dynamicStyles.badgeContainer}>
-              {ALL_BILLS?.map((bill: string, i: number) => (
+          {/* Bills */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              Included in Rent
+            </Text>
+            <View style={styles.amenityGrid}>
+              {property.ALL_BILLS?.map((bill: string, i: number) => (
                 <View
                   key={i}
                   style={[
-                    dynamicStyles.badge,
-                    { backgroundColor: currentTheme.primary + "10" },
+                    styles.billBadge,
+                    { backgroundColor: currentTheme.primary + "15" },
                   ]}
                 >
-                  <Feather
-                    name="zap"
-                    size={12}
+                  <MaterialCommunityIcons
+                    name="lightning-bolt"
+                    size={14}
                     color={currentTheme.primary}
-                    style={{ marginRight: 6 }}
                   />
                   <Text
-                    style={[
-                      dynamicStyles.badgeText,
-                      { color: currentTheme.primary },
-                    ]}
+                    style={[styles.billText, { color: currentTheme.primary }]}
                   >
                     {bill}
                   </Text>
@@ -328,9 +311,10 @@ export default function PropertyDetails() {
         </View>
       </ScrollView>
 
+      {/* Persistent Footer */}
       <View
         style={[
-          dynamicStyles.footer,
+          styles.footer,
           {
             backgroundColor: currentTheme.background,
             borderTopColor: currentTheme.border,
@@ -338,143 +322,124 @@ export default function PropertyDetails() {
         ]}
       >
         <View>
-          <Text
-            style={[dynamicStyles.footerPrice, { color: currentTheme.text }]}
-          >
-            {monthlyRent}
+          <Text style={[styles.footerPrice, { color: currentTheme.text }]}>
+            {formatPrice(property.monthlyRent)}
           </Text>
           <Text style={{ color: currentTheme.muted, fontSize: 12 }}>
-            Total per month
+            Available Now
           </Text>
         </View>
         <TouchableOpacity
-          style={[
-            dynamicStyles.bookButton,
-            { backgroundColor: currentTheme.primary },
-          ]}
+          style={[styles.chatBtn, { backgroundColor: currentTheme.primary }]}
           onPress={handleChatOwner}
         >
-          <Text style={dynamicStyles.bookButtonText}>Chat Owner</Text>
+          <Ionicons
+            name="chatbubble-ellipses"
+            size={20}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.chatBtnText}>Chat with Owner</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
-function getDynamicStyles(window: any, sizes: any, currentTheme: any) {
-  return StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: currentTheme.background },
-    center: { flex: 1, justifyContent: "center", alignItems: "center" },
-    noImage: { flex: 1, justifyContent: "center", alignItems: "center" },
-    handle: {
-      width: 40,
-      height: 5,
-      backgroundColor: currentTheme.border,
-      borderRadius: 10,
-      alignSelf: "center",
-      marginBottom: 20,
-    },
-    detailsBox: {
-      marginTop: -30,
-      backgroundColor: currentTheme.background,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      paddingHorizontal: sizes.containerPadding,
-      paddingTop: 20,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: "800",
-      letterSpacing: -0.5,
-      marginBottom: 8,
-    },
-    locationRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginBottom: 24,
-    },
-    locationText: { fontSize: 14, marginLeft: 4, flex: 1 },
-    mapLinkText: {
-      color: currentTheme.primary,
-      fontWeight: "700",
-      fontSize: 14,
-    },
-    card: {
-      backgroundColor: currentTheme.card,
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 24,
-      borderWidth: 1,
-      borderColor: currentTheme.border,
-    },
-    priceItem: { paddingRight: 20, flexDirection: "row", alignItems: "center" },
-    priceValue: { fontSize: 18, fontWeight: "800" },
-    priceLabel: { fontSize: 12 },
-    priceDivider: {
-      width: 1,
-      height: "100%",
-      backgroundColor: currentTheme.border,
-      marginHorizontal: 10,
-    },
-    depositText: {
-      marginTop: 15,
-      paddingTop: 15,
-      borderTopWidth: 1,
-      borderTopColor: currentTheme.border,
-      fontSize: 13,
-    },
-    capacityRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: 32,
-    },
-    capacityItem: { alignItems: "center", flex: 1 },
-    capacityCircle: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      backgroundColor: currentTheme.primary + "15",
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 8,
-    },
-    capacityValue: { fontWeight: "700", fontSize: 15 },
-    capacityLabel: { fontSize: 12 },
-    section: { marginBottom: 24 },
-    sectionHeader: {
-      fontSize: 18,
-      fontWeight: "700",
-      color: currentTheme.text,
-      marginBottom: 12,
-    },
-    infoText: { fontSize: 15, lineHeight: 24, opacity: 0.9 },
-    badgeContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-    badge: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 10,
-    },
-    badgeText: { fontSize: 13, fontWeight: "600" },
-    footer: {
-      position: "absolute",
-      bottom: 0,
-      width: "100%",
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: 20,
-      paddingTop: 15,
-      paddingBottom: Platform.OS === "ios" ? 35 : 20,
-      borderTopWidth: 1,
-    },
-    footerPrice: { fontSize: 20, fontWeight: "800" },
-    bookButton: {
-      paddingHorizontal: 32,
-      paddingVertical: 16,
-      borderRadius: 16,
-    },
-    bookButtonText: { color: "#FFF", fontWeight: "700", fontSize: 16 },
-  });
-}
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  backButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 60 : 40,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    borderRadius: 20,
+    padding: 4,
+  },
+  noImage: { flex: 1, justifyContent: "center", alignItems: "center" },
+  detailsBox: {
+    marginTop: -35,
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 24,
+    paddingTop: 15,
+  },
+  handle: {
+    width: 40,
+    height: 5,
+    borderRadius: 10,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  title: { fontSize: 26, fontWeight: "800", marginBottom: 10 },
+  locationRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  locationText: { fontSize: 15, marginLeft: 6, flex: 1 },
+  mapLink: {
+    fontWeight: "bold",
+    fontSize: 15,
+    textDecorationLine: "underline",
+  },
+  capacityRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginVertical: 10,
+  },
+  capItem: { alignItems: "center" },
+  capVal: { fontSize: 18, fontWeight: "700", marginTop: 4 },
+  capLabel: { fontSize: 12, color: "#717171" },
+  divider: { height: 1, backgroundColor: "#EEEEEE", marginVertical: 20 },
+  section: { marginBottom: 30 },
+  sectionTitle: { fontSize: 19, fontWeight: "700", marginBottom: 12 },
+  descText: { fontSize: 15, lineHeight: 24, opacity: 0.8 },
+  priceCard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 30,
+  },
+  priceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  priceText: { fontWeight: "700", fontSize: 16 },
+  amenityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  amenityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  amenityText: { fontSize: 14, fontWeight: "500", marginLeft: 6 },
+  billBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  billText: { fontSize: 14, fontWeight: "700", marginLeft: 6 },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderTopWidth: 1,
+  },
+  footerPrice: { fontSize: 22, fontWeight: "900" },
+  chatBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 18,
+  },
+  chatBtnText: { color: "white", fontWeight: "800", fontSize: 16 },
+});

@@ -4,14 +4,19 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types } from "mongoose";
+import { FilterQuery, Model, Types } from "mongoose";
 
 import { CreatePropertyDto, PropertyWithFav } from "./dto/create-property.dto";
 import { CloudinaryService } from "../../services/Cloudinary Service/cloudinary.service";
 import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
-import { buildPropertyFilter } from "./utils/property-filter.util";
+import {
+  buildPropertyFilter,
+  buildSmartRelaxedFilter,
+  PropertyFilters,
+  RelaxedFilterResult,
+} from "./utils/property-filter.util";
 
 @Injectable()
 export class PropertyService {
@@ -120,7 +125,7 @@ export class PropertyService {
     const [properties, total] = await Promise.all([
       this.propertyModel
         .find(filter)
-        .sort({ featured: -1, _id: -1 }) // ✅ Featured first, then latest
+        .sort({ featured: -1, _id: -1 })
         .skip(skip)
         .limit(limit)
         .exec(),
@@ -136,49 +141,37 @@ export class PropertyService {
     };
   }
 
-  async findFiltered(page = 1, limit = 10, filters: any, userId?: string) {
-    const filter = buildPropertyFilter(filters);
+  async findFiltered(
+    page = 1,
+    limit = 10,
+    filters: PropertyFilters,
+    userId?: string,
+  ): Promise<any> {
+    const filtersCopy = { ...filters };
+    delete filtersCopy.relaxed;
 
-    const FEATURED_LIMIT = Math.floor(limit / 2);
-    const NORMAL_LIMIT = limit - FEATURED_LIMIT;
+    const result = await buildSmartRelaxedFilter(
+      this.propertyModel,
+      filtersCopy,
+    );
 
-    const featuredSkip = (page - 1) * FEATURED_LIMIT;
-    const normalSkip = (page - 1) * NORMAL_LIMIT;
-
-    const featured = await this.propertyModel
-      .find({ ...filter, featured: true })
-      .sort({ _id: -1 })
-      .skip(featuredSkip)
-      .limit(FEATURED_LIMIT)
+    const data = await this.propertyModel
+      .find(result.filter)
+      .sort({ featured: -1, _id: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
       .populate("ownerId", "name email")
       .lean();
-
-    const nonFeatured = await this.propertyModel
-      .find({ ...filter, featured: { $ne: true } })
-      .sort({ _id: -1 })
-      .skip(normalSkip)
-      .limit(NORMAL_LIMIT)
-      .populate("ownerId", "name email")
-      .lean();
-
-    let data = [...featured, ...nonFeatured];
-
-    if (userId) {
-      const favIds = await this.favService.getUserFavoriteIds(userId);
-      data = data.map((p) => ({
-        ...p,
-        isFav: favIds.includes(p._id.toString()),
-      }));
-    }
-
-    const totalCount = await this.propertyModel.countDocuments(filter);
 
     return {
       data,
-      total: totalCount,
-      page,
-      limit,
-      totalPages: Math.ceil(totalCount / limit),
+      total: result.total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(result.total / Number(limit)),
+      ignoredFilters: result.ignoredFilters,
+      relaxed: result.ignoredFilters.length > 0,
+      message: result.message,
     };
   }
 
