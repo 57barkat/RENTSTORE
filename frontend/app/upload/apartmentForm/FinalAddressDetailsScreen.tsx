@@ -25,7 +25,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
   const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "ApartmentFinalAddressDetailsScreen must be used within an FormContext"
+      "ApartmentFinalAddressDetailsScreen must be used within an FormContext",
     );
 
   const { data, updateForm, submitData } = context;
@@ -40,7 +40,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
   };
 
   const [addresses, setAddresses] = useState<Address[]>(
-    data.address?.length ? data.address : [initialAddress]
+    data.address?.length ? data.address : [initialAddress],
   );
   const [errors, setErrors] = useState<AddressErrors>({});
   const [loading, setLoading] = useState(false);
@@ -57,15 +57,15 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
     (index: number, field: keyof Address, value: string) => {
       setAddresses((prev) =>
         prev.map((addr, i) =>
-          i === index ? { ...addr, [field]: value } : addr
-        )
+          i === index ? { ...addr, [field]: value } : addr,
+        ),
       );
       setErrors((prev: any) => ({
         ...prev,
         [index]: { ...prev[index], [field]: undefined },
       }));
     },
-    []
+    [],
   );
 
   const handleNext = async () => {
@@ -132,7 +132,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
                   label="Street address"
                   value={address.street}
                   onChange={(text) => handleChange(index, "street", text)}
-                  themeColors={currentTheme}
+                  themeColors={currentTheme.text}
                 />
                 {errors[index]?.street && (
                   <Text style={styles.errorText}>{errors[index]?.street}</Text>
@@ -142,14 +142,14 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
                   label="Apartment / Suite / Unit"
                   value={address.aptSuiteUnit}
                   onChange={(text) => handleChange(index, "aptSuiteUnit", text)}
-                  themeColors={currentTheme}
+                  themeColors={currentTheme.text}
                 />
 
                 <InputField
                   label="City"
                   value={address.city}
                   onChange={(text) => handleChange(index, "city", text)}
-                  themeColors={currentTheme}
+                  themeColors={currentTheme.text}
                 />
                 {errors[index]?.city && (
                   <Text style={styles.errorText}>{errors[index]?.city}</Text>
@@ -161,7 +161,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
                   onChange={(text) =>
                     handleChange(index, "stateTerritory", text)
                   }
-                  themeColors={currentTheme}
+                  themeColors={currentTheme.text}
                 />
                 {errors[index]?.stateTerritory && (
                   <Text style={styles.errorText}>
@@ -173,7 +173,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
                   label="ZIP code"
                   value={address.zipCode}
                   onChange={(text) => handleChange(index, "zipCode", text)}
-                  themeColors={currentTheme}
+                  themeColors={currentTheme.text}
                 />
                 {errors[index]?.zipCode && (
                   <Text style={styles.errorText}>{errors[index]?.zipCode}</Text>
