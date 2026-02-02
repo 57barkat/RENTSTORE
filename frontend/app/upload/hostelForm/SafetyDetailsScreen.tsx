@@ -6,7 +6,6 @@ import { styles } from "@/styles/SafetyDetailsScreen";
 import { SAFETY_DETAILS } from "@/utils/SafetyDetails";
 import { CheckboxItem } from "@/components/UploadPropertyComponents/SafetyDetailsCheckboxItem";
 import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 
 import { Colors } from "@/constants/Colors";
@@ -24,17 +23,15 @@ const SafetyDetailsScreen: FC = () => {
 
   const context = useContext(FormContext);
   if (!context)
-    throw new Error(
-      "SafetyDetailsScreen must be used within FormProvider"
-    );
+    throw new Error("SafetyDetailsScreen must be used within FormProvider");
 
   const { data, updateForm } = context;
 
   const [checkedDetails, setCheckedDetails] = useState<Set<string>>(
-    new Set(data.safetyDetailsData?.safetyDetails ?? [])
+    new Set(data.safetyDetailsData?.safetyDetails ?? []),
   );
   const [cameraDescription, setCameraDescription] = useState(
-    data.safetyDetailsData?.cameraDescription ?? ""
+    data.safetyDetailsData?.cameraDescription ?? "",
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -69,7 +66,7 @@ const SafetyDetailsScreen: FC = () => {
         });
       }
     },
-    [checkedDetails]
+    [checkedDetails],
   );
 
   const handleModalContinue = useCallback((description: string) => {

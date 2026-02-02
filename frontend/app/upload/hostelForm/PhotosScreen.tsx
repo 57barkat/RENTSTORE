@@ -12,10 +12,6 @@ import * as ImagePicker from "expo-image-picker";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
-// import {
-//   HostelFormContext,
-//   HostelFormData,
-// } from "@/contextStore/HostelFormContext";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 
 import Toast from "react-native-toast-message";
@@ -28,15 +24,13 @@ const HostelPhotosScreen: FC = () => {
   // --- Context Consumption ---
   const context = useContext(FormContext);
   if (!context) {
-    throw new Error(
-      "HostelPhotosScreen must be used within a FormProvider"
-    );
+    throw new Error("HostelPhotosScreen must be used within a FormProvider");
   }
   const { data, updateForm } = context;
 
   // --- State Initialization ---
   const [selectedImages, setSelectedImages] = useState<ImageUriArray>(
-    data.photos || []
+    data.photos || [],
   );
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +41,8 @@ const HostelPhotosScreen: FC = () => {
       Toast.show({
         type: "error",
         text1: "Permission required",
-        text2: "You need to grant media library access to upload hostel photos.",
+        text2:
+          "You need to grant media library access to upload hostel photos.",
       });
       return;
     }
@@ -137,8 +132,8 @@ const HostelPhotosScreen: FC = () => {
           {loading
             ? "Loading..."
             : photosCount > 0
-            ? "Add more hostel photos"
-            : "Add hostel photos"}
+              ? "Add more hostel photos"
+              : "Add hostel photos"}
         </Text>
       </TouchableOpacity>
 

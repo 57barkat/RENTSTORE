@@ -5,7 +5,6 @@ import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/ListingDescriptionHighlightsScreen";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
@@ -63,15 +62,15 @@ const MealPlanAndRulesScreen: FC = () => {
 
   // State for meal plans & rules
   const [selectedMealPlans, setSelectedMealPlans] = useState<Set<string>>(
-    new Set(data.mealPlan ?? [])
+    new Set(data.mealPlan ?? []),
   );
   const [selectedRules, setSelectedRules] = useState<Set<string>>(
-    new Set(data.rules ?? [])
+    new Set(data.rules ?? []),
   );
 
   // State for highlights (correct property 'highlighted')
   const [selectedHighlights, setSelectedHighlights] = useState<Set<string>>(
-    new Set(data.description?.highlighted ?? [])
+    new Set(data.description?.highlighted ?? []),
   );
 
   // Toggle functions

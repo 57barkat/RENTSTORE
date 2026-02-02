@@ -7,7 +7,6 @@ import { CapacityState } from "@/types/PropertyDetails.types";
 import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCounterInput";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 
 const HostelPropertyDetails: FC = () => {
@@ -18,23 +17,23 @@ const HostelPropertyDetails: FC = () => {
 
   if (!context)
     throw new Error(
-      "HostelPropertyDetails must be used within a HostelFormProvider"
+      "HostelPropertyDetails must be used within a HostelFormProvider",
     );
   const { data, updateForm } = context;
 
   // Hostel capacity
   const [capacity, setCapacity] = useState<CapacityState>(
-    data.capacityState || { Persons: 1, bedrooms: 0, beds: 1, bathrooms: 1 }
+    data.capacityState || { Persons: 1, bedrooms: 0, beds: 1, bathrooms: 1 },
   );
 
   // Hostel type
   const [hostelType, setHostelType] = useState<"male" | "female" | "mixed">(
-    data.hostelType || "male"
+    data.hostelType || "male",
   );
 
   const updateCapacity = (
     key: keyof CapacityState,
-    action: "increment" | "decrement"
+    action: "increment" | "decrement",
   ) => {
     setCapacity((prev) => {
       const current = prev[key] ?? 0;

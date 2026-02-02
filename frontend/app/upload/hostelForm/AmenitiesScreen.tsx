@@ -9,7 +9,6 @@ import {
 } from "@/utils/Aminities";
 import { styles } from "@/styles/AmenitiesScreen";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
-// import { HostelFormContext, HostelFormData } from "@/contextStore/HostelFormContext";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 
 import { Colors } from "@/constants/Colors";
@@ -25,7 +24,7 @@ const HostelAmenitiesScreen: FC = () => {
 
   if (!context) {
     throw new Error(
-      "HostelAmenitiesScreen must be used within a HostelFormProvider"
+      "HostelAmenitiesScreen must be used within a HostelFormProvider",
     );
   }
 

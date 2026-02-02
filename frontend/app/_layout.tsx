@@ -21,7 +21,6 @@ import {
 } from "@/contextStore/ThemeContext";
 import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
-import { HostelFormProvider } from "@/contextStore/HostelFormContext";
 import { ApartmentFormProvider } from "@/contextStore/ApartmentFormContextType";
 import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
@@ -123,13 +122,11 @@ export default function RootLayout() {
         <AuthProvider>
           <CustomThemeProvider>
             <ApartmentFormProvider>
-              <HostelFormProvider>
-                <FormProvider>
-                  <SidebarProvider>
-                    <AppContent />
-                  </SidebarProvider>
-                </FormProvider>
-              </HostelFormProvider>
+              <FormProvider>
+                <SidebarProvider>
+                  <AppContent />
+                </SidebarProvider>
+              </FormProvider>
             </ApartmentFormProvider>
           </CustomThemeProvider>
         </AuthProvider>

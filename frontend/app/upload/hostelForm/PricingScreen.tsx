@@ -3,7 +3,6 @@ import { Text, View, TextInput, Keyboard } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -15,7 +14,7 @@ const HostelSecurityDepositScreen: FC = () => {
   const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "HostelSecurityDepositScreen must be used within a FormContext"
+      "HostelSecurityDepositScreen must be used within a FormContext",
     );
 
   const { data, updateForm } = context;
@@ -24,7 +23,7 @@ const HostelSecurityDepositScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
 
   const [deposit, setDeposit] = useState<string>(
-    data.securityDeposit !== undefined ? String(data.securityDeposit) : ""
+    data.securityDeposit !== undefined ? String(data.securityDeposit) : "",
   );
 
   const handleDepositChange = (text: string) => {

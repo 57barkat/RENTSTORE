@@ -3,7 +3,6 @@ import { Text, View, TextInput, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/ListingTitleScreen";
-// import { HostelFormContext } from "@/contextStore/HostelFormContext";
 import { FormContext } from "@/contextStore/FormContext";
 
 import { Colors } from "@/constants/Colors";
@@ -26,7 +25,7 @@ const HostelTitleScreen: FC = () => {
   const handleNext = () => {
     updateForm("title", title);
     router.push(
-      "/upload/hostelForm/ListingDescriptionHighlightsScreen" as `${string}:param`
+      "/upload/hostelForm/ListingDescriptionHighlightsScreen" as `${string}:param`,
     );
   };
 
