@@ -180,7 +180,11 @@ export class UserService {
   async findAll() {
     return this.userModel.find();
   }
-
+  async clearRefreshToken(userId: string) {
+    return this.userModel.findByIdAndUpdate(userId, {
+      $unset: { refreshToken: 1 },
+    });
+  }
   private async cleanupUnverifiedUsers() {
     await this.userModel.deleteMany({
       isEmailVerified: false,

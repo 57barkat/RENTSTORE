@@ -108,6 +108,14 @@ export class PropertyController {
       "safetyDetailsData",
     ];
     parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
+    const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
+
+    parsedDto.status = isComplete;
+
+    if (!isComplete) {
+      // Save as draft
+      return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
+    }
 
     // Photo upload
     const photoUrls = files?.photos?.length

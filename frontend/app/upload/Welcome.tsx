@@ -26,16 +26,13 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const router = useRouter();
   const formContext = useContext(FormContext);
   const [isSaving, setIsSaving] = useState(false);
-
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  // Back button
   const handleBack = () => {
     if (showBack) router.back();
   };
 
-  // Save & Exit button
   const handleExit = async () => {
     if (!formContext) {
       Toast.show({
@@ -63,7 +60,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
           text2: "Failed to save draft.",
         });
       }
-    } catch (err) {
+    } catch {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -71,24 +68,21 @@ const StepContainer: React.FC<StepContainerProps> = ({
       });
     } finally {
       setIsSaving(false);
-
-      // 🔥 Wait for toast to show
-      setTimeout(() => {
+      formContext?.clearForm();
+      if (progress >= 100) {
+        router.replace("/upload");
+      } else {
         router.replace("/homePage");
-        formContext?.clearForm();
-      }, 1000);
+      }
     }
   };
 
-  // Next / Finish button
   const handleNext = async () => {
     if (!onNext) return;
-
     try {
       setIsSaving(true);
       await onNext();
-    } catch (err) {
-      console.error(err);
+    } catch {
       Toast.show({
         type: "error",
         text1: "Error",
@@ -98,12 +92,16 @@ const StepContainer: React.FC<StepContainerProps> = ({
       setIsSaving(false);
     }
   };
+
   const handleCrossPress = () => {
-    router.push("/upload");
-    setTimeout(() => {
-      formContext?.clearForm();
-    }, 1000);
+    formContext?.clearForm();
+    if (progress >= 20) {
+      router.replace("/upload");
+    } else {
+      router.replace("/homePage");
+    }
   };
+
   const nextButtonText = progress >= 100 ? "Finish" : "Next";
 
   return (

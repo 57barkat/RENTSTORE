@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState } from "react";
+import React, { useEffect, useContext, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
+  RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors } from "@/constants/Colors";
@@ -27,7 +28,7 @@ export default function DraftProperties() {
   const currentTheme = Colors[theme ?? "light"];
   const formContext = useContext(FormContext);
   const router = useRouter();
-
+  const [refreshing, setRefreshing] = useState(false);
   const [ready, setReady] = useState(false); // Wait for token
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -47,12 +48,13 @@ export default function DraftProperties() {
   }, []);
 
   // ✅ Query only when token is ready
-  const { data, isLoading, isError, refetch } = useGetDraftPropertiesQuery(
-    undefined,
-    { skip: !ready, refetchOnMountOrArgChange: true }
-  );
+  const { data, isLoading, isError, refetch } = useGetDraftPropertiesQuery();
   const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
-
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
   const handleEdit = (data: FormData) => {
     console.log("Editing draft:", data);
     formContext?.setFullFormData({ ...data });
@@ -164,62 +166,69 @@ export default function DraftProperties() {
   );
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: currentTheme.background }]}
-    >
-      <Text style={[styles.header, { color: currentTheme.text }]}>
-        Your Drafts
-      </Text>
+    <>
+      <View
+        style={[styles.container, { backgroundColor: currentTheme.background }]}
+      >
+        <Text style={[styles.header, { color: currentTheme.text }]}>
+          Your Drafts
+        </Text>
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item._id}
+          renderItem={renderItem}
+          contentContainerStyle={{
+            paddingBottom: 80,
+            backgroundColor: currentTheme.background,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[currentTheme.primary]}
+              tintColor={currentTheme.primary}
+            />
+          }
+        />
 
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        contentContainerStyle={{
-          paddingBottom: 80,
-          backgroundColor: currentTheme.background,
-        }}
-      />
+        <Modal transparent visible={showDeleteModal} animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View
+              style={[styles.modalBox, { backgroundColor: currentTheme.card }]}
+            >
+              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
+                Confirm Deletion
+              </Text>
+              <Text style={[styles.modalText, { color: currentTheme.muted }]}>
+                Are you sure you want to delete this draft?
+              </Text>
 
-      {/* Delete Confirmation Modal */}
-      <Modal transparent visible={showDeleteModal} animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View
-            style={[styles.modalBox, { backgroundColor: currentTheme.card }]}
-          >
-            <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
-              Confirm Deletion
-            </Text>
-            <Text style={[styles.modalText, { color: currentTheme.muted }]}>
-              Are you sure you want to delete this draft?
-            </Text>
-
-            <View style={styles.modalButtonsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.modalBtn,
-                  { backgroundColor: currentTheme.border },
-                ]}
-                onPress={() => setShowDeleteModal(false)}
-              >
-                <Text style={{ color: currentTheme.text }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalBtn,
-                  { backgroundColor: currentTheme.danger },
-                ]}
-                onPress={onDeleteConfirm}
-              >
-                <Text style={{ color: "#fff" }}>Delete</Text>
-              </TouchableOpacity>
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: currentTheme.border },
+                  ]}
+                  onPress={() => setShowDeleteModal(false)}
+                >
+                  <Text style={{ color: currentTheme.text }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalBtn,
+                    { backgroundColor: currentTheme.danger },
+                  ]}
+                  onPress={onDeleteConfirm}
+                >
+                  <Text style={{ color: "#fff" }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-
-      <Toast />
-    </View>
+        </Modal>
+        <Toast />
+      </View>
+    </>
   );
 }
 

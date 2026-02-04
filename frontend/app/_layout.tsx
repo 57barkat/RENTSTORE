@@ -104,7 +104,6 @@ const AppContent = () => {
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />
         <Stack.Screen name="ChatListScreen" />
-        <Stack.Screen name="(tabs)" />
         <Stack.Screen name="+not-found" />
       </Stack>
 

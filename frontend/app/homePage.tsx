@@ -56,16 +56,19 @@ const HomePage: React.FC = () => {
     isLoading: homesLoading,
     refetch: refetchHomes,
   } = useHomes();
+
   const {
     data: apartmentsData,
     isLoading: apartmentsLoading,
     refetch: refetchApartments,
   } = useApartments();
+
   const {
     data: roomsData,
     isLoading: roomsLoading,
     refetch: refetchRooms,
   } = useRooms();
+
   const {
     data: favData,
     isLoading: favLoading,
@@ -96,11 +99,14 @@ const HomePage: React.FC = () => {
     }
   }, [refetchHomes, refetchApartments, refetchRooms, refetchFavorites]);
 
-  // Voice Recording Timer Effect
+  // Voice Recording URI sync
   useEffect(() => {
-    if (!isRecording && uri) setLocalAudioUri(uri);
+    if (!isRecording && uri) {
+      setLocalAudioUri(uri);
+    }
   }, [isRecording, uri]);
 
+  // Voice Recording Timer
   useEffect(() => {
     if (isRecording) {
       setTimerCount(0);
@@ -113,22 +119,28 @@ const HomePage: React.FC = () => {
           return prev + 1;
         });
       }, 1000);
-    } else if (intervalRef.current) clearInterval(intervalRef.current);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
   }, [isRecording]);
 
   // Voice Search Handler
   const handleSendVoice = async () => {
     if (!localAudioUri) return;
+
     setIsProcessing(true);
     try {
-      const response = await voiceSearch({ uri: localAudioUri }).unwrap();
+      const response = await voiceSearch({
+        uri: localAudioUri,
+      }).unwrap();
 
       if (!response?.filters || Object.keys(response.filters).length === 0) {
-        setIsProcessing(false);
         Alert.alert(
           "I didn't quite catch that",
           "Try saying something like 'Find 3 bedroom houses in Islamabad'.",
@@ -138,6 +150,7 @@ const HomePage: React.FC = () => {
       }
 
       const extracted = response.filters;
+
       router.push({
         pathname: `/property/View/${extracted.type || "home"}`,
         params: {
@@ -168,89 +181,75 @@ const HomePage: React.FC = () => {
     setTimerCount(0);
   };
 
-  // Favorites logic
+  // Favorites
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
     [favData],
   );
 
-  const attachFavStatus = useCallback(
-    (properties: PropertyCardProps[]) =>
-      properties.map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) })),
-    [favoriteIds],
+  const attachFavStatus = (
+    properties: PropertyCardProps[],
+  ): PropertyCardProps[] =>
+    properties.map((p) => ({
+      ...p,
+      isFav: favoriteIds.includes(p.id),
+    }));
+
+  // Derived Data (NO STATE = NO LOOP)
+  const homes = useMemo(
+    () => attachFavStatus(formatProperties(homesData || [], selectedCity)),
+    [homesData, selectedCity, favoriteIds],
   );
 
-  const [homes, setHomes] = useState<PropertyCardProps[]>([]);
-  const [rooms, setRooms] = useState<PropertyCardProps[]>([]);
-  const [apartments, setApartments] = useState<PropertyCardProps[]>([]);
+  const rooms = useMemo(
+    () => attachFavStatus(formatProperties(roomsData || [], selectedCity)),
+    [roomsData, selectedCity, favoriteIds],
+  );
 
-  useEffect(() => {
-    setHomes(attachFavStatus(formatProperties(homesData || [], selectedCity)));
-  }, [homesData, selectedCity, favoriteIds, attachFavStatus]);
+  const apartments = useMemo(
+    () => attachFavStatus(formatProperties(apartmentsData || [], selectedCity)),
+    [apartmentsData, selectedCity, favoriteIds],
+  );
 
-  useEffect(() => {
-    setRooms(attachFavStatus(formatProperties(roomsData || [], selectedCity)));
-  }, [roomsData, selectedCity, favoriteIds, attachFavStatus]);
-
-  useEffect(() => {
-    setApartments(
-      attachFavStatus(formatProperties(apartmentsData || [], selectedCity)),
-    );
-  }, [apartmentsData, selectedCity, favoriteIds, attachFavStatus]);
-
-  const handleToggleFav = async (
-    propertyId: string,
-    section: "homes" | "rooms" | "apartments",
-  ) => {
-    const updateSection = (list: PropertyCardProps[], setList: any) => {
-      setList(
-        list.map((p) => (p.id === propertyId ? { ...p, isFav: !p.isFav } : p)),
-      );
-    };
-
+  const handleToggleFav = async (propertyId: string) => {
     try {
-      if (section === "homes") updateSection(homes, setHomes);
-      if (section === "rooms") updateSection(rooms, setRooms);
-      if (section === "apartments") updateSection(apartments, setApartments);
+      const isFav = favoriteIds.includes(propertyId);
 
-      const isCurrentlyFav = favoriteIds.includes(propertyId);
-      if (isCurrentlyFav) {
+      if (isFav) {
         await removeUserFavorite({ propertyId }).unwrap();
       } else {
         await addToFav({ propertyId }).unwrap();
       }
+
       refetchFavorites();
     } catch {
       Alert.alert("Error", "Could not update favorites");
-      if (section === "homes") updateSection(homes, setHomes);
-      if (section === "rooms") updateSection(rooms, setRooms);
-      if (section === "apartments") updateSection(apartments, setApartments);
     }
   };
 
-  // Sections Configuration
+  // Sections
   const sections: SectionData[] = [
     {
       title: "Homes",
       properties: homes,
-      queryLoading: homesLoading, // Dynamic loading
+      queryLoading: homesLoading,
       hostOption: "home",
     },
     {
       title: "Hostels",
       properties: rooms,
-      queryLoading: roomsLoading, // Dynamic loading
+      queryLoading: roomsLoading,
       hostOption: "hostel",
     },
     {
       title: "Apartments",
       properties: apartments,
-      queryLoading: apartmentsLoading, // Dynamic loading
+      queryLoading: apartmentsLoading,
       hostOption: "apartment",
     },
   ];
 
-  // Global Loading State for first mount
+  // Initial Loading
   if ((homesLoading || apartmentsLoading || roomsLoading) && !refreshing) {
     return (
       <View
@@ -266,7 +265,7 @@ const HomePage: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
-      {/* Processing Modal for Voice Search */}
+      {/* Voice Processing Modal */}
       <Modal transparent visible={isProcessing} animationType="fade">
         <View style={styles.modalOverlay}>
           <View
@@ -333,15 +332,7 @@ const HomePage: React.FC = () => {
               )
             }
             onCardPress={(id: any) => router.push(`/property/${id}`)}
-            onToggleFav={(id: any) => {
-              const sectionKey =
-                item.hostOption === "home"
-                  ? "homes"
-                  : item.hostOption === "hostel"
-                    ? "rooms"
-                    : "apartments";
-              handleToggleFav(id, sectionKey);
-            }}
+            onToggleFav={(id: any) => handleToggleFav(id)}
             cardWidth={250}
             cardHeight={200}
           />

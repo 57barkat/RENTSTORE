@@ -95,18 +95,22 @@ export class PropertyService {
       ? await this.uploadFilesToCloudinary(imageFiles)
       : dto.photos || [];
 
-    const draft = new this.propertyDraftModel({
+    const filter = dto._id ? { _id: dto._id } : {};
+    const update = {
       ...dto,
       photos,
       ownerId: new Types.ObjectId(userId),
-      status: "draft",
-    });
+      status: false,
+    };
 
-    return draft.save();
+    return this.propertyDraftModel.findOneAndUpdate(filter, update, {
+      new: true,
+      upsert: true,
+    });
   }
 
   async getAllDrafts(userId: string) {
-    const drafts = await this.propertyModel
+    const drafts = await this.propertyDraftModel
       .find({ ownerId: new Types.ObjectId(userId), status: false })
       .sort({ createdAt: -1 })
       .lean();

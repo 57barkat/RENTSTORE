@@ -19,6 +19,7 @@ import {
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
   useDeleteUserMutation,
+  useLogoutMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
 import { useRouter, useSegments } from "expo-router";
@@ -51,6 +52,7 @@ const Sidebar: React.FC = () => {
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingDeleteAccount, setLoadingDeleteAccount] = useState(false);
+  const [logoutApi] = useLogoutMutation();
 
   // --------------------------
   // Slide animation
@@ -114,19 +116,13 @@ const Sidebar: React.FC = () => {
   // --------------------------
   const handleNavigate = (item: MenuItem) => {
     if (item.isLogout) {
-      // Logout flow
       handleLogout();
     } else if (item.screen === "DeleteAccount") {
       handleDeleteAccount();
     } else if (item.screen) {
-      // Automatically normalize screen path
       let path = item.screen;
 
-      // If your file is in a folder like app/ChatListScreen/ChatListScreen.tsx
-      // we append the same name as default
       if (item.screen !== "homePage" && !item.screen.startsWith("/")) {
-        // Check if path exists in your folder structure
-        // For example: "ChatListScreen" folder -> default file inside same folder
         path = `/${item.screen}`;
       }
 
@@ -138,15 +134,26 @@ const Sidebar: React.FC = () => {
 
   const handleLogout = async () => {
     console.log("Logging out...");
-    await AsyncStorage.clear();
-    setTheme("light");
-    close();
-    router.push("/signin");
-    await logout();
+
+    try {
+      await logoutApi().unwrap();
+
+      await AsyncStorage.clear();
+
+      setTheme("light");
+
+      close();
+
+      await logout();
+
+      router.replace("/signin");
+    } catch (error) {
+      console.warn("Backend logout failed, clearing local data anyway", error);
+      await AsyncStorage.clear();
+      await logout();
+      router.replace("/signin");
+    }
   };
-  // --------------------------
-  // Update active screen based on route
-  // --------------------------
   useEffect(() => {
     const current = segments[segments.length - 1];
     if (current) setActiveScreen(current);

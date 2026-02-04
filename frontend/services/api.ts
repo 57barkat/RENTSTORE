@@ -118,7 +118,10 @@ export const api = createApi({
       }),
     }),
     findPropertyByIdAndDelete: builder.mutation({
-      query: (id) => ({ url: `/api/v1/properties/${id}`, method: "DELETE" }),
+      query: (id) => ({
+        url: `/api/v1/properties/drafts/${id}`,
+        method: "DELETE",
+      }),
     }),
     findMyProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/my-listings", method: "GET" }),
@@ -166,9 +169,10 @@ export const api = createApi({
     getFeaturedProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/featured", method: "GET" }),
     }),
-    getDraftProperties: builder.query({
+    getDraftProperties: builder.query<any[], void>({
       query: () => ({ url: "/api/v1/properties/drafts", method: "GET" }),
     }),
+
     getUserFavorites: builder.query({ query: () => "/api/v1/favorites" }),
     AddToFav: builder.mutation({
       query: ({ propertyId }) => ({
@@ -230,6 +234,20 @@ export const api = createApi({
         body,
       }),
     }),
+    logout: builder.mutation<void, void>({
+      query: () => ({
+        url: "/api/v1/users/logout",
+        method: "POST",
+      }),
+      onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
+        try {
+          await queryFulfilled;
+          dispatch(api.util.resetApiState());
+        } catch (err) {
+          console.error("Logout mutation failed", err);
+        }
+      },
+    }),
   }),
 });
 
@@ -258,4 +276,5 @@ export const {
   useDeleteProfileImageMutation,
   useVoiceSearchMutation,
   useVerifyEmailMutation,
+  useLogoutMutation,
 } = api;

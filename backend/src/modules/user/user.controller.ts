@@ -56,13 +56,18 @@ export class UserController {
   async getAll(): Promise<UserResponseDto[]> {
     return (await this.userService.findAll()).map(this.mapUser);
   }
-  // modules/user/user.controller.ts
 
   @Post("refresh")
   async refresh(@Body("refreshToken") token: string) {
     return await this.authService.refresh(token);
   }
   @UseGuards(AuthGuard("jwt"))
+  @Post("logout")
+  async logout(@Req() req) {
+    await this.userService.clearRefreshToken(req.user.sub);
+    return { message: "Logged out successfully" };
+  }
+
   @Delete("delete")
   async delete(@Req() req) {
     const user = await this.userService.delete(req.user.sub);

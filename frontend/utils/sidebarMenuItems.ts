@@ -32,24 +32,28 @@ export const sidebarMenuItems: MenuItem[] = [
   },
   {
     iconType: "Feather",
-    iconName: "upload",
+    iconName: "plus-square",
     label: "Upload Property",
     screen: "upload",
   },
-
   {
     iconType: "Feather",
-    iconName: "trash-2",
+    iconName: "edit-3",
+    label: "Draft Property",
+    screen: "DraftProperties",
+  },
+  {
+    iconType: "Feather",
+    iconName: "user-x",
     label: "Delete Account",
     screen: "DeleteAccount",
   },
   {
     iconType: "Ionicons",
-    iconName: "document-text-outline",
+    iconName: "shield-checkmark-outline",
     label: "Privacy Policy",
     screen: "PrivacyPolicyScreen",
   },
-
   {
     iconType: "Ionicons",
     iconName: "log-out-outline",
