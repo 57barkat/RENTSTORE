@@ -11,7 +11,7 @@ export class Message {
   @Prop({ type: String, required: true })
   senderId: string;
 
-  @Prop({ type: String, default: null })
+  @Prop({ type: String, required: true })
   text: string;
 
   @Prop(() => Date)

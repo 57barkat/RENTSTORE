@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -7,50 +7,56 @@ import {
   TouchableOpacity,
   Linking,
   useWindowDimensions,
-  SafeAreaView,
   Platform,
   StatusBar,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFindPropertyByIdQuery } from "@/services/api";
 import ImageCarousel from "@/utils/Carousel";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import {
-  MaterialCommunityIcons,
-  MaterialIcons,
-  Feather,
-  Ionicons,
-} from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather, Ionicons } from "@expo/vector-icons";
 import { useCreateRoomMutation } from "@/hooks/chat";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const options = { headerShown: false };
 
-// Helper for currency formatting
-const formatPrice = (amount: number | string | undefined) => {
-  if (amount === undefined || amount === null) return "N/A";
-  const num = typeof amount === "string" ? parseInt(amount) : amount;
-  return `Rs. ${num.toLocaleString()}`;
-};
-
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-  const { data: property, isLoading } = useFindPropertyByIdQuery(id);
-  const window = useWindowDimensions();
+  const isDark = theme === "dark";
+
+  const {
+    data: property,
+    isLoading,
+    refetch,
+    isFetching,
+  } = useFindPropertyByIdQuery(id);
+
+  const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
-  const [createRoom] = useCreateRoomMutation();
+  const [createRoom, { isLoading: isCreatingChat }] = useCreateRoomMutation();
+
+  const formatPrice = useCallback((amount: number | string | undefined) => {
+    if (amount === undefined || amount === null) return "N/A";
+    const num = typeof amount === "string" ? parseInt(amount, 10) : amount;
+    return `Rs. ${num.toLocaleString()}`;
+  }, []);
 
   const handleChatOwner = async () => {
     try {
       const userId = await AsyncStorage.getItem("userId");
       const ownerId = property?.ownerId;
 
-      if (!userId || !ownerId) {
-        alert("Please login to contact the owner");
+      if (!userId) {
+        Alert.alert("Login Required", "Please login to contact the host.", [
+          { text: "Cancel" },
+          { text: "Login", onPress: () => router.push("/login") },
+        ]);
         return;
       }
 
@@ -62,16 +68,15 @@ export default function PropertyDetails() {
         params: { roomId: room._id, otherUserId: ownerId },
       });
     } catch (err: any) {
-      console.error("Chat Error:", err);
+      Alert.alert("Chat Error", "Could not start conversation.");
     }
   };
 
   const handleMapRedirect = () => {
     if (property?.lat && property?.lng) {
-      const latLng = `${property.lat},${property.lng}`;
       const url = Platform.select({
-        ios: `maps:0,0?q=${property.title}@${latLng}`,
-        android: `geo:0,0?q=${latLng}(${property.title})`,
+        ios: `maps:0,0?q=${property.title}@${property.lat},${property.lng}`,
+        android: `geo:0,0?q=${property.lat},${property.lng}(${property.title})`,
       });
       if (url) Linking.openURL(url);
     }
@@ -87,54 +92,81 @@ export default function PropertyDetails() {
     );
   }
 
-  if (!property) {
-    return (
-      <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
-      >
-        <Text style={{ color: currentTheme.text }}>Property not found</Text>
-      </View>
-    );
-  }
+  if (!property) return null;
+
+  // Formatting address from the array provided in your data
+  const fullAddress = property.address?.[0]
+    ? `${property.address[0].street}, ${property.address[0].city}`
+    : property.location;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
+    <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <StatusBar
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
       />
 
-      {/* Custom Header with Back Button */}
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={28} color="black" />
-      </TouchableOpacity>
+      {/* Header UI */}
+      <View style={styles.headerNav}>
+        <TouchableOpacity
+          style={[
+            styles.roundBtn,
+            { backgroundColor: isDark ? "rgba(28,28,30,0.8)" : "white" },
+          ]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="chevron-back" size={24} color={currentTheme.text} />
+        </TouchableOpacity>
+        <View style={{ flexDirection: "row" }}>
+          <TouchableOpacity
+            style={[
+              styles.roundBtn,
+              {
+                backgroundColor: isDark ? "rgba(28,28,30,0.8)" : "white",
+                marginRight: 10,
+              },
+            ]}
+          >
+            <Feather name="share" size={20} color={currentTheme.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.roundBtn,
+              { backgroundColor: isDark ? "rgba(28,28,30,0.8)" : "white" },
+            ]}
+          >
+            <Ionicons
+              name={property.isFav ? "heart" : "heart-outline"}
+              size={22}
+              color={property.isFav ? "#FF385C" : currentTheme.text}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 160 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={refetch}
+            tintColor={currentTheme.primary}
+          />
+        }
       >
-        {/* Top Image Section */}
-        <View style={{ height: window.height * 0.4 }}>
-          {property.photos?.length ? (
-            <ImageCarousel
-              media={property.photos.map((uri: string) => ({
-                uri,
-                type: "image",
-              }))}
-            />
-          ) : (
-            <View
-              style={[styles.noImage, { backgroundColor: currentTheme.card }]}
-            >
-              <MaterialCommunityIcons
-                name="image-off-outline"
-                size={48}
-                color={currentTheme.muted}
-              />
-            </View>
-          )}
+        {/* Carousel */}
+        <View style={{ height: windowHeight * 0.45 }}>
+          <ImageCarousel
+            media={
+              property.photos?.map((uri: string) => ({ uri, type: "image" })) ||
+              []
+            }
+          />
         </View>
 
-        {/* Content Box */}
+        {/* Content Sheet */}
         <View
           style={[
             styles.detailsBox,
@@ -144,6 +176,11 @@ export default function PropertyDetails() {
           <View
             style={[styles.handle, { backgroundColor: currentTheme.border }]}
           />
+
+          <Text style={[styles.categoryLabel, { color: currentTheme.primary }]}>
+            {property.hostOption?.toUpperCase()} •{" "}
+            {property.featured ? "FEATURED" : "VERIFIED"}
+          </Text>
 
           <Text style={[styles.title, { color: currentTheme.text }]}>
             {property.title}
@@ -155,63 +192,99 @@ export default function PropertyDetails() {
           >
             <Ionicons name="location" size={18} color={currentTheme.primary} />
             <Text style={[styles.locationText, { color: currentTheme.muted }]}>
-              {property.location}
-            </Text>
-            <Text style={[styles.mapLink, { color: currentTheme.primary }]}>
-              Map
+              {fullAddress}
             </Text>
           </TouchableOpacity>
 
-          {/* Key Features Row */}
+          {/* Stats Section */}
           <View style={styles.capacityRow}>
-            <View style={styles.capItem}>
-              <MaterialCommunityIcons
-                name="account-group-outline"
-                size={24}
-                color={currentTheme.text}
-              />
-              <Text style={[styles.capVal, { color: currentTheme.text }]}>
-                {property.capacityState?.Persons || 0}
-              </Text>
-              <Text style={styles.capLabel}>Guests</Text>
-            </View>
-            <View style={styles.capItem}>
-              <MaterialCommunityIcons
-                name="bed-outline"
-                size={24}
-                color={currentTheme.text}
-              />
-              <Text style={[styles.capVal, { color: currentTheme.text }]}>
-                {property.capacityState?.beds || 0}
-              </Text>
-              <Text style={styles.capLabel}>Beds</Text>
-            </View>
-            <View style={styles.capItem}>
-              <MaterialCommunityIcons
-                name="bathtub-outline"
-                size={24}
-                color={currentTheme.text}
-              />
-              <Text style={[styles.capVal, { color: currentTheme.text }]}>
-                {property.capacityState?.bathrooms || 0}
-              </Text>
-              <Text style={styles.capLabel}>Baths</Text>
-            </View>
+            <StatItem
+              icon="account-group-outline"
+              label="Guests"
+              value={property.capacityState?.Persons}
+              theme={currentTheme}
+            />
+            <StatItem
+              icon="bed-outline"
+              label="Beds"
+              value={property.capacityState?.beds}
+              theme={currentTheme}
+            />
+            <StatItem
+              icon="shower-head"
+              label="Baths"
+              value={property.capacityState?.bathrooms}
+              theme={currentTheme}
+            />
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[styles.divider, { backgroundColor: currentTheme.border }]}
+          />
 
-          {/* Description Section */}
+          {/* Highlights from your data */}
+          {property.description?.highlighted && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+                Property Highlights
+              </Text>
+              <View style={styles.grid}>
+                {property.description.highlighted.map(
+                  (h: string, i: number) => (
+                    <Badge
+                      key={i}
+                      text={h.replace("_", " ")}
+                      icon="star-face"
+                      theme={currentTheme}
+                      type="highlight"
+                    />
+                  ),
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Amenities */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-              Description
+              Amenities
             </Text>
-            <Text style={[styles.descText, { color: currentTheme.text }]}>
-              {property.description?.overview || "No details provided."}
-            </Text>
+            <View style={styles.grid}>
+              {property.amenities?.map((item: string, i: number) => (
+                <Badge
+                  key={i}
+                  text={item}
+                  icon="check-circle-outline"
+                  theme={currentTheme}
+                  type="amenity"
+                />
+              ))}
+            </View>
           </View>
 
-          {/* Pricing Details Card */}
+          {/* Safety - Specific to your data */}
+          {property.safetyDetailsData?.safetyDetails && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+                Safety & Security
+              </Text>
+              <View style={styles.grid}>
+                {property.safetyDetailsData.safetyDetails.map(
+                  (s: string, i: number) => (
+                    <Badge
+                      key={i}
+                      text={s.replace("_", " ")}
+                      icon="shield-check-outline"
+                      theme={currentTheme}
+                      type="safety"
+                    />
+                  ),
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Pricing Info */}
           <View
             style={[
               styles.priceCard,
@@ -224,94 +297,39 @@ export default function PropertyDetails() {
             <Text
               style={[
                 styles.sectionTitle,
-                { color: currentTheme.text, marginBottom: 15 },
+                { color: currentTheme.text, fontSize: 18 },
               ]}
             >
-              Pricing Plan
+              Financial Details
             </Text>
-            <View style={styles.priceRow}>
-              <Text style={{ color: currentTheme.muted }}>Monthly</Text>
-              <Text style={[styles.priceText, { color: currentTheme.primary }]}>
-                {formatPrice(property.monthlyRent)}
-              </Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={{ color: currentTheme.muted }}>Weekly</Text>
-              <Text style={[styles.priceText, { color: currentTheme.text }]}>
-                {formatPrice(property.weeklyRent)}
-              </Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={{ color: currentTheme.muted }}>
-                Security Deposit
-              </Text>
-              <Text style={[styles.priceText, { color: currentTheme.text }]}>
-                {formatPrice(property.SecuritybasePrice)}
-              </Text>
-            </View>
-          </View>
-
-          {/* Amenities */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-              Amenities
-            </Text>
-            <View style={styles.amenityGrid}>
-              {property.amenities?.map((item: string, i: number) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.amenityBadge,
-                    { backgroundColor: currentTheme.card },
-                  ]}
-                >
-                  <Feather
-                    name="check-circle"
-                    size={14}
-                    color={currentTheme.primary}
-                  />
-                  <Text
-                    style={[styles.amenityText, { color: currentTheme.text }]}
-                  >
-                    {item}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* Bills */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-              Included in Rent
-            </Text>
-            <View style={styles.amenityGrid}>
-              {property.ALL_BILLS?.map((bill: string, i: number) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.billBadge,
-                    { backgroundColor: currentTheme.primary + "15" },
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="lightning-bolt"
-                    size={14}
-                    color={currentTheme.primary}
-                  />
-                  <Text
-                    style={[styles.billText, { color: currentTheme.primary }]}
-                  >
-                    {bill}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <PriceRow
+              label="Monthly Rent"
+              value={formatPrice(property.monthlyRent)}
+              theme={currentTheme}
+              isLarge
+              color={currentTheme.primary}
+            />
+            <PriceRow
+              label="Weekly Rate"
+              value={formatPrice(property.weeklyRent)}
+              theme={currentTheme}
+            />
+            <PriceRow
+              label="Daily Rate"
+              value={formatPrice(property.dailyRent)}
+              theme={currentTheme}
+            />
+            <PriceRow
+              label="Security Deposit"
+              value={formatPrice(property.SecuritybasePrice)}
+              theme={currentTheme}
+              isLast
+            />
           </View>
         </View>
       </ScrollView>
 
-      {/* Persistent Footer */}
+      {/* Action Footer */}
       <View
         style={[
           styles.footer,
@@ -325,121 +343,176 @@ export default function PropertyDetails() {
           <Text style={[styles.footerPrice, { color: currentTheme.text }]}>
             {formatPrice(property.monthlyRent)}
           </Text>
-          <Text style={{ color: currentTheme.muted, fontSize: 12 }}>
-            Available Now
+          <Text style={{ color: "#4CAF50", fontSize: 12, fontWeight: "bold" }}>
+            PER MONTH
           </Text>
         </View>
         <TouchableOpacity
           style={[styles.chatBtn, { backgroundColor: currentTheme.primary }]}
           onPress={handleChatOwner}
+          disabled={isCreatingChat}
         >
-          <Ionicons
-            name="chatbubble-ellipses"
-            size={20}
-            color="white"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.chatBtnText}>Chat with Owner</Text>
+          {isCreatingChat ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <>
+              <Ionicons
+                name="chatbubbles-outline"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.chatBtnText}>Contact Host</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
+const StatItem = ({ icon, label, value, theme }: any) => (
+  <View style={[styles.capItem, { backgroundColor: theme.card }]}>
+    <MaterialCommunityIcons name={icon} size={22} color={theme.primary} />
+    <Text style={[styles.capVal, { color: theme.text }]}>{value || 0}</Text>
+    <Text style={styles.capLabel}>{label}</Text>
+  </View>
+);
+
+const PriceRow = ({ label, value, theme, isLast, isLarge, color }: any) => (
+  <View
+    style={[
+      styles.priceRow,
+      !isLast && {
+        marginBottom: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border + "30",
+        paddingBottom: 12,
+      },
+    ]}
+  >
+    <Text style={{ color: theme.muted, fontSize: 14 }}>{label}</Text>
+    <Text
+      style={{
+        color: color || theme.text,
+        fontWeight: "800",
+        fontSize: isLarge ? 18 : 15,
+      }}
+    >
+      {value}
+    </Text>
+  </View>
+);
+
+const Badge = ({ text, icon, theme, type }: any) => (
+  <View
+    style={[
+      styles.badge,
+      { backgroundColor: theme.card, borderColor: theme.border },
+    ]}
+  >
+    <MaterialCommunityIcons
+      name={icon}
+      size={16}
+      color={type === "safety" ? "#FF5A5F" : theme.primary}
+    />
+    <Text style={[styles.badgeText, { color: theme.text }]}>
+      {text.charAt(0).toUpperCase() + text.slice(1)}
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  backButton: {
+  headerNav: {
     position: "absolute",
-    top: Platform.OS === "ios" ? 60 : 40,
+    top: 50,
     left: 20,
+    right: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
     zIndex: 10,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 20,
-    padding: 4,
   },
-  noImage: { flex: 1, justifyContent: "center", alignItems: "center" },
+  roundBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+  },
   detailsBox: {
-    marginTop: -35,
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    paddingHorizontal: 24,
-    paddingTop: 15,
+    marginTop: -30,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
   },
   handle: {
     width: 40,
     height: 5,
-    borderRadius: 10,
+    borderRadius: 3,
     alignSelf: "center",
     marginBottom: 20,
+    opacity: 0.2,
   },
-  title: { fontSize: 26, fontWeight: "800", marginBottom: 10 },
+  categoryLabel: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  title: { fontSize: 28, fontWeight: "900", marginBottom: 12 },
   locationRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  locationText: { fontSize: 15, marginLeft: 6, flex: 1 },
-  mapLink: {
-    fontWeight: "bold",
-    fontSize: 15,
-    textDecorationLine: "underline",
-  },
+  locationText: { fontSize: 15, marginLeft: 6, fontWeight: "500" },
   capacityRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginVertical: 10,
+    justifyContent: "space-between",
+    gap: 10,
   },
-  capItem: { alignItems: "center" },
-  capVal: { fontSize: 18, fontWeight: "700", marginTop: 4 },
-  capLabel: { fontSize: 12, color: "#717171" },
-  divider: { height: 1, backgroundColor: "#EEEEEE", marginVertical: 20 },
+  capItem: { flex: 1, alignItems: "center", padding: 15, borderRadius: 20 },
+  capVal: { fontSize: 18, fontWeight: "800", marginTop: 5 },
+  capLabel: { fontSize: 11, opacity: 0.6, fontWeight: "600" },
+  divider: { height: 1, marginVertical: 25 },
   section: { marginBottom: 30 },
-  sectionTitle: { fontSize: 19, fontWeight: "700", marginBottom: 12 },
-  descText: { fontSize: 15, lineHeight: 24, opacity: 0.8 },
-  priceCard: {
-    padding: 20,
-    borderRadius: 24,
+  sectionTitle: { fontSize: 20, fontWeight: "800", marginBottom: 15 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 30,
   },
+  badgeText: { fontSize: 13, fontWeight: "600", marginLeft: 8 },
+  priceCard: { padding: 20, borderRadius: 24, borderWidth: 1 },
   priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  priceText: { fontWeight: "700", fontSize: 16 },
-  amenityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  amenityBadge: {
-    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
   },
-  amenityText: { fontSize: 14, fontWeight: "500", marginLeft: 6 },
-  billBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  billText: { fontSize: 14, fontWeight: "700", marginLeft: 6 },
   footer: {
     position: "absolute",
     bottom: 0,
     width: "100%",
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+    padding: 20,
+    paddingBottom: Platform.OS === "ios" ? 35 : 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderTopWidth: 1,
+    elevation: 10,
   },
   footerPrice: { fontSize: 22, fontWeight: "900" },
   chatBtn: {
+    paddingHorizontal: 25,
+    paddingVertical: 15,
+    borderRadius: 16,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 18,
   },
   chatBtnText: { color: "white", fontWeight: "800", fontSize: 16 },
 });

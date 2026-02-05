@@ -9,7 +9,10 @@ import { Message, MessageSchema } from "./schemas/message.schema";
 
 @Module({
   imports: [
-    JwtModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: "7d" },
+    }),
     MongooseModule.forFeature([
       { name: ChatRoom.name, schema: ChatRoomSchema },
       { name: Message.name, schema: MessageSchema },
@@ -17,5 +20,6 @@ import { Message, MessageSchema } from "./schemas/message.schema";
   ],
   providers: [ChatGateway, ChatService],
   controllers: [ChatController],
+  exports: [ChatService],
 })
 export class ChatModule {}

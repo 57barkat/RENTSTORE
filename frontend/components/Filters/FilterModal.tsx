@@ -254,26 +254,22 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
         </ScrollView>
-
-        {/* ===== Footer ===== */}
-        <View
-          style={[
-            styles.footer,
-            { backgroundColor: theme.background, borderTopColor: theme.border },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onApply}
-            style={[
-              styles.premiumApplyBtn,
-              { backgroundColor: theme.secondary },
-            ]}
-          >
-            <Text style={styles.applyText}>Show Results</Text>
-          </TouchableOpacity>
-        </View>
       </KeyboardAvoidingView>
+      {/* ===== Footer ===== */}
+      <View
+        style={[
+          styles.footer,
+          { backgroundColor: theme.background, borderTopColor: theme.border },
+        ]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onApply}
+          style={[styles.premiumApplyBtn, { backgroundColor: theme.secondary }]}
+        >
+          <Text style={styles.applyText}>Show Results</Text>
+        </TouchableOpacity>
+      </View>
     </Modal>
   );
 };

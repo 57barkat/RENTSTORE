@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
@@ -7,6 +7,7 @@ import { styles } from "@/styles/upload";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { useAuth } from "@/contextStore/AuthContext";
 
 const WelcomeScreen = () => {
   const formContext = useContext(FormContext);
@@ -14,8 +15,11 @@ const WelcomeScreen = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
+  // Get verification status from AuthContext
+  const { isPhoneVerified } = useAuth();
+
   const [selectedType, setSelectedType] = useState<string | null>(
-    formContext?.data.hostOption ?? null
+    formContext?.data.hostOption ?? null,
   );
 
   const hostOptions = [
@@ -23,18 +27,33 @@ const WelcomeScreen = () => {
     { title: "Apartment", value: "apartment", icon: "office-building-outline" },
     { title: "Hostel", value: "hostel", icon: "bed-empty" },
   ];
+
   const handleNext = () => {
     if (!selectedType) return;
+    if (isPhoneVerified) {
+      Alert.alert(
+        "Verification Required",
+        "Please verify your phone number to upload a property.",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Verify",
+            onPress: () => router.push("/auth/VerifyPhone"),
+          },
+        ],
+        { cancelable: true },
+      );
+      return;
+    }
 
-    if (selectedType) {
-      if (!formContext)
-        throw new Error(
-          "FormContext is missing! Wrap this screen in <HostelFormProvider>."
-        );
-      formContext?.updateForm("hostOption", selectedType);
+    if (formContext) {
+      formContext.updateForm("hostOption", selectedType);
+
       if (selectedType === "hostel") {
         router.push("/upload/hostelForm/Location");
-        return;
       } else if (selectedType === "apartment") {
         router.push("/upload/apartmentForm/Location");
       } else if (selectedType === "home") {

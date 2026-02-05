@@ -24,6 +24,7 @@ interface SearchBarProps {
   isRecording?: boolean;
   hasAudio?: boolean;
   timer?: number;
+  onPress?: () => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -38,6 +39,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   isRecording = false,
   hasAudio = false,
   timer = 0,
+  onPress,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -49,7 +51,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   useEffect(() => {
     if (isRecording) {
-      // Parallel animation for a more "alive" feel
       Animated.loop(
         Animated.parallel([
           Animated.sequence([
@@ -103,27 +104,33 @@ const SearchBar: React.FC<SearchBarProps> = ({
           style={styles.icon}
         />
 
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={
-            isRecording
-              ? `Listening... ${15 - (timer ?? 0)}s`
-              : hasAudio
-                ? "Voice ready to send..."
-                : placeholder
-          }
-          placeholderTextColor={isRecording ? currentTheme.danger : "#9CA3AF"}
-          style={[
-            styles.input,
-            {
-              color: currentTheme.text,
-              // Soften the font weight for better readability
-              fontWeight: "400",
-            },
-          ]}
-          editable={!isRecording && !hasAudio}
-        />
+        {/* This Pressable makes the input area act as a redirect button */}
+        <Pressable onPress={onPress} style={styles.inputWrapper}>
+          <View pointerEvents="none" style={{ flex: 1 }}>
+            <TextInput
+              value={value}
+              onChangeText={onChangeText}
+              editable={false} // Prevents keyboard from appearing
+              placeholder={
+                isRecording
+                  ? `Listening... ${15 - (timer ?? 0)}s`
+                  : hasAudio
+                    ? "Voice ready to send..."
+                    : placeholder
+              }
+              placeholderTextColor={
+                isRecording ? currentTheme.danger : "#9CA3AF"
+              }
+              style={[
+                styles.input,
+                {
+                  color: currentTheme.text,
+                  fontWeight: "400",
+                },
+              ]}
+            />
+          </View>
+        </Pressable>
 
         {!hasAudio ? (
           <View style={styles.micWrapper}>
@@ -220,8 +227,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 18,
     paddingHorizontal: 12,
-    height: 54, // Fixed height for a more stable UI feel
-    // High-end subtle shadow
+    height: 54,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
@@ -232,11 +238,16 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginRight: 10,
   },
+  inputWrapper: {
+    flex: 1,
+    height: "100%",
+    justifyContent: "center",
+  },
   input: {
     flex: 1,
     fontSize: 15,
     height: "100%",
-    paddingVertical: 0, // Centering text vertically on Android
+    paddingVertical: 0,
   },
   micWrapper: {
     justifyContent: "center",

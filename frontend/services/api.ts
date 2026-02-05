@@ -2,10 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
 
-export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  "http://172.16.18.99:3000" ||
-  "http://10.98.91.143:3000";
+export const API_URL = "http://localhost:3000";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,

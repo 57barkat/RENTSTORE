@@ -18,47 +18,48 @@ export class ChatGateway implements OnGatewayConnection {
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly chatService: ChatService
+    private readonly chatService: ChatService,
   ) {}
 
-  /* -------------------- Handle Socket Connection -------------------- */
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth?.token;
+      const token =
+        client.handshake.auth?.token || client.handshake.headers?.token;
       if (!token) {
         client.disconnect();
         return;
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
+        secret: process.env.JWT_SECRET || "suppersecretkey",
       });
+
       client.data.userId = payload.sub;
 
-      // Join all rooms automatically
       const rooms = await this.chatService.getUserRooms(client.data.userId);
-      rooms.forEach((room) =>
-        client.join((room._id as Types.ObjectId).toString())
-      );
+      rooms.forEach((room) => {
+        if (room?._id) client.join(room._id.toString());
+      });
+
+      console.log(`User connected: ${client.data.userId}`);
     } catch (err) {
+      console.error("Socket Connection Error:", err.message);
       client.disconnect();
     }
   }
 
-  /* -------------------- Join Room -------------------- */
   @SubscribeMessage("joinRoom")
   async joinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() roomId: string
+    @MessageBody() roomId: string,
   ) {
     if (roomId) client.join(roomId);
   }
 
-  /* -------------------- Send Message -------------------- */
   @SubscribeMessage("sendMessage")
   async sendMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { chatRoomId: string; text: string }
+    @MessageBody() data: { chatRoomId: string; text: string },
   ) {
     if (!data?.chatRoomId || !data?.text?.trim()) return;
 
@@ -68,7 +69,7 @@ export class ChatGateway implements OnGatewayConnection {
     const message = await this.chatService.saveMessage(
       senderId,
       data.chatRoomId,
-      data.text.trim()
+      data.text.trim(),
     );
 
     this.server.to(data.chatRoomId).emit("newMessage", message);

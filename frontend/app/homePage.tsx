@@ -309,6 +309,12 @@ const HomePage: React.FC = () => {
                 setSearch(text);
                 setSelectedCity(text);
               }}
+              onPress={() => {
+                router.push({
+                  pathname: `/property/View/home`,
+                  params: { openFilters: "true", city: search },
+                });
+              }}
               onFavPress={() => router.push("/favorites")}
               onVoiceStart={start}
               onVoiceStop={stop}

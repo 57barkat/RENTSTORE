@@ -13,16 +13,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGetRoomsQuery } from "@/hooks/chat";
 
 type ChatRoom = {
-  _id: string; // ensure it's string
-  participants: string[]; // only valid user IDs, nulls filtered
+  _id: string;
+  participants: string[];
   lastMessage?: string;
+  lastMessageAt: string;
   updatedAt: string;
 };
 
 export default function ChatListScreen() {
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string>("");
-  const { data: rooms, isLoading } = useGetRoomsQuery();
+  const { data: rooms, isLoading, refetch } = useGetRoomsQuery();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -39,6 +40,11 @@ export default function ChatListScreen() {
     loadUser();
   }, []);
 
+  // Refetch when screen comes into focus to see new messages
+  useEffect(() => {
+    refetch();
+  }, []);
+
   if (isLoading) {
     return (
       <View style={styles.center}>
@@ -48,18 +54,14 @@ export default function ChatListScreen() {
   }
 
   const renderItem = ({ item }: { item: ChatRoom }) => {
-    // Filter out current user and any nulls
     const otherParticipant = item.participants.find(
-      (p) => p && p !== currentUserId
+      (p) => p && p !== currentUserId,
     );
 
-    // Display name fallback
     const displayName = otherParticipant
       ? `User ${otherParticipant.slice(-4)}`
       : "Chat Room";
     const initial = displayName.charAt(0).toUpperCase();
-
-    // Ensure roomId is string
     const roomId = item._id;
 
     return (
@@ -83,7 +85,9 @@ export default function ChatListScreen() {
               {displayName}
             </Text>
             <Text style={styles.time}>
-              {new Date(item.updatedAt).toLocaleTimeString([], {
+              {new Date(
+                item.lastMessageAt || item.updatedAt,
+              ).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -107,7 +111,8 @@ export default function ChatListScreen() {
           ?.slice()
           .sort(
             (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+              new Date(b.lastMessageAt || b.updatedAt).getTime() -
+              new Date(a.lastMessageAt || a.updatedAt).getTime(),
           )}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}

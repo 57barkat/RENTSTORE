@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { RefreshControl, SafeAreaView } from "react-native";
+import { RefreshControl, StyleSheet } from "react-native";
 import {
   View,
   Text,
@@ -37,16 +37,25 @@ const PropertiesPage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const { type, city, addressQuery, minRent, maxRent, beds, bathrooms } =
-    useLocalSearchParams<{
-      type: string;
-      city?: string;
-      addressQuery?: string;
-      minRent?: string;
-      maxRent?: string;
-      beds?: string;
-      bathrooms?: string;
-    }>();
+  const {
+    type,
+    city,
+    addressQuery,
+    minRent,
+    maxRent,
+    beds,
+    bathrooms,
+    openFilters,
+  } = useLocalSearchParams<{
+    type: string;
+    city?: string;
+    addressQuery?: string;
+    minRent?: string;
+    maxRent?: string;
+    beds?: string;
+    bathrooms?: string;
+    openFilters?: string;
+  }>();
 
   const [hostOption, setHostOption] = useState(type ?? "home");
   const [filters, setFilters] = useState<Filters>({
@@ -146,7 +155,11 @@ const PropertiesPage: React.FC = () => {
     filters.beds,
     filters.bathrooms,
   ]);
-
+  useEffect(() => {
+    if (openFilters === "true") {
+      setModalVisible(true);
+    }
+  }, [openFilters]);
   const removeFilter = (key: ChipKey) => {
     if (key !== "hostOption") {
       setFilters({ ...filters, [key]: undefined });
@@ -177,7 +190,6 @@ const PropertiesPage: React.FC = () => {
     }
   };
 
-  // ✅ Fixed: Removed the ScrollView wrapper from individual items
   const renderPropertyCard = (item: PropertyCardProps) => (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -201,6 +213,18 @@ const PropertiesPage: React.FC = () => {
           style={{ width: "100%", height: IMAGE_HEIGHT }}
           resizeMode="cover"
         />
+
+        {item.featured && (
+          <View
+            style={[
+              styles.featuredTag,
+              { backgroundColor: currentTheme.secondary },
+            ]}
+          >
+            <Text style={styles.featuredText}>FEATURED</Text>
+          </View>
+        )}
+
         <TouchableOpacity
           activeOpacity={0.7}
           style={{
@@ -299,13 +323,12 @@ const PropertiesPage: React.FC = () => {
           }}
           contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
           renderItem={({ item }) => renderPropertyCard(item)}
-          // ✅ Correct implementation: RefreshControl goes on the list
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[currentTheme.primary]} // Android
-              tintColor={currentTheme.primary} // iOS
+              colors={[currentTheme.primary]}
+              tintColor={currentTheme.primary}
             />
           }
           onEndReached={() => {
@@ -384,3 +407,15 @@ const PropertiesPage: React.FC = () => {
 };
 
 export default PropertiesPage;
+const styles = StyleSheet.create({
+  featuredTag: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  featuredText: { color: "#ffffff", fontSize: 9, fontWeight: "500" },
+});

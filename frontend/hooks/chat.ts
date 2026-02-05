@@ -3,9 +3,12 @@ import { api } from "@/services/api";
 export const chatApi = api.injectEndpoints({
   endpoints: (builder) => ({
     /* -------------------- Create Room -------------------- */
-    createRoom: builder.mutation<{ _id: string }, { participants: string[] }>({
+    createRoom: builder.mutation<
+      any,
+      { participants: string[]; propertyId?: string }
+    >({
       query: (body) => ({
-        url: "/api/v1/chat/room",
+        url: "/api/v1/chat/rooms",
         method: "POST",
         body,
       }),

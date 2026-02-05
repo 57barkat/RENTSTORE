@@ -1,10 +1,8 @@
 import { io, Socket } from "socket.io-client";
-import { tokenManager } from "@/auth/tokenManager";
 import Constants from "expo-constants";
+import { tokenManager } from "./tokenManager";
 
-export const SOCKET_URL = (
-  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000"
-).replace("/api/v1", "");
+export const SOCKET_URL = "http://localhost:3000".replace("/api/v1", "");
 
 let socket: Socket | null = null;
 
@@ -24,10 +22,10 @@ export const connectSocket = async (): Promise<Socket> => {
 
   socket.on("connect", () => console.log("✅ Socket connected:", socket?.id));
   socket.on("disconnect", (reason) =>
-    console.log("⚡ Socket disconnected:", reason)
+    console.log("⚡ Socket disconnected:", reason),
   );
   socket.on("connect_error", (err) =>
-    console.log("❌ Socket connection error:", err.message)
+    console.log("❌ Socket connection error:", err.message),
   );
 
   socket.connect();

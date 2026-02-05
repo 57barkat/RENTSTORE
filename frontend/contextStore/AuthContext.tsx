@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { tokenManager } from "../services/tokenManager";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type UserType = {
   id: string;
@@ -29,14 +30,15 @@ type AuthContextType = {
   setVerified: (status: boolean) => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+export const AuthContext = createContext<AuthContextType>(
+  {} as AuthContextType,
+);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserType | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const refreshAuthState = useCallback(async () => {
     await tokenManager.load();
 
@@ -78,7 +80,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await tokenManager.setTokens(accessToken, refreshToken);
     await tokenManager.setUserData(userData);
     await tokenManager.setPhoneVerified(userData.isPhoneVerified);
-
+    const userId = userData.id || userData._id;
+    if (userId) {
+      await AsyncStorage.setItem("userId", userId);
+      console.log("UserID successfully saved to AsyncStorage:", userId);
+    }
     // Update state
     setUser(userData as UserType);
     setIsAuthenticated(true);
@@ -87,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await tokenManager.clear();
+    await AsyncStorage.removeItem("userId");
     setUser(null);
     setIsAuthenticated(false);
     setIsPhoneVerified(false);

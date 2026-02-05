@@ -6,15 +6,15 @@ import StepContainer from "@/app/upload/Welcome";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { StyleSheet } from "react-native";
-import { ApartmentFormContext } from "@/contextStore/ApartmentFormContextType";
+import { FormContext } from "@/contextStore/FormContext";
 
 const MIN_PRICE = 0;
 
 const HostelSecurityDepositScreen: FC = () => {
-  const context = useContext(ApartmentFormContext);
+  const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "HostelSecurityDepositScreen must be used within a HostelFormProvider"
+      "HostelSecurityDepositScreen must be used within a HostelFormProvider",
     );
 
   const { data, updateForm } = context;
@@ -23,7 +23,7 @@ const HostelSecurityDepositScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
 
   const [deposit, setDeposit] = useState<string>(
-    data.securityDeposit !== undefined ? String(data.securityDeposit) : ""
+    data.securityDeposit !== undefined ? String(data.securityDeposit) : "",
   );
 
   const handleDepositChange = (text: string) => {
