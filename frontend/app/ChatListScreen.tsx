@@ -7,10 +7,13 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGetRoomsQuery } from "@/hooks/chat";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 type ChatRoom = {
   _id: string;
@@ -24,12 +27,15 @@ export default function ChatListScreen() {
   const router = useRouter();
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const { data: rooms, isLoading, refetch } = useGetRoomsQuery();
+  console.log("ChatListScreen rendered. Rooms data:", rooms);
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
+  const isDark = theme === "dark";
 
   useEffect(() => {
     const loadUser = async () => {
       const token = await AsyncStorage.getItem("token");
       if (!token) return;
-
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setCurrentUserId(payload.sub);
@@ -40,15 +46,16 @@ export default function ChatListScreen() {
     loadUser();
   }, []);
 
-  // Refetch when screen comes into focus to see new messages
   useEffect(() => {
     refetch();
   }, []);
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <ActivityIndicator size="large" color={currentTheme.primary} />
       </View>
     );
   }
@@ -57,34 +64,44 @@ export default function ChatListScreen() {
     const otherParticipant = item.participants.find(
       (p) => p && p !== currentUserId,
     );
-
     const displayName = otherParticipant
       ? `User ${otherParticipant.slice(-4)}`
       : "Chat Room";
     const initial = displayName.charAt(0).toUpperCase();
-    const roomId = item._id;
 
     return (
       <TouchableOpacity
-        style={styles.chatItem}
+        style={[
+          styles.chatItem,
+          {
+            backgroundColor: currentTheme.background,
+            borderBottomColor: currentTheme.border,
+          },
+        ]}
         activeOpacity={0.7}
         onPress={() =>
           router.push({
             pathname: "/chat/[roomId]",
-            params: { roomId, otherUserId: otherParticipant || "" },
+            params: { roomId: item._id, otherUserId: otherParticipant || "" },
           })
         }
       >
-        <View style={styles.avatar}>
+        <View
+          style={[styles.avatar, { backgroundColor: currentTheme.primary }]}
+        >
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
 
         <View style={styles.content}>
           <View style={styles.headerRow}>
-            <Text style={styles.username} numberOfLines={1}>
+            {/* 4. APPLY DYNAMIC TEXT COLORS */}
+            <Text
+              style={[styles.username, { color: currentTheme.text }]}
+              numberOfLines={1}
+            >
               {displayName}
             </Text>
-            <Text style={styles.time}>
+            <Text style={[styles.time, { color: currentTheme.muted }]}>
               {new Date(
                 item.lastMessageAt || item.updatedAt,
               ).toLocaleTimeString([], {
@@ -93,7 +110,10 @@ export default function ChatListScreen() {
               })}
             </Text>
           </View>
-          <Text style={styles.lastMessage} numberOfLines={1}>
+          <Text
+            style={[styles.lastMessage, { color: currentTheme.muted }]}
+            numberOfLines={1}
+          >
             {item.lastMessage || "No messages yet"}
           </Text>
         </View>
@@ -102,10 +122,29 @@ export default function ChatListScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
+      {/* 5. MATCH STATUS BAR TO THEME */}
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor={currentTheme.background}
+      />
+
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: currentTheme.background,
+            borderBottomColor: currentTheme.border,
+          },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
+          Messages
+        </Text>
       </View>
+
       <FlatList
         data={rooms
           ?.slice()
@@ -118,7 +157,9 @@ export default function ChatListScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No conversations yet.</Text>
+          <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+            No conversations yet.
+          </Text>
         }
       />
     </SafeAreaView>
@@ -126,30 +167,25 @@ export default function ChatListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8F9FA" },
+  container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
-  headerTitle: { fontSize: 28, fontWeight: "bold", color: "#1A1A1A" },
+  headerTitle: { fontSize: 28, fontWeight: "bold" },
   listContent: { paddingBottom: 20 },
   chatItem: {
     flexDirection: "row",
     padding: 15,
-    backgroundColor: "#fff",
     alignItems: "center",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E0E0E0",
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
@@ -161,8 +197,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 4,
   },
-  username: { fontSize: 16, fontWeight: "700", color: "#000", flex: 1 },
-  lastMessage: { fontSize: 14, color: "#8E8E93" },
-  time: { fontSize: 12, color: "#8E8E93", marginLeft: 10 },
-  emptyText: { textAlign: "center", marginTop: 50, color: "#999" },
+  username: { fontSize: 16, fontWeight: "700", flex: 1 },
+  lastMessage: { fontSize: 14 },
+  time: { fontSize: 12, marginLeft: 10 },
+  emptyText: { textAlign: "center", marginTop: 50 },
 });

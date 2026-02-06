@@ -46,44 +46,74 @@ export class PropertyService {
     dto: CreatePropertyDto,
     userId: string,
   ): Promise<Property> {
-    let property: Property | null;
+    let property: Property | null = null;
+    const propertyId = dto._id;
 
-    if (dto._id) {
-      // Update existing
-      property = await this.propertyModel.findById(dto._id);
-      if (!property) throw new NotFoundException("Property not found");
-      if (property.ownerId.toString() !== userId.toString())
-        throw new UnauthorizedException("Not allowed");
+    if (propertyId) {
+      // 1. Try to find in main Property collection
+      property = await this.propertyModel.findById(propertyId);
 
-      // Queue old photos that are being removed
-      const oldPhotos = property.photos || [];
-      const newPhotos = dto.photos || [];
-      const photosToDelete = oldPhotos.filter(
-        (url) => !newPhotos.includes(url),
-      );
-      if (photosToDelete.length > 0) {
-        await this.deletedImagesService.addDeletedImages(
-          photosToDelete,
-          userId,
-          "property",
+      if (property) {
+        // --- UPDATE EXISTING PROPERTY ---
+        if (property.ownerId.toString() !== userId.toString())
+          throw new UnauthorizedException("Not allowed to edit this property");
+
+        // Photo cleanup logic
+        const oldPhotos = property.photos || [];
+        const newPhotos = dto.photos || [];
+        const photosToDelete = oldPhotos.filter(
+          (url) => !newPhotos.includes(url),
         );
-      }
 
-      // Only assign fields that exist in DTO
-      for (const key of Object.keys(dto)) {
-        if (dto[key] !== undefined) {
-          property[key] = dto[key];
+        if (photosToDelete.length > 0) {
+          await this.deletedImagesService.addDeletedImages(
+            photosToDelete,
+            userId,
+            "property",
+          );
         }
+
+        // Apply updates
+        Object.assign(property, dto);
+        return await property.save();
       }
 
-      property = await property.save();
-    } else {
-      // New property
-      property = new this.propertyModel({ ...dto, ownerId: userId });
-      property = await property.save();
+      // 2. If not in main, check if it's a Draft being promoted
+      const draft = await this.propertyDraftModel.findById(propertyId);
+      if (draft) {
+        if (draft.ownerId.toString() !== userId.toString())
+          throw new UnauthorizedException("Not allowed to promote this draft");
+
+        // Create new property from draft data + current DTO
+        const { _id, ...draftData } = draft.toObject();
+        property = new this.propertyModel({
+          ...draftData,
+          ...dto,
+          ownerId: userId,
+          status: true, // Mark as active property
+        });
+
+        const savedProperty = await property.save();
+
+        // 3. DELETE THE DRAFT now that it's a real property
+        await this.propertyDraftModel.findByIdAndDelete(propertyId);
+
+        return savedProperty;
+      }
+
+      // 4. If ID was provided but found nowhere
+      throw new NotFoundException(
+        "Property or Draft not found with provided ID",
+      );
     }
 
-    return property;
+    // 5. NO ID PROVIDED: Create brand new property
+    property = new this.propertyModel({
+      ...dto,
+      ownerId: userId,
+      status: true,
+    });
+    return await property.save();
   }
 
   async saveDraft(
@@ -95,7 +125,8 @@ export class PropertyService {
       ? await this.uploadFilesToCloudinary(imageFiles)
       : dto.photos || [];
 
-    const filter = dto._id ? { _id: dto._id } : {};
+    const filter = dto._id ? { _id: dto._id } : { _id: new Types.ObjectId() };
+
     const update = {
       ...dto,
       photos,
@@ -198,21 +229,54 @@ export class PropertyService {
   }
 
   async findPropertyById(propertyId: string, userId?: string) {
-    const property = (await this.propertyModel
-      .findByIdAndUpdate(propertyId, { $inc: { views: 1 } }, { new: true })
-      .populate("ownerId", "name email phone")
-      .lean()) as unknown as PropertyWithFav;
+    const objectId = new Types.ObjectId(propertyId);
 
-    if (!property) {
-      throw new NotFoundException("Property not found");
-    }
+    const [property] = await this.propertyModel.aggregate([
+      { $match: { _id: objectId } },
+      {
+        $addFields: {
+          // This converts String to ObjectId but stays an ObjectId if it already is one
+          ownerObjId: { $toObjectId: "$ownerId" },
+          views: { $add: [{ $ifNull: ["$views", 0] }, 1] },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "ownerObjId",
+          foreignField: "_id",
+          as: "owner",
+        },
+      },
+      {
+        $unwind: {
+          path: "$owner",
+          preserveNullAndEmptyArrays: true, // <--- Prevents document from disappearing if owner lookup fails
+        },
+      },
+      {
+        $project: {
+          "owner.password": 0,
+          "owner.refreshToken": 0,
+          // ... rest of your exclusions
+        },
+      },
+    ]);
 
-    if (userId) {
-      const favIds = await this.favService.getUserFavoriteIds(userId);
-      property.isFav = favIds.includes(property._id.toString());
-    } else {
-      property.isFav = false;
-    }
+    // 1. Check if property exists first
+    if (!property) throw new NotFoundException("Property not found");
+
+    // 2. Use Optional Chaining (?.) to safely check the owner
+    const isOwner =
+      userId && property.owner?._id?.toString() === userId.toString();
+
+    property.chat = !isOwner && !!userId;
+
+    // 3. Increment the real DB counter
+    await this.propertyModel.updateOne(
+      { _id: objectId },
+      { $inc: { views: 1 } },
+    );
 
     return property;
   }
@@ -247,10 +311,8 @@ export class PropertyService {
       );
     }
 
-    // Merge incoming updates
     Object.assign(property, dto);
 
-    // Robust status calculation
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
       if (Array.isArray(value)) return value.length > 0;
@@ -259,7 +321,6 @@ export class PropertyService {
       return true;
     };
 
-    // Define required fields for completion
     const requiredFields = [
       "title",
       "hostOption",
@@ -277,13 +338,10 @@ export class PropertyService {
     return property.save();
   }
 
-  // PropertyService.ts
   async findPropertyByIdAndDelete(propertyId: string, userId: string) {
     const property = await this.propertyModel.findById(propertyId);
-
     if (!property) throw new NotFoundException("Property not found");
 
-    // Queue images for later deletion
     if (property.photos?.length) {
       await this.deletedImagesService.addDeletedImages(
         property.photos,
@@ -292,9 +350,7 @@ export class PropertyService {
       );
     }
 
-    // Delete property from DB
     await this.propertyModel.findByIdAndDelete(propertyId);
-
     return {
       message: "Property deleted, photos queued for Cloudinary cleanup",
     };
@@ -302,15 +358,12 @@ export class PropertyService {
 
   async deleteDraftById(draftId: string, userId: string) {
     const draft = await this.propertyDraftModel.findById(draftId);
-
     if (!draft) throw new NotFoundException("Draft not found");
+
     if (draft.ownerId.toString() !== userId.toString()) {
-      throw new UnauthorizedException(
-        "You are not allowed to delete this draft",
-      );
+      throw new UnauthorizedException("Not allowed to delete this draft");
     }
 
-    // Queue draft images for later deletion
     if (draft.photos?.length) {
       await this.deletedImagesService.addDeletedImages(
         draft.photos,
@@ -320,7 +373,6 @@ export class PropertyService {
     }
 
     await this.propertyDraftModel.findByIdAndDelete(draftId);
-
     return { message: "Draft deleted, photos queued for Cloudinary cleanup" };
   }
 }

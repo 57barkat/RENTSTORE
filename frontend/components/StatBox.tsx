@@ -16,7 +16,7 @@ const StatBox: React.FC<StatBoxProps> = ({ label, value, color }) => (
 
 const styles = StyleSheet.create({
   statBox: { alignItems: "center", minWidth: 80 },
-  statValue: { fontSize: 20, fontWeight: "800" },
+  statValue: { fontSize: 12, fontWeight: "800" },
   statLabel: { fontSize: 12, color: "#777", marginTop: 2 },
 });
 

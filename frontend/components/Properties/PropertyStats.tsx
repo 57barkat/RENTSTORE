@@ -23,7 +23,14 @@ export const StatItem = ({ icon, label, value, theme }: any) => (
     >
       {value || 0}
     </Text>
-    <Text style={{ fontSize: 11, opacity: 0.6, fontWeight: "600" }}>
+    <Text
+      style={{
+        fontSize: 11,
+        opacity: 0.6,
+        fontWeight: "600",
+        color: theme.text,
+      }}
+    >
       {label}
     </Text>
   </View>

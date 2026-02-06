@@ -34,7 +34,7 @@ export const HostPicker: React.FC<Props> = ({ value, onChange, theme }) => {
             >
               <Text
                 style={{
-                  color: isSelected ? theme.background : theme.text,
+                  color: isSelected ? "#FFFFFF" : theme.text,
                   fontSize: 14,
                   fontWeight: isSelected ? "600" : "400",
                 }}

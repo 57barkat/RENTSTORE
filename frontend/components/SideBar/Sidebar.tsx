@@ -264,17 +264,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 15,
     paddingTop: 10,
-    paddingBottom: 20,
+    // paddingBottom: 20,
   },
   separator: {
     height: 1,
     width: "90%",
     alignSelf: "center",
-    marginVertical: 15,
+    marginVertical: 5,
   },
   navContainer: {
-    paddingHorizontal: 5,
-    paddingBottom: 20,
+    paddingHorizontal: 15,
+    // paddingBottom: 20,
+    paddingVertical: 10,
   },
   bottomContainer: {
     paddingHorizontal: 15,

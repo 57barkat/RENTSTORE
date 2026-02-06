@@ -101,7 +101,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
           <MaterialIcons
             name="verified"
-            size={16}
+            size={12}
             color={isVerified ? colors.primary : colors.secondary + "80"} // Dynamic badge color
             style={{ marginLeft: 5 }}
           />
@@ -167,7 +167,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingVertical: 30,
+    // paddingVertical: 30,
+    paddingTop: 30,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     // borderBottomColor is now dynamic (colors.card)
@@ -192,18 +193,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  infoContainer: { alignItems: "center", marginBottom: 20 },
-  name: { fontWeight: "800", fontSize: 24, marginBottom: 4 },
+  infoContainer: { alignItems: "center" },
+  name: { fontWeight: "800", fontSize: 14, marginBottom: 4 },
   phoneRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  phoneText: { fontSize: 14 },
+  phoneText: { fontSize: 12 },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-evenly", // Better spacing
     width: "100%", // Use full width of container padding
-    paddingVertical: 18, // Slightly more padding
+    paddingVertical: 4, // Slightly more padding
     borderRadius: 15, // More rounded corners
     // Background and border are now dynamic, creating a card look
   },

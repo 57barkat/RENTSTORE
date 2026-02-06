@@ -17,8 +17,8 @@ import { useRouter } from "expo-router";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import {
   useGetDraftPropertiesQuery,
-  useFindPropertyByIdAndDeleteMutation,
   api,
+  useFindDraftPropertyByIdAndDeleteMutation,
 } from "@/services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
@@ -49,7 +49,7 @@ export default function DraftProperties() {
 
   // ✅ Query only when token is ready
   const { data, isLoading, isError, refetch } = useGetDraftPropertiesQuery();
-  const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
+  const [deleteProperty] = useFindDraftPropertyByIdAndDeleteMutation();
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await refetch();

@@ -26,7 +26,7 @@ const NavItem: React.FC<NavItemProps> = ({
   let itemColor = item.isLogout
     ? themeColors.danger
     : isActive
-      ? themeColors.text
+      ? "#FFFFFF"
       : color;
 
   // Modified background/border for a pill-shaped effect:
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   navItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14, // Increased padding for better hit area and visual weight
+    paddingVertical: 7, // Increased padding for better hit area and visual weight
     paddingHorizontal: 15,
     borderRadius: 12, // Increased borderRadius for a defined pill shape
     marginBottom: 10, // Increased margin for better separation
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   // Removed activeIndicator style
   navText: {
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: 18,
   },
 });

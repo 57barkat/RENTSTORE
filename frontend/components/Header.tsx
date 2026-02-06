@@ -77,6 +77,7 @@ export default function Header() {
         >
           <MaterialCommunityIcons
             name={isDark ? "moon-waning-crescent" : "white-balance-sunny"}
+            style={{ transform: [{ rotate: "-45deg" }] }}
             size={22}
             color={isDark ? currentTheme.primary : currentTheme.accent}
           />

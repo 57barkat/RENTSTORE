@@ -120,6 +120,12 @@ export const api = createApi({
     }),
     findPropertyByIdAndDelete: builder.mutation({
       query: (id) => ({
+        url: `/api/v1/properties/${id}`,
+        method: "DELETE",
+      }),
+    }),
+    findDraftPropertyByIdAndDelete: builder.mutation({
+      query: (id) => ({
         url: `/api/v1/properties/drafts/${id}`,
         method: "DELETE",
       }),
@@ -261,6 +267,7 @@ export const {
   useFindPropertyByIdQuery,
   useFindPropertyByIdAndUpdateMutation,
   useFindPropertyByIdAndDeleteMutation,
+  useFindDraftPropertyByIdAndDeleteMutation,
   useGetAllPropertiesQuery,
   useGetFilteredPropertiesQuery,
   useGetFilterOptionsQuery,

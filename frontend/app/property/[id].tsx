@@ -10,6 +10,8 @@ import {
   Linking,
   TouchableOpacity,
   Text,
+  StyleSheet,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -31,6 +33,7 @@ export const options = { headerShown: false };
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  console.log("PropertyDetails rendered with id:", id);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const isDark = theme === "dark";
@@ -40,23 +43,20 @@ export default function PropertyDetails() {
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
   const { handleChatOwner, isCreating } = useChatRoom(property?.ownerId);
 
-  if (isLoading)
+  if (isLoading) {
     return (
       <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: currentTheme.background,
-        }}
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <ActivityIndicator size="large" color={currentTheme.primary} />
       </View>
     );
+  }
+
   if (!property) return null;
 
   const fullAddress = property.address?.[0]
-    ? `${property.address[0].street}, ${property.address[0].city}`
+    ? `${property.address[0].street}, ${property.address[0].city}, ${property.address[0].stateTerritory}`
     : property.location;
 
   const handleMapRedirect = () => {
@@ -80,7 +80,6 @@ export default function PropertyDetails() {
       <PropertyDetailsHeader
         theme={currentTheme}
         isDark={isDark}
-        property={property}
         onBack={() => router.back()}
       />
 
@@ -98,84 +97,44 @@ export default function PropertyDetails() {
         <View style={{ height: windowHeight * 0.45 }}>
           <ImageCarousel
             media={
-              property.photos?.map((uri: any) => ({ uri, type: "image" })) || []
+              property.photos?.map((uri: string) => ({ uri, type: "image" })) ||
+              []
             }
           />
         </View>
 
         <View
-          style={{
-            marginTop: -30,
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            padding: 24,
-            backgroundColor: currentTheme.background,
-          }}
+          style={[
+            styles.contentCard,
+            { backgroundColor: currentTheme.background },
+          ]}
         >
           <View
-            style={{
-              width: 40,
-              height: 5,
-              borderRadius: 3,
-              alignSelf: "center",
-              marginBottom: 20,
-              opacity: 0.2,
-              backgroundColor: currentTheme.border,
-            }}
+            style={[styles.handle, { backgroundColor: currentTheme.border }]}
           />
 
-          <Text
-            style={{
-              fontSize: 12,
-              fontWeight: "900",
-              letterSpacing: 1,
-              marginBottom: 8,
-              color: currentTheme.primary,
-            }}
-          >
+          {/* Header Section */}
+          <Text style={[styles.tagline, { color: currentTheme.primary }]}>
             {property.hostOption?.toUpperCase()} •{" "}
             {property.featured ? "FEATURED" : "VERIFIED"}
           </Text>
 
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "900",
-              marginBottom: 12,
-              color: currentTheme.text,
-            }}
-          >
+          <Text style={[styles.title, { color: currentTheme.text }]}>
             {property.title}
           </Text>
 
           <TouchableOpacity
             onPress={handleMapRedirect}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginBottom: 20,
-            }}
+            style={styles.locationRow}
           >
             <Ionicons name="location" size={18} color={currentTheme.primary} />
-            <Text
-              style={{
-                fontSize: 15,
-                marginLeft: 6,
-                fontWeight: "500",
-                color: currentTheme.muted,
-              }}
-            >
+            <Text style={[styles.locationText, { color: currentTheme.muted }]}>
               {fullAddress}
             </Text>
           </TouchableOpacity>
 
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              gap: 10,
-            }}
-          >
+          {/* Stats Bar */}
+          <View style={styles.statsContainer}>
             <StatItem
               icon="account-group-outline"
               label="Guests"
@@ -197,26 +156,41 @@ export default function PropertyDetails() {
           </View>
 
           <View
-            style={{
-              height: 1,
-              marginVertical: 25,
-              backgroundColor: currentTheme.border,
-            }}
+            style={[styles.divider, { backgroundColor: currentTheme.border }]}
           />
 
-          {property.description?.highlighted && (
-            <View style={{ marginBottom: 30 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "800",
-                  marginBottom: 15,
-                  color: currentTheme.text,
-                }}
-              >
-                Property Highlights
+          {/* Owner Profile Section */}
+          {property.owner && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+                Hosted by
               </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              <View style={styles.ownerCard}>
+                <Image
+                  source={{ uri: property.owner.profileImage }}
+                  style={styles.ownerImage}
+                />
+                <View>
+                  <Text
+                    style={[styles.ownerName, { color: currentTheme.text }]}
+                  >
+                    {property.owner.name}
+                  </Text>
+                  <Text style={{ color: currentTheme.muted }}>
+                    Property Owner
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Highlights */}
+          {property.description?.highlighted && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+                Highlights
+              </Text>
+              <View style={styles.badgeGrid}>
                 {property.description.highlighted.map(
                   (h: string, i: number) => (
                     <Badge
@@ -232,74 +206,48 @@ export default function PropertyDetails() {
             </View>
           )}
 
-          <View style={{ marginBottom: 30 }}>
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: "800",
-                marginBottom: 15,
-                color: currentTheme.text,
-              }}
-            >
-              Amenities
+          {/* Amenities & Bills */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+              Amenities & Bills
             </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <View style={styles.badgeGrid}>
               {property.amenities?.map((item: string, i: number) => (
                 <Badge
-                  key={i}
+                  key={`amenity-${i}`}
                   text={item}
                   icon="check-circle-outline"
                   theme={currentTheme}
                   type="amenity"
                 />
               ))}
+              {property.ALL_BILLS?.map((bill: string, i: number) => (
+                <Badge
+                  key={`bill-${i}`}
+                  text={`${bill} included`}
+                  icon="flash-outline"
+                  theme={currentTheme}
+                  type="safety"
+                />
+              ))}
             </View>
           </View>
 
-          {property.safetyDetailsData?.safetyDetails && (
-            <View style={{ marginBottom: 30 }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  fontWeight: "800",
-                  marginBottom: 15,
-                  color: currentTheme.text,
-                }}
-              >
-                Safety & Security
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {property.safetyDetailsData.safetyDetails.map(
-                  (s: string, i: number) => (
-                    <Badge
-                      key={i}
-                      text={s.replace("_", " ")}
-                      icon="shield-check-outline"
-                      theme={currentTheme}
-                      type="safety"
-                    />
-                  ),
-                )}
-              </View>
-            </View>
-          )}
-
+          {/* Financials */}
           <View
-            style={{
-              padding: 20,
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: currentTheme.border,
-              backgroundColor: currentTheme.card,
-            }}
+            style={[
+              styles.priceCard,
+              {
+                borderColor: currentTheme.border,
+                backgroundColor: currentTheme.card,
+              },
+            ]}
           >
             <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "800",
-                marginBottom: 12,
-                color: currentTheme.text,
-              }}
+              style={[
+                styles.sectionTitle,
+                { color: currentTheme.text, marginBottom: 12 },
+              ]}
             >
               Financial Details
             </Text>
@@ -341,13 +289,98 @@ export default function PropertyDetails() {
           </View>
         </View>
       </ScrollView>
-
-      <PropertyFooter
-        theme={currentTheme}
-        price={formatPrice(property.monthlyRent, "monthly rent")}
-        onChat={handleChatOwner}
-        isCreating={isCreating}
-      />
+      {property.chat && (
+        <PropertyFooter
+          theme={currentTheme}
+          price={formatPrice(property.monthlyRent, "Monthly")}
+          onChat={handleChatOwner}
+          isCreating={isCreating}
+        />
+      )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentCard: {
+    marginTop: -30,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 24,
+  },
+  handle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: "center",
+    marginBottom: 20,
+    opacity: 0.2,
+  },
+  tagline: {
+    fontSize: 12,
+    fontWeight: "900",
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "900",
+    marginBottom: 12,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  locationText: {
+    fontSize: 15,
+    marginLeft: 6,
+    fontWeight: "500",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 25,
+  },
+  section: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 15,
+  },
+  badgeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  priceCard: {
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  ownerCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  ownerImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  ownerName: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+});

@@ -10,7 +10,7 @@ export const Colors = {
     muted: "#6B7280",
 
     tint: tintColorLight,
-    primary: "#4CC9F0",
+    primary: "#4F46E5",
     secondary: "#4F46E5",
     accent: "#F59E0B",
     danger: "#DC2626",
@@ -36,7 +36,7 @@ export const Colors = {
     muted: "#9BA1A6",
 
     tint: tintColorDark,
-    primary: "#4CC9F0",
+    primary: "#4F46E5",
     secondary: "#A78BFA",
     accent: "#FBBF24",
 

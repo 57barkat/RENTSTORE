@@ -1,6 +1,8 @@
 const fs = require("fs");
+const path = require("path");
 const { ObjectId } = require("bson");
 
+// -------------------- Constants --------------------
 const CITIES = [
   "Lahore",
   "Karachi",
@@ -9,6 +11,7 @@ const CITIES = [
   "Peshawar",
   "Quetta",
 ];
+
 const AREAS = {
   Lahore: ["DHA Phase 5", "Gulberg 3", "Johar Town", "Bahria Town"],
   Karachi: [
@@ -59,59 +62,34 @@ const SAFETY_DETAILS = [
   "weapons",
   "noise_monitor",
 ];
-const CLOUDINARY_PHOTOS = [
-  "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/dghcwhzx6ybbwduvtadb.jpg",
-  "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/kkhwil8tm35deyqyasgr.jpg",
-  "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/gp8e4bkoz5rvfikulfek.jpg",
-  "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/rd8urpckgtidczr1crgd.jpg",
-  "https://res.cloudinary.com/da2yfuazg/image/upload/v1761156961/synzyaj62qiqgfz35zrl.jpg",
-  "https://picsum.photos/300/200?random=1",
-  "https://picsum.photos/300/200?random=2",
-  "https://picsum.photos/300/200?random=3",
-  "https://picsum.photos/300/200?random=4",
-  "https://picsum.photos/300/200?random=5",
-  "https://picsum.photos/300/200?random=6",
-  "https://picsum.photos/300/200?random=7",
-  "https://picsum.photos/300/200?random=8",
-  "https://picsum.photos/300/200?random=9",
-  "https://picsum.photos/300/200?random=10",
-  "https://picsum.photos/300/200?random=11",
-  "https://picsum.photos/300/200?random=12",
-  "https://picsum.photos/300/200?random=13",
-  "https://picsum.photos/300/200?random=14",
-  "https://picsum.photos/300/200?random=15",
-  "https://picsum.photos/300/200?random=16",
-  "https://picsum.photos/300/200?random=17",
-  "https://picsum.photos/300/200?random=18",
-  "https://picsum.photos/300/200?random=19",
-  "https://picsum.photos/300/200?random=20",
-  "https://picsum.photos/300/200?random=21",
-  "https://picsum.photos/300/200?random=22",
-  "https://picsum.photos/300/200?random=23",
-  "https://picsum.photos/300/200?random=24",
-  "https://picsum.photos/300/200?random=25",
-  "https://picsum.photos/300/200?random=26",
-];
+const CLOUDINARY_PHOTOS = Array.from(
+  { length: 20 },
+  (_, i) => `https://picsum.photos/300/200?random=${i + 1}`,
+);
 const APARTMENT_TYPES = ["studio", "1BHK", "2BHK", "penthouse"];
 const FURNISHINGS = ["furnished", "semi-furnished", "unfurnished"];
 const HOSTEL_TYPES = ["boys", "girls", "co-ed"];
 const MEAL_PLANS = ["breakfast", "lunch", "dinner"];
 const RULES = ["no_smoking", "no_pets", "quiet_hours", "no_party"];
 
-// --- Helpers ---
+// -------------------- Helpers --------------------
 const randomInt = (min, max) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randomSubarray = (arr, min = 0, max = arr.length) =>
-  arr.sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
+  [...arr].sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
-// --- Owner Pool ---
-const OWNER_COUNT = 5000; // number of unique owners
-const owners = Array.from({ length: OWNER_COUNT }, () =>
-  new ObjectId().toHexString()
-);
+// -------------------- Owners (MODIFIED) --------------------
+// These are the specific IDs you provided to ensure the lookup finds a user
+const VALID_OWNER_IDS = [
+  "6984d4a9ba69fbd9561e82e5",
+  "6984a2178e47a637cd2188fe",
+  "6977a444cd991a27eb2a1e52",
+  "6965056a49669152a2a6890d",
+  "691dde15a9165ac7f6c1a92c",
+];
 
-// --- Main Generator ---
+// -------------------- Generate Properties --------------------
 function generateDummyProperties(count = 30000) {
   const properties = [];
 
@@ -130,7 +108,6 @@ function generateDummyProperties(count = 30000) {
     const weeklyRent = Math.round(monthlyRent / 4);
     const SecuritybasePrice = monthlyRent * 1.5;
 
-    // Address
     const address = [
       {
         street: `Plot No. ${randomInt(1, 500)}`,
@@ -145,18 +122,17 @@ function generateDummyProperties(count = 30000) {
       },
     ];
 
-    // Coordinates
     const cityRange = CITY_COORDS[city];
     const lat =
       Math.random() * (cityRange.lat[1] - cityRange.lat[0]) + cityRange.lat[0];
     const lng =
       Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
 
-    // Randomized data
-    const photos =
-      Math.random() < 0.2
-        ? []
-        : randomSubarray(CLOUDINARY_PHOTOS, 1, CLOUDINARY_PHOTOS.length);
+    const photos = randomSubarray(
+      CLOUDINARY_PHOTOS,
+      1,
+      CLOUDINARY_PHOTOS.length,
+    );
     const amenities = randomSubarray(AMENITIES, 2, 7);
     const ALL_BILLS = randomSubarray(BILLS, 0, 4);
     const highlighted = randomSubarray(HIGHLIGHTS, 1, 3);
@@ -169,9 +145,8 @@ function generateDummyProperties(count = 30000) {
             "Ring doorbell camera is active.",
             "Noise monitoring in shared areas.",
           ])
-        : undefined;
+        : null;
 
-    // Apartment-specific
     const apartmentType =
       hostOption === "apartment" ? randomChoice(APARTMENT_TYPES) : undefined;
     const furnishing =
@@ -179,7 +154,6 @@ function generateDummyProperties(count = 30000) {
     const parking =
       hostOption === "apartment" ? Math.random() > 0.5 : undefined;
 
-    // Hostel-specific
     const hostelType =
       hostOption === "hostel" ? randomChoice(HOSTEL_TYPES) : undefined;
     const mealPlan =
@@ -189,13 +163,13 @@ function generateDummyProperties(count = 30000) {
 
     properties.push({
       _id: new ObjectId().toHexString(),
-      ownerId: randomChoice(owners), // <-- random owner from pool
+      ownerId: randomChoice(VALID_OWNER_IDS), // Picks from your valid list
       title: `${bedrooms} Bed ${
         hostOption === "home"
           ? "House"
           : hostOption === "hostel"
-          ? "Hostel"
-          : "Apartment"
+            ? "Hostel"
+            : "Apartment"
       } in ${area}`,
       hostOption,
       location: `${area}, ${city}`,
@@ -218,23 +192,29 @@ function generateDummyProperties(count = 30000) {
       hostelType,
       mealPlan,
       rules,
-      status: Math.random() > 0.2,
-      featured: Math.random() > 0.7,
+      status: true, // Set to true to ensure they are fetchable
+      featured: Math.random() > 0.8,
+      views: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
   }
 
   return properties;
 }
 
-// --- Execution ---
+// -------------------- Save to JSON --------------------
 const PROPERTY_COUNT = 30000;
 const properties = generateDummyProperties(PROPERTY_COUNT);
 
+const filePath = path.join(__dirname, "dummy_properties_dto.json");
 fs.writeFileSync(
-  "dummy_properties_dto.json",
-  JSON.stringify({ data: properties, total: properties.length }, null, 2)
+  filePath,
+  JSON.stringify({ data: properties, total: properties.length }, null, 2),
 );
 
+console.log(`\n🚀 Generation Complete!`);
+console.log(`✅ Saved ${PROPERTY_COUNT} properties to: ${filePath}`);
 console.log(
-  `Generated ${PROPERTY_COUNT} properties: only Home, Apartment, Hostel.`
+  `🔗 Distribution: All items assigned to the ${VALID_OWNER_IDS.length} specified IDs.`,
 );

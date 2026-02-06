@@ -4,7 +4,6 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
-  Dimensions,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -43,6 +42,11 @@ export default function PropertiesPage() {
     beds: beds ? parseInt(beds) : undefined,
     bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
   };
+  const [hostFilters, setHostFilters] = useState<
+    Record<string, typeof initialFilters>
+  >({
+    [hostOption]: initialFilters,
+  });
 
   const {
     allProperties,
@@ -56,7 +60,6 @@ export default function PropertiesPage() {
     isLoading,
     handleToggleFav,
   } = usePropertiesPage(initialFilters, hostOption);
-  console.log("Rendered PropertiesPage with filters:", filters);
 
   const selectedChips = buildSelectedChips(hostOption, filters);
 
@@ -65,8 +68,13 @@ export default function PropertiesPage() {
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
         <HostPicker
           value={hostOption}
-          onChange={(v) => {
-            setHostOption(v);
+          onChange={(newHost) => {
+            setHostFilters((prev) => ({ ...prev, [hostOption]: filters }));
+
+            setHostOption(newHost);
+
+            setFilters(hostFilters[newHost] || initialFilters);
+
             setPage(1);
           }}
           theme={currentTheme}
@@ -136,6 +144,8 @@ export default function PropertiesPage() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onApply={() => {
+          setHostFilters((prev) => ({ ...prev, [hostOption]: filters }));
+
           setModalVisible(false);
           setPage(1);
         }}

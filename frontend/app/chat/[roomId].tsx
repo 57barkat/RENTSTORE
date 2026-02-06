@@ -10,80 +10,117 @@ import {
   StyleSheet,
   SafeAreaView,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { connectSocket } from "@/services/socket";
 import { useCreateRoomMutation, useGetMessagesQuery } from "@/hooks/chat";
 import { Socket } from "socket.io-client";
+import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-
-type Message = {
-  _id: string;
-  chatRoomId: string;
-  senderId: string;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import { useTheme } from "@/contextStore/ThemeContext";
+import { tokenManager } from "@/services/tokenManager";
 
 export default function ChatRoomScreen() {
-  const { roomId: roomParam, otherUserId } = useLocalSearchParams<{
+  const {
+    roomId: roomParam,
+    otherUserId,
+    propertyId,
+  } = useLocalSearchParams<{
     roomId?: string;
     otherUserId?: string;
+    propertyId?: string;
   }>();
+
+  const router = useRouter();
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme];
 
   const [userId, setUserId] = useState<string>("");
   const [roomId, setRoomId] = useState<string | undefined>(roomParam);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const flatListRef = useRef<FlatList>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
 
   const [createRoom] = useCreateRoomMutation();
 
-  /* -------------------- Load Logged-in User -------------------- */
   useEffect(() => {
     const loadUser = async () => {
-      const storedUserId = await AsyncStorage.getItem("userId");
-      if (storedUserId) {
-        setUserId(storedUserId);
+      if (!tokenManager) {
+        console.error("tokenManager is undefined! Check your imports.");
+        return;
+      }
+      await tokenManager.load();
+
+      let id = await AsyncStorage.getItem("userId");
+
+      if (!id && tokenManager.getAccessToken()) {
+        const payload = JSON.parse(
+          atob(tokenManager.getAccessToken()!.split(".")[1]),
+        );
+        id = payload.sub;
+      }
+
+      if (id) {
+        setUserId(id);
+        await AsyncStorage.setItem("userId", id);
       }
     };
+
     loadUser();
   }, []);
 
-  /* -------------------- Create Room if Needed -------------------- */
   useEffect(() => {
     const initRoom = async () => {
       if (!roomId && userId && otherUserId) {
         try {
-          const room = await createRoom({
-            participants: [otherUserId],
-          }).unwrap();
+          const payload: { participants: string[]; propertyId?: string } = {
+            participants: [userId, otherUserId],
+          };
+          if (propertyId) payload.propertyId = propertyId;
+
+          const room = await createRoom(payload).unwrap();
 
           setRoomId(room._id);
+
+          router.setParams({ roomId: room._id });
         } catch (err) {
-          console.error("Room creation failed:", err);
+          console.error("Room Init Error:", err);
         }
       }
     };
 
     initRoom();
-  }, [userId, otherUserId, roomId]);
+  }, [userId, otherUserId, roomId, propertyId]);
 
-  /* -------------------- Fetch Messages -------------------- */
-  const { data: fetchedMessages } = useGetMessagesQuery(
+  const {
+    data: fetchedMessages,
+    isLoading,
+    isError,
+    error,
+  } = useGetMessagesQuery(
     { roomId: roomId ?? "" },
-    { skip: !roomId }
+    {
+      skip: !roomId || roomId === "undefined" || roomId.length < 10,
+      refetchOnMountOrArgChange: true,
+    },
   );
 
   useEffect(() => {
+    if (isLoading) {
+      console.log("Fetching previous messages...");
+    }
+
+    if (isError) {
+      console.error("Failed to fetch messages:", error);
+    }
+
     if (Array.isArray(fetchedMessages)) {
+      console.log("Fetched Messages:", fetchedMessages);
       setMessages(fetchedMessages);
     }
-  }, [fetchedMessages]);
+  }, [fetchedMessages, isLoading, isError, error]);
 
-  /* -------------------- Socket Setup -------------------- */
   useEffect(() => {
     if (!roomId || !userId) return;
 
@@ -95,13 +132,13 @@ export default function ChatRoomScreen() {
 
       socketInstance.emit("joinRoom", roomId);
 
-      socketInstance.on("newMessage", (msg: Message) => {
-        if (msg.chatRoomId !== roomId) return;
-
-        setMessages((prev) => {
-          if (prev.some((m) => m._id === msg._id)) return prev;
-          return [...prev, msg];
-        });
+      socketInstance.on("newMessage", (msg) => {
+        if (msg.chatRoomId === roomId) {
+          setMessages((prev) => {
+            if (prev.find((m) => m._id === msg._id)) return prev;
+            return [...prev, msg];
+          });
+        }
       });
     };
 
@@ -109,26 +146,24 @@ export default function ChatRoomScreen() {
 
     return () => {
       if (socketInstance) {
+        socketInstance.emit("leaveRoom", roomId);
         socketInstance.off("newMessage");
-        socketInstance.disconnect();
       }
     };
   }, [roomId, userId]);
 
-  /* -------------------- Send Message -------------------- */
   const handleSend = () => {
     if (!text.trim() || !roomId || !socket) return;
 
     socket.emit("sendMessage", {
       chatRoomId: roomId,
-      text: text.trim(),
+      text,
     });
 
     setText("");
   };
 
-  /* -------------------- Render Message -------------------- */
-  const renderItem = ({ item }: { item: Message }) => {
+  const renderItem = ({ item }: { item: any }) => {
     const isMe = item.senderId === userId;
 
     return (
@@ -139,9 +174,19 @@ export default function ChatRoomScreen() {
         ]}
       >
         <View
-          style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}
+          style={[
+            styles.bubble,
+            {
+              backgroundColor: isMe ? currentTheme.primary : currentTheme.card,
+            },
+          ]}
         >
-          <Text style={[styles.messageText, { color: isMe ? "#fff" : "#000" }]}>
+          <Text
+            style={[
+              styles.messageText,
+              { color: isMe ? "#fff" : currentTheme.text },
+            ]}
+          >
             {item.text}
           </Text>
         </View>
@@ -156,7 +201,7 @@ export default function ChatRoomScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -165,7 +210,9 @@ export default function ChatRoomScreen() {
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item, index) =>
+            item._id?.toString() || index.toString()
+          }
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           onContentSizeChange={() =>
@@ -173,22 +220,46 @@ export default function ChatRoomScreen() {
           }
         />
 
-        <View style={styles.inputWrapper}>
-          <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              borderTopColor: currentTheme.border,
+              backgroundColor: currentTheme.background,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.inputWrapper,
+              {
+                backgroundColor: currentTheme.card,
+                borderColor: currentTheme.border,
+              },
+            ]}
+          >
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: currentTheme.text }]}
               value={text}
               onChangeText={setText}
               placeholder="Type a message..."
+              placeholderTextColor={currentTheme.muted}
               multiline
-              maxLength={500}
             />
+
             <TouchableOpacity
               onPress={handleSend}
-              style={[styles.sendBtn, !text.trim() && styles.sendBtnDisabled]}
               disabled={!text.trim()}
+              style={[
+                styles.sendBtn,
+                {
+                  backgroundColor: text.trim()
+                    ? currentTheme.primary
+                    : currentTheme.muted,
+                },
+              ]}
             >
-              <Ionicons name="arrow-up" size={22} color="#fff" />
+              <Ionicons name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -199,76 +270,43 @@ export default function ChatRoomScreen() {
 
 /* -------------------- Styles -------------------- */
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F5F7FB" },
-  listContent: { paddingHorizontal: 16, paddingVertical: 20 },
-
-  messageWrapper: {
-    marginBottom: 12,
-    maxWidth: "80%",
-  },
-  myWrapper: {
-    alignSelf: "flex-end",
-    alignItems: "flex-end",
-  },
-  theirWrapper: {
-    alignSelf: "flex-start",
-    alignItems: "flex-start",
-  },
+  listContent: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20 },
+  messageWrapper: { marginVertical: 6, maxWidth: "80%" },
+  myWrapper: { alignSelf: "flex-end", alignItems: "flex-end" },
+  theirWrapper: { alignSelf: "flex-start", alignItems: "flex-start" },
   bubble: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 18,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  myBubble: {
-    backgroundColor: "#007AFF",
-    borderBottomRightRadius: 4,
-  },
-  theirBubble: {
-    backgroundColor: "#FFFFFF",
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  timestamp: {
-    fontSize: 10,
-    color: "#ADB5BD",
-    marginTop: 4,
-  },
-
-  inputWrapper: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E9ECEF",
-  },
+  messageText: { fontSize: 16, lineHeight: 20 },
+  timestamp: { fontSize: 10, color: "#888", marginTop: 4, marginHorizontal: 4 },
   inputContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 10 : 20,
+    borderTopWidth: 1,
+  },
+  inputWrapper: {
     flexDirection: "row",
-    alignItems: "flex-end",
-    backgroundColor: "#F1F3F5",
-    borderRadius: 24,
-    paddingHorizontal: 12,
+    alignItems: "center",
+    borderRadius: 28,
+    borderWidth: 1,
+    paddingLeft: 16,
+    paddingRight: 6,
     paddingVertical: 6,
   },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    maxHeight: 100,
-  },
+  input: { flex: 1, fontSize: 16, maxHeight: 100, paddingVertical: 4 },
   sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#007AFF",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 4,
-  },
-  sendBtnDisabled: {
-    backgroundColor: "#B0D4FF",
+    marginLeft: 10,
   },
 });
