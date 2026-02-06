@@ -57,7 +57,7 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
             ) : (
               <View style={styles.videoContainer}>
                 <Image
-                  source={{ uri: item.uri + "?vframe/jpg" }} // optional thumbnail generation for video
+                  source={{ uri: item.uri + "?vframe/jpg" }}
                   style={styles.media}
                 />
                 <MaterialCommunityIcons

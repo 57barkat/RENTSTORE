@@ -14,16 +14,16 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-import ImageCarousel from "@/utils/Carousel";
-import { formatPrice } from "@/utils/formatPrice";
+import ImageCarousel from "@/utils/properties/Carousel";
+import { formatPrice } from "@/utils/properties/formatPrice";
 import { usePropertyById } from "@/services/propertyService";
 import { useChatRoom } from "@/hooks/useChatRoom";
 
-import { PropertyDetailsHeader } from "@/components/Property/PropertyDetailsHeader";
-import { StatItem } from "@/components/Property/PropertyStats";
-import { Badge } from "@/components/Property/PropertyBadge";
-import { PriceRow } from "@/components/Property/PropertyPriceCard";
-import { PropertyFooter } from "@/components/Property/PropertyFooter";
+import { PropertyDetailsHeader } from "@/components/Properties/PropertyDetailsHeader";
+import { StatItem } from "@/components/Properties/PropertyStats";
+import { Badge } from "@/components/Properties/PropertyBadge";
+import { PriceRow } from "@/components/Properties/PropertyPriceCard";
+import { PropertyFooter } from "@/components/Properties/PropertyFooter";
 
 import { Ionicons } from "@expo/vector-icons";
 
