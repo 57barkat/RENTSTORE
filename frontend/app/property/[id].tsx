@@ -41,7 +41,11 @@ export default function PropertyDetails() {
   const { height: windowHeight } = useWindowDimensions();
 
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
-  const { handleChatOwner, isCreating } = useChatRoom(property?.ownerId);
+  const { handleChatOwner, isCreating } = useChatRoom(
+    property?.ownerId,
+    property?.owner?.name,
+    property?.owner?.profileImage,
+  );
 
   if (isLoading) {
     return (

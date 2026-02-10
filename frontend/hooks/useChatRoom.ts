@@ -3,7 +3,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 
-export const useChatRoom = (ownerId?: string) => {
+export const useChatRoom = (
+  ownerId?: string,
+  name?: string,
+  image?: string,
+) => {
   const router = useRouter();
   const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
 
@@ -31,7 +35,12 @@ export const useChatRoom = (ownerId?: string) => {
 
       router.push({
         pathname: "/chat/[roomId]",
-        params: { roomId: room._id, otherUserId: ownerId },
+        params: {
+          roomId: room._id,
+          otherUserId: ownerId,
+          otherUserName: name,
+          otherUserImage: image,
+        },
       });
     } catch (err) {
       console.error(err);

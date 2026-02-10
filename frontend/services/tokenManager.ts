@@ -69,6 +69,8 @@ class TokenManager {
     this.accessToken = null;
     this.refreshToken = null;
     this.userData = null;
+    this.loaded = false;
+
     try {
       await AsyncStorage.multiRemove([
         ACCESS_TOKEN_KEY,

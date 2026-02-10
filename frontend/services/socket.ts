@@ -33,3 +33,10 @@ export const connectSocket = async (): Promise<Socket> => {
   socket.connect();
   return socket;
 };
+export const disconnectSocket = () => {
+  if (socket) {
+    socket.disconnect();
+    socket.removeAllListeners();
+    socket = null;
+  }
+};

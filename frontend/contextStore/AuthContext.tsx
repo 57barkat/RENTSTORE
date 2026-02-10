@@ -9,6 +9,7 @@ import React, {
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { tokenManager } from "../services/tokenManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { disconnectSocket } from "@/services/socket";
 
 export type UserType = {
   id: string;
@@ -92,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    disconnectSocket();
     await tokenManager.clear();
     await AsyncStorage.removeItem("userId");
     setUser(null);
