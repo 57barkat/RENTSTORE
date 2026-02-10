@@ -9,7 +9,6 @@ import {
 import { Server, Socket } from "socket.io";
 import { JwtService } from "@nestjs/jwt";
 import { ChatService } from "./chat.service";
-import { Types } from "mongoose";
 
 @WebSocketGateway({ cors: { origin: "*" } })
 export class ChatGateway implements OnGatewayConnection {
@@ -40,10 +39,7 @@ export class ChatGateway implements OnGatewayConnection {
       rooms.forEach((room) => {
         if (room?._id) client.join(room._id.toString());
       });
-
-      console.log(`User connected: ${client.data.userId}`);
     } catch (err) {
-      console.error("Socket Connection Error:", err.message);
       client.disconnect();
     }
   }
@@ -72,6 +68,11 @@ export class ChatGateway implements OnGatewayConnection {
       data.text.trim(),
     );
 
-    this.server.to(data.chatRoomId).emit("newMessage", message);
+    const populatedMessage = await message.populate(
+      "senderId",
+      "name profileImage",
+    );
+
+    this.server.to(data.chatRoomId).emit("newMessage", populatedMessage);
   }
 }

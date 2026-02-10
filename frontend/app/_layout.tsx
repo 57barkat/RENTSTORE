@@ -33,35 +33,35 @@ const AppContent = () => {
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
-  const [redirectDone, setRedirectDone] = useState(false);
 
   useEffect(() => {
-    const hideSystemUI = async () => {
+    const setupSystemUI = async () => {
       try {
         await NavigationBar.setVisibilityAsync("hidden");
-        await NavigationBar.setBehaviorAsync("sticky-immersive" as any);
+        await NavigationBar.setBehaviorAsync("overlay-swipe");
+        await NavigationBar.setBackgroundColorAsync(
+          theme === "dark" ? "#000000" : "#ffffff",
+        );
       } catch (e) {
         console.warn("Navigation Bar Error: ", e);
       }
     };
+    setupSystemUI();
+  }, [theme]);
 
-    hideSystemUI();
+  useEffect(() => {
+    if (!fontsLoaded || loading) return;
 
-    if (!fontsLoaded || loading || redirectDone) return;
+    const segment = segments[0] ?? "";
+    const inAuthGroup =
+      segment === "(auth)" || segment === "signin" || segment === "signup";
 
-    const currentPath = segments.join("/");
-
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !inAuthGroup) {
       router.replace("/signin");
-      setRedirectDone(true);
-      return;
-    }
-
-    if (isAuthenticated && currentPath !== "homePage") {
+    } else if (isAuthenticated && (inAuthGroup || segment === "")) {
       router.replace("/homePage");
-      setRedirectDone(true);
     }
-  }, [fontsLoaded, loading, isAuthenticated, segments, redirectDone]);
+  }, [fontsLoaded, loading, isAuthenticated, segments]);
 
   if (!fontsLoaded || loading) {
     return (
@@ -71,7 +71,6 @@ const AppContent = () => {
     );
   }
 
-  // Screens where Header should be hidden
   const hideHeaderScreens = new Set([
     "signin",
     "signup",
@@ -80,9 +79,14 @@ const AppContent = () => {
     "property/[id]",
     "property/edit/[id]",
     "property/View/[type]",
+    "chat/[roomId]",
   ]);
-  const currentSegment = segments[segments.length - 1];
-  const hideHeader = hideHeaderScreens.has(currentSegment);
+
+  const currentSegment = segments[segments.length - 1] ?? "";
+  const currentPath = segments.join("/");
+
+  const hideHeader =
+    hideHeaderScreens.has(currentSegment) || hideHeaderScreens.has(currentPath);
 
   return (
     <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
@@ -94,7 +98,7 @@ const AppContent = () => {
         <Stack.Screen name="signup" />
         <Stack.Screen name="choose-role" />
         <Stack.Screen name="Verification" />
-
+        <Stack.Screen name="chat/[roomId]" />
         <Stack.Screen name="property/[id]" />
         <Stack.Screen name="property/View/[type]" />
         <Stack.Screen name="property/edit/[id]" />

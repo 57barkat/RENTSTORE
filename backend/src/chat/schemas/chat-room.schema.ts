@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type ChatRoomDocument = ChatRoom & Document;
 
 @Schema({ timestamps: true })
 export class ChatRoom {
-  @Prop({ type: [String], required: true })
-  participants: string[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: "User" }], required: true })
+  participants: Types.ObjectId[];
 
   @Prop({ type: Boolean, default: false })
   isGroup: boolean;
