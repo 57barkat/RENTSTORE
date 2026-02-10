@@ -35,6 +35,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     ...(config.android as any),
     package: "com.usman_naeem.frontend",
+    softwareKeyboardLayoutMode: "resize",
     permissions: [
       "ACCESS_FINE_LOCATION",
       "ACCESS_COARSE_LOCATION",
