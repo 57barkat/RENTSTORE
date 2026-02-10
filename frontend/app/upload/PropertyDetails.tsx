@@ -20,35 +20,32 @@ const PropertyDetails: FC = () => {
 
   const { data, updateForm } = context;
   const router = useRouter();
+
+  // Basic structure for unfurnished houses
   const defaultCapacity: CapacityState = {
-    Persons: 1,
-    bedrooms: 0,
-    beds: 1,
+    floorLevel: 0,
+    bedrooms: 1,
     bathrooms: 1,
   };
 
   const [capacity, setCapacity] = useState<CapacityState>(() => {
     const c = data.capacityState;
-
     if (!c || typeof c !== "object") return defaultCapacity;
-
     return {
-      Persons: c.Persons ?? 1,
-      bedrooms: c.bedrooms ?? 0,
-      beds: c.beds ?? 1,
+      floorLevel: c.floorLevel ?? 0,
+      bedrooms: c.bedrooms ?? 1,
       bathrooms: c.bathrooms ?? 1,
     };
   });
 
   const updateCapacity = (
     key: keyof CapacityState,
-    action: "increment" | "decrement"
+    action: "increment" | "decrement",
   ) => {
     setCapacity((prev) => {
-      // ensure we never operate on undefined values
       const current = Number(prev[key] ?? 0);
       const newValue = action === "increment" ? current + 1 : current - 1;
-      return { ...prev, [key]: newValue };
+      return { ...prev, [key]: Math.max(newValue, 1) };
     });
   };
 
@@ -57,51 +54,45 @@ const PropertyDetails: FC = () => {
     router.push("/upload/AmenitiesScreen");
   };
 
-  const isNextDisabled = capacity.Persons < 1 || capacity.beds < 1;
+  const isNextDisabled =
+    (capacity.floorLevel ?? 0) < 1 ||
+    capacity.bedrooms < 1 ||
+    capacity.bathrooms < 1;
 
   return (
     <StepContainer
-      title="Share some basics about your place"
+      title="Share the basic layout of your house"
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={25}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-        You&apos;ll add more details later, like bed types.
+        Just the structural details for now. No furniture needed.
       </Text>
 
       <View style={styles.listContainer}>
         <CounterInput
-          label="Persons"
-          value={capacity.Persons}
+          label="floorLevel"
+          value={capacity.floorLevel ?? 0}
           minValue={1}
-          onIncrement={() => updateCapacity("Persons", "increment")}
-          onDecrement={() => updateCapacity("Persons", "decrement")}
+          onIncrement={() => updateCapacity("floorLevel", "increment")}
+          onDecrement={() => updateCapacity("floorLevel", "decrement")}
           textColor={currentTheme.text}
           buttonColor={currentTheme.primary}
         />
         <CounterInput
           label="Bedrooms"
           value={capacity.bedrooms}
-          minValue={0}
+          minValue={1}
           onIncrement={() => updateCapacity("bedrooms", "increment")}
           onDecrement={() => updateCapacity("bedrooms", "decrement")}
           textColor={currentTheme.text}
           buttonColor={currentTheme.primary}
         />
         <CounterInput
-          label="Beds"
-          value={capacity.beds}
-          minValue={1}
-          onIncrement={() => updateCapacity("beds", "increment")}
-          onDecrement={() => updateCapacity("beds", "decrement")}
-          textColor={currentTheme.text}
-          buttonColor={currentTheme.primary}
-        />
-        <CounterInput
           label="Bathrooms"
           value={capacity.bathrooms}
-          minValue={0}
+          minValue={1}
           onIncrement={() => updateCapacity("bathrooms", "increment")}
           onDecrement={() => updateCapacity("bathrooms", "decrement")}
           textColor={currentTheme.text}

@@ -16,15 +16,26 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSidebar } from "@/contextStore/SidebarContext";
 
 export default function Header() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resetToSystem } = useTheme();
   const { isAuthenticated, isPhoneVerified } = useAuth();
   const router = useRouter();
   const { toggle } = useSidebar();
 
   const isDark = theme === "dark";
+  const isLight = theme === "light";
+  const isSystem = !isDark && !isLight;
+
   const currentTheme = Colors[isDark ? "dark" : "light"];
 
-  const toggleTheme = () => setTheme(isDark ? "light" : "dark");
+  const toggleTheme = async () => {
+    if (isSystem) {
+      setTheme("dark");
+    } else if (isDark) {
+      setTheme("light");
+    } else {
+      resetToSystem();
+    }
+  };
 
   return (
     <>
@@ -33,6 +44,7 @@ export default function Header() {
         backgroundColor="transparent"
         translucent
       />
+
       <View
         style={[
           styles.container,
@@ -76,10 +88,22 @@ export default function Header() {
           activeOpacity={0.6}
         >
           <MaterialCommunityIcons
-            name={isDark ? "moon-waning-crescent" : "white-balance-sunny"}
+            name={
+              isSystem
+                ? "theme-light-dark"
+                : isDark
+                  ? "moon-waning-crescent"
+                  : "white-balance-sunny"
+            }
             style={{ transform: [{ rotate: "-45deg" }] }}
             size={22}
-            color={isDark ? currentTheme.primary : currentTheme.accent}
+            color={
+              isSystem
+                ? currentTheme.primary
+                : isDark
+                  ? currentTheme.primary
+                  : currentTheme.accent
+            }
           />
         </TouchableOpacity>
       </View>
@@ -96,7 +120,7 @@ export default function Header() {
             style={[
               styles.cautionBanner,
               {
-                backgroundColor: isDark ? "#1E1A11" : "#FFFBEB", // Keeping specialized warning hues
+                backgroundColor: isDark ? "#1E1A11" : "#FFFBEB",
                 borderColor: currentTheme.warning,
               },
             ]}
@@ -116,6 +140,7 @@ export default function Header() {
                   color={currentTheme.warning}
                 />
               </View>
+
               <View>
                 <Text
                   style={[
@@ -136,6 +161,7 @@ export default function Header() {
                 </Text>
               </View>
             </View>
+
             <View
               style={[
                 styles.verifyLinkWrapper,
@@ -180,6 +206,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+
   iconButton: {
     width: 44,
     height: 44,
@@ -188,15 +215,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
   },
+
   logoWrapper: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+
   bannerWrapper: {
     paddingHorizontal: 16,
     paddingTop: 8,
   },
+
   cautionBanner: {
     borderRadius: 16,
     paddingVertical: 12,
@@ -207,11 +237,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     elevation: 2,
   },
+
   bannerContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
+
   warningIconCircle: {
     width: 32,
     height: 32,
@@ -219,11 +251,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   cautionText: {
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: -0.3,
   },
+
   verifyLinkWrapper: {
     flexDirection: "row",
     alignItems: "center",
@@ -232,6 +266,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 8,
   },
+
   verifyLink: {
     fontSize: 12,
     fontWeight: "800",

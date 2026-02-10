@@ -22,7 +22,7 @@ export const PrimaryButton = ({ title, onPress, loading }: any) => (
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#2B6CB0",
+    backgroundColor: "#4F46E5",
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",

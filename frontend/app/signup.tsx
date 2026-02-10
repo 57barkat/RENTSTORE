@@ -213,6 +213,7 @@ export default function SignUpScreen() {
                       }
                       placeholder="Phone"
                       value={values.phone}
+                      keyboardType="phone-pad"
                       onChange={handleChange("phone")}
                       onBlur={() => handleBlur("phone")}
                       error={touched.phone && errors.phone}

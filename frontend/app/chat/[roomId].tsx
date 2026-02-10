@@ -9,31 +9,39 @@ import {
   Platform,
   StyleSheet,
   SafeAreaView,
+  Image,
+  StatusBar,
 } from "react-native";
+import { useHeaderHeight } from "@react-navigation/elements";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/Colors";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { tokenManager } from "@/services/tokenManager";
 import { connectSocket } from "@/services/socket";
 import { useCreateRoomMutation, useGetMessagesQuery } from "@/hooks/chat";
 import { Socket } from "socket.io-client";
-import { Colors } from "@/constants/Colors";
-import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/contextStore/ThemeContext";
-import { tokenManager } from "@/services/tokenManager";
 
 export default function ChatRoomScreen() {
   const {
     roomId: roomParam,
     otherUserId,
+    otherUserName,
+    otherUserImage,
     propertyId,
   } = useLocalSearchParams<{
     roomId?: string;
     otherUserId?: string;
+    otherUserName?: string;
+    otherUserImage?: string;
     propertyId?: string;
   }>();
 
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
+  const headerHeight = useHeaderHeight();
 
   const [userId, setUserId] = useState<string>("");
   const [roomId, setRoomId] = useState<string | undefined>(roomParam);
@@ -41,32 +49,24 @@ export default function ChatRoomScreen() {
   const [text, setText] = useState("");
   const flatListRef = useRef<FlatList>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
-
   const [createRoom] = useCreateRoomMutation();
 
   useEffect(() => {
     const loadUser = async () => {
-      if (!tokenManager) {
-        console.error("tokenManager is undefined! Check your imports.");
-        return;
-      }
+      if (!tokenManager) return;
       await tokenManager.load();
-
       let id = await AsyncStorage.getItem("userId");
-
       if (!id && tokenManager.getAccessToken()) {
         const payload = JSON.parse(
           atob(tokenManager.getAccessToken()!.split(".")[1]),
         );
         id = payload.sub;
       }
-
       if (id) {
         setUserId(id);
         await AsyncStorage.setItem("userId", id);
       }
     };
-
     loadUser();
   }, []);
 
@@ -74,76 +74,46 @@ export default function ChatRoomScreen() {
     const initRoom = async () => {
       if (!roomId && userId && otherUserId) {
         try {
-          const payload: { participants: string[]; propertyId?: string } = {
-            participants: [userId, otherUserId],
-          };
-          if (propertyId) payload.propertyId = propertyId;
-
+          const payload = { participants: [userId, otherUserId], propertyId };
           const room = await createRoom(payload).unwrap();
-
           setRoomId(room._id);
-
           router.setParams({ roomId: room._id });
         } catch (err) {
-          console.error("Room Init Error:", err);
+          console.error("Room error", err);
         }
       }
     };
-
     initRoom();
-  }, [userId, otherUserId, roomId, propertyId]);
+  }, [userId, otherUserId, roomId]);
 
-  const {
-    data: fetchedMessages,
-    isLoading,
-    isError,
-    error,
-  } = useGetMessagesQuery(
+  const { data: fetchedMessages } = useGetMessagesQuery(
     { roomId: roomId ?? "" },
     {
-      skip: !roomId || roomId === "undefined" || roomId.length < 10,
+      skip: !roomId || roomId === "undefined",
       refetchOnMountOrArgChange: true,
     },
   );
 
   useEffect(() => {
-    if (isLoading) {
-      console.log("Fetching previous messages...");
-    }
-
-    if (isError) {
-      console.error("Failed to fetch messages:", error);
-    }
-
-    if (Array.isArray(fetchedMessages)) {
-      console.log("Fetched Messages:", fetchedMessages);
-      setMessages(fetchedMessages);
-    }
-  }, [fetchedMessages, isLoading, isError, error]);
+    if (Array.isArray(fetchedMessages)) setMessages(fetchedMessages);
+  }, [fetchedMessages]);
 
   useEffect(() => {
     if (!roomId || !userId) return;
-
     let socketInstance: Socket;
-
     const setupSocket = async () => {
       socketInstance = await connectSocket();
       setSocket(socketInstance);
-
       socketInstance.emit("joinRoom", roomId);
-
       socketInstance.on("newMessage", (msg) => {
         if (msg.chatRoomId === roomId) {
-          setMessages((prev) => {
-            if (prev.find((m) => m._id === msg._id)) return prev;
-            return [...prev, msg];
-          });
+          setMessages((prev) =>
+            prev.find((m) => m._id === msg._id) ? prev : [...prev, msg],
+          );
         }
       });
     };
-
     setupSocket();
-
     return () => {
       if (socketInstance) {
         socketInstance.emit("leaveRoom", roomId);
@@ -154,75 +124,98 @@ export default function ChatRoomScreen() {
 
   const handleSend = () => {
     if (!text.trim() || !roomId || !socket) return;
-
-    socket.emit("sendMessage", {
-      chatRoomId: roomId,
-      text,
-    });
-
+    socket.emit("sendMessage", { chatRoomId: roomId, text });
     setText("");
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    const isMe = item.senderId === userId;
+    const senderData = item.senderId;
+    const isMe =
+      (typeof senderData === "object" ? senderData._id : senderData) === userId;
+    const avatarUri = isMe
+      ? senderData?.profileImage
+      : senderData?.profileImage || otherUserImage;
 
     return (
-      <View
-        style={[
-          styles.messageWrapper,
-          isMe ? styles.myWrapper : styles.theirWrapper,
-        ]}
-      >
-        <View
-          style={[
-            styles.bubble,
-            {
-              backgroundColor: isMe ? currentTheme.primary : currentTheme.card,
-            },
-          ]}
-        >
-          <Text
+      <View style={[styles.msgRow, isMe ? styles.myRow : styles.theirRow]}>
+        {!isMe && (
+          <Image source={{ uri: avatarUri }} style={styles.chatAvatar} />
+        )}
+        <View style={isMe ? styles.myMsgContent : styles.theirMsgContent}>
+          <View
             style={[
-              styles.messageText,
-              { color: isMe ? "#fff" : currentTheme.text },
+              styles.bubble,
+              {
+                backgroundColor: isMe
+                  ? currentTheme.primary
+                  : currentTheme.card,
+              },
             ]}
           >
-            {item.text}
+            <Text
+              style={[
+                styles.msgText,
+                { color: isMe ? "#fff" : currentTheme.text },
+              ]}
+            >
+              {item.text}
+            </Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(item.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </Text>
         </View>
-        <Text style={styles.timestamp}>
-          {new Date(item.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
+        {isMe && (
+          <Image source={{ uri: avatarUri }} style={styles.chatAvatar} />
+        )}
       </View>
     );
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: currentTheme.background }]}
+    >
+      <StatusBar
+        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+      />
+
+      <View style={[styles.header, { borderBottomColor: currentTheme.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={28} color={currentTheme.text} />
+        </TouchableOpacity>
+        <Image source={{ uri: otherUserImage }} style={styles.headerImg} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
+            {otherUserName}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#4ADE80" }}>Active Now</Text>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
       >
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={(item, index) =>
-            item._id?.toString() || index.toString()
-          }
+          keyExtractor={(item) => item._id}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={styles.list}
           onContentSizeChange={() =>
             flatListRef.current?.scrollToEnd({ animated: true })
           }
+          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
         <View
           style={[
-            styles.inputContainer,
+            styles.inputArea,
             {
               borderTopColor: currentTheme.border,
               backgroundColor: currentTheme.background,
@@ -230,28 +223,21 @@ export default function ChatRoomScreen() {
           ]}
         >
           <View
-            style={[
-              styles.inputWrapper,
-              {
-                backgroundColor: currentTheme.card,
-                borderColor: currentTheme.border,
-              },
-            ]}
+            style={[styles.innerInput, { backgroundColor: currentTheme.card }]}
           >
             <TextInput
-              style={[styles.input, { color: currentTheme.text }]}
+              style={[styles.textField, { color: currentTheme.text }]}
               value={text}
               onChangeText={setText}
-              placeholder="Type a message..."
+              placeholder="Write a message..."
               placeholderTextColor={currentTheme.muted}
               multiline
             />
-
             <TouchableOpacity
               onPress={handleSend}
               disabled={!text.trim()}
               style={[
-                styles.sendBtn,
+                styles.sendCircle,
                 {
                   backgroundColor: text.trim()
                     ? currentTheme.primary
@@ -268,45 +254,54 @@ export default function ChatRoomScreen() {
   );
 }
 
-/* -------------------- Styles -------------------- */
 const styles = StyleSheet.create({
-  listContent: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20 },
-  messageWrapper: { marginVertical: 6, maxWidth: "80%" },
-  myWrapper: { alignSelf: "flex-end", alignItems: "flex-end" },
-  theirWrapper: { alignSelf: "flex-start", alignItems: "flex-start" },
-  bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  messageText: { fontSize: 16, lineHeight: 20 },
-  timestamp: { fontSize: 10, color: "#888", marginTop: 4, marginHorizontal: 4 },
-  inputContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === "ios" ? 10 : 20,
-    borderTopWidth: 1,
-  },
-  inputWrapper: {
+  container: { flex: 1 },
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 28,
-    borderWidth: 1,
-    paddingLeft: 16,
-    paddingRight: 6,
+    padding: 12,
+    borderBottomWidth: 1,
+  },
+  backBtn: { marginRight: 8 },
+  headerImg: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
+  list: { padding: 16 },
+  msgRow: { flexDirection: "row", marginBottom: 18, alignItems: "flex-end" },
+  myRow: { justifyContent: "flex-end" },
+  theirRow: { justifyContent: "flex-start" },
+  chatAvatar: { width: 32, height: 32, borderRadius: 16, marginHorizontal: 8 },
+  myMsgContent: { alignItems: "flex-end", maxWidth: "75%" },
+  theirMsgContent: { alignItems: "flex-start", maxWidth: "75%" },
+  bubble: {
+    padding: 12,
+    borderRadius: 18,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  msgText: { fontSize: 15, lineHeight: 20 },
+  timeText: { fontSize: 10, color: "#999", marginTop: 4, marginHorizontal: 4 },
+  inputArea: {
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 30 : 12,
+    borderTopWidth: 1,
+  },
+  innerInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 25,
+    paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  input: { flex: 1, fontSize: 16, maxHeight: 100, paddingVertical: 4 },
-  sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  textField: { flex: 1, fontSize: 15, maxHeight: 100, paddingVertical: 8 },
+  sendCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 10,
+    marginLeft: 8,
   },
 });

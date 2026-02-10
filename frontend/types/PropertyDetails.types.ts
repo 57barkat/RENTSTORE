@@ -8,9 +8,7 @@ export interface CounterInputProps {
   buttonColor?: string;
 }
 export interface CapacityState {
-  Persons: number;
   bedrooms: number;
-  beds: number;
   bathrooms: number;
   floorLevel?: number;
 }

@@ -6,7 +6,13 @@ const { width: WINDOW_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (WINDOW_WIDTH - 30) / 2;
 const IMAGE_HEIGHT = CARD_WIDTH * 1;
 
-export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => (
+export const PropertyCard = ({
+  item,
+  theme,
+  onPress,
+  onToggleFav,
+  color,
+}: any) => (
   <TouchableOpacity
     activeOpacity={0.9}
     style={{
@@ -50,22 +56,13 @@ export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => (
         </View>
       )}
       <TouchableOpacity
-        activeOpacity={0.7}
-        style={{
-          position: "absolute",
-          top: 10,
-          right: 10,
-          backgroundColor: "rgba(255,255,255,0.9)",
-          borderRadius: 20,
-          padding: 6,
-          zIndex: 20,
-        }}
-        onPress={() => onToggleFav(item.id)}
+        style={{ position: "absolute", top: 8, right: 8, zIndex: 20 }}
+        onPress={() => onToggleFav?.(item.id)}
       >
         <Ionicons
           name={item.isFav ? "heart" : "heart-outline"}
-          size={20}
-          color={item.isFav ? theme.danger : "#11181C"}
+          size={32}
+          color={color}
         />
       </TouchableOpacity>
     </View>

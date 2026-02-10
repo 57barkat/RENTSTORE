@@ -19,8 +19,6 @@ export interface SubmitResult {
 export interface FormData {
   _id?: string;
   propertyType?: "apartment" | "hostel" | "home";
-
-  // COMMON FIELDS
   title?: string;
   description?: Description;
   address?: Address[];
@@ -71,7 +69,7 @@ export interface FormContextType {
 --------------------------------------------------------- */
 
 export const FormContext = createContext<FormContextType | undefined>(
-  undefined
+  undefined,
 );
 
 /* ---------------------------------------------------------
@@ -114,7 +112,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
      🔥 SUBMIT DRAFT PROPERTY
   --------------------------------------------- */
   const submitDraftData: FormContextType["submitDraftData"] = async (
-    overrideData
+    overrideData,
   ) => {
     try {
       const payload = overrideData ?? data;

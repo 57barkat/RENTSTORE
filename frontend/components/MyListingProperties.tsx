@@ -29,6 +29,7 @@ const MyListingProperties = () => {
     error,
     refetch,
   } = useFindMyPropertiesQuery(undefined);
+  console.log("Fetched my properties:", myProperties);
   const formContext = useContext(FormContext);
 
   const { theme } = useTheme();

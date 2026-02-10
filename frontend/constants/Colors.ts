@@ -1,54 +1,55 @@
-const tintColorLight = "#4CC9F0";
-const tintColorDark = "#4CC9F0";
+// A Deep Navy for Trust and a Forest Green for Growth/Money
+const tintColorLight = "#2563EB"; // Professional Blue
+const tintColorDark = "#60A5FA"; // Accessible Light Blue
 
 export const Colors = {
   light: {
-    text: "#11181C",
+    text: "#0F172A",
     background: "#FFFFFF",
-    card: "#F9FAFB",
-    border: "#E5E7EB",
-    muted: "#6B7280",
+    card: "#F8FAFC", // Slightly cooler gray for a premium feel
+    border: "#E2E8F0",
+    muted: "#64748B",
 
     tint: tintColorLight,
-    primary: "#4F46E5",
-    secondary: "#4F46E5",
-    accent: "#F59E0B",
-    danger: "#DC2626",
+    primary: "#10B981", // Deep Navy (Trust)
+    secondary: "#10B981", // Emerald Green (Success/Growth)
+    accent: "#F59E0B", // Amber for "New" or "Featured" tags
+    danger: "#E11D48",
 
-    success: "#22C55E",
-    error: "#EF4444",
-    warning: "#F97316",
-    info: "#3B82F6",
+    success: "#059669",
+    error: "#DC2626",
+    warning: "#D97706",
+    info: "#2563EB",
 
-    icon: "#687076",
-    tabIconDefault: "#687076",
+    icon: "#475569",
+    tabIconDefault: "#94A3B8",
     tabIconSelected: tintColorLight,
-    placeholder: "#555",
-    shadow: "rgba(15, 23, 42, 0.08)",
+    placeholder: "#94A3B8",
+    shadow: "rgba(0, 0, 0, 0.05)",
   },
 
   dark: {
-    placeholder: "#ccc",
-    text: "#ECEDEE",
-    background: "#151718",
-    card: "#1E1F24",
-    border: "#2D2F36",
-    muted: "#9BA1A6",
+    placeholder: "#64748B",
+    text: "#F8FAFC",
+    background: "#0F172A", // Deep Navy background instead of pure black
+    card: "#1E293B",
+    border: "#334155",
+    muted: "#94A3B8",
 
     tint: tintColorDark,
-    primary: "#4F46E5",
-    secondary: "#A78BFA",
+    primary: "#3B82F6",
+    secondary: "#34D399", // Softer green for dark mode
     accent: "#FBBF24",
 
-    success: "#4ADE80",
-    error: "#F87171",
-    warning: "#FB923C",
+    success: "#10B981",
+    error: "#FB7185",
+    warning: "#FBBF24",
     info: "#60A5FA",
-    danger: "#EF4444",
+    danger: "#F43F5E",
 
-    icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6",
-    shadow: "rgba(0,0,0,0.6)",
+    icon: "#94A3B8",
+    tabIconDefault: "#475569",
+    shadow: "rgba(0, 0, 0, 0.4)",
     tabIconSelected: tintColorDark,
   },
 };

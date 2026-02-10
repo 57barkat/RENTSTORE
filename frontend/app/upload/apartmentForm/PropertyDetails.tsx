@@ -16,32 +16,29 @@ const ApartmentPropertyDetails: FC = () => {
 
   if (!context)
     throw new Error(
-      "ApartmentPropertyDetails must be used within an ApartmentFormProvider"
+      "ApartmentPropertyDetails must be used within an ApartmentFormProvider",
     );
 
   const { data, updateForm } = context;
 
   // ✅ Use capacityState object for rooms and floor
   const [apartmentType, setApartmentType] = useState<FormData["apartmentType"]>(
-    data.apartmentType ?? "1BHK"
+    data.apartmentType ?? "1BHK",
   );
 
   const [capacityState, setCapacityState] = useState({
     bedrooms: data.capacityState?.bedrooms ?? 1,
     bathrooms: data.capacityState?.bathrooms ?? 1,
-    beds: data.capacityState?.beds ?? 1,
-    Persons: data.capacityState?.Persons ?? 1,
     floorLevel: data.capacityState?.floorLevel ?? 1,
   });
 
   const [furnishing, setFurnishing] = useState<FormData["furnishing"]>(
-    data.furnishing ?? "unfurnished"
+    data.furnishing ?? "unfurnished",
   );
   const [parking, setParking] = useState<boolean>(data.parking ?? false);
 
   const handleNext = () => {
     updateForm("apartmentType", apartmentType);
-    updateForm("capacityState", capacityState);
     updateForm("furnishing", furnishing);
     updateForm("parking", parking);
 
@@ -139,40 +136,6 @@ const ApartmentPropertyDetails: FC = () => {
               setCapacityState((prev) => ({
                 ...prev,
                 bathrooms: prev.bathrooms - 1,
-              }))
-            }
-            textColor={currentTheme.text}
-            buttonColor={currentTheme.primary}
-          />
-
-          <CounterInput
-            label="Beds"
-            value={capacityState.beds}
-            minValue={1}
-            onIncrement={() =>
-              setCapacityState((prev) => ({ ...prev, beds: prev.beds + 1 }))
-            }
-            onDecrement={() =>
-              setCapacityState((prev) => ({ ...prev, beds: prev.beds - 1 }))
-            }
-            textColor={currentTheme.text}
-            buttonColor={currentTheme.primary}
-          />
-
-          <CounterInput
-            label="Persons"
-            value={capacityState.Persons}
-            minValue={1}
-            onIncrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                Persons: prev.Persons + 1,
-              }))
-            }
-            onDecrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                Persons: prev.Persons - 1,
               }))
             }
             textColor={currentTheme.text}

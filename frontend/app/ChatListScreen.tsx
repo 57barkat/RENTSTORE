@@ -8,16 +8,26 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  Image,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useGetRoomsQuery } from "@/hooks/chat";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { Ionicons } from "@expo/vector-icons";
 
+// Updated Type to match the backend transformation
 type ChatRoom = {
   _id: string;
-  participants: string[];
+  participants: any[];
+  otherUser: {
+    _id: string;
+    name: string;
+    profileImage?: string;
+    email: string;
+  };
   lastMessage?: string;
   lastMessageAt: string;
   updatedAt: string;
@@ -25,30 +35,25 @@ type ChatRoom = {
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // We call the hook - the backend now returns "otherUser" for us
   const { data: rooms, isLoading, refetch } = useGetRoomsQuery();
-  console.log("ChatListScreen rendered. Rooms data:", rooms);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const isDark = theme === "dark";
 
-  useEffect(() => {
-    const loadUser = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setCurrentUserId(payload.sub);
-      } catch (e) {
-        console.error("Failed to parse token", e);
-      }
-    };
-    loadUser();
-  }, []);
-
+  // Refetch when screen focuses to get latest messages
   useEffect(() => {
     refetch();
   }, []);
+
+  // Filter based on the 'otherUser' name provided by backend
+  const filteredRooms = rooms?.filter((room: ChatRoom) => {
+    return room.otherUser?.name
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase());
+  });
 
   if (isLoading) {
     return (
@@ -61,12 +66,9 @@ export default function ChatListScreen() {
   }
 
   const renderItem = ({ item }: { item: ChatRoom }) => {
-    const otherParticipant = item.participants.find(
-      (p) => p && p !== currentUserId,
-    );
-    const displayName = otherParticipant
-      ? `User ${otherParticipant.slice(-4)}`
-      : "Chat Room";
+    // Logic is now super simple because the backend did the work
+    const displayName = item.otherUser?.name || "Unknown User";
+    const displayImage = item.otherUser?.profileImage;
     const initial = displayName.charAt(0).toUpperCase();
 
     return (
@@ -82,19 +84,29 @@ export default function ChatListScreen() {
         onPress={() =>
           router.push({
             pathname: "/chat/[roomId]",
-            params: { roomId: item._id, otherUserId: otherParticipant || "" },
+            params: {
+              roomId: item._id,
+              otherUserId: item.otherUser?._id || "",
+              otherUserName: displayName,
+              otherUserImage: displayImage || "",
+            },
           })
         }
       >
+        {/* Avatar Section */}
         <View
           style={[styles.avatar, { backgroundColor: currentTheme.primary }]}
         >
-          <Text style={styles.avatarText}>{initial}</Text>
+          {displayImage ? (
+            <Image source={{ uri: displayImage }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>{initial}</Text>
+          )}
         </View>
 
+        {/* Info Section */}
         <View style={styles.content}>
           <View style={styles.headerRow}>
-            {/* 4. APPLY DYNAMIC TEXT COLORS */}
             <Text
               style={[styles.username, { color: currentTheme.text }]}
               numberOfLines={1}
@@ -110,12 +122,22 @@ export default function ChatListScreen() {
               })}
             </Text>
           </View>
-          <Text
-            style={[styles.lastMessage, { color: currentTheme.muted }]}
-            numberOfLines={1}
-          >
-            {item.lastMessage || "No messages yet"}
-          </Text>
+
+          <View style={styles.messageRow}>
+            <Text
+              style={[styles.lastMessage, { color: currentTheme.muted }]}
+              numberOfLines={1}
+            >
+              {item.lastMessage || "Start a conversation..."}
+            </Text>
+
+            {/* Optional: Unread dot or Chevron */}
+            <Ionicons
+              name="chevron-forward"
+              size={14}
+              color={currentTheme.border}
+            />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -125,41 +147,46 @@ export default function ChatListScreen() {
     <SafeAreaView
       style={[styles.container, { backgroundColor: currentTheme.background }]}
     >
-      {/* 5. MATCH STATUS BAR TO THEME */}
-      <StatusBar
-        barStyle={isDark ? "light-content" : "dark-content"}
-        backgroundColor={currentTheme.background}
-      />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: currentTheme.background,
-            borderBottomColor: currentTheme.border,
-          },
-        ]}
-      >
+      <View style={[styles.header, { borderBottomColor: currentTheme.border }]}>
         <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
           Messages
         </Text>
+
+        <View
+          style={[
+            styles.searchContainer,
+            { backgroundColor: isDark ? "#1c1c1e" : "#f2f2f7" },
+          ]}
+        >
+          <Ionicons name="search" size={18} color={currentTheme.muted} />
+          <TextInput
+            style={[styles.searchInput, { color: currentTheme.text }]}
+            placeholder="Search conversations..."
+            placeholderTextColor={currentTheme.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       <FlatList
-        data={rooms
-          ?.slice()
-          .sort(
-            (a, b) =>
-              new Date(b.lastMessageAt || b.updatedAt).getTime() -
-              new Date(a.lastMessageAt || a.updatedAt).getTime(),
-          )}
+        data={filteredRooms}
         keyExtractor={(item) => item._id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
-            No conversations yet.
-          </Text>
+          <View style={styles.emptyContainer}>
+            <Ionicons
+              name="chatbubbles-outline"
+              size={60}
+              color={currentTheme.muted}
+            />
+            <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
+              {searchQuery ? "No results found." : "No conversations yet."}
+            </Text>
+          </View>
         }
       />
     </SafeAreaView>
@@ -174,31 +201,57 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 28, fontWeight: "bold" },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 15,
+    letterSpacing: -0.5,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 12,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+  },
   listContent: { paddingBottom: 20 },
   chatItem: {
     flexDirection: "row",
-    padding: 15,
+    padding: 16,
     alignItems: "center",
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 15,
+    overflow: "hidden",
   },
-  avatarText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
   content: { flex: 1 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
-  username: { fontSize: 16, fontWeight: "700", flex: 1 },
-  lastMessage: { fontSize: 14 },
-  time: { fontSize: 12, marginLeft: 10 },
-  emptyText: { textAlign: "center", marginTop: 50 },
+  messageRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  username: { fontSize: 17, fontWeight: "600" },
+  lastMessage: { fontSize: 14, flex: 1, marginRight: 10 },
+  time: { fontSize: 12 },
+  emptyContainer: { alignItems: "center", marginTop: 100 },
+  emptyText: { textAlign: "center", marginTop: 15, fontSize: 16 },
 });

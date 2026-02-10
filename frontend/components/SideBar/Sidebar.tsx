@@ -134,23 +134,17 @@ const Sidebar: React.FC = () => {
 
   const handleLogout = async () => {
     console.log("Logging out...");
-
     try {
       await logoutApi().unwrap();
-
+    } catch (error) {
+      console.warn("Backend logout failed or was already unauthorized");
+    } finally {
       await AsyncStorage.clear();
-
       setTheme("light");
-
       close();
 
       await logout();
 
-      router.replace("/signin");
-    } catch (error) {
-      console.warn("Backend logout failed, clearing local data anyway", error);
-      await AsyncStorage.clear();
-      await logout();
       router.replace("/signin");
     }
   };

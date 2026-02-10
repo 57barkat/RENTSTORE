@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Appearance } from "react-native";
+import { Appearance, ColorSchemeName } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ThemeType = "light" | "dark";
@@ -7,35 +7,61 @@ type ThemeType = "light" | "dark";
 type ThemeContextType = {
   theme: ThemeType;
   setTheme: (theme: ThemeType) => void;
+  resetToSystem: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "light",
   setTheme: () => {},
+  resetToSystem: () => {},
 });
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeType>("light");
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const systemScheme = Appearance.getColorScheme() ?? "light";
+  const [theme, setThemeState] = useState<ThemeType>(systemScheme);
 
   useEffect(() => {
     const loadTheme = async () => {
       const storedTheme = await AsyncStorage.getItem("theme");
+
       if (storedTheme === "light" || storedTheme === "dark") {
         setThemeState(storedTheme);
       } else {
-        setThemeState(Appearance.getColorScheme() ?? "light");
+        setThemeState(systemScheme);
       }
     };
+
     loadTheme();
+  }, [systemScheme]);
+
+  // 🔁 React to system theme changes ONLY if user didn't override
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      AsyncStorage.getItem("theme").then((storedTheme) => {
+        if (!storedTheme && colorScheme) {
+          setThemeState(colorScheme as ThemeType);
+        }
+      });
+    });
+
+    return () => subscription.remove();
   }, []);
 
-  const setTheme = (newTheme: ThemeType) => {
+  const setTheme = async (newTheme: ThemeType) => {
     setThemeState(newTheme);
-    AsyncStorage.setItem("theme", newTheme);
+    await AsyncStorage.setItem("theme", newTheme);
+  };
+
+  const resetToSystem = async () => {
+    await AsyncStorage.removeItem("theme");
+    const systemTheme = Appearance.getColorScheme() ?? "light";
+    setThemeState(systemTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, resetToSystem }}>
       {children}
     </ThemeContext.Provider>
   );

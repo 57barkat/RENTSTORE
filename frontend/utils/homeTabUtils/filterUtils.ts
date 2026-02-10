@@ -29,18 +29,20 @@ export type ChipKey = keyof Filters | "hostOption";
 /**
  * Converts filters to query string
  */
-export const buildQueryParams = (filters: Filters) => {
-  const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => {
-    if (value !== undefined && value !== "" && value !== null) {
-      if (Array.isArray(value)) {
-        value.forEach((v) => params.append(key, v.toString()));
-      } else {
-        params.append(key, value.toString());
-      }
-    }
-  });
-  return params.toString();
+export const buildSelectedChips = (hostOption: string, filters: Filters) => {
+  return Object.entries(filters)
+    .filter(
+      ([key, value]) =>
+        key !== "hostOption" &&
+        value !== undefined &&
+        value !== null &&
+        value !== "",
+    )
+    .map(([key, value]) => ({
+      key: key as ChipKey,
+      label: value.toString(),
+      removable: true,
+    }));
 };
 
 /**

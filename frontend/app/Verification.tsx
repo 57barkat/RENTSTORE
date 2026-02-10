@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
@@ -16,6 +17,7 @@ import { useAuth } from "@/contextStore/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 export default function Verification() {
   const { theme } = useTheme();
@@ -83,10 +85,23 @@ export default function Verification() {
       style={[styles.container, { backgroundColor: currentTheme.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
+      <SafeAreaView style={styles.header}>
+        <TouchableOpacity
+          style={[styles.closeButton, { backgroundColor: currentTheme.card }]}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="close"
+            size={24}
+            color={currentTheme.text}
+          />
+        </TouchableOpacity>
+      </SafeAreaView>
+
       <View style={styles.content}>
         {!verified ? (
           <>
-            {/* Header Section */}
             <View style={styles.headerSection}>
               <View
                 style={[
@@ -110,7 +125,6 @@ export default function Verification() {
               </Text>
             </View>
 
-            {/* Input Section */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: currentTheme.text }]}>
                 {phoneSent ? "One-Time Password" : "Phone Number"}
@@ -138,7 +152,6 @@ export default function Verification() {
               />
             </View>
 
-            {/* Action Button */}
             <TouchableOpacity
               style={[
                 styles.primaryButton,
@@ -175,7 +188,6 @@ export default function Verification() {
             )}
           </>
         ) : (
-          /* Success State */
           <View style={styles.successWrapper}>
             <MaterialCommunityIcons
               name="check-circle"
@@ -190,6 +202,19 @@ export default function Verification() {
             >
               Your phone number has been successfully linked to your account.
             </Text>
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: currentTheme.primary,
+                  marginTop: 30,
+                  width: "100%",
+                },
+              ]}
+              onPress={() => router.back()}
+            >
+              <Text style={styles.buttonText}>Continue</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -199,6 +224,23 @@ export default function Verification() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  header: {
+    zIndex: 10,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 20,
+    marginTop: Platform.OS === "android" ? 40 : 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   content: { flex: 1, paddingHorizontal: 24, justifyContent: "center" },
   headerSection: { alignItems: "center", marginBottom: 40 },
   iconCircle: {
@@ -236,6 +278,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 18,
     fontWeight: "600",
+    textAlign: "center",
   },
   primaryButton: {
     paddingVertical: 16,
