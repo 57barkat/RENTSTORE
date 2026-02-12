@@ -6,7 +6,12 @@ import {
 } from "@/services/propertiesService";
 import { formatProperties } from "@/utils/properties/formatProperties";
 
-export const usePropertiesPage = (initialFilters: any, hostOption: string) => {
+// Added sortBy as the third argument
+export const usePropertiesPage = (
+  initialFilters: any,
+  hostOption: string,
+  sortBy: string,
+) => {
   const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
   const [allProperties, setAllProperties] = useState<any[]>([]);
@@ -16,8 +21,14 @@ export const usePropertiesPage = (initialFilters: any, hostOption: string) => {
   const [debouncedCity] = useDebounce(filters.city, 500);
   const [debouncedAddress] = useDebounce(filters.addressQuery, 500);
 
+  // 1. Pass sortBy to useFilteredProperties so the API request includes sort params
   const { data, isLoading, refetch } = useFilteredProperties(
-    { ...filters, city: debouncedCity, addressQuery: debouncedAddress },
+    {
+      ...filters,
+      city: debouncedCity,
+      addressQuery: debouncedAddress,
+      sortBy, // Pass the sort value here
+    },
     page,
     hostOption,
   );
@@ -34,6 +45,13 @@ export const usePropertiesPage = (initialFilters: any, hostOption: string) => {
     [favData],
   );
 
+  // 2. CRITICAL: Reset the list when sortBy or hostOption changes
+  // This ensures old sorted data doesn't mix with new sorted data
+  useEffect(() => {
+    setPage(1);
+    setAllProperties([]);
+  }, [sortBy, hostOption]);
+
   // Update allProperties whenever data or favorites change
   useEffect(() => {
     if (!data?.data) return;
@@ -44,12 +62,14 @@ export const usePropertiesPage = (initialFilters: any, hostOption: string) => {
       () => {},
     ).map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) }));
 
-    if (page === 1) setAllProperties(formatted);
-    else
+    if (page === 1) {
+      setAllProperties(formatted);
+    } else {
       setAllProperties((prev) => [
         ...prev,
         ...formatted.filter((p: any) => !prev.some((pp) => pp.id === p.id)),
       ]);
+    }
 
     setLoadingMore(false);
   }, [data, favoriteIds, filters, page]);
