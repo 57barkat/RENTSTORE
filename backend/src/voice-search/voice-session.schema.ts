@@ -10,6 +10,10 @@ export class VoiceSession {
 
   @Prop({ type: Object, default: {} })
   currentFilters: Record<string, any>;
+  @Prop({ type: Boolean, default: false })
+  hasAskedOnce: boolean;
+  @Prop({ type: Boolean, default: false })
+  hasAskedCity: boolean;
 }
 
 export const VoiceSessionSchema = SchemaFactory.createForClass(VoiceSession);

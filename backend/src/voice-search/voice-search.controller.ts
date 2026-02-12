@@ -46,4 +46,12 @@ export class VoiceSearchController {
 
     return this.service.voiceSearch(file, userId);
   }
+  @Post("voice/cancel")
+  async cancelVoiceSession(@Req() req: any) {
+    const userId: string | undefined = req.user?.userId;
+    if (!userId) throw new BadRequestException("User not authenticated");
+
+    await this.service.clearSession(userId);
+    return { message: "Voice session cleared" };
+  }
 }

@@ -15,6 +15,7 @@ export interface PropertyFilters {
   beds?: number;
   bathrooms?: number;
   Persons?: number;
+  floorLevel?: number;
   amenities?: string[];
   bills?: string[];
   highlighted?: string[];
@@ -43,6 +44,7 @@ const FILTER_PRIORITY = [
   "beds",
   "bedrooms",
   "bathrooms",
+  "floorLevel",
   "Persons",
   "stateTerritory",
 ];
@@ -51,55 +53,60 @@ export const buildPropertyFilter = (
   filters: PropertyFilters,
 ): FilterQuery<any> => {
   const filter: FilterQuery<any> = { status: true };
+  const andConditions: any[] = [];
 
-  // 1️⃣ STRICT CITY MATCH
+  /* ---------------- CITY ---------------- */
   if (filters.city) {
-    filter["address.city"] = {
-      $regex: `^${normalizeText(filters.city)}$`,
-      $options: "i",
-    };
+    andConditions.push({
+      address: {
+        $elemMatch: {
+          city: { $regex: filters.city, $options: "i" },
+        },
+      },
+    });
   }
 
-  // 2️⃣ FLEXIBLE ADDRESS QUERY MATCH (ALL WORDS, ANY FIELD)
+  /* ---------------- ADDRESS QUERY (BEST MATCH STYLE) ---------------- */
   if (filters.addressQuery) {
-    const query = normalizeText(filters.addressQuery.trim());
-    if (query.length > 0) {
-      const words = query.split(/\s+/);
+    const words = filters.addressQuery.trim().split(/\s+/).filter(Boolean);
 
-      // Each word must match somewhere ($and of $or conditions)
-      const wordConditions = words.map((word) => {
-        // Turn "DHA 2" or "G11 2" into flexible regex: "DHA[-/ ]?2"
-        const flexibleWord = word.replace(
-          /([a-zA-Z]+)([0-9]+)/,
-          "$1[-/\\s]?$2",
-        );
+    const orConditions = words.map((word) => {
+      const safeWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-        return {
-          $or: [
-            { "address.street": { $regex: flexibleWord, $options: "i" } },
-            { location: { $regex: flexibleWord, $options: "i" } },
-            { title: { $regex: flexibleWord, $options: "i" } },
-            {
-              "address.stateTerritory": { $regex: flexibleWord, $options: "i" },
+      return {
+        $or: [
+          { title: { $regex: safeWord, $options: "i" } },
+          { location: { $regex: safeWord, $options: "i" } },
+          {
+            address: {
+              $elemMatch: {
+                street: { $regex: safeWord, $options: "i" },
+              },
             },
-            { "description.desc": { $regex: flexibleWord, $options: "i" } },
-          ],
-        };
-      });
+          },
+          {
+            address: {
+              $elemMatch: {
+                city: { $regex: safeWord, $options: "i" },
+              },
+            },
+          },
+          {
+            address: {
+              $elemMatch: {
+                stateTerritory: { $regex: safeWord, $options: "i" },
+              },
+            },
+          },
+        ],
+      };
+    });
 
-      filter.$and = filter.$and
-        ? [...filter.$and, ...wordConditions]
-        : wordConditions;
-    }
+    // BEST MATCH: allow any word to match instead of all
+    andConditions.push({ $or: orConditions });
   }
 
-  // 3️⃣ OTHER FILTERS
-  if (filters.stateTerritory)
-    filter["address.stateTerritory"] = {
-      $regex: normalizeText(filters.stateTerritory),
-      $options: "i",
-    };
-
+  /* ---------------- RENT RANGE ---------------- */
   if (filters.minRent !== undefined || filters.maxRent !== undefined) {
     filter.monthlyRent = {};
     if (filters.minRent !== undefined)
@@ -108,24 +115,32 @@ export const buildPropertyFilter = (
       filter.monthlyRent.$lte = Number(filters.maxRent);
   }
 
-  if (filters.bedrooms !== undefined)
+  /* ---------------- BEDROOMS ---------------- */
+  if (filters.bedrooms !== undefined) {
     filter["capacityState.bedrooms"] = Number(filters.bedrooms);
+  }
 
-  if (filters.beds !== undefined)
-    filter["capacityState.beds"] = Number(filters.beds);
+  /* ---------------- BATHROOMS ---------------- */
+  if (filters.bathrooms !== undefined) {
+    filter["capacityState.bathrooms"] = Number(filters.bathrooms);
+  }
 
-  if (filters.Persons !== undefined)
-    filter["capacityState.Persons"] = { $gte: Number(filters.Persons) };
+  /* ---------------- FLOOR LEVEL ---------------- */
+  if (filters.floorLevel !== undefined) {
+    filter["capacityState.floorLevel"] = Number(filters.floorLevel);
+  }
 
-  if (filters.amenities?.length) filter.amenities = { $all: filters.amenities };
-  if (filters.bills?.length) filter.bills = { $all: filters.bills };
-  if (filters.highlighted?.length)
-    filter.highlighted = { $all: filters.highlighted };
-  if (filters.safety?.length) filter.safety = { $all: filters.safety };
-
-  // ✅ STRICT hostOption filter to avoid unrelated matches
+  /* ---------------- HOST OPTION ---------------- */
   if (filters.hostOption) {
-    filter.hostOption = { $regex: `^${filters.hostOption}$`, $options: "i" };
+    filter.hostOption = {
+      $regex: `^${filters.hostOption}$`,
+      $options: "i",
+    };
+  }
+
+  /* ---------------- APPLY ADDRESS CONDITIONS ---------------- */
+  if (andConditions.length) {
+    filter.$and = andConditions;
   }
 
   return filter;
@@ -138,7 +153,6 @@ export const buildSmartRelaxedFilter = async (
   let activeFilters = { ...filters };
   let ignoredFilters: string[] = [];
 
-  // 1️⃣ Strict match: city + addressQuery + other filters
   let mongoFilter = buildPropertyFilter(activeFilters);
   let count = await model.countDocuments(mongoFilter);
   if (count > 0) {
@@ -150,7 +164,6 @@ export const buildSmartRelaxedFilter = async (
     };
   }
 
-  // 2️⃣ Relax secondary filters, keep city & addressQuery
   for (const key of FILTER_PRIORITY) {
     if (activeFilters[key] !== undefined) {
       delete activeFilters[key];
@@ -172,19 +185,15 @@ export const buildSmartRelaxedFilter = async (
     }
   }
 
-  // 3️⃣ Fallback: city only (ignore addressQuery)
   if (filters.city) {
     mongoFilter = { "address.city": filters.city, status: true };
     count = await model.countDocuments(mongoFilter);
-
     const fallbackMsg = filters.addressQuery
       ? `No listings found in "${filters.addressQuery}". Showing all properties in ${filters.city}.`
       : `Showing all results for ${filters.city}.`;
-
     const relaxedMsg = ignoredFilters.length
       ? `Filters relaxed: ${ignoredFilters.join(", ")}.`
       : "";
-
     return {
       filter: mongoFilter,
       ignoredFilters: [...ignoredFilters, "addressQuery"],
@@ -193,15 +202,12 @@ export const buildSmartRelaxedFilter = async (
     };
   }
 
-  // 4️⃣ Fallback: no city, use addressQuery globally
   if (filters.addressQuery) {
     mongoFilter = buildPropertyFilter({ addressQuery: filters.addressQuery });
     count = await model.countDocuments(mongoFilter);
-
     const relaxedMsg = ignoredFilters.length
       ? `Filters relaxed: ${ignoredFilters.join(", ")}.`
       : "";
-
     return {
       filter: mongoFilter,
       ignoredFilters,
@@ -211,7 +217,6 @@ export const buildSmartRelaxedFilter = async (
     };
   }
 
-  // 5️⃣ Ultimate fallback: show everything
   count = await model.countDocuments({ status: true });
   return {
     filter: { status: true },
