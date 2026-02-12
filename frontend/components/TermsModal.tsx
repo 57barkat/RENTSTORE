@@ -12,10 +12,16 @@ import {
 interface TermsModalProps {
   visible: boolean;
   theme: any;
+  color: any;
   onClose: () => void;
 }
 
-const TermsModal: React.FC<TermsModalProps> = ({ visible, theme, onClose }) => {
+const TermsModal: React.FC<TermsModalProps> = ({
+  visible,
+  theme,
+  onClose,
+  color,
+}) => {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <SafeAreaView style={styles.modalContainer}>
@@ -32,7 +38,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, theme, onClose }) => {
             </Text>
           </ScrollView>
           <TouchableOpacity
-            style={[styles.closeButton, { backgroundColor: "#3B82F6" }]}
+            style={[styles.closeButton, { backgroundColor: color }]}
             onPress={onClose}
           >
             <Text style={styles.closeText}>Close</Text>

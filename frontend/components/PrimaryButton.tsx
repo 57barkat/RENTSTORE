@@ -6,9 +6,12 @@ import {
   StyleSheet,
 } from "react-native";
 
-export const PrimaryButton = ({ title, onPress, loading }: any) => (
+export const PrimaryButton = ({ title, onPress, loading, color }: any) => (
   <TouchableOpacity
-    style={[styles.button, { opacity: loading ? 0.7 : 1 }]}
+    style={[
+      styles.button,
+      { opacity: loading ? 0.7 : 1, backgroundColor: color },
+    ]}
     onPress={onPress}
     disabled={loading}
   >
@@ -22,7 +25,6 @@ export const PrimaryButton = ({ title, onPress, loading }: any) => (
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: "#4F46E5",
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: "center",

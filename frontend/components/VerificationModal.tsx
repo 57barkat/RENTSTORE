@@ -20,6 +20,7 @@ interface VerificationModalProps {
   loading: boolean;
   onVerify: () => void;
   onCancel: () => void;
+  color: any;
 }
 
 const VerificationModal: React.FC<VerificationModalProps> = ({
@@ -31,6 +32,7 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
   loading,
   onVerify,
   onCancel,
+  color,
 }) => {
   return (
     <Modal visible={visible} transparent animationType="slide">
@@ -54,7 +56,10 @@ const VerificationModal: React.FC<VerificationModalProps> = ({
             onChangeText={setCode}
           />
           <TouchableOpacity
-            style={[styles.button, { opacity: loading ? 0.7 : 1 }]}
+            style={[
+              styles.button,
+              { opacity: loading ? 0.7 : 1, backgroundColor: color },
+            ]}
             onPress={onVerify}
             disabled={loading}
           >

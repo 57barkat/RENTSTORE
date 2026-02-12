@@ -7,6 +7,7 @@ export const TermsCheckbox = ({
   setAcceptedTerms,
   onPressTerms,
   textColor,
+  color,
 }: any) => (
   <TouchableOpacity
     style={{ flexDirection: "row", alignItems: "center", marginTop: 15 }}
@@ -15,12 +16,12 @@ export const TermsCheckbox = ({
     <Checkbox
       status={acceptedTerms ? "checked" : "unchecked"}
       onPress={() => setAcceptedTerms(!acceptedTerms)}
-      color="#3B82F6"
+      color={color}
     />
     <Text style={{ fontSize: 14, flex: 1, marginLeft: 8, color: textColor }}>
       I accept the{" "}
       <Text
-        style={{ color: "#3B82F6", textDecorationLine: "underline" }}
+        style={{ color: color, textDecorationLine: "underline" }}
         onPress={onPressTerms}
       >
         Terms and Conditions
