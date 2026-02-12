@@ -101,8 +101,8 @@ export default function Header() {
               isSystem
                 ? currentTheme.primary
                 : isDark
-                  ? currentTheme.primary
-                  : currentTheme.accent
+                  ? currentTheme.secondary
+                  : currentTheme.primary
             }
           />
         </TouchableOpacity>
