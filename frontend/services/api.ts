@@ -255,6 +255,19 @@ export const api = createApi({
         }
       },
     }),
+    clearVoiceSession: builder.mutation<void, void>({
+      query: () => ({
+        url: "/api/v1/search/voice/cancel",
+        method: "POST",
+      }),
+      onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
+        try {
+          await queryFulfilled;
+        } catch (err) {
+          console.error("Failed to clear voice session", err);
+        }
+      },
+    }),
   }),
 });
 
@@ -285,4 +298,5 @@ export const {
   useVoiceSearchMutation,
   useVerifyEmailMutation,
   useLogoutMutation,
+  useClearVoiceSessionMutation,
 } = api;
