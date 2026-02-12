@@ -254,12 +254,14 @@ export default function SignUpScreen() {
                       setAcceptedTerms={setAcceptedTerms}
                       onPressTerms={() => setShowTermsModal(true)}
                       textColor={currentTheme.text}
+                      color={currentTheme.primary}
                     />
 
                     <PrimaryButton
                       title="Sign Up"
                       onPress={handleSubmit}
                       loading={creating}
+                      color={currentTheme.primary}
                     />
 
                     <TouchableOpacity
@@ -283,6 +285,7 @@ export default function SignUpScreen() {
             visible={showTermsModal}
             theme={currentTheme}
             onClose={() => setShowTermsModal(false)}
+            color={currentTheme.primary}
           />
 
           <VerificationModal
@@ -294,6 +297,7 @@ export default function SignUpScreen() {
             loading={verifying}
             onVerify={handleVerifyEmail}
             onCancel={() => setShowVerifyModal(false)}
+            color={currentTheme.primary}
           />
         </ImageBackground>
       </ScrollView>

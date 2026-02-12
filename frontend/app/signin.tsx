@@ -193,6 +193,7 @@ export default function SignInScreen() {
                 title="Login"
                 onPress={handleSignIn}
                 loading={isLoading}
+                color={currentTheme.primary}
               />
 
               <TouchableOpacity
@@ -223,6 +224,7 @@ export default function SignInScreen() {
             loading={isVerifying}
             onVerify={handleVerifyEmail}
             onCancel={() => setShowEmailModal(false)}
+            color={currentTheme.primary}
           />
         </ImageBackground>
       </ScrollView>
