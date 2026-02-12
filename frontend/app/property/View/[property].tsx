@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -34,19 +34,21 @@ const GUTTER = 4;
 
 export default function PropertiesPage() {
   const { theme } = useTheme();
+
   const currentTheme = Colors[theme ?? "light"];
   const {
+    property,
     type,
     city,
     addressQuery,
     minRent,
     maxRent,
-    beds,
     bathrooms,
     openFilters,
+    bedrooms,
+    floorLevel,
   } = useLocalSearchParams<any>();
-
-  const [hostOption, setHostOption] = useState(type ?? "home");
+  const [hostOption, setHostOption] = useState(property ?? type ?? "home");
   const [modalVisible, setModalVisible] = useState(openFilters === "true");
   const [showFilters, setShowFilters] = useState(true);
 
@@ -55,16 +57,21 @@ export default function PropertiesPage() {
     addressQuery: addressQuery || undefined,
     minRent: minRent ? parseInt(minRent) : undefined,
     maxRent: maxRent ? parseInt(maxRent) : undefined,
-    beds: beds ? parseInt(beds) : undefined,
     bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
+    floorLevel: floorLevel ? parseInt(floorLevel) : undefined,
+    bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
   };
 
-  const [hostFilters, setHostFilters] = useState<
-    Record<string, typeof initialFilters>
-  >({
-    [hostOption]: initialFilters,
-  });
+  // 2. Persistent Storage for all 3 categories
+  const [hostFiltersStore, setHostFiltersStore] = useState<Record<string, any>>(
+    {
+      home: type === "home" || !type ? initialFilters : {},
+      hostel: type === "hostel" ? initialFilters : {},
+      apartment: type === "apartment" ? initialFilters : {},
+    },
+  );
 
+  // 3. Data Fetching Hook
   const {
     allProperties,
     filters,
@@ -76,7 +83,30 @@ export default function PropertiesPage() {
     onRefresh,
     isLoading,
     handleToggleFav,
-  } = usePropertiesPage(initialFilters, hostOption);
+  } = usePropertiesPage(hostFiltersStore[hostOption], hostOption);
+
+  // 4. CRITICAL: Sync current filters back to the store whenever they change
+  useEffect(() => {
+    setHostFiltersStore((prev) => ({
+      ...prev,
+      [hostOption]: filters,
+    }));
+  }, [filters, hostOption]);
+
+  // 5. Logic to switch host types
+  const handleHostChange = (newHost: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    // Switch the active host label
+    setHostOption(newHost);
+
+    // Reset page to 1 for new results
+    setPage(1);
+
+    // Inject the saved filters for the new host category
+    const savedFilters = hostFiltersStore[newHost] || {};
+    setFilters(savedFilters);
+  };
 
   const selectedChips = buildSelectedChips(hostOption, filters).filter(
     (chip) =>
@@ -91,7 +121,6 @@ export default function PropertiesPage() {
   const handleClearAll = () => {
     const cleared = {};
     setFilters(cleared);
-    setHostFilters((prev) => ({ ...prev, [hostOption]: cleared }));
     setPage(1);
   };
 
@@ -117,12 +146,7 @@ export default function PropertiesPage() {
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         <HostPicker
           value={hostOption}
-          onChange={(newHost) => {
-            setHostFilters((prev) => ({ ...prev, [hostOption]: filters }));
-            setHostOption(newHost);
-            setFilters(hostFilters[newHost] || initialFilters);
-            setPage(1);
-          }}
+          onChange={handleHostChange}
           theme={currentTheme}
         />
       </View>
@@ -251,12 +275,11 @@ export default function PropertiesPage() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onApply={() => {
-          setHostFilters((prev) => ({ ...prev, [hostOption]: filters }));
           setModalVisible(false);
           setPage(1);
         }}
         hostOption={hostOption}
-        onHostChange={setHostOption}
+        onHostChange={handleHostChange}
         filters={filters}
         setFilters={setFilters}
         theme={currentTheme}

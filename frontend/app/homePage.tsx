@@ -15,6 +15,7 @@ import {
   StyleSheet,
   RefreshControl,
 } from "react-native";
+import * as Speech from "expo-speech"; // ← added for TTS
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import SearchBar from "@/components/Filters/SearchBar";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -47,7 +48,10 @@ const HomePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [timerCount, setTimerCount] = useState(0);
   const [localAudioUri, setLocalAudioUri] = useState<string | null>(null);
+  const [transcription, setTranscription] = useState("");
+  const [pendingFilters, setPendingFilters] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // API Queries
@@ -56,24 +60,18 @@ const HomePage: React.FC = () => {
     isLoading: homesLoading,
     refetch: refetchHomes,
   } = useHomes();
-
   const {
     data: apartmentsData,
     isLoading: apartmentsLoading,
     refetch: refetchApartments,
   } = useApartments();
-
   const {
     data: roomsData,
     isLoading: roomsLoading,
     refetch: refetchRooms,
   } = useRooms();
-
-  const {
-    data: favData,
-    isLoading: favLoading,
-    refetch: refetchFavorites,
-  } = useGetUserFavoritesQuery(null);
+  const { data: favData, refetch: refetchFavorites } =
+    useGetUserFavoritesQuery(null);
 
   // Mutations
   const [addToFav] = useAddToFavMutation();
@@ -101,12 +99,9 @@ const HomePage: React.FC = () => {
 
   // Voice Recording URI sync
   useEffect(() => {
-    if (!isRecording && uri) {
-      setLocalAudioUri(uri);
-    }
+    if (!isRecording && uri) setLocalAudioUri(uri);
   }, [isRecording, uri]);
 
-  // Voice Recording Timer
   useEffect(() => {
     if (isRecording) {
       setTimerCount(0);
@@ -121,56 +116,65 @@ const HomePage: React.FC = () => {
       }, 1000);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isRecording]);
 
-  // Voice Search Handler
+  // --- CONTINUOUS VOICE SEARCH HANDLER ---
   const handleSendVoice = async () => {
     if (!localAudioUri) return;
 
     setIsProcessing(true);
-    try {
-      const response = await voiceSearch({
-        uri: localAudioUri,
-      }).unwrap();
 
-      if (!response?.filters || Object.keys(response.filters).length === 0) {
+    try {
+      const response = await voiceSearch({ uri: localAudioUri }).unwrap();
+
+      const text = response.transcription || "";
+      const filters = response.filters || null;
+      const missingQuestion = response.missingQuestion || null;
+
+      setTranscription(text);
+      setPendingFilters(filters);
+      setLocalAudioUri(null);
+
+      // Speak transcription first
+      if (text) Speech.speak(`You said: ${text}`);
+
+      if (missingQuestion) {
+        // Ask for missing filter via voice
+        Speech.speak(missingQuestion, { rate: 0.9 });
+        Alert.alert("Need More Info", missingQuestion, [
+          { text: "Ok, I'm ready", onPress: () => start() },
+        ]);
+        return;
+      }
+
+      if (!filters || Object.keys(filters).length === 0) {
+        // No filters detected
         Alert.alert(
-          "I didn't quite catch that",
-          "Try saying something like 'Find 3 bedroom houses in Islamabad'.",
-          [{ text: "Try Again", onPress: () => setLocalAudioUri(null) }],
+          "Keep Talking",
+          text
+            ? `We heard: "${text}". Say more to refine your search.`
+            : "We didn't catch that. Try saying something more specific.",
+          [{ text: "Ok", onPress: () => start() }],
         );
         return;
       }
 
-      const extracted = response.filters;
-
-      router.push({
-        pathname: `/property/View/${extracted.type || "home"}`,
-        params: {
-          type: extracted.type || "home",
-          city: extracted.city || response.transcription || "",
-          minRent: extracted.minRent?.toString(),
-          maxRent: extracted.maxRent?.toString(),
-          beds: extracted.bedrooms?.toString(),
-          bathrooms: extracted.bathrooms?.toString(),
-          addressQuery: extracted.addressQuery || "",
-          fromVoice: "true",
-        },
-      });
-
-      setLocalAudioUri(null);
-    } catch {
-      Alert.alert(
-        "Connection Error",
-        "Please check your internet and try again.",
-      );
+      // All required filters provided → Search now
+      Speech.speak("Great! Searching properties now.", { rate: 1.0 });
+      navigateWithFilters(filters, text);
+    } catch (error) {
+      console.error(error);
+      Speech.speak("Error! Could not process voice. Try again.");
+      Alert.alert("Error", "Could not process voice. Try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -181,7 +185,28 @@ const HomePage: React.FC = () => {
     setTimerCount(0);
   };
 
-  // Favorites
+  const navigateWithFilters = (filters: any, text: string) => {
+    router.push({
+      pathname: `/property/View/${filters.hostOption || "home"}`,
+      params: {
+        type: filters.hostOption || "home",
+        city: filters.city || text || "",
+        minRent: filters.minRent?.toString(),
+        maxRent: filters.maxRent?.toString(),
+        beds: filters.bedrooms?.toString(),
+        bathrooms: filters.bathrooms?.toString(),
+        addressQuery: filters.addressQuery || "",
+        fromVoice: "true",
+      },
+    });
+
+    // Reset for next session
+    setTranscription("");
+    setPendingFilters(null);
+    setTimerCount(0);
+  };
+
+  // --- FAVORITES LOGIC ---
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
     [favData],
@@ -190,22 +215,16 @@ const HomePage: React.FC = () => {
   const attachFavStatus = (
     properties: PropertyCardProps[],
   ): PropertyCardProps[] =>
-    properties.map((p) => ({
-      ...p,
-      isFav: favoriteIds.includes(p.id),
-    }));
+    properties.map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) }));
 
-  // Derived Data (NO STATE = NO LOOP)
   const homes = useMemo(
     () => attachFavStatus(formatProperties(homesData || [], selectedCity)),
     [homesData, selectedCity, favoriteIds],
   );
-
   const rooms = useMemo(
     () => attachFavStatus(formatProperties(roomsData || [], selectedCity)),
     [roomsData, selectedCity, favoriteIds],
   );
-
   const apartments = useMemo(
     () => attachFavStatus(formatProperties(apartmentsData || [], selectedCity)),
     [apartmentsData, selectedCity, favoriteIds],
@@ -213,21 +232,15 @@ const HomePage: React.FC = () => {
 
   const handleToggleFav = async (propertyId: string) => {
     try {
-      const isFav = favoriteIds.includes(propertyId);
-
-      if (isFav) {
+      if (favoriteIds.includes(propertyId))
         await removeUserFavorite({ propertyId }).unwrap();
-      } else {
-        await addToFav({ propertyId }).unwrap();
-      }
-
+      else await addToFav({ propertyId }).unwrap();
       refetchFavorites();
     } catch {
       Alert.alert("Error", "Could not update favorites");
     }
   };
 
-  // Sections
   const sections: SectionData[] = [
     {
       title: "Homes",
@@ -309,12 +322,12 @@ const HomePage: React.FC = () => {
                 setSearch(text);
                 setSelectedCity(text);
               }}
-              onPress={() => {
+              onPress={() =>
                 router.push({
                   pathname: `/property/View/home`,
                   params: { openFilters: "true", city: search },
-                });
-              }}
+                })
+              }
               onFavPress={() => router.push("/favorites")}
               onVoiceStart={start}
               onVoiceStop={stop}
