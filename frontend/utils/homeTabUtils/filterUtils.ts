@@ -22,6 +22,7 @@ export interface Filters {
   highlighted?: string[];
   safety?: string[];
   addressQuery?: string;
+  floorLevel?: number;
 }
 
 // unified ChipKey type

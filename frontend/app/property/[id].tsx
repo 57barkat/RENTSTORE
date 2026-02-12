@@ -148,7 +148,7 @@ export default function PropertyDetails() {
             <StatItem
               icon="bed-outline"
               label="Beds"
-              value={property.capacityState?.beds}
+              value={property.capacityState?.bedrooms}
               theme={currentTheme}
             />
             <StatItem

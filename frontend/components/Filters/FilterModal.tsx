@@ -38,28 +38,95 @@ export const FilterModal: React.FC<Props> = ({
 }) => {
   const [citySuggestions, setCitySuggestions] = React.useState<string[]>([]);
 
-  const BedOption = ({ value }: { value: number }) => (
-    <TouchableOpacity
-      onPress={() => setFilters({ ...filters, beds: value })}
-      style={[
-        styles.bedChip,
-        {
-          backgroundColor:
-            filters.beds === value ? theme.secondary : theme.card,
-        },
-        filters.beds === value && styles.activeChip,
-      ]}
-    >
-      <Text
-        style={{
-          color: filters.beds === value ? "#fff" : theme.text,
-          fontWeight: filters.beds === value ? "700" : "400",
-        }}
+  // Number option component (handles numeric filters like beds, bathrooms)
+  const NumberOption = ({
+    value,
+    selectedKey,
+  }: {
+    value: number;
+    selectedKey: keyof Filters;
+  }) => {
+    // Convert filter value to number if it's string
+    const currentValue =
+      typeof filters[selectedKey] === "number"
+        ? filters[selectedKey]
+        : parseInt(filters[selectedKey] as any) || 0;
+
+    const selected = currentValue === value;
+
+    return (
+      <TouchableOpacity
+        onPress={() => setFilters({ ...filters, [selectedKey]: value })}
+        style={[
+          styles.chip,
+          { backgroundColor: selected ? theme.secondary : theme.card },
+          selected && styles.activeChip,
+        ]}
       >
-        {value === 0 ? "Any" : `${value}+`}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          style={{
+            color: selected ? "#fff" : theme.text,
+            fontWeight: selected ? "700" : "400",
+          }}
+        >
+          {value === 0 ? "Any" : `${value}+`}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  // Multi-select chip component (handles array filters like amenities, bills, safety)
+  // const MultiSelectChip = ({
+  //   label,
+  //   options,
+  //   selectedKey,
+  // }: {
+  //   label: string;
+  //   options: string[];
+  //   selectedKey: keyof Filters;
+  // }) => {
+  //   // Ensure value is always an array
+  //   const currentArray: string[] = Array.isArray(filters[selectedKey])
+  //     ? (filters[selectedKey] as string[])
+  //     : [];
+
+  //   return (
+  //     <View style={{ marginBottom: 16 }}>
+  //       <Text style={styles.sectionLabel}>{label}</Text>
+  //       <View style={styles.chipRow}>
+  //         {options.map((opt) => {
+  //           const selected = currentArray.includes(opt);
+
+  //           return (
+  //             <TouchableOpacity
+  //               key={opt}
+  //               onPress={() => {
+  //                 const updated = selected
+  //                   ? currentArray.filter((i) => i !== opt)
+  //                   : [...currentArray, opt];
+  //                 setFilters({ ...filters, [selectedKey]: updated });
+  //               }}
+  //               style={[
+  //                 styles.chip,
+  //                 { backgroundColor: selected ? theme.secondary : theme.card },
+  //                 selected && styles.activeChip,
+  //               ]}
+  //             >
+  //               <Text
+  //                 style={{
+  //                   color: selected ? "#fff" : theme.text,
+  //                   fontWeight: selected ? "700" : "400",
+  //                 }}
+  //               >
+  //                 {opt}
+  //               </Text>
+  //             </TouchableOpacity>
+  //           );
+  //         })}
+  //       </View>
+  //     </View>
+  //   );
+  // };
 
   return (
     <Modal
@@ -249,12 +316,61 @@ export const FilterModal: React.FC<Props> = ({
             <Text style={styles.sectionLabel}>Bedrooms</Text>
             <View style={styles.chipRow}>
               {[0, 1, 2, 3, 4].map((num) => (
-                <BedOption key={num} value={num} />
+                <NumberOption key={num} value={num} selectedKey="bedrooms" />
               ))}
             </View>
           </View>
+
+          {/* ===== Floor Level ===== */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionLabel}>Floor Level</Text>
+            <View style={styles.chipRow}>
+              {[0, 1, 2, 3, 4, 5].map((num) => (
+                <NumberOption key={num} value={num} selectedKey="floorLevel" />
+              ))}
+            </View>
+          </View>
+
+          {/* ===== Bathrooms ===== */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionLabel}>Bathrooms</Text>
+            <View style={styles.chipRow}>
+              {[0, 1, 2, 3, 4].map((num) => (
+                <NumberOption key={num} value={num} selectedKey="bathrooms" />
+              ))}
+            </View>
+          </View>
+
+          {/* ===== Amenities ===== */}
+          {/* <MultiSelectChip
+            label="Amenities"
+            options={["paid_parking", "gym", "pool", "wifi"]}
+            selectedKey="amenities"
+          /> */}
+
+          {/* ===== Bills Included ===== */}
+          {/* <MultiSelectChip
+            label="Bills Included"
+            options={["water", "gas", "electricity", "internet"]}
+            selectedKey="bills"
+          /> */}
+
+          {/* ===== Highlights ===== */}
+          {/* <MultiSelectChip
+            label="Highlights"
+            options={["spacious", "modern", "furnished"]}
+            selectedKey="highlighted"
+          /> */}
+
+          {/* ===== Safety Features ===== */}
+          {/* <MultiSelectChip
+            label="Safety Features"
+            options={["cctv", "fire_extinguisher", "weapons"]}
+            selectedKey="safety"
+          /> */}
         </ScrollView>
       </KeyboardAvoidingView>
+
       {/* ===== Footer ===== */}
       <View
         style={[
@@ -281,6 +397,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
+    marginTop: 20,
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontWeight: "700" },
@@ -312,8 +429,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#8E8E93",
     marginHorizontal: 10,
   },
-  chipRow: { flexDirection: "row", justifyContent: "space-between" },
-  bedChip: {
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -321,6 +438,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "transparent",
+    marginRight: 6,
+    marginBottom: 6,
   },
   activeChip: {
     shadowColor: "#000",
