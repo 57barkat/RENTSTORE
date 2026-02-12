@@ -17,6 +17,7 @@ import {
   PropertyFilters,
   RelaxedFilterResult,
 } from "./utils/property-filter.util";
+import { normalizeText } from "src/common/utils/normalize.util";
 
 @Injectable()
 export class PropertyService {
@@ -179,34 +180,143 @@ export class PropertyService {
   async findFiltered(
     page = 1,
     limit = 10,
-    filters: PropertyFilters,
+    filters: PropertyFilters & { sortBy?: string },
     userId?: string,
   ): Promise<any> {
-    const filtersCopy = { ...filters };
-    delete filtersCopy.relaxed;
+    const {
+      city,
+      addressQuery,
+      minRent,
+      maxRent,
+      bedrooms,
+      bathrooms,
+      floorLevel,
+      hostOption,
+      sortBy,
+    } = filters;
 
-    const result = await buildSmartRelaxedFilter(
-      this.propertyModel,
-      filtersCopy,
-    );
+    const mongoFilter: FilterQuery<any> = { status: true };
+    if (userId) {
+      mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+    }
+    const andConditions: any[] = [];
+
+    /* ---------------- CITY ---------------- */
+    if (city) {
+      andConditions.push({
+        address: {
+          $elemMatch: { city: { $regex: city, $options: "i" } },
+        },
+      });
+    }
+
+    /* ---------------- ADDRESS QUERY ---------------- */
+    if (addressQuery) {
+      // Normalize input: lowercase and remove spaces/dashes
+      const cleanedQuery = addressQuery
+        .trim()
+        .toLowerCase()
+        .replace(/[-\s]/g, "");
+
+      const orConditions = [
+        // Match against title
+        { title: { $regex: cleanedQuery, $options: "i" } },
+
+        // Match against location (remove spaces/dashes)
+        {
+          location: {
+            $regex: cleanedQuery.split("").join("[-\\s]?"), // F7 => F[-\s]?7
+            $options: "i",
+          },
+        },
+
+        // Match against street inside address array
+        {
+          address: {
+            $elemMatch: {
+              street: {
+                $regex: cleanedQuery.split("").join("[-\\s]?"),
+                $options: "i",
+              },
+            },
+          },
+        },
+
+        // Match against city
+        {
+          address: {
+            $elemMatch: {
+              city: { $regex: cleanedQuery, $options: "i" },
+            },
+          },
+        },
+
+        // Match against stateTerritory
+        {
+          address: {
+            $elemMatch: {
+              stateTerritory: { $regex: cleanedQuery, $options: "i" },
+            },
+          },
+        },
+      ];
+
+      andConditions.push({ $or: orConditions });
+    }
+
+    /* ---------------- RENT RANGE ---------------- */
+    if (minRent !== undefined || maxRent !== undefined) {
+      mongoFilter.monthlyRent = {};
+      if (minRent !== undefined) mongoFilter.monthlyRent.$gte = Number(minRent);
+      if (maxRent !== undefined) mongoFilter.monthlyRent.$lte = Number(maxRent);
+    }
+
+    /* ---------------- CAPACITY ---------------- */
+    if (bedrooms !== undefined)
+      mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
+    if (bathrooms !== undefined)
+      mongoFilter["capacityState.bathrooms"] = Number(bathrooms);
+    if (floorLevel !== undefined)
+      mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
+
+    /* ---------------- HOST OPTION ---------------- */
+    if (hostOption) {
+      mongoFilter.hostOption = { $regex: `^${hostOption}$`, $options: "i" };
+    }
+
+    /* ---------------- APPLY AND CONDITIONS ---------------- */
+    if (andConditions.length) {
+      mongoFilter.$and = andConditions;
+    }
+    let sortQuery: any = { featured: -1, _id: -1 };
+    if (sortBy === "price_asc") {
+      sortQuery = { monthlyRent: 1, _id: -1 };
+    } else if (sortBy === "price_desc") {
+      sortQuery = { monthlyRent: -1, _id: -1 };
+    } else if (sortBy === "newest") {
+      sortQuery = { createdAt: -1, _id: -1 };
+    }
+    /* ---------------- COUNT & FETCH ---------------- */
+    const total = await this.propertyModel.countDocuments(mongoFilter);
 
     const data = await this.propertyModel
-      .find(result.filter)
-      .sort({ featured: -1, _id: -1 })
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
+      .find(mongoFilter)
+      .sort(sortQuery)
+      .skip((page - 1) * limit)
+      .limit(limit)
       .populate("ownerId", "name email")
       .lean();
 
     return {
       data,
-      total: result.total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(result.total / Number(limit)),
-      ignoredFilters: result.ignoredFilters,
-      relaxed: result.ignoredFilters.length > 0,
-      message: result.message,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      message:
+        data.length > 0
+          ? "Matches found!"
+          : "No properties found matching your criteria.",
     };
   }
 
