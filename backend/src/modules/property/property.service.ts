@@ -358,18 +358,60 @@ export class PropertyService {
     };
   }
 
-  async findMyProperties(userId: string) {
-    const data = (await this.propertyModel
-      .find({ ownerId: new Types.ObjectId(userId) })
+  async findMyProperties(
+    userId: string,
+    page = 1,
+    limit = 10,
+    sort = "newest",
+    search?: string,
+    city?: string,
+  ) {
+    const filter: FilterQuery<any> = {
+      ownerId: new Types.ObjectId(userId),
+      status: { $ne: false },
+    };
+
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+    }
+
+    if (city) {
+      filter.city = city;
+    }
+
+    // Sorting logic
+    let sortOption: any = { createdAt: -1 };
+
+    if (sort === "oldest") sortOption = { createdAt: 1 };
+    if (sort === "priceLow") sortOption = { price: 1 };
+    if (sort === "priceHigh") sortOption = { price: -1 };
+
+    const skip = (page - 1) * limit;
+
+    const data = await this.propertyModel
+      .find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit)
       .populate("ownerId", "name email")
-      .lean()) as unknown as PropertyWithFav[];
+      .lean();
+
+    const total = await this.propertyModel.countDocuments(filter);
 
     const favIds = await this.favService.getUserFavoriteIds(userId);
-    const filteredData = data
-      .filter((p) => p.status !== false)
-      .map((p) => ({ ...p, isFav: favIds.includes(p._id.toString()) }));
 
-    return filteredData;
+    const result = data.map((p) => ({
+      ...p,
+      isFav: favIds.includes(p._id.toString()),
+    }));
+
+    return {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data: result,
+    };
   }
 
   async findPropertyById(propertyId: string, userId?: string) {

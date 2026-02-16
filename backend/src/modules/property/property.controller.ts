@@ -222,10 +222,25 @@ export class PropertyController {
   }
 
   @Get("my-listings")
-  async getMyProperties(@Req() req: any) {
+  async getMyProperties(
+    @Req() req: any,
+    @Query("page") page = 1,
+    @Query("limit") limit = 10,
+    @Query("sort") sort = "newest",
+    @Query("search") search?: string,
+    @Query("city") city?: string,
+  ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
-    return this.propertyService.findMyProperties(userId);
+
+    return this.propertyService.findMyProperties(
+      userId,
+      Number(page),
+      Number(limit),
+      sort,
+      search,
+      city,
+    );
   }
 
   @Get("featured")

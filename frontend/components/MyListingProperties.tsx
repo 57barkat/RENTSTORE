@@ -8,43 +8,63 @@ import {
   TouchableOpacity,
   Modal,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useContext, useState, useCallback } from "react";
+import { useContext, useState, useCallback, useEffect } from "react";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import {
   useFindMyPropertiesQuery,
   useFindPropertyByIdAndDeleteMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
+import { FontSize } from "@/constants/Typography";
 
 const MyListingProperties = () => {
-  const {
-    data: myProperties,
-    isLoading,
-    isFetching,
-    error,
-    refetch,
-  } = useFindMyPropertiesQuery(undefined);
-  console.log("Fetched my properties:", myProperties);
   const formContext = useContext(FormContext);
-
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const { width } = useWindowDimensions();
+
+  // Filters & Pagination
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [sort, setSort] = useState("newest");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data, isLoading, isFetching, error, refetch } =
+    useFindMyPropertiesQuery({
+      page,
+      limit,
+      sort,
+      search: debouncedSearch,
+    });
+
+  const myProperties = data?.data ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
     null,
   );
-
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    setPage(1);
     await refetch();
     setRefreshing(false);
   }, [refetch]);
@@ -67,11 +87,10 @@ const MyListingProperties = () => {
       Toast.show({
         type: "success",
         text1: "Deleted!",
-        text2: "Property has been successfully removed.",
+        text2: "Property removed successfully.",
       });
       refetch();
     } catch (err) {
-      console.error("Delete failed:", err);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -83,7 +102,26 @@ const MyListingProperties = () => {
     }
   };
 
-  if (isLoading && !refreshing) {
+  const loadMore = () => {
+    if (page < totalPages && !isFetching) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  const renderCapacity = (iconName: string, value: any, unit: string) => (
+    <View style={styles.capacityItem}>
+      <MaterialCommunityIcons
+        name={iconName as any}
+        size={16}
+        color={currentTheme.muted}
+      />
+      <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
+        {value || "N/A"} {unit}
+      </Text>
+    </View>
+  );
+
+  if (isLoading && page === 1) {
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
@@ -102,29 +140,18 @@ const MyListingProperties = () => {
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <Text style={[styles.errorText, { color: currentTheme.danger }]}>
-          Failed to load properties. Please check your connection. 😔
+          Failed to load properties.
         </Text>
       </View>
     );
   }
 
-  const renderCapacity = (iconName: string, value: any, unit: string) => (
-    <View style={styles.capacityItem}>
-      <MaterialCommunityIcons
-        name={iconName as any}
-        size={16}
-        color={currentTheme.muted}
-      />
-      <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
-        {value || "N/A"} {unit}
-      </Text>
-    </View>
-  );
-
   return (
     <>
       <FlatList
         style={{ flex: 1, backgroundColor: currentTheme.background }}
+        data={myProperties}
+        keyExtractor={(item, index) => item._id ?? index.toString()}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -133,35 +160,53 @@ const MyListingProperties = () => {
             tintColor={currentTheme.primary}
           />
         }
-        data={myProperties ?? []}
-        keyExtractor={(item, index) => item._id ?? index.toString()}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <Text style={[styles.header, { color: currentTheme.text }]}>
               My Listings
             </Text>
-          </View>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons
-              name="home-search-outline"
-              size={50}
-              color={currentTheme.muted}
-              style={{ marginBottom: 10 }}
-            />
-            <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
-              You have no properties listed yet.
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.createButton,
-                { backgroundColor: currentTheme.primary, marginTop: 20 },
-              ]}
-              onPress={() => router.push("/upload")}
-            >
-              <Text style={styles.createButtonText}>List a New Property</Text>
-            </TouchableOpacity>
+
+            <View style={styles.searchContainer}>
+              <Feather name="search" size={18} color={currentTheme.muted} />
+              <TextInput
+                placeholder="Search by title..."
+                placeholderTextColor={currentTheme.muted}
+                value={search}
+                onChangeText={setSearch}
+                style={[styles.searchInput, { color: currentTheme.text }]}
+              />
+            </View>
+
+            <View style={styles.sortRow}>
+              {["newest", "oldest", "priceLow", "priceHigh"].map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => {
+                    setSort(item);
+                    setPage(1);
+                  }}
+                  style={[
+                    styles.sortButton,
+                    {
+                      backgroundColor:
+                        sort === item
+                          ? currentTheme.primary
+                          : currentTheme.card,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: sort === item ? "#fff" : currentTheme.text,
+                      fontSize: FontSize.xs,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         }
         renderItem={({ item }) => (
@@ -175,54 +220,41 @@ const MyListingProperties = () => {
               },
             ]}
           >
-            <View style={styles.infoSection}>
+            <Text
+              style={[styles.title, { color: currentTheme.text }]}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
+
+            <View style={styles.row}>
+              <Feather name="map-pin" size={14} color={currentTheme.muted} />
               <Text
-                style={[styles.title, { color: currentTheme.text }]}
+                style={[styles.location, { color: currentTheme.muted }]}
                 numberOfLines={1}
               >
-                {item.title}
+                {item.address?.[0]?.city || "City N/A"},{" "}
+                {item.address?.[0]?.country || "Country N/A"}
               </Text>
-
-              <View style={styles.row}>
-                <Feather name="map-pin" size={14} color={currentTheme.muted} />
-                <Text
-                  style={[styles.location, { color: currentTheme.muted }]}
-                  numberOfLines={1}
-                >
-                  {item.address?.[0]?.city || "City N/A"},{" "}
-                  {item.address?.[0]?.country || "Country N/A"}
-                </Text>
-              </View>
-
-              <View style={styles.capacityRow}>
-                {renderCapacity(
-                  "account-group-outline",
-                  item.capacityState?.Persons,
-                  "Persons",
-                )}
-                {renderCapacity(
-                  "bed-outline",
-                  item.capacityState?.beds,
-                  "Beds",
-                )}
-                {renderCapacity(
-                  "bathtub-outline",
-                  item.capacityState?.bathrooms,
-                  "Baths",
-                )}
-              </View>
-
-              <View style={styles.priceContainer}>
-                <Text style={[styles.price, { color: currentTheme.primary }]}>
-                  Rs. {item.monthlyRent?.toLocaleString() || "N/A"}
-                </Text>
-                <Text
-                  style={[styles.priceDuration, { color: currentTheme.muted }]}
-                >
-                  / month
-                </Text>
-              </View>
             </View>
+
+            <View style={styles.capacityRow}>
+              {renderCapacity(
+                "account-group-outline",
+                item.capacityState?.Persons,
+                "Persons",
+              )}
+              {renderCapacity("bed-outline", item.capacityState?.beds, "Beds")}
+              {renderCapacity(
+                "bathtub-outline",
+                item.capacityState?.bathrooms,
+                "Baths",
+              )}
+            </View>
+
+            <Text style={[styles.price, { color: currentTheme.primary }]}>
+              Rs. {item.monthlyRent?.toLocaleString() || "N/A"} / month
+            </Text>
 
             <View style={styles.actionsRow}>
               <TouchableOpacity
@@ -232,11 +264,6 @@ const MyListingProperties = () => {
                 ]}
                 onPress={() => handleOpenDetails(item._id)}
               >
-                <MaterialCommunityIcons
-                  name="eye-outline"
-                  size={20}
-                  color="#fff"
-                />
                 <Text style={styles.buttonText}>View</Text>
               </TouchableOpacity>
 
@@ -244,11 +271,6 @@ const MyListingProperties = () => {
                 style={[styles.button, { backgroundColor: currentTheme.info }]}
                 onPress={() => handleEdit(item)}
               >
-                <MaterialCommunityIcons
-                  name="pencil-outline"
-                  size={20}
-                  color="#fff"
-                />
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
 
@@ -262,16 +284,22 @@ const MyListingProperties = () => {
                   setDeleteModalVisible(true);
                 }}
               >
-                <MaterialCommunityIcons
-                  name="delete-outline"
-                  size={20}
-                  color="#fff"
-                />
                 <Text style={styles.buttonText}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isFetching && page > 1 ? (
+            <ActivityIndicator
+              size="small"
+              color={currentTheme.primary}
+              style={{ marginVertical: 20 }}
+            />
+          ) : null
+        }
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 40,
@@ -327,111 +355,115 @@ const modalStyles = StyleSheet.create({
     alignItems: "center",
   },
   box: {
-    width: "80%",
-    borderRadius: 16,
-    padding: 20,
+    width: "85%",
+    borderRadius: 20,
+    padding: 22,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: FontSize.base,
+    fontWeight: "800",
     marginBottom: 10,
   },
   message: {
-    fontSize: 14,
+    fontSize: FontSize.sm,
     marginBottom: 20,
   },
   buttons: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    columnGap: 12,
+    gap: 12,
   },
   cancelBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
   },
   cancelText: {
-    fontSize: 14,
+    fontSize: FontSize.sm,
     color: "#777",
   },
   deleteBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 10,
   },
   deleteText: {
     color: "#fff",
-    fontWeight: "600",
-    fontSize: 14,
+    fontWeight: "700",
+    fontSize: FontSize.sm,
   },
 });
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 8, fontWeight: "500" },
+  loadingText: { marginTop: 10, fontWeight: "600" },
   errorText: {
-    marginTop: 8,
-    fontSize: 16,
+    fontSize: FontSize.sm,
     fontWeight: "600",
     textAlign: "center",
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
+  headerContainer: {
+    paddingTop: 20,
+    paddingBottom: 15,
+  },
+  header: {
+    fontSize: FontSize.xl,
+    fontWeight: "900",
+    marginBottom: 15,
+  },
+  searchContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 80,
-    paddingHorizontal: 20,
+    backgroundColor: "#f1f1f1",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
-  emptyText: { fontSize: 16, textAlign: "center", fontWeight: "500" },
-  createButton: { paddingVertical: 12, paddingHorizontal: 25, borderRadius: 8 },
-  createButtonText: { color: "#fff", fontWeight: "700", fontSize: 15 },
-  headerContainer: { paddingTop: 16, paddingBottom: 20, marginBottom: 8 },
-  header: { fontSize: 24, fontWeight: "800", textAlign: "left" },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 10,
+    marginLeft: 8,
+    fontSize: FontSize.sm,
+  },
+  sortRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  sortButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
   card: {
-    padding: 18,
-    marginBottom: 20,
-    borderRadius: 15,
+    padding: 20,
+    marginBottom: 22,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
+    elevation: 6,
   },
-  infoSection: { marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 8 },
-  location: { fontSize: 14, fontWeight: "500" },
+  title: { fontSize: FontSize.base, fontWeight: "800", marginBottom: 6 },
+  row: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 6 },
+  location: { fontSize: FontSize.sm },
   capacityRow: {
     flexDirection: "row",
-    marginTop: 10,
-    marginBottom: 12,
-    gap: 20,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginVertical: 10,
+    gap: 18,
   },
-  capacityItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  capacityText: { fontSize: 13, fontWeight: "500" },
-  priceContainer: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    marginTop: 10,
-  },
-  price: { fontSize: 22, fontWeight: "900" },
-  priceDuration: { fontSize: 14, fontWeight: "500", marginLeft: 5 },
+  capacityItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  capacityText: { fontSize: FontSize.xs },
+  price: { fontSize: FontSize.lg, fontWeight: "900", marginBottom: 12 },
   actionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 8,
   },
   button: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
+    borderRadius: 10,
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 14 },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: FontSize.sm },
 });
 
 export default MyListingProperties;
