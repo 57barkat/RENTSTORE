@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   FlatList,
+  Animated,
 } from "react-native";
 import Mapbox from "@rnmapbox/maps";
 import * as Location from "expo-location";
@@ -15,7 +16,6 @@ import Constants from "expo-constants";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -51,13 +51,9 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
   const { theme } = useTheme();
   const router = useRouter();
   const currentTheme = Colors[theme ?? "light"];
-
   if (!formContext)
     throw new Error("FormContext missing! Wrap in <FormProvider>.");
-
   const { updateForm, data } = formContext;
-
-  // --- State ---
   const [address, setAddress] = useState<string>(data.location ?? "");
   const [finalAddress, setFinalAddress] = useState<Address>({
     aptSuiteUnit: "",
@@ -67,41 +63,89 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     zipCode: "",
     country: "",
   });
+  const [areaName, setAreaName] = useState<string>(data.area ?? "");
   const [coords, setCoords] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isPinFixed, setIsPinFixed] = useState(true);
+  const [isMoving, setIsMoving] = useState(false);
   const [mapReady, setMapReady] = useState(false);
-
-  // --- Refs ---
   const suppressRegionChangeRef = useRef(false);
   const cameraRef = useRef<Mapbox.Camera | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchedCoords = useRef<{ lat: number; lng: number } | null>(null);
+  const markerMoveAnim = useRef(new Animated.Value(0)).current;
 
-  // --- Logic: Reverse Geocoding ---
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ) => {
+    const R = 6371e3;
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   const getFullAddress = useCallback(
     async (location: { latitude: number; longitude: number }) => {
+      if (lastFetchedCoords.current) {
+        const dist = calculateDistance(
+          location.latitude,
+          location.longitude,
+          lastFetchedCoords.current.lat,
+          lastFetchedCoords.current.lng,
+        );
+        if (dist < 50) return;
+      }
       try {
         const geocode = await Location.reverseGeocodeAsync(location);
         if (geocode?.[0]) {
-          const { name, street, city, region, postalCode, country } =
-            geocode[0];
-          const formatted = [name, street, city, region, postalCode, country]
+          const {
+            name,
+            street,
+            city,
+            region,
+            postalCode,
+            country,
+            district,
+            subregion,
+          } = geocode[0];
+          const detectedArea = district || subregion || "";
+          setAreaName(detectedArea);
+          const formatted = [
+            name,
+            street,
+            detectedArea,
+            city,
+            region,
+            postalCode,
+            country,
+          ]
             .filter(Boolean)
             .join(", ");
-
           setAddress(formatted);
-          setFinalAddress((prev) => ({
-            ...prev,
-            street: street || "",
+          setFinalAddress({
+            aptSuiteUnit: "",
+            street: street || name || "",
             city: city || "",
             stateTerritory: region || "",
             zipCode: postalCode || "",
             country: country || "",
-          }));
+          });
+          lastFetchedCoords.current = {
+            lat: location.latitude,
+            lng: location.longitude,
+          };
         }
       } catch (err) {
         console.error("Reverse Geocode Error:", err);
@@ -110,7 +154,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     [],
   );
 
-  // --- Effect: Initial Location ---
   useEffect(() => {
     (async () => {
       try {
@@ -137,7 +180,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     })();
   }, [getFullAddress]);
 
-  // --- Effect: Auto-center camera on load ---
   useEffect(() => {
     if (coords && mapReady) {
       suppressRegionChangeRef.current = true;
@@ -154,17 +196,16 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     }
   }, [coords, mapReady]);
 
-  // --- Effect: Sync with Form Context ---
   useEffect(() => {
     if (coords) {
       updateForm("lat", coords.latitude);
       updateForm("lng", coords.longitude);
       updateForm("location", address);
+      updateForm("area", areaName);
       updateForm("address", [finalAddress]);
     }
-  }, [coords, address, finalAddress]);
+  }, [coords, address, finalAddress, areaName]);
 
-  // --- Handlers ---
   const handleSearch = (text: string) => {
     setAddress(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -193,7 +234,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
       setCoords(newCoords);
       setAddress(item.description);
       setSuggestions([]);
-
       suppressRegionChangeRef.current = true;
       cameraRef.current?.setCamera({
         centerCoordinate: [newCoords.longitude, newCoords.latitude],
@@ -202,6 +242,14 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
       });
       setTimeout(() => (suppressRegionChangeRef.current = false), 1200);
     }
+  };
+
+  const animateMarker = (toValue: number) => {
+    Animated.spring(markerMoveAnim, {
+      toValue,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
   };
 
   if (loading) {
@@ -218,7 +266,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <StepContainer
         onNext={() => router.push(nextPath)}
-        isNextDisabled={address.length < 3}
+        isNextDisabled={address.length < 3 || isMoving}
         title={`Where's your ${propertyTypeLabel}?`}
         progress={progress}
       >
@@ -226,8 +274,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
           <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
             Address is shared only after booking.
           </Text>
-
-          {/* Search Section */}
           <View style={styles.searchWrapper}>
             <View
               style={[
@@ -261,7 +307,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
                 </TouchableOpacity>
               )}
             </View>
-
             {suggestions.length > 0 && (
               <View
                 style={[
@@ -296,8 +341,6 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
               </View>
             )}
           </View>
-
-          {/* Map Section */}
           <View
             style={[styles.mapWrapper, { borderColor: currentTheme.border }]}
           >
@@ -309,8 +352,16 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
                     ? Mapbox.StyleURL.Dark
                     : Mapbox.StyleURL.Street
                 }
+                onRegionIsChanging={() => {
+                  if (!isMoving) {
+                    setIsMoving(true);
+                    animateMarker(-15);
+                  }
+                }}
                 onRegionDidChange={async (e) => {
-                  if (!suppressRegionChangeRef.current && isPinFixed) {
+                  setIsMoving(false);
+                  animateMarker(0);
+                  if (!suppressRegionChangeRef.current) {
                     const newC = {
                       latitude: e.geometry.coordinates[1],
                       longitude: e.geometry.coordinates[0],
@@ -326,41 +377,60 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
                   centerCoordinate={[coords.longitude, coords.latitude]}
                   zoomLevel={INITIAL_ZOOM}
                 />
-                <Mapbox.PointAnnotation
-                  id="marker"
-                  coordinate={[coords.longitude, coords.latitude]}
-                >
-                  <View style={styles.markerContainer}>
-                    <View
-                      style={[
-                        styles.pulse,
-                        { backgroundColor: currentTheme.primary + "30" },
-                      ]}
-                    />
-                    <MaterialCommunityIcons
-                      name="map-marker-radius"
-                      size={45}
-                      color={currentTheme.primary}
-                    />
-                  </View>
-                </Mapbox.PointAnnotation>
               </Mapbox.MapView>
             )}
-
-            {/* Lock/Unlock Mode Button */}
+            <View style={styles.staticMarkerContainer} pointerEvents="none">
+              <Animated.View
+                style={[
+                  styles.staticMarker,
+                  { transform: [{ translateY: markerMoveAnim }] },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="map-marker"
+                  size={48}
+                  color={currentTheme.primary}
+                />
+              </Animated.View>
+              <View
+                style={[
+                  styles.markerShadow,
+                  {
+                    backgroundColor: isMoving
+                      ? "rgba(0,0,0,0.05)"
+                      : "rgba(0,0,0,0.15)",
+                    transform: [{ scale: isMoving ? 0.6 : 1 }],
+                  },
+                ]}
+              />
+            </View>
             <TouchableOpacity
               style={[
                 styles.mapModeFab,
                 { backgroundColor: currentTheme.card },
               ]}
-              onPress={() => setIsPinFixed(!isPinFixed)}
+              onPress={async () => {
+                const loc = await Location.getCurrentPositionAsync({});
+                cameraRef.current?.setCamera({
+                  centerCoordinate: [loc.coords.longitude, loc.coords.latitude],
+                  zoomLevel: INITIAL_ZOOM,
+                  animationDuration: 1000,
+                });
+              }}
             >
-              <Ionicons
-                name={isPinFixed ? "lock-closed" : "move"}
-                size={22}
-                color={currentTheme.primary}
-              />
+              <Ionicons name="locate" size={24} color={currentTheme.primary} />
             </TouchableOpacity>
+            {!isMoving && address.length > 3 && (
+              <TouchableOpacity
+                style={[
+                  styles.confirmLocationBtn,
+                  { backgroundColor: currentTheme.primary },
+                ]}
+                onPress={() => router.push(nextPath)}
+              >
+                <Text style={styles.confirmBtnText}>Confirm Location</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </StepContainer>
@@ -372,68 +442,104 @@ export default MasterLocationScreen;
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  subtitle: { fontSize: 14, marginBottom: 15 },
+  subtitle: {
+    fontSize: 14,
+    marginBottom: 15,
+    fontWeight: "500",
+    paddingLeft: 5,
+  },
   searchWrapper: { zIndex: 999, position: "relative" },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 15,
+    borderRadius: 18,
     borderWidth: 1,
     paddingHorizontal: 15,
-    height: 55,
-    elevation: 4,
+    height: 60,
+    elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   input: { flex: 1, marginLeft: 10, fontSize: 16, height: "100%" },
   suggestionsBox: {
     position: "absolute",
-    top: 60,
+    top: 65,
     left: 0,
     right: 0,
-    borderRadius: 15,
+    borderRadius: 18,
     borderWidth: 1,
-    maxHeight: 250,
+    maxHeight: 300,
     zIndex: 1000,
-    elevation: 5,
+    elevation: 10,
+    overflow: "hidden",
   },
   suggestionItem: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
+    padding: 18,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#eee",
+    borderBottomColor: "rgba(0,0,0,0.05)",
   },
   mapWrapper: {
     flex: 1,
-    marginTop: 15,
-    borderRadius: 25,
+    marginTop: 20,
+    borderRadius: 30,
     overflow: "hidden",
     borderWidth: 1,
+    position: "relative",
   },
   map: { flex: 1 },
-  markerContainer: {
+  staticMarkerContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginLeft: -24,
+    marginTop: -48,
     alignItems: "center",
     justifyContent: "center",
-    width: 60,
-    height: 60,
+    width: 48,
+    height: 48,
   },
-  pulse: { position: "absolute", width: 40, height: 40, borderRadius: 20 },
+  staticMarker: { zIndex: 2 },
+  markerShadow: {
+    width: 12,
+    height: 4,
+    borderRadius: 6,
+    bottom: 2,
+    position: "absolute",
+    zIndex: 1,
+  },
   mapModeFab: {
     position: "absolute",
-    bottom: 20,
+    bottom: 25,
     right: 20,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 5,
+    elevation: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
+  confirmLocationBtn: {
+    position: "absolute",
+    bottom: 25,
+    left: 20,
+    right: 90,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  confirmBtnText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
 });
