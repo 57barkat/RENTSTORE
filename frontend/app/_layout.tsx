@@ -107,6 +107,7 @@ const AppContent = () => {
         <Stack.Screen name="upload" />
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />
+        <Stack.Screen name="NearbyScreen" />
         <Stack.Screen name="ChatListScreen" />
         <Stack.Screen name="+not-found" />
       </Stack>

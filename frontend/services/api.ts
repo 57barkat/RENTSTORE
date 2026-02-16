@@ -255,6 +255,13 @@ export const api = createApi({
         }
       },
     }),
+    getNearbyProperties: builder.query({
+      query: ({ lat, lng, maxDistance = 10000 }) => {
+        return `/api/v1/properties/nearby?lat=${lat}&lng=${lng}&maxDistance=${maxDistance}`;
+      },
+      providesTags: ["Property"],
+    }),
+
     clearVoiceSession: builder.mutation<void, void>({
       query: () => ({
         url: "/api/v1/search/voice/cancel",
@@ -299,4 +306,5 @@ export const {
   useVerifyEmailMutation,
   useLogoutMutation,
   useClearVoiceSessionMutation,
+  useGetNearbyPropertiesQuery,
 } = api;
