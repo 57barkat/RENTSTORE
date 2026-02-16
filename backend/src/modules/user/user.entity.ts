@@ -62,6 +62,11 @@ export class User {
 
   @Prop()
   emailVerificationCode?: string;
+  @Prop({ default: 0 })
+  warnings: number;
+
+  @Prop({ default: false })
+  isBlocked: boolean;
 
   @Prop()
   emailVerificationCodeExpires?: Date;

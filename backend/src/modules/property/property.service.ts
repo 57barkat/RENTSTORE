@@ -11,13 +11,7 @@ import { CloudinaryService } from "../../services/Cloudinary Service/cloudinary.
 import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
-import {
-  buildPropertyFilter,
-  buildSmartRelaxedFilter,
-  PropertyFilters,
-  RelaxedFilterResult,
-} from "./utils/property-filter.util";
-import { normalizeText } from "src/common/utils/normalize.util";
+import { PropertyFilters } from "./utils/property-filter.util";
 
 @Injectable()
 export class PropertyService {
@@ -51,15 +45,12 @@ export class PropertyService {
     const propertyId = dto._id;
 
     if (propertyId) {
-      // 1. Try to find in main Property collection
       property = await this.propertyModel.findById(propertyId);
 
       if (property) {
-        // --- UPDATE EXISTING PROPERTY ---
         if (property.ownerId.toString() !== userId.toString())
           throw new UnauthorizedException("Not allowed to edit this property");
 
-        // Photo cleanup logic
         const oldPhotos = property.photos || [];
         const newPhotos = dto.photos || [];
         const photosToDelete = oldPhotos.filter(
@@ -74,47 +65,96 @@ export class PropertyService {
           );
         }
 
-        // Apply updates
+        // Update GeoJSON if lat/lng provided
+        if (dto.lat !== undefined && dto.lng !== undefined) {
+          dto.locationGeo = {
+            type: "Point",
+            coordinates: [dto.lng, dto.lat],
+          };
+        }
+
         Object.assign(property, dto);
         return await property.save();
       }
 
-      // 2. If not in main, check if it's a Draft being promoted
       const draft = await this.propertyDraftModel.findById(propertyId);
       if (draft) {
         if (draft.ownerId.toString() !== userId.toString())
           throw new UnauthorizedException("Not allowed to promote this draft");
 
-        // Create new property from draft data + current DTO
         const { _id, ...draftData } = draft.toObject();
+        if (dto.lat !== undefined && dto.lng !== undefined) {
+          dto.locationGeo = {
+            type: "Point",
+            coordinates: [dto.lng, dto.lat],
+          };
+        }
+
         property = new this.propertyModel({
           ...draftData,
           ...dto,
           ownerId: userId,
-          status: true, // Mark as active property
+          status: true,
         });
 
         const savedProperty = await property.save();
-
-        // 3. DELETE THE DRAFT now that it's a real property
         await this.propertyDraftModel.findByIdAndDelete(propertyId);
 
         return savedProperty;
       }
 
-      // 4. If ID was provided but found nowhere
       throw new NotFoundException(
         "Property or Draft not found with provided ID",
       );
     }
 
-    // 5. NO ID PROVIDED: Create brand new property
+    // NO ID: New property
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      dto.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+    }
+
     property = new this.propertyModel({
       ...dto,
       ownerId: userId,
       status: true,
     });
     return await property.save();
+  }
+  async findNearbyProperties(
+    lat: number,
+    lng: number,
+    radiusKm: number,
+    userId?: string,
+  ) {
+    const mongoFilter: FilterQuery<Property> = { status: true };
+
+    // Exclude user's own listings if userId provided
+    if (userId) {
+      mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+    }
+
+    // GeoJSON $near filter
+    mongoFilter.locationGeo = {
+      $near: {
+        $geometry: { type: "Point", coordinates: [lng, lat] },
+        $maxDistance: radiusKm * 1000, // meters
+      },
+    };
+
+    // Fetch top 20 nearby properties
+    const data = await this.propertyModel
+      .find(mongoFilter)
+      .limit(20)
+      .populate("ownerId", "name email")
+      .lean();
+
+    return {
+      data,
+      total: data.length,
+      message: data.length
+        ? `Found ${data.length} nearby properties within ${radiusKm} km`
+        : "No nearby properties found",
+    };
   }
 
   async saveDraft(
@@ -126,8 +166,11 @@ export class PropertyService {
       ? await this.uploadFilesToCloudinary(imageFiles)
       : dto.photos || [];
 
-    const filter = dto._id ? { _id: dto._id } : { _id: new Types.ObjectId() };
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      dto.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+    }
 
+    const filter = dto._id ? { _id: dto._id } : { _id: new Types.ObjectId() };
     const update = {
       ...dto,
       photos,
@@ -152,9 +195,7 @@ export class PropertyService {
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
     const filter: any = { status: true };
-    if (ownerId) {
-      filter.ownerId = ownerId;
-    }
+    if (ownerId) filter.ownerId = ownerId;
 
     const skip = (page - 1) * limit;
 
@@ -180,7 +221,13 @@ export class PropertyService {
   async findFiltered(
     page = 1,
     limit = 10,
-    filters: PropertyFilters & { sortBy?: string },
+    filters: PropertyFilters & {
+      sortBy?: string;
+      lat?: number;
+      lng?: number;
+      radiusKm?: number;
+      area?: string;
+    },
     userId?: string,
   ): Promise<any> {
     const {
@@ -193,85 +240,76 @@ export class PropertyService {
       floorLevel,
       hostOption,
       sortBy,
+      lat,
+      lng,
+      radiusKm,
+      area,
     } = filters;
 
-    const mongoFilter: FilterQuery<any> = { status: true };
-    if (userId) {
-      mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
-    }
+    const mongoFilter: any = { status: true };
+    if (userId) mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+
     const andConditions: any[] = [];
 
-    /* ---------------- CITY ---------------- */
+    // 1️⃣ SMART SEARCH LOGIC
+    const searchInput = addressQuery || area;
+
+    if (searchInput) {
+      const cleanedQuery = searchInput.trim();
+
+      // Create a regex that treats dashes, slashes, and spaces as optional/interchangeable
+      // Example: "I10-1" -> "I[-/\s]?1[-/\s]?0[-/\s]?1"
+      const flexiblePattern = cleanedQuery
+        .replace(/[-/\s]/g, "") // Remove existing separators
+        .split("")
+        .join("[-/\\s]?");
+
+      const searchRegex = { $regex: flexiblePattern, $options: "i" };
+
+      // DETECT SPECIFICITY: Does the query look like a sub-sector? (e.g., "I10/1" or "I10-1")
+      // If it has a sub-sector indicator, we ONLY search location/title/street.
+      // If it's just "I10", we can include the general "area" field.
+      const isSpecific =
+        /\d[-/\s]\d/.test(cleanedQuery) ||
+        (cleanedQuery.length > 3 && /[0-9]$/.test(cleanedQuery));
+
+      if (isSpecific) {
+        andConditions.push({
+          $or: [
+            { location: searchRegex },
+            { title: searchRegex },
+            { "address.street": searchRegex },
+          ],
+        });
+      } else {
+        andConditions.push({
+          $or: [
+            { area: searchRegex },
+            { location: searchRegex },
+            { title: searchRegex },
+          ],
+        });
+      }
+    }
+
+    // 2️⃣ City Filter
     if (city) {
+      // Matches city inside the address array of objects
       andConditions.push({
-        address: {
-          $elemMatch: { city: { $regex: city, $options: "i" } },
-        },
+        "address.city": { $regex: city, $options: "i" },
       });
     }
 
-    /* ---------------- ADDRESS QUERY ---------------- */
-    if (addressQuery) {
-      // Normalize input: lowercase and remove spaces/dashes
-      const cleanedQuery = addressQuery
-        .trim()
-        .toLowerCase()
-        .replace(/[-\s]/g, "");
-
-      const orConditions = [
-        // Match against title
-        { title: { $regex: cleanedQuery, $options: "i" } },
-
-        // Match against location (remove spaces/dashes)
-        {
-          location: {
-            $regex: cleanedQuery.split("").join("[-\\s]?"), // F7 => F[-\s]?7
-            $options: "i",
-          },
-        },
-
-        // Match against street inside address array
-        {
-          address: {
-            $elemMatch: {
-              street: {
-                $regex: cleanedQuery.split("").join("[-\\s]?"),
-                $options: "i",
-              },
-            },
-          },
-        },
-
-        // Match against city
-        {
-          address: {
-            $elemMatch: {
-              city: { $regex: cleanedQuery, $options: "i" },
-            },
-          },
-        },
-
-        // Match against stateTerritory
-        {
-          address: {
-            $elemMatch: {
-              stateTerritory: { $regex: cleanedQuery, $options: "i" },
-            },
-          },
-        },
-      ];
-
-      andConditions.push({ $or: orConditions });
-    }
-
-    /* ---------------- RENT RANGE ---------------- */
+    // 3️⃣ Rental Price Filter
     if (minRent !== undefined || maxRent !== undefined) {
       mongoFilter.monthlyRent = {};
       if (minRent !== undefined) mongoFilter.monthlyRent.$gte = Number(minRent);
       if (maxRent !== undefined) mongoFilter.monthlyRent.$lte = Number(maxRent);
     }
 
-    /* ---------------- CAPACITY ---------------- */
+    // 4️⃣ Capacity & Host Options
+    if (hostOption)
+      mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
     if (bedrooms !== undefined)
       mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
     if (bathrooms !== undefined)
@@ -279,44 +317,44 @@ export class PropertyService {
     if (floorLevel !== undefined)
       mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
 
-    /* ---------------- HOST OPTION ---------------- */
-    if (hostOption) {
-      mongoFilter.hostOption = { $regex: `^${hostOption}$`, $options: "i" };
+    // 5️⃣ Apply AND conditions to the main filter
+    if (andConditions.length > 0) mongoFilter.$and = andConditions;
+
+    // 6️⃣ Geospatial Logic
+    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
+      mongoFilter.locationGeo = {
+        $near: {
+          $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
+          $maxDistance: Number(radiusKm) * 1000,
+        },
+      };
     }
 
-    /* ---------------- APPLY AND CONDITIONS ---------------- */
-    if (andConditions.length) {
-      mongoFilter.$and = andConditions;
-    }
+    // 7️⃣ Sorting Logic
     let sortQuery: any = { featured: -1, _id: -1 };
-    if (sortBy === "price_asc") {
-      sortQuery = { monthlyRent: 1, _id: -1 };
-    } else if (sortBy === "price_desc") {
-      sortQuery = { monthlyRent: -1, _id: -1 };
-    } else if (sortBy === "newest") {
-      sortQuery = { createdAt: -1, _id: -1 };
-    }
-    /* ---------------- COUNT & FETCH ---------------- */
-    const total = await this.propertyModel.countDocuments(mongoFilter);
+    if (sortBy === "price_asc") sortQuery = { monthlyRent: 1, _id: -1 };
+    else if (sortBy === "price_desc") sortQuery = { monthlyRent: -1, _id: -1 };
+    else if (sortBy === "newest") sortQuery = { createdAt: -1, _id: -1 };
 
+    const total = await this.propertyModel.countDocuments(mongoFilter);
     const data = await this.propertyModel
       .find(mongoFilter)
       .sort(sortQuery)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate("ownerId", "name email")
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .populate("ownerId", "name email phone profileImage")
       .lean();
 
     return {
       data,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / Number(limit)),
       message:
         data.length > 0
-          ? "Matches found!"
-          : "No properties found matching your criteria.",
+          ? "Properties fetched successfully."
+          : "No properties match your search.",
     };
   }
 
@@ -327,13 +365,9 @@ export class PropertyService {
       .lean()) as unknown as PropertyWithFav[];
 
     const favIds = await this.favService.getUserFavoriteIds(userId);
-
     const filteredData = data
       .filter((p) => p.status !== false)
-      .map((p) => ({
-        ...p,
-        isFav: favIds.includes(p._id.toString()),
-      }));
+      .map((p) => ({ ...p, isFav: favIds.includes(p._id.toString()) }));
 
     return filteredData;
   }
@@ -345,7 +379,6 @@ export class PropertyService {
       { $match: { _id: objectId } },
       {
         $addFields: {
-          // This converts String to ObjectId but stays an ObjectId if it already is one
           ownerObjId: { $toObjectId: "$ownerId" },
           views: { $add: [{ $ifNull: ["$views", 0] }, 1] },
         },
@@ -358,31 +391,16 @@ export class PropertyService {
           as: "owner",
         },
       },
-      {
-        $unwind: {
-          path: "$owner",
-          preserveNullAndEmptyArrays: true, // <--- Prevents document from disappearing if owner lookup fails
-        },
-      },
-      {
-        $project: {
-          "owner.password": 0,
-          "owner.refreshToken": 0,
-          // ... rest of your exclusions
-        },
-      },
+      { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
+      { $project: { "owner.password": 0, "owner.refreshToken": 0 } },
     ]);
 
-    // 1. Check if property exists first
     if (!property) throw new NotFoundException("Property not found");
 
-    // 2. Use Optional Chaining (?.) to safely check the owner
     const isOwner =
       userId && property.owner?._id?.toString() === userId.toString();
-
     property.chat = !isOwner && !!userId;
 
-    // 3. Increment the real DB counter
     await this.propertyModel.updateOne(
       { _id: objectId },
       { $inc: { views: 1 } },
@@ -422,6 +440,9 @@ export class PropertyService {
     }
 
     Object.assign(property, dto);
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      property.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+    }
 
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;

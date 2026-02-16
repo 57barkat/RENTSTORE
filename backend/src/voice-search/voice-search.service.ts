@@ -3,6 +3,9 @@ import * as fs from "fs";
 import fetch from "node-fetch";
 import { PropertyService } from "../modules/property/property.service";
 import { VoiceSessionService } from "./voice-session.service";
+import { InjectModel } from "@nestjs/mongoose";
+import { User, UserDocument } from "src/modules/user/user.entity";
+import { Model } from "mongoose";
 
 @Injectable()
 export class VoiceSearchService {
@@ -13,157 +16,165 @@ export class VoiceSearchService {
   constructor(
     private readonly propertyService: PropertyService,
     private readonly voiceSessionService: VoiceSessionService,
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
-  private requiredFilters = [
-    "city",
-    "hostOption",
-    "minRent",
-    "maxRent",
-    "bedrooms",
-  ];
   async clearSession(userId: string) {
     return this.voiceSessionService.deleteSession(userId);
   }
 
   async voiceSearch(file: Express.Multer.File, userId: string) {
     if (!file?.path) throw new Error("Audio file path missing");
+
     try {
-      // Transcription now handles language detection
+      const user = await this.userModel.findById(userId);
+
+      if (!user) {
+        return this.emptyResponse("User not found.");
+      }
+
+      // 🚫 Already blocked
+      if (user.isBlocked) {
+        return {
+          forceLogout: true,
+          message:
+            "Your account has been blocked due to repeated policy violations.",
+        };
+      }
+
+      // 1️⃣ TRANSCRIPTION
       const transcription = await this.audioToEnglishText(file.path);
+
       if (!transcription.trim()) {
+        return this.emptyResponse("I couldn't hear you. Please try again.");
+      }
+
+      // 2️⃣ FILTER EXTRACTION + ABUSE CHECK
+      const aiData = await this.extractIntent(transcription);
+
+      // 🚨 HANDLE ABUSE
+      if (aiData.isAbusive) {
+        const updatedUser = await this.userModel.findByIdAndUpdate(
+          userId,
+          { $inc: { warnings: 1 } },
+          { new: true },
+        );
+        if (!updatedUser) {
+          return;
+        }
+        if (updatedUser.warnings >= 2) {
+          await this.userModel.findByIdAndUpdate(userId, {
+            isBlocked: true,
+            refreshToken: null,
+          });
+
+          return {
+            forceLogout: true,
+            message:
+              "Your account has been permanently blocked due to repeated abusive behavior.",
+          };
+        }
+
         return this.emptyResponse(
-          "I'm sorry, I couldn't hear that clearly. Could you please repeat your requirements?",
+          `Warning no ${updatedUser.warnings}. After 2 warnings, your account will be blocked. Please refrain from using abusive or irrelevant language.`,
         );
       }
 
-      let extractedFilters = await this.textToFilters(transcription);
-      extractedFilters = this.ensureHostOption(extractedFilters, transcription);
+      let extractedFilters = this.ensureHostOption(
+        aiData.filters,
+        transcription,
+      );
+
       const normalizedFilters = this.normalizeFilters(extractedFilters);
 
       const session = await this.voiceSessionService.getSession(userId);
+
       const currentFilters = {
         ...(session?.currentFilters ?? {}),
         ...normalizedFilters,
       };
+
       await this.voiceSessionService.updateSession(userId, currentFilters);
 
-      const stopWords = [
-        "search",
-        "show",
-        "enough",
-        "stop",
-        "results",
-        "skip",
-        "find",
-      ];
-      const userWantsToStop = stopWords.some((word) =>
-        transcription.toLowerCase().includes(word),
-      );
-
-      const missing = this.requiredFilters.filter(
-        (key) => !currentFilters[key],
-      );
-
-      // Strict filter: no relax fallback
-      let result: { data: any[] } | null = null;
-      let forceConversation = false;
-
-      if (missing.length === 0 || userWantsToStop) {
-        result = await this.propertyService.findFiltered(
-          1,
-          10,
-          currentFilters,
-          userId,
-        );
-
-        if (!result || result?.data.length === 0) {
-          forceConversation = true; // Force Gemini to explain nothing was found
-          result = null;
-        } else {
-          await this.voiceSessionService.deleteSession(userId);
-        }
-      }
-
-      const aiMessage = await this.generateConversationalMessage(
-        transcription,
+      const result = await this.propertyService.findFiltered(
+        1,
+        10,
         currentFilters,
-        missing,
-        userWantsToStop,
-        forceConversation,
+        userId,
       );
+
+      const hasResults = result && result.data.length > 0;
+
+      if (hasResults) {
+        await this.voiceSessionService.deleteSession(userId);
+      }
 
       return {
         transcription,
         filters: currentFilters,
-        result,
-        message: aiMessage,
+        result: hasResults ? result : null,
+        message: hasResults
+          ? "Showing you matching properties."
+          : "No matching properties found. Please try a different search.",
       };
     } finally {
       if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
   }
 
-  private async audioToEnglishText(filePath: string): Promise<string> {
+  // 🔥 NEW: Combined abuse detection + filter extraction
+  private async extractIntent(
+    userText: string,
+  ): Promise<{ isAbusive: boolean; filters: any }> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-    const audioBase64 = fs.readFileSync(filePath).toString("base64");
-    const body = {
-      contents: [
-        {
-          parts: [
-            {
-              text: "Transcribe this audio. If the user is speaking Urdu, transcribe it into English text but keep a mental note of the original language for the next turn.",
-            },
-            { inline_data: { mime_type: "audio/mp4", data: audioBase64 } },
-          ],
-        },
-      ],
-    };
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data: any = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-  }
 
-  private async textToFilters(userText: string): Promise<Record<string, any>> {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
     const body = {
       contents: [
         {
           parts: [
             {
               text: `
-You are a Pakistan Real Estate Expert.
+You are a Pakistan Real Estate Assistant.
+
 User text: "${userText}"
 
-TASK:
-1. Extract search filters for rental properties.
-2. CITY vs ADDRESS RULES:
-   - "city" MUST be a major Pakistani city (e.g., Lahore, Islamabad, Karachi, Rawalpindi, Peshawar, Multan).
-   - "addressQuery" MUST be the specific society, sector, or block (e.g., Bahria Town, DHA Phase 5, Gulberg, E-11).
-   - NEVER put "Bahria Town" or "DHA" in the "city" field. 
-   - If the user says "Bahria Town Lahore", city is "Lahore" and addressQuery is "Bahria Town".
-   - If the user only says "Bahria Town" and doesn't mention a city, try to infer the city from context or leave "city" empty so I can ask the user later.
+TASKS:
+1. Detect if text contains abusive, irrelevant, or nonsense language.
+2. Extract rental property filters.
 
-3. DATA NORMALIZATION:
-   - 1 lakh = 100000, 50k = 50000.
-   - hostOption must be: "home", "hostel", or "apartment".
+If abusive or irrelevant:
+- Set "isAbusive": true
+- filters should be empty object
 
-JSON STRUCTURE:
+If normal:
+- Set "isAbusive": false
+- Extract filters correctly.
+
+CITY RULE:
+- City must be major Pakistani city.
+- Society goes in addressQuery.
+- 1 lakh = 100000
+- 50k = 50000
+- hostOption must be "home", "hostel", or "apartment"
+- if min max is not provided but rent is mentioned, use it as maxRent and set minRent to 0.
+
+Return ONLY JSON:
+
 {
-  "city": "string",
-  "addressQuery": "string",
-  "minRent": number,
-  "maxRent": number,
-  "bedrooms": number,
-  "bathrooms": number,
-  "floorLevel": number,
-  "hostOption": "home" | "hostel" | "apartment"
+  "isAbusive": boolean,
+  "filters": {
+    "city": "",
+    "addressQuery": "",
+    "minRent": number,
+    "maxRent": number,
+    "bedrooms": number,
+    "bathrooms": number,
+    "floorLevel": number,
+    "hostOption": "home" | "hostel" | "apartment"
+  }
 }
-Return ONLY valid JSON.`,
+`,
             },
           ],
         },
@@ -182,110 +193,66 @@ Return ONLY valid JSON.`,
       });
 
       const data: any = await response.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-      const parsed = JSON.parse(rawText);
-
-      // Manual Safeguard: If Gemini still puts Bahria/DHA in city
-      const societyNames = [
-        "bahria",
-        "dha",
-        "gulberg",
-        "askari",
-        "e-11",
-        "f-11",
-      ];
-      if (
-        parsed.city &&
-        societyNames.some((s) => parsed.city.toLowerCase().includes(s))
-      ) {
-        if (!parsed.addressQuery) parsed.addressQuery = parsed.city;
-        parsed.city = "";
-      }
-
-      return parsed;
-    } catch (error) {
-      this.logger.error("❌ Filter extraction failed", error);
-      return {};
+      return JSON.parse(
+        data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}",
+      );
+    } catch {
+      return { isAbusive: false, filters: {} };
     }
   }
 
-  private async generateConversationalMessage(
-    userSpeech: string,
-    filters: any,
-    missing: string[],
-    isStopping: boolean,
-    notFound: boolean,
-  ): Promise<string> {
+  private async audioToEnglishText(filePath: string): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
 
-    const prompt = `
-      You are a friendly Real Estate Assistant for Pakistan.
-      Current Filters: ${JSON.stringify(filters)}
-      User Said: "${userSpeech}"
-      
-      SCENARIO:
-      ${
-        notFound
-          ? "CRITICAL: We found 0 properties matching these filters. Politely tell the user you couldn't find any property matching their criteria and ask if they want to change their search (e.g., different city, lower price, or different area) or continue searching."
-          : missing.length > 0
-            ? `Ask for: ${missing.join(", ")}.`
-            : "Tell them you are showing the results now."
-      }
+    const audioBase64 = fs.readFileSync(filePath).toString("base64");
 
-      LANGUAGE RULE:
-      - If the "User Said" content indicates the original intent was Urdu (based on context or specific terms like 'ghr', 'lakh', 'kamray'), respond in PURE URDU SCRIPT (Nastaliq).
-      - NEVER use Roman Urdu (e.g., don't write 'aap kaise hain'). Write 'آپ کیسے ہیں'.
-      - If the intent was English, respond in English.
-      
-      Keep it under 2 sentences. Be helpful.
-    `;
+    const body = {
+      contents: [
+        {
+          parts: [
+            {
+              text: "Transcribe this audio into English text. Detect if Urdu was spoken.",
+            },
+            { inline_data: { mime_type: "audio/mp4", data: audioBase64 } },
+          ],
+        },
+      ],
+    };
 
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      });
-      const data: any = await response.json();
-      return (
-        data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ||
-        "Searching..."
-      );
-    } catch {
-      return "I'm looking into that for you.";
-    }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data: any = await response.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
   }
 
   private ensureHostOption(filters: any, userText: string): any {
-    if (!filters.hostOption) {
+    if (!filters?.hostOption) {
       const lowerText = userText.toLowerCase();
+
       if (/(ghr|ghar|house)/i.test(lowerText)) filters.hostOption = "home";
       else if (/apartment|flat/i.test(lowerText))
         filters.hostOption = "apartment";
       else if (/hostel/i.test(lowerText)) filters.hostOption = "hostel";
     }
+
     return filters;
   }
 
   private normalizeFilters(filters: any) {
     const normalized: any = {};
     if (!filters) return normalized;
+
     if (filters.city) normalized.city = filters.city;
     if (filters.addressQuery) normalized.addressQuery = filters.addressQuery;
-    if (Number.isFinite(filters.minRent))
-      normalized.minRent = Number(filters.minRent);
-    if (Number.isFinite(filters.maxRent))
-      normalized.maxRent = Number(filters.maxRent);
-    if (Number.isFinite(filters.bedrooms))
-      normalized.bedrooms = Number(filters.bedrooms);
-    if (Number.isFinite(filters.bathrooms))
-      normalized.bathrooms = Number(filters.bathrooms);
-    if (Number.isFinite(filters.floorLevel)) {
-      // 0 = Ground Floor
-      normalized.floorLevel = Number(filters.floorLevel);
-    }
-    if (["home", "hostel", "apartment"].includes(filters.hostOption))
-      normalized.hostOption = filters.hostOption;
+    if (filters.minRent) normalized.minRent = Number(filters.minRent);
+    if (filters.maxRent) normalized.maxRent = Number(filters.maxRent);
+    if (filters.bedrooms) normalized.bedrooms = Number(filters.bedrooms);
+    if (filters.hostOption) normalized.hostOption = filters.hostOption;
+
     return normalized;
   }
 

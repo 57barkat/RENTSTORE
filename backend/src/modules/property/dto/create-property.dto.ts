@@ -9,10 +9,6 @@ import {
 import { Type, Transform } from "class-transformer";
 import { Property } from "../property.schema";
 
-// ------------------------
-// Nested DTOs
-// ------------------------
-
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
   @IsOptional() @IsString() street?: string;
@@ -20,7 +16,6 @@ class AddressDto {
   @IsOptional() @IsString() stateTerritory?: string;
   @IsOptional() @IsString() country?: string;
   @IsOptional() @IsString() zipCode?: string;
-  @IsOptional() @IsString() addressQuery?: string;
 }
 
 class CapacityStateDto {
@@ -41,18 +36,25 @@ class DescriptionDto {
   @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
 }
 
-// ------------------------
-// Unified DTO
-// ------------------------
-
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() hostOption?: string;
   @IsOptional() @IsString() location?: string;
+  @IsOptional() @IsString() area?: string;
 
-  @IsOptional() @IsNumber() lat?: number;
-  @IsOptional() @IsNumber() lng?: number;
+  @Transform(({ value }) => (value ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  lat?: number;
+
+  @Transform(({ value }) => (value ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  lng?: number;
+
+  @IsOptional()
+  locationGeo?: { type: string; coordinates: number[] };
 
   @IsOptional() @IsNumber() monthlyRent?: number;
   @IsOptional() @IsNumber() dailyRent?: number;
@@ -84,17 +86,16 @@ export class CreatePropertyDto {
   @Type(() => SafetyDetailsDataDto)
   safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
-  // Apartment-specific
   @IsOptional() @IsString() apartmentType?: string;
   @IsOptional() @IsString() furnishing?: string;
   @IsOptional() @IsBoolean() parking?: boolean;
 
-  // Hostel-specific
   @IsOptional() @IsString() hostelType?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) mealPlan: string[] = [];
   @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
 
   @IsString() ownerId: string;
+
   @IsOptional() @IsString() addressQuery?: string;
   @IsOptional() @IsString() searchText?: string;
   @IsOptional() @IsString() addressText?: string;
@@ -104,12 +105,11 @@ export class CreatePropertyDto {
   @IsBoolean()
   status?: boolean;
 
-  @IsBoolean()
   @IsOptional()
+  @IsBoolean()
   featured?: boolean;
 }
 
-// Interface for response with favorite info
 export interface PropertyWithFav extends Property {
   _id: string;
   isFav?: boolean;

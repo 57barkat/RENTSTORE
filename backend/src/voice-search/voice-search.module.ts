@@ -7,12 +7,14 @@ import { VoiceSessionService } from "./voice-session.service";
 import { VoiceSession, VoiceSessionSchema } from "./voice-session.schema";
 
 import { PropertyModule } from "../modules/property/property.module";
+import { User, UserSchema } from "src/modules/user/user.entity";
 
 @Module({
   imports: [
     PropertyModule,
     MongooseModule.forFeature([
       { name: VoiceSession.name, schema: VoiceSessionSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [VoiceSearchController],

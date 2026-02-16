@@ -1,14 +1,32 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 @Schema({ timestamps: true })
 export class Property extends Document {
   @Prop({ type: String }) title?: string;
   @Prop({ type: String }) hostOption?: string;
-
   @Prop({ type: String }) location?: string;
+  @Prop({ type: String }) area?: string;
+
   @Prop({ type: Number }) lat?: number;
   @Prop({ type: Number }) lng?: number;
+
+  @Prop({
+    type: {
+      type: String,
+      enum: ["Point"],
+      default: "Point",
+    },
+    coordinates: {
+      type: [Number],
+      default: [0, 0],
+    },
+    _id: false,
+  })
+  locationGeo: {
+    type: string;
+    coordinates: number[];
+  };
 
   @Prop({ type: Number }) monthlyRent?: number;
   @Prop({ type: Number }) dailyRent?: number;
@@ -26,7 +44,7 @@ export class Property extends Document {
         stateTerritory: String,
         country: String,
         zipCode: String,
-        _id: false, // ✅ disable subdocument _id
+        _id: false,
       },
     ],
     default: [],
@@ -83,3 +101,10 @@ export class Property extends Document {
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
+PropertySchema.index({ locationGeo: "2dsphere" });
+PropertySchema.index({ area: 1 });
+PropertySchema.index({ "address.city": 1 });
+PropertySchema.index({ hostOption: 1 });
+PropertySchema.index({ price: 1 });
+PropertySchema.index({ bedrooms: 1 });
+PropertySchema.index({ floorLevel: 1 });

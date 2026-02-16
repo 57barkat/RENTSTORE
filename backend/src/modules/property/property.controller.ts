@@ -17,6 +17,7 @@ import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
+import { NearbyPropertyDto } from "./dto/nearby-property.dto";
 
 interface PaginationQuery {
   page?: number;
@@ -89,6 +90,14 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress;
 
+    // GeoJSON setup
+    if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
+      parsedDto.locationGeo = {
+        type: "Point",
+        coordinates: [parsedDto.lng, parsedDto.lat],
+      };
+    }
+
     // Status calculation
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
@@ -134,15 +143,27 @@ export class PropertyController {
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
 
-  // 🔹 Get all properties with pagination
   @Get()
   async getAll(@Req() req: any, @Query() query: PaginationQuery) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     return this.propertyService.findAll(page, limit);
   }
-
-  // 🔹 Get properties by hostOption (home, apartment, room)
+  @Get("nearby")
+  async getNearbyProperties(
+    @Query() query: NearbyPropertyDto,
+    @Req() req: any,
+  ) {
+    const userId = req.user?.userId;
+    const radiusKm = query.radiusKm || 5;
+    console.log("Nearby query params:", query);
+    return this.propertyService.findNearbyProperties(
+      query.lat,
+      query.lng,
+      radiusKm,
+      userId,
+    );
+  }
   @Get("type/:hostOption")
   async getByHostOption(
     @Param("hostOption") hostOption: string,
@@ -161,7 +182,6 @@ export class PropertyController {
     );
   }
 
-  // 🔹 Search properties
   @Get("search")
   async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
@@ -177,6 +197,9 @@ export class PropertyController {
       "bedrooms",
       "bathrooms",
       "Persons",
+      "lat",
+      "lng",
+      "radiusKm",
     ];
     numericFields.forEach((field) => {
       if (query[field] !== undefined) query[field] = Number(query[field]);
@@ -198,7 +221,6 @@ export class PropertyController {
     return this.propertyService.findFiltered(page, limit, filters, userId);
   }
 
-  // 🔹 My listings
   @Get("my-listings")
   async getMyProperties(@Req() req: any) {
     const userId = req.user?.userId;
@@ -206,14 +228,12 @@ export class PropertyController {
     return this.propertyService.findMyProperties(userId);
   }
 
-  // 🔹 Featured properties
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
     const userId = req.user?.userId;
     return this.propertyService.getFeaturedProperties(userId);
   }
 
-  // 🔹 Drafts
   @Get("drafts")
   async getAllDrafts(@Req() req: any) {
     const userId = req.user?.userId;
@@ -227,6 +247,7 @@ export class PropertyController {
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.deleteDraftById(id, userId);
   }
+
   @Get(":id")
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;

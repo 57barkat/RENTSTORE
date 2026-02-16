@@ -18,6 +18,11 @@ export class AuthService {
     );
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
+    if (user.isBlocked) {
+      throw new UnauthorizedException(
+        "Your account has been blocked due to multiple warnings. Please contact support.",
+      );
+    }
     if (!user.isEmailVerified) {
       await this.userService.sendEmailVerificationCode(user.email);
       throw new UnauthorizedException("VERIFY_EMAIL_REQUIRED");
