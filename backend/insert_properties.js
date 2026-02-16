@@ -8,7 +8,7 @@ async function insertProperties() {
   const db = client.db("RentStore");
   const collection = db.collection("properties");
 
-  const filePath = path.join(__dirname, "dummy_properties_dto.json");
+  const filePath = path.join(__dirname, "dummy_properties.json");
 
   if (!fs.existsSync(filePath)) {
     console.error("JSON file not found:", filePath);

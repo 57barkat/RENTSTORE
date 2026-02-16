@@ -3,37 +3,10 @@ const path = require("path");
 const { ObjectId } = require("bson");
 
 // -------------------- Constants --------------------
-const CITIES = [
-  "Lahore",
-  "Karachi",
-  "Islamabad",
-  "Rawalpindi",
-  "Peshawar",
-  "Quetta",
-];
+const CITY = "Islamabad";
+const SECTORS = ["I-10/1", "I-10/2", "I-10/3", "I-10/4"];
 
-const AREAS = {
-  Lahore: ["DHA Phase 5", "Gulberg 3", "Johar Town", "Bahria Town"],
-  Karachi: [
-    "Clifton Block 2",
-    "PECHS Society",
-    "DHA Karachi Phase 6",
-    "North Nazimabad",
-  ],
-  Islamabad: ["F-6 Sector", "F-7 Sector", "G-9 Sector", "E-11 Sector"],
-  Rawalpindi: ["Satellite Town", "Bahria Town", "Askari 14", "Saddar"],
-  Peshawar: ["Hayatabad Phase 4", "University Road", "Palosi"],
-  Quetta: ["Cantonment Area", "Airport Road"],
-};
-
-const CITY_COORDS = {
-  Lahore: { lat: [31.45, 31.6], lng: [74.2, 74.4] },
-  Karachi: { lat: [24.8, 25.1], lng: [66.9, 67.2] },
-  Islamabad: { lat: [33.65, 33.75], lng: [72.95, 73.1] },
-  Rawalpindi: { lat: [33.55, 33.65], lng: [72.95, 73.1] },
-  Peshawar: { lat: [34.0, 34.05], lng: [71.45, 71.6] },
-  Quetta: { lat: [30.2, 30.3], lng: [67.0, 67.05] },
-};
+const CITY_COORDS = { lat: [33.65, 33.68], lng: [73.03, 73.07] };
 
 const HOST_OPTIONS = ["home", "apartment", "hostel"];
 const AMENITIES = [
@@ -79,8 +52,7 @@ const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randomSubarray = (arr, min = 0, max = arr.length) =>
   [...arr].sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
-// -------------------- Owners (MODIFIED) --------------------
-// These are the specific IDs you provided to ensure the lookup finds a user
+// -------------------- Owners (Replace with your actual User IDs if needed) --------------------
 const VALID_OWNER_IDS = [
   "6984d4a9ba69fbd9561e82e5",
   "6984a2178e47a637cd2188fe",
@@ -90,53 +62,59 @@ const VALID_OWNER_IDS = [
 ];
 
 // -------------------- Generate Properties --------------------
-function generateDummyProperties(count = 30000) {
+function generateI10Properties(count = 5000) {
   const properties = [];
 
   for (let i = 0; i < count; i++) {
-    const city = randomChoice(CITIES);
-    const area = randomChoice(AREAS[city]);
+    const area = randomChoice(SECTORS);
+    const areaOnly = area.split("/")[0]; // "I-10"
     const hostOption = randomChoice(HOST_OPTIONS);
 
+    // Filter Logic Compatibility: Bedrooms and beds
     const bedrooms = randomInt(1, hostOption === "hostel" ? 1 : 5);
     const beds = randomInt(bedrooms, bedrooms + 2);
     const bathrooms = randomInt(1, bedrooms);
     const Persons = beds + 1;
 
-    const monthlyRent = randomInt(500, 500000);
+    // Floor Level Logic: 0 = Ground, 1 = 1st, 2 = 2nd, etc.
+    // Homes usually 0-1, Apartments/Hostels 0-4
+    const floorLevel =
+      hostOption === "home" ? randomInt(0, 1) : randomInt(0, 4);
+
+    // Realistic Pakistani Rent (PKR)
+    const monthlyRent = randomInt(20000, 150000);
     const dailyRent = Math.round(monthlyRent / 30);
     const weeklyRent = Math.round(monthlyRent / 4);
-    const SecuritybasePrice = monthlyRent * 1.5;
+    const SecuritybasePrice = monthlyRent * 2;
 
     const address = [
       {
-        street: `Plot No. ${randomInt(1, 500)}`,
-        city,
-        stateTerritory: "Punjab",
-        country: "PAKISTAN",
-        zipCode: `${randomInt(40000, 60000)}`,
+        street: `Street ${randomInt(1, 20)}`,
+        city: CITY,
+        stateTerritory: "Islamabad Capital Territory",
+        country: "Pakistan",
+        zipCode: "44000",
         aptSuiteUnit:
           hostOption === "hostel"
-            ? `Room ${randomInt(1, 4)}`
-            : `Unit ${randomInt(1, 20)}`,
+            ? `Room ${randomInt(1, 40)}`
+            : `House/Unit ${randomInt(1, 200)}`,
       },
     ];
 
-    const cityRange = CITY_COORDS[city];
     const lat =
-      Math.random() * (cityRange.lat[1] - cityRange.lat[0]) + cityRange.lat[0];
+      Math.random() * (CITY_COORDS.lat[1] - CITY_COORDS.lat[0]) +
+      CITY_COORDS.lat[0];
     const lng =
-      Math.random() * (cityRange.lng[1] - cityRange.lng[0]) + cityRange.lng[0];
+      Math.random() * (CITY_COORDS.lng[1] - CITY_COORDS.lng[0]) +
+      CITY_COORDS.lng[0];
+    const locationGeo = { type: "Point", coordinates: [lng, lat] };
 
-    const photos = randomSubarray(
-      CLOUDINARY_PHOTOS,
-      1,
-      CLOUDINARY_PHOTOS.length,
-    );
-    const amenities = randomSubarray(AMENITIES, 2, 7);
-    const ALL_BILLS = randomSubarray(BILLS, 0, 4);
+    const photos = randomSubarray(CLOUDINARY_PHOTOS, 3, 8);
+    const amenities = randomSubarray(AMENITIES, 3, 7);
+    const ALL_BILLS = randomSubarray(BILLS, 1, 4);
     const highlighted = randomSubarray(HIGHLIGHTS, 1, 3);
-    const safetyDetails = randomSubarray(SAFETY_DETAILS, 0, 4);
+    const safetyDetails = randomSubarray(SAFETY_DETAILS, 2, 5);
+
     const cameraDescription =
       safetyDetails.includes("exterior_camera") ||
       safetyDetails.includes("noise_monitor")
@@ -153,7 +131,6 @@ function generateDummyProperties(count = 30000) {
       hostOption === "apartment" ? randomChoice(FURNISHINGS) : undefined;
     const parking =
       hostOption === "apartment" ? Math.random() > 0.5 : undefined;
-
     const hostelType =
       hostOption === "hostel" ? randomChoice(HOSTEL_TYPES) : undefined;
     const mealPlan =
@@ -163,18 +140,14 @@ function generateDummyProperties(count = 30000) {
 
     properties.push({
       _id: new ObjectId().toHexString(),
-      ownerId: randomChoice(VALID_OWNER_IDS), // Picks from your valid list
-      title: `${bedrooms} Bed ${
-        hostOption === "home"
-          ? "House"
-          : hostOption === "hostel"
-            ? "Hostel"
-            : "Apartment"
-      } in ${area}`,
+      ownerId: randomChoice(VALID_OWNER_IDS),
+      title: `${bedrooms} Bed ${hostOption.charAt(0).toUpperCase() + hostOption.slice(1)} in ${area}`,
       hostOption,
-      location: `${area}, ${city}`,
+      area: areaOnly,
+      location: `${area}, ${CITY}`,
       lat,
       lng,
+      locationGeo,
       monthlyRent,
       dailyRent,
       weeklyRent,
@@ -182,7 +155,14 @@ function generateDummyProperties(count = 30000) {
       ALL_BILLS,
       address,
       amenities,
-      capacityState: { Persons, bedrooms, beds, bathrooms },
+      // Fixed: Nested Object for Search Filter
+      capacityState: {
+        Persons,
+        bedrooms,
+        beds,
+        bathrooms,
+        floorLevel,
+      },
       description: { highlighted },
       safetyDetailsData: { safetyDetails, cameraDescription },
       photos,
@@ -192,9 +172,9 @@ function generateDummyProperties(count = 30000) {
       hostelType,
       mealPlan,
       rules,
-      status: true, // Set to true to ensure they are fetchable
-      featured: Math.random() > 0.8,
-      views: 0,
+      status: true,
+      featured: Math.random() > 0.9,
+      views: randomInt(0, 500),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -203,18 +183,16 @@ function generateDummyProperties(count = 30000) {
   return properties;
 }
 
-// -------------------- Save to JSON --------------------
-const PROPERTY_COUNT = 30000;
-const properties = generateDummyProperties(PROPERTY_COUNT);
+// -------------------- Execution --------------------
+const PROPERTY_COUNT = 50000; // Adjusted for better performance during test
+const properties = generateI10Properties(PROPERTY_COUNT);
 
-const filePath = path.join(__dirname, "dummy_properties_dto.json");
+const filePath = path.join(__dirname, "dummy_properties.json");
 fs.writeFileSync(
   filePath,
   JSON.stringify({ data: properties, total: properties.length }, null, 2),
 );
 
-console.log(`\n🚀 Generation Complete!`);
-console.log(`✅ Saved ${PROPERTY_COUNT} properties to: ${filePath}`);
 console.log(
-  `🔗 Distribution: All items assigned to the ${VALID_OWNER_IDS.length} specified IDs.`,
+  `🚀 Generation Complete! Saved ${PROPERTY_COUNT} properties with floorLevel to: ${filePath}`,
 );
