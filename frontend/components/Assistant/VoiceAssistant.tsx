@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
-  Platform,
   ScrollView,
 } from "react-native";
 import { BlurView } from "expo-blur";
@@ -27,6 +26,7 @@ interface VoiceAssistantProps {
   onAction: () => void;
   isAutoStop: boolean;
   onModeChange: (val: boolean) => void;
+  skipSpeech: () => void;
 }
 
 const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
@@ -40,6 +40,7 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
   onAction,
   isAutoStop,
   onModeChange,
+  skipSpeech,
 }) => {
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -160,7 +161,9 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
                   ? "mic"
                   : isProcessing
                     ? "hourglass"
-                    : "sparkles-outline"
+                    : isSpeaking
+                      ? "volume-high"
+                      : "sparkles-outline"
               }
               size={54}
               color={isRecording ? "#FF4444" : currentTheme.primary}
@@ -170,24 +173,34 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
 
         <View style={styles.textContainer}>
           <ScrollView
-            style={{ maxHeight: 120 }}
+            style={{ maxHeight: 150 }}
             contentContainerStyle={{ alignItems: "center" }}
           >
             <Text
               style={[styles.messageText, { color: currentTheme.text }]}
-              numberOfLines={4}
+              numberOfLines={5}
               ellipsizeMode="tail"
             >
               {assistantMessage || "I'm listening..."}
             </Text>
           </ScrollView>
-          {isRecording && (
-            <Text
+
+          {/* SKIP BUTTON: Only visible when AI is speaking */}
+          {isSpeaking && (
+            <TouchableOpacity
               style={[
-                styles.subText,
-                { color: isRecording ? "#FF4444" : currentTheme.text },
+                styles.skipSpeechBtn,
+                { backgroundColor: currentTheme.primary },
               ]}
+              onPress={skipSpeech}
             >
+              <Ionicons name="play-skip-forward" size={18} color="#FFF" />
+              <Text style={styles.skipSpeechText}>Skip & Continue</Text>
+            </TouchableOpacity>
+          )}
+
+          {isRecording && (
+            <Text style={[styles.subText, { color: "#FF4444" }]}>
               {isAutoStop
                 ? "Will send after you pause"
                 : `Recording: ${timerCount}s`}
@@ -204,31 +217,53 @@ const VoiceAssistant: React.FC<VoiceAssistantProps> = ({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.actionBtn,
-              {
-                backgroundColor: isRecording ? "#FF4444" : currentTheme.primary,
-              },
-            ]}
-            onPress={onAction}
-          >
-            {isProcessing ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
+          {/* MAIN ACTION BUTTON: Hidden when AI is speaking to prevent logic errors */}
+          {!isSpeaking ? (
+            <TouchableOpacity
+              style={[
+                styles.actionBtn,
+                {
+                  backgroundColor: isRecording
+                    ? "#FF4444"
+                    : currentTheme.primary,
+                },
+              ]}
+              onPress={onAction}
+            >
+              {isProcessing ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Ionicons
+                  name={isRecording ? "stop" : "mic"}
+                  size={36}
+                  color="#FFF"
+                />
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={[
+                styles.actionBtn,
+                { backgroundColor: "rgba(0,0,0,0.05)", elevation: 0 },
+              ]}
+            >
               <Ionicons
-                name={isRecording ? "stop" : "mic"}
-                size={36}
-                color="#FFF"
+                name="volume-medium"
+                size={30}
+                color={currentTheme.text}
+                style={{ opacity: 0.3 }}
               />
-            )}
-          </TouchableOpacity>
+            </View>
+          )}
 
-          <TouchableOpacity style={styles.sideCircle}>
+          <TouchableOpacity
+            style={styles.sideCircle}
+            onPress={isSpeaking ? skipSpeech : undefined}
+          >
             <Ionicons
-              name="chatbubbles-outline"
+              name="arrow-forward-outline"
               size={24}
-              color={currentTheme.text}
+              color={isSpeaking ? currentTheme.text : "transparent"}
             />
           </TouchableOpacity>
         </View>
@@ -313,6 +348,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  skipSpeechBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    elevation: 5,
+  },
+  skipSpeechText: { color: "#FFF", fontWeight: "700", marginLeft: 8 },
 });
 
 export default VoiceAssistant;

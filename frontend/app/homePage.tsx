@@ -38,25 +38,35 @@ import { Ionicons } from "@expo/vector-icons";
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+
+  // General states
   const [search, setSearch] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Voice assistant states
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [timerCount, setTimerCount] = useState(0);
   const [isAutoStop, setIsAutoStop] = useState(true);
   const [assistantMessage, setAssistantMessage] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [lastFilters, setLastFilters] = useState<any>(null);
 
+  // Refs
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isAutoSending = useRef(false);
 
-  const [clearVoiceSession] = useClearVoiceSessionMutation();
+  const { start, stop } = useVoiceRecorder();
+
+  // API hooks
   const [voiceSearch] = useVoiceSearchMutation();
+  const [clearVoiceSession] = useClearVoiceSessionMutation();
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
-
-  const { start, stop, isRecording } = useVoiceRecorder();
+  const { data: favData, refetch: refetchFavorites } =
+    useGetUserFavoritesQuery(null);
 
   const {
     data: homesData,
@@ -73,10 +83,7 @@ const HomePage: React.FC = () => {
     isLoading: roomsLoading,
     refetch: refetchRooms,
   } = useRooms();
-  const { data: favData, refetch: refetchFavorites } =
-    useGetUserFavoritesQuery(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       handleCancelVoice();
@@ -116,35 +123,75 @@ const HomePage: React.FC = () => {
   const handleStopAndSend = async () => {
     if (isAutoSending.current) return;
     isAutoSending.current = true;
+
     const recordedUri = await stop();
+    setIsRecording(false);
     if (recordedUri) handleSendVoice(recordedUri);
   };
+
+  const handleStartAI = () => {
+    const greeting =
+      "Hello! Tell me the city, area, and your budget. I will find properties for you.";
+    setAssistantMessage(greeting);
+    setIsSpeaking(true);
+    setLastFilters(null);
+
+    Speech.speak(greeting, {
+      onDone: () => {
+        setIsSpeaking(false);
+        start();
+        setIsRecording(true);
+      },
+    });
+  };
+
+  const handleSkipSpeech = useCallback(() => {
+    Speech.stop();
+    setIsSpeaking(false);
+
+    if (lastFilters) {
+      navigateWithFilters(lastFilters);
+      setLastFilters(null);
+    } else {
+      start();
+      setIsRecording(true);
+    }
+  }, [lastFilters, start]);
 
   const handleSendVoice = async (audioUri: string) => {
     setIsProcessing(true);
     setAssistantMessage("Processing...");
+
     try {
       const response = await voiceSearch({ uri: audioUri }).unwrap();
-      console.log("Voice API response:", response);
-      const aiMessage = response.message || "Match found!";
-      setAssistantMessage(aiMessage);
+      const { filters, result, message } = response;
+
+      setAssistantMessage(message);
       setIsSpeaking(true);
-      Speech.speak(aiMessage, {
+
+      if (result?.data?.length > 0) {
+        setLastFilters(filters);
+      } else {
+        setLastFilters(null);
+      }
+
+      Speech.speak(message, {
         onDone: () => {
           setIsSpeaking(false);
-          if (response.result?.data.length > 0) {
-            navigateWithFilters(response.filters);
-          } else if (
-            !["done", "stop"].some((w) =>
-              response.transcription.toLowerCase().includes(w),
-            )
-          ) {
+          if (result?.data?.length > 0) {
+            navigateWithFilters(filters);
+          } else {
             start();
+            setIsRecording(true);
           }
         },
       });
     } catch {
-      setAssistantMessage("I couldn't hear that clearly.");
+      const errorMsg = "I couldn't understand your request. Please try again.";
+      setAssistantMessage(errorMsg);
+      setIsSpeaking(true);
+      setLastFilters(null);
+      Speech.speak(errorMsg);
     } finally {
       setIsProcessing(false);
       isAutoSending.current = false;
@@ -157,6 +204,9 @@ const HomePage: React.FC = () => {
       params: { ...filters, fromVoice: "true" },
     });
     setAssistantMessage(null);
+    setLastFilters(null);
+    setIsSpeaking(false);
+    Speech.stop();
   };
 
   const handleCancelVoice = useCallback(async () => {
@@ -164,6 +214,7 @@ const HomePage: React.FC = () => {
       await clearVoiceSession().unwrap();
     } catch {}
     setAssistantMessage(null);
+    setLastFilters(null);
     if (isRecording) stop();
     Speech.stop();
     setIsProcessing(false);
@@ -171,10 +222,9 @@ const HomePage: React.FC = () => {
     clearTimers();
   }, [isRecording]);
 
-  // Pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await handleCancelVoice(); // Clear voice session
+    await handleCancelVoice();
     await Promise.all([
       refetchHomes(),
       refetchApartments(),
@@ -184,7 +234,6 @@ const HomePage: React.FC = () => {
     setRefreshing(false);
   }, []);
 
-  // Favorites helper
   const favoriteIds = useMemo(
     () => favData?.map((f: any) => f.property?._id) || [],
     [favData],
@@ -283,16 +332,28 @@ const HomePage: React.FC = () => {
       />
 
       {!showAssistant && (
-        <TouchableOpacity
-          style={[styles.aiButton, { backgroundColor: currentTheme.secondary }]}
-          onPress={() => {
-            setAssistantMessage("How can I help?");
-            start();
-          }}
-        >
-          <Ionicons name="sparkles" size={24} color="#fff" />
-          <Text style={{ color: "#fff", marginLeft: 8 }}>AI Matcher</Text>
-        </TouchableOpacity>
+        <View style={styles.floatingActions}>
+          <TouchableOpacity
+            style={[
+              styles.nearbyButton,
+              { backgroundColor: currentTheme.tint },
+            ]}
+            onPress={() => router.push("/NearbyScreen")}
+          >
+            <Ionicons name="location" size={22} color="#fff" />
+            <Text style={styles.buttonText}>Nearby</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.aiButton,
+              { backgroundColor: currentTheme.secondary },
+            ]}
+            onPress={handleStartAI}
+          >
+            <Ionicons name="sparkles" size={22} color="#fff" />
+            <Text style={styles.buttonText}>AI Matcher</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {showAssistant && (
@@ -307,6 +368,7 @@ const HomePage: React.FC = () => {
           onModeChange={setIsAutoStop}
           onCancel={handleCancelVoice}
           onAction={() => (isRecording ? handleStopAndSend() : start())}
+          skipSpeech={handleSkipSpeech}
         />
       )}
     </View>
@@ -314,17 +376,38 @@ const HomePage: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  aiButton: {
+  floatingActions: {
     position: "absolute",
     bottom: 30,
     right: 20,
+    alignItems: "flex-end",
+    gap: 12,
+  },
+  aiButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 25,
     elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
+  nearbyButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  buttonText: { color: "#fff", marginLeft: 8, fontWeight: "700", fontSize: 10 },
 });
 
 export default HomePage;
