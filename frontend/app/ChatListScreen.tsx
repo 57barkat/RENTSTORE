@@ -67,11 +67,20 @@ export default function ChatListScreen() {
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
       />
 
-      {/* Header & Search */}
       <View style={[styles.header, { borderBottomColor: currentTheme.border }]}>
-        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
-          Messages
-        </Text>
+        <View style={styles.topRow}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={28} color={currentTheme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
+            Messages
+          </Text>
+        </View>
+
         <View
           style={[
             styles.searchContainer,
@@ -90,7 +99,7 @@ export default function ChatListScreen() {
       </View>
 
       <FlatList
-        data={filteredRooms}
+        data={filteredRooms || []}
         keyExtractor={(item) => item._id}
         refreshControl={
           <RefreshControl
@@ -118,7 +127,10 @@ export default function ChatListScreen() {
             }
           >
             <View
-              style={[styles.avatar, { backgroundColor: currentTheme.primary }]}
+              style={[
+                styles.avatar,
+                { backgroundColor: currentTheme.primary + "20" },
+              ]}
             >
               {item.otherUser?.profileImage ? (
                 <Image
@@ -126,8 +138,12 @@ export default function ChatListScreen() {
                   style={styles.avatarImage}
                 />
               ) : (
-                <Text style={styles.avatarText}>
-                  {item.otherUser?.name?.charAt(0).toUpperCase()}
+                <Text
+                  style={[styles.avatarText, { color: currentTheme.primary }]}
+                >
+                  {item.otherUser?.name
+                    ? item.otherUser.name.charAt(0).toUpperCase()
+                    : "U"}
                 </Text>
               )}
             </View>
@@ -137,7 +153,7 @@ export default function ChatListScreen() {
                   style={[styles.username, { color: currentTheme.text }]}
                   numberOfLines={1}
                 >
-                  {item.otherUser?.name}
+                  {item.otherUser?.name || "Unknown User"}
                 </Text>
                 <Text style={[styles.time, { color: currentTheme.muted }]}>
                   {formatTimeAgo(item.lastMessageAt || item.updatedAt)}
@@ -159,6 +175,13 @@ export default function ChatListScreen() {
             </View>
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={{ color: currentTheme.muted }}>
+              No conversations found
+            </Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
@@ -167,8 +190,25 @@ export default function ChatListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  header: { padding: 20, borderBottomWidth: 1 },
-  headerTitle: { fontSize: 32, fontWeight: "bold", marginBottom: 15 },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 15,
+    borderBottomWidth: 0.5,
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  backButton: {
+    marginRight: 10,
+    marginLeft: -5,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -193,7 +233,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   avatarImage: { width: "100%", height: "100%" },
-  avatarText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
+  avatarText: { fontSize: 20, fontWeight: "bold" },
   content: { flex: 1 },
   headerRow: {
     flexDirection: "row",
@@ -206,6 +246,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   username: { fontSize: 17, fontWeight: "600" },
-  lastMessage: { fontSize: 14, flex: 1 },
+  lastMessage: { fontSize: 14, flex: 1, marginRight: 10 },
   time: { fontSize: 12 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 50,
+  },
 });
