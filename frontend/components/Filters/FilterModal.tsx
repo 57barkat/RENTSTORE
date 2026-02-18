@@ -9,11 +9,13 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { HostPicker } from "./HostPicker";
 import { Filters } from "@/utils/homeTabUtils/filterUtils";
 import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
+import { useGetAddressSuggestionsQuery } from "@/services/api";
 
 interface Props {
   visible: boolean;
@@ -37,8 +39,30 @@ export const FilterModal: React.FC<Props> = ({
   theme,
 }) => {
   const [citySuggestions, setCitySuggestions] = React.useState<string[]>([]);
+  const [addressInput, setAddressInput] = React.useState(
+    filters.addressQuery || "",
+  );
+  const [debouncedAddress, setDebouncedAddress] = React.useState("");
 
-  // Number option component (handles numeric filters like beds, bathrooms)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedAddress(addressInput);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [addressInput]);
+
+  const { data: addressSuggestions = [], isFetching: addressLoading } =
+    useGetAddressSuggestionsQuery(debouncedAddress, {
+      skip: debouncedAddress.length < 2,
+    });
+
+  React.useEffect(() => {
+    if (visible) {
+      setAddressInput(filters.addressQuery || "");
+    }
+  }, [visible]);
+
   const NumberOption = ({
     value,
     selectedKey,
@@ -46,7 +70,6 @@ export const FilterModal: React.FC<Props> = ({
     value: number;
     selectedKey: keyof Filters;
   }) => {
-    // Convert filter value to number if it's string
     const currentValue =
       typeof filters[selectedKey] === "number"
         ? filters[selectedKey]
@@ -75,59 +98,6 @@ export const FilterModal: React.FC<Props> = ({
     );
   };
 
-  // Multi-select chip component (handles array filters like amenities, bills, safety)
-  // const MultiSelectChip = ({
-  //   label,
-  //   options,
-  //   selectedKey,
-  // }: {
-  //   label: string;
-  //   options: string[];
-  //   selectedKey: keyof Filters;
-  // }) => {
-  //   // Ensure value is always an array
-  //   const currentArray: string[] = Array.isArray(filters[selectedKey])
-  //     ? (filters[selectedKey] as string[])
-  //     : [];
-
-  //   return (
-  //     <View style={{ marginBottom: 16 }}>
-  //       <Text style={styles.sectionLabel}>{label}</Text>
-  //       <View style={styles.chipRow}>
-  //         {options.map((opt) => {
-  //           const selected = currentArray.includes(opt);
-
-  //           return (
-  //             <TouchableOpacity
-  //               key={opt}
-  //               onPress={() => {
-  //                 const updated = selected
-  //                   ? currentArray.filter((i) => i !== opt)
-  //                   : [...currentArray, opt];
-  //                 setFilters({ ...filters, [selectedKey]: updated });
-  //               }}
-  //               style={[
-  //                 styles.chip,
-  //                 { backgroundColor: selected ? theme.secondary : theme.card },
-  //                 selected && styles.activeChip,
-  //               ]}
-  //             >
-  //               <Text
-  //                 style={{
-  //                   color: selected ? "#fff" : theme.text,
-  //                   fontWeight: selected ? "700" : "400",
-  //                 }}
-  //               >
-  //                 {opt}
-  //               </Text>
-  //             </TouchableOpacity>
-  //           );
-  //         })}
-  //       </View>
-  //     </View>
-  //   );
-  // };
-
   return (
     <Modal
       visible={visible}
@@ -148,7 +118,13 @@ export const FilterModal: React.FC<Props> = ({
             Filters
           </Text>
 
-          <TouchableOpacity onPress={() => setFilters({})}>
+          <TouchableOpacity
+            onPress={() => {
+              setFilters({});
+              setAddressInput("");
+              setCitySuggestions([]);
+            }}
+          >
             <Text style={{ color: theme.secondary, fontWeight: "600" }}>
               Reset
             </Text>
@@ -207,10 +183,15 @@ export const FilterModal: React.FC<Props> = ({
                   { backgroundColor: theme.card, borderColor: theme.border },
                 ]}
               >
-                {citySuggestions.map((city) => (
+                {citySuggestions.map((city, index) => (
                   <TouchableOpacity
                     key={city}
-                    style={styles.suggestionItem}
+                    style={[
+                      styles.suggestionItem,
+                      index === citySuggestions.length - 1 && {
+                        borderBottomWidth: 0,
+                      },
+                    ]}
                     onPress={() => {
                       setFilters({ ...filters, city });
                       setCitySuggestions([]);
@@ -222,7 +203,7 @@ export const FilterModal: React.FC<Props> = ({
               </View>
             )}
 
-            {/* Address Search */}
+            {/* Address Input */}
             <View
               style={[
                 styles.inputWrapper,
@@ -243,12 +224,44 @@ export const FilterModal: React.FC<Props> = ({
                 style={[styles.cleanInput, { color: theme.text }]}
                 placeholder="Search by address..."
                 placeholderTextColor={theme.muted}
-                value={filters.addressQuery || ""}
-                onChangeText={(txt) =>
-                  setFilters({ ...filters, addressQuery: txt })
-                }
+                value={addressInput}
+                onChangeText={(txt) => {
+                  setAddressInput(txt);
+                  setFilters({ ...filters, addressQuery: txt });
+                }}
               />
+              {addressLoading && (
+                <ActivityIndicator size="small" color={theme.secondary} />
+              )}
             </View>
+
+            {/* Address Suggestions */}
+            {addressSuggestions.length > 0 && (
+              <View
+                style={[
+                  styles.suggestionBox,
+                  { backgroundColor: theme.card, borderColor: theme.border },
+                ]}
+              >
+                {addressSuggestions.map((item: string, index: number) => (
+                  <TouchableOpacity
+                    key={item}
+                    style={[
+                      styles.suggestionItem,
+                      index === addressSuggestions.length - 1 && {
+                        borderBottomWidth: 0,
+                      },
+                    ]}
+                    onPress={() => {
+                      setAddressInput(item);
+                      setFilters({ ...filters, addressQuery: item });
+                    }}
+                  >
+                    <Text style={{ color: theme.text }}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
 
           {/* ===== Price Range ===== */}
@@ -311,7 +324,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
-          {/* ===== Bedrooms ===== */}
+          {/* Bedrooms */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Bedrooms</Text>
             <View style={styles.chipRow}>
@@ -321,7 +334,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
-          {/* ===== Floor Level ===== */}
+          {/* Floor Level */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Floor Level</Text>
             <View style={styles.chipRow}>
@@ -331,7 +344,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
-          {/* ===== Bathrooms ===== */}
+          {/* Bathrooms */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Bathrooms</Text>
             <View style={styles.chipRow}>
@@ -340,34 +353,6 @@ export const FilterModal: React.FC<Props> = ({
               ))}
             </View>
           </View>
-
-          {/* ===== Amenities ===== */}
-          {/* <MultiSelectChip
-            label="Amenities"
-            options={["paid_parking", "gym", "pool", "wifi"]}
-            selectedKey="amenities"
-          /> */}
-
-          {/* ===== Bills Included ===== */}
-          {/* <MultiSelectChip
-            label="Bills Included"
-            options={["water", "gas", "electricity", "internet"]}
-            selectedKey="bills"
-          /> */}
-
-          {/* ===== Highlights ===== */}
-          {/* <MultiSelectChip
-            label="Highlights"
-            options={["spacious", "modern", "furnished"]}
-            selectedKey="highlighted"
-          /> */}
-
-          {/* ===== Safety Features ===== */}
-          {/* <MultiSelectChip
-            label="Safety Features"
-            options={["cctv", "fire_extinguisher", "weapons"]}
-            selectedKey="safety"
-          /> */}
         </ScrollView>
       </KeyboardAvoidingView>
 

@@ -131,8 +131,25 @@ export const api = createApi({
       }),
     }),
     findMyProperties: builder.query({
-      query: () => ({ url: "/api/v1/properties/my-listings", method: "GET" }),
+      query: ({
+        page = 1,
+        limit = 10,
+        sort = "newest",
+        search = "",
+        city = "",
+      }) => ({
+        url: "/api/v1/properties/my-listings",
+        method: "GET",
+        params: {
+          page,
+          limit,
+          sort,
+          search,
+          city,
+        },
+      }),
     }),
+
     findPropertyById: builder.query({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),
     }),
@@ -275,6 +292,12 @@ export const api = createApi({
         }
       },
     }),
+    getAddressSuggestions: builder.query<string[], string>({
+      query: (q) => ({
+        url: `/api/v1/properties/address-suggestions?q=${q}`,
+        method: "GET",
+      }),
+    }),
   }),
 });
 
@@ -307,4 +330,5 @@ export const {
   useLogoutMutation,
   useClearVoiceSessionMutation,
   useGetNearbyPropertiesQuery,
+  useGetAddressSuggestionsQuery,
 } = api;
