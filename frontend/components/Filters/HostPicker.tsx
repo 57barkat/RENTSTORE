@@ -28,8 +28,8 @@ export const HostPicker: React.FC<Props> = ({ value, onChange, theme }) => {
                 paddingHorizontal: 16,
                 borderRadius: 8,
                 borderWidth: 1,
-                borderColor: isSelected ? theme.primary : theme.border,
-                backgroundColor: isSelected ? theme.primary : theme.card,
+                borderColor: isSelected ? theme.secondary : theme.border,
+                backgroundColor: isSelected ? theme.secondary : theme.card,
               }}
             >
               <Text

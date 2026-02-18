@@ -28,6 +28,7 @@ import { PriceRow } from "@/components/Properties/PropertyPriceCard";
 import { PropertyFooter } from "@/components/Properties/PropertyFooter";
 
 import { Ionicons } from "@expo/vector-icons";
+import { FontSize } from "@/constants/Typography";
 
 export const options = { headerShown: false };
 
@@ -326,13 +327,13 @@ const styles = StyleSheet.create({
     opacity: 0.2,
   },
   tagline: {
-    fontSize: 12,
+    fontSize: FontSize.sm,
     fontWeight: "900",
     letterSpacing: 1,
     marginBottom: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: FontSize.xl,
     fontWeight: "900",
     marginBottom: 12,
   },
@@ -342,7 +343,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   locationText: {
-    fontSize: 15,
+    fontSize: FontSize.sm,
     marginLeft: 6,
     fontWeight: "500",
   },
@@ -359,7 +360,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: FontSize.xl,
     fontWeight: "800",
     marginBottom: 15,
   },
@@ -384,7 +385,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   ownerName: {
-    fontSize: 16,
+    fontSize: FontSize.base,
     fontWeight: "700",
   },
 });

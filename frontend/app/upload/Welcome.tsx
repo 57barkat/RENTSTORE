@@ -98,7 +98,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
     if (progress >= 20) {
       router.replace("/upload");
     } else {
-      router.replace("/homePage");
+      router.back();
     }
   };
 

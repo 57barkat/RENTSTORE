@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { FontSize, Typography } from "@/constants/Typography";
 
 interface HostOptionsRowProps {
   onSelect?: (id: string) => void;
@@ -77,7 +78,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   label: {
-    fontSize: 12,
+    fontSize: FontSize.xs,
     fontWeight: "600",
     letterSpacing: -0.3,
     textAlign: "center",

@@ -192,10 +192,13 @@ export default function PropertiesPage() {
               <FontAwesome5
                 name="sort-amount-down"
                 size={12}
-                color={currentTheme.primary}
+                color={currentTheme.secondary}
               />
               <Text
-                style={[styles.sortLabelText, { color: currentTheme.primary }]}
+                style={[
+                  styles.sortLabelText,
+                  { color: currentTheme.secondary },
+                ]}
               >
                 {SORT_OPTIONS.find((o) => o.value === sortBy)?.label.split(
                   ":",
@@ -212,7 +215,7 @@ export default function PropertiesPage() {
                   style={styles.controlButton}
                 >
                   <Text
-                    style={{ color: currentTheme.primary, fontWeight: "700" }}
+                    style={{ color: currentTheme.secondary, fontWeight: "700" }}
                   >
                     Clear All
                   </Text>
@@ -232,7 +235,7 @@ export default function PropertiesPage() {
               <MaterialIcons
                 name={showFilters ? "keyboard-arrow-up" : "keyboard-arrow-down"}
                 size={24}
-                color={currentTheme.primary}
+                color={currentTheme.secondary}
               />
             </TouchableOpacity>
           </View>
@@ -257,7 +260,7 @@ export default function PropertiesPage() {
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         >
-          <ActivityIndicator size="large" color={currentTheme.primary} />
+          <ActivityIndicator size="large" color={currentTheme.secondary} />
         </View>
       ) : (
         <FlatList
@@ -286,8 +289,8 @@ export default function PropertiesPage() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={[currentTheme.primary]}
-              tintColor={currentTheme.primary}
+              colors={[currentTheme.secondary]}
+              tintColor={currentTheme.secondary}
             />
           }
           onEndReached={() => {
@@ -300,7 +303,7 @@ export default function PropertiesPage() {
             loadingMore ? (
               <ActivityIndicator
                 size="small"
-                color={currentTheme.primary}
+                color={currentTheme.secondary}
                 style={{ marginVertical: 20 }}
               />
             ) : (
@@ -354,7 +357,7 @@ export default function PropertiesPage() {
                 style={[
                   styles.sortOptionItem,
                   sortBy === option.value && {
-                    backgroundColor: currentTheme.primary + "10",
+                    backgroundColor: currentTheme.secondary + "10",
                   },
                 ]}
                 onPress={() => handleSortSelect(option.value)}
@@ -364,7 +367,7 @@ export default function PropertiesPage() {
                   size={16}
                   color={
                     sortBy === option.value
-                      ? currentTheme.primary
+                      ? currentTheme.secondary
                       : currentTheme.text + "80"
                   }
                 />
@@ -374,7 +377,7 @@ export default function PropertiesPage() {
                     {
                       color:
                         sortBy === option.value
-                          ? currentTheme.primary
+                          ? currentTheme.secondary
                           : currentTheme.text,
                     },
                   ]}
@@ -385,7 +388,7 @@ export default function PropertiesPage() {
                   <MaterialIcons
                     name="check"
                     size={20}
-                    color={currentTheme.primary}
+                    color={currentTheme.secondary}
                   />
                 )}
               </TouchableOpacity>

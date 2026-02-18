@@ -2,6 +2,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { FontSize } from "@/constants/Typography";
 
 export default function Logo() {
   const { theme } = useTheme();
@@ -11,7 +12,7 @@ export default function Logo() {
     <View style={styles.container}>
       <MaterialCommunityIcons
         name="home-city"
-        size={40}
+        size={30}
         color={currentTheme.secondary}
       />
       <Text style={[styles.text, { color: currentTheme.text }]}>
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   text: {
-    fontSize: 28,
+    fontSize: FontSize.lg,
     fontWeight: "bold",
     marginLeft: 8,
   },

@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { Typography } from "@/constants/Typography";
 
 interface SearchBarProps {
   value: string;
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   placeholderText: {
-    fontSize: 15,
+    fontSize: Typography.bodySmall.fontSize,
     fontWeight: "400",
   },
   filterIconWrapper: {
