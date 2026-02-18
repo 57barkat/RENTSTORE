@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Text,
   View,
@@ -14,99 +15,28 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useContext, useState, useCallback, useEffect } from "react";
-import { FormContext, FormData } from "@/contextStore/FormContext";
-import {
-  useFindMyPropertiesQuery,
-  useFindPropertyByIdAndDeleteMutation,
-} from "@/services/api";
 import Toast from "react-native-toast-message";
 import { FontSize } from "@/constants/Typography";
+import { useMyPropertiesLogic } from "@/hooks/useMyPropertiesLogic";
 
 const MyListingProperties = () => {
-  const formContext = useContext(FormContext);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const { width } = useWindowDimensions();
+  const logic = useMyPropertiesLogic();
 
-  // Filters & Pagination
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
-  const [sort, setSort] = useState("newest");
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  const { data, isLoading, isFetching, error, refetch } =
-    useFindMyPropertiesQuery({
-      page,
-      limit,
-      sort,
-      search: debouncedSearch,
-    });
-
-  const myProperties = data?.data ?? [];
-  const totalPages = data?.totalPages ?? 1;
-
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
-    null,
-  );
-  const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setPage(1);
-    await refetch();
-    setRefreshing(false);
-  }, [refetch]);
-
-  const handleOpenDetails = (id: string) => {
-    router.push(`/property/${id}`);
-  };
-
-  const handleEdit = (item: FormData) => {
-    formContext?.setFullFormData(item);
-    router.push("/upload/CreateStep");
-  };
-
-  const [deleteProperty] = useFindPropertyByIdAndDeleteMutation();
-
-  const handleDelete = async () => {
-    if (!selectedPropertyId) return;
-    try {
-      await deleteProperty(selectedPropertyId).unwrap();
-      Toast.show({
-        type: "success",
-        text1: "Deleted!",
-        text2: "Property removed successfully.",
-      });
-      refetch();
-    } catch (err) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to delete property.",
-      });
-    } finally {
-      setDeleteModalVisible(false);
-      setSelectedPropertyId(null);
-    }
-  };
-
-  const loadMore = () => {
-    if (page < totalPages && !isFetching) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  if (logic.isLoading && logic.page === 1) {
+    return (
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <ActivityIndicator size="large" color={currentTheme.secondary} />
+        <Text style={[styles.loadingText, { color: currentTheme.text }]}>
+          Loading listings...
+        </Text>
+      </View>
+    );
+  }
 
   const renderCapacity = (iconName: string, value: any, unit: string) => (
     <View style={styles.capacityItem}>
@@ -121,43 +51,21 @@ const MyListingProperties = () => {
     </View>
   );
 
-  if (isLoading && page === 1) {
-    return (
-      <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
-      >
-        <ActivityIndicator size="large" color={currentTheme.primary} />
-        <Text style={[styles.loadingText, { color: currentTheme.text }]}>
-          Loading your properties...
-        </Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View
-        style={[styles.center, { backgroundColor: currentTheme.background }]}
-      >
-        <Text style={[styles.errorText, { color: currentTheme.danger }]}>
-          Failed to load properties.
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <>
       <FlatList
         style={{ flex: 1, backgroundColor: currentTheme.background }}
-        data={myProperties}
-        keyExtractor={(item, index) => item._id ?? index.toString()}
+        data={logic.properties}
+        // Robust key extractor to prevent "Encountered two children with the same key"
+        keyExtractor={(item) => item._id}
+        onEndReached={logic.loadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[currentTheme.primary]}
-            tintColor={currentTheme.primary}
+            refreshing={logic.refreshing}
+            onRefresh={logic.onRefresh}
+            colors={[currentTheme.secondary]}
+            tintColor={currentTheme.secondary}
           />
         }
         ListHeaderComponent={
@@ -171,8 +79,8 @@ const MyListingProperties = () => {
               <TextInput
                 placeholder="Search by title..."
                 placeholderTextColor={currentTheme.muted}
-                value={search}
-                onChangeText={setSearch}
+                value={logic.search}
+                onChangeText={logic.setSearch}
                 style={[styles.searchInput, { color: currentTheme.text }]}
               />
             </View>
@@ -181,23 +89,20 @@ const MyListingProperties = () => {
               {["newest", "oldest", "priceLow", "priceHigh"].map((item) => (
                 <TouchableOpacity
                   key={item}
-                  onPress={() => {
-                    setSort(item);
-                    setPage(1);
-                  }}
+                  onPress={() => logic.setSort(item)}
                   style={[
                     styles.sortButton,
                     {
                       backgroundColor:
-                        sort === item
-                          ? currentTheme.primary
+                        logic.sort === item
+                          ? currentTheme.secondary
                           : currentTheme.card,
                     },
                   ]}
                 >
                   <Text
                     style={{
-                      color: sort === item ? "#fff" : currentTheme.text,
+                      color: logic.sort === item ? "#fff" : currentTheme.text,
                       fontSize: FontSize.xs,
                       fontWeight: "600",
                     }}
@@ -252,7 +157,7 @@ const MyListingProperties = () => {
               )}
             </View>
 
-            <Text style={[styles.price, { color: currentTheme.primary }]}>
+            <Text style={[styles.price, { color: currentTheme.secondary }]}>
               Rs. {item.monthlyRent?.toLocaleString() || "N/A"} / month
             </Text>
 
@@ -262,14 +167,17 @@ const MyListingProperties = () => {
                   styles.button,
                   { backgroundColor: currentTheme.success },
                 ]}
-                onPress={() => handleOpenDetails(item._id)}
+                onPress={() => router.push(`/property/${item._id}`)}
               >
                 <Text style={styles.buttonText}>View</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: currentTheme.info }]}
-                onPress={() => handleEdit(item)}
+                onPress={() => {
+                  logic.formContext?.setFullFormData(item);
+                  router.push("/upload/CreateStep");
+                }}
               >
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
@@ -280,8 +188,8 @@ const MyListingProperties = () => {
                   { backgroundColor: currentTheme.danger },
                 ]}
                 onPress={() => {
-                  setSelectedPropertyId(item._id);
-                  setDeleteModalVisible(true);
+                  logic.setSelectedPropertyId(item._id);
+                  logic.setDeleteModalVisible(true);
                 }}
               >
                 <Text style={styles.buttonText}>Delete</Text>
@@ -289,24 +197,25 @@ const MyListingProperties = () => {
             </View>
           </View>
         )}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
         ListFooterComponent={
-          isFetching && page > 1 ? (
+          logic.isFetching && logic.page > 1 ? (
             <ActivityIndicator
               size="small"
-              color={currentTheme.primary}
+              color={currentTheme.secondary}
               style={{ marginVertical: 20 }}
             />
-          ) : null
+          ) : (
+            <View style={{ height: 40 }} />
+          )
         }
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingBottom: 40,
-        }}
+        contentContainerStyle={{ paddingHorizontal: 20 }}
       />
 
-      <Modal visible={deleteModalVisible} transparent animationType="fade">
+      <Modal
+        visible={logic.deleteModalVisible}
+        transparent
+        animationType="fade"
+      >
         <View style={modalStyles.overlay}>
           <View
             style={[modalStyles.box, { backgroundColor: currentTheme.card }]}
@@ -319,17 +228,15 @@ const MyListingProperties = () => {
             >
               Are you sure you want to delete this property?
             </Text>
-
             <View style={modalStyles.buttons}>
               <TouchableOpacity
-                onPress={() => setDeleteModalVisible(false)}
+                onPress={() => logic.setDeleteModalVisible(false)}
                 style={modalStyles.cancelBtn}
               >
                 <Text style={modalStyles.cancelText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                onPress={handleDelete}
+                onPress={logic.handleDelete}
                 style={[
                   modalStyles.deleteBtn,
                   { backgroundColor: currentTheme.danger },
@@ -354,62 +261,21 @@ const modalStyles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  box: {
-    width: "85%",
-    borderRadius: 20,
-    padding: 22,
-  },
-  title: {
-    fontSize: FontSize.base,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-  message: {
-    fontSize: FontSize.sm,
-    marginBottom: 20,
-  },
-  buttons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  cancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  cancelText: {
-    fontSize: FontSize.sm,
-    color: "#777",
-  },
-  deleteBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-  },
-  deleteText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: FontSize.sm,
-  },
+  box: { width: "85%", borderRadius: 20, padding: 22 },
+  title: { fontSize: FontSize.base, fontWeight: "800", marginBottom: 10 },
+  message: { fontSize: FontSize.sm, marginBottom: 20 },
+  buttons: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  cancelBtn: { paddingVertical: 10, paddingHorizontal: 18 },
+  cancelText: { fontSize: FontSize.sm, color: "#777" },
+  deleteBtn: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 10 },
+  deleteText: { color: "#fff", fontWeight: "700", fontSize: FontSize.sm },
 });
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 10, fontWeight: "600" },
-  errorText: {
-    fontSize: FontSize.sm,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  headerContainer: {
-    paddingTop: 20,
-    paddingBottom: 15,
-  },
-  header: {
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    marginBottom: 15,
-  },
+  headerContainer: { paddingTop: 20, paddingBottom: 15 },
+  header: { fontSize: FontSize.xl, fontWeight: "900", marginBottom: 15 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -424,39 +290,27 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: FontSize.sm,
   },
-  sortRow: {
-    flexDirection: "row",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  sortButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
+  sortRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  sortButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
   card: {
     padding: 20,
     marginBottom: 22,
     borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   title: { fontSize: FontSize.base, fontWeight: "800", marginBottom: 6 },
   row: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 6 },
   location: { fontSize: FontSize.sm },
-  capacityRow: {
-    flexDirection: "row",
-    marginVertical: 10,
-    gap: 18,
-  },
+  capacityRow: { flexDirection: "row", marginVertical: 10, gap: 18 },
   capacityItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   capacityText: { fontSize: FontSize.xs },
   price: { fontSize: FontSize.lg, fontWeight: "900", marginBottom: 12 },
-  actionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-  },
+  actionsRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   button: {
     flex: 1,
     alignItems: "center",

@@ -20,7 +20,7 @@ const baseHostOptions = [
 ] as const;
 
 export const withThemeHostOptions = <T extends typeof baseHostOptions>(
-  WrappedOptions: T
+  WrappedOptions: T,
 ) => {
   return () => {
     const { theme } = useTheme();
@@ -37,7 +37,7 @@ export const withThemeHostOptions = <T extends typeof baseHostOptions>(
         icon: (
           <IconComponent
             name={opt.iconName}
-            size={24}
+            size={20}
             color={currentColors.secondary}
           />
         ),
