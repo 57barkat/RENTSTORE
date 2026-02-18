@@ -90,43 +90,7 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress;
 
-    // GeoJSON setup
-    if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
-      parsedDto.locationGeo = {
-        type: "Point",
-        coordinates: [parsedDto.lng, parsedDto.lat],
-      };
-    }
-
-    // Status calculation
-    const isFilled = (value: any): boolean => {
-      if (value === null || value === undefined) return false;
-      if (Array.isArray(value)) return value.length > 0;
-      if (typeof value === "object")
-        return Object.values(value).some((v) => isFilled(v));
-      if (typeof value === "string") return value.trim() !== "";
-      return true; // numbers, booleans
-    };
-
-    const requiredFields = [
-      "hostOption",
-      "location",
-      "lat",
-      "lng",
-      "address",
-      "safetyDetailsData",
-    ];
-    parsedDto.status = requiredFields.every((f) => isFilled(parsedDto[f]));
-    const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
-
-    parsedDto.status = isComplete;
-
-    if (!isComplete) {
-      // Save as draft
-      return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
-    }
-
-    // Photo upload
+    // Photo upload (for both drafts and complete)
     const photoUrls = files?.photos?.length
       ? await Promise.all(
           files.photos.map((file) =>
@@ -138,9 +102,52 @@ export class PropertyController {
       : dto.photos || [];
     parsedDto.photos = photoUrls;
 
-    console.log("Parsed DTO for saving:", parsedDto);
+    // GeoJSON setup
+    if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
+      parsedDto.locationGeo = {
+        type: "Point",
+        coordinates: [parsedDto.lng, parsedDto.lat],
+      };
+    }
 
-    return this.propertyService.createOrUpdate(parsedDto, userId);
+    // --- Strict completeness check ---
+    const isFilled = (value: any): boolean => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === "string") return value.trim() !== "";
+      if (typeof value === "number" || typeof value === "boolean") return true;
+      if (Array.isArray(value)) return value.length > 0; // must have items to be complete
+      if (typeof value === "object")
+        return Object.values(value).some((v) => isFilled(v));
+      return false;
+    };
+
+    const requiredFields = [
+      "hostOption",
+      "location",
+      "lat",
+      "lng",
+      "address",
+      "safetyDetailsData",
+    ];
+    const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
+    parsedDto.status = isComplete;
+
+    // --- Save draft if incomplete ---
+    if (!isComplete) {
+      const draft = await this.propertyService.saveDraft(
+        parsedDto,
+        photoUrls,
+        userId,
+      );
+      return draft;
+    }
+
+    // --- Save complete property ---
+    const property = await this.propertyService.createOrUpdate(
+      parsedDto,
+      userId,
+    );
+    return property;
   }
 
   @Get()
@@ -241,6 +248,10 @@ export class PropertyController {
       search,
       city,
     );
+  }
+  @Get("address-suggestions")
+  async getAddressSuggestions(@Query("q") q: string) {
+    return this.propertyService.getAddressSuggestions(q);
   }
 
   @Get("featured")

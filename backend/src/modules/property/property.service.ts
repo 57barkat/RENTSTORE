@@ -184,12 +184,14 @@ export class PropertyService {
     });
   }
 
-  async getAllDrafts(userId: string) {
+  async getAllDrafts(userId: string | Types.ObjectId) {
+    const ownerObjectId =
+      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+
     const drafts = await this.propertyDraftModel
-      .find({ ownerId: new Types.ObjectId(userId), status: false })
+      .find({ ownerId: ownerObjectId, status: false })
       .sort({ createdAt: -1 })
       .lean();
-
     return drafts;
   }
 
@@ -356,6 +358,46 @@ export class PropertyService {
           ? "Properties fetched successfully."
           : "No properties match your search.",
     };
+  }
+  async getAddressSuggestions(query: string, limit = 5) {
+    if (!query || query.trim().length < 2) {
+      return [];
+    }
+
+    const cleaned = query.trim();
+
+    // Flexible regex like your smart search
+    const flexiblePattern = cleaned
+      .replace(/[-/\s]/g, "")
+      .split("")
+      .join("[-/\\s]?");
+
+    const regex = new RegExp(flexiblePattern, "i");
+
+    const results = await this.propertyModel.aggregate([
+      {
+        $match: {
+          status: true,
+          $or: [
+            { location: regex },
+            { title: regex },
+            { "address.street": regex },
+            { area: regex },
+          ],
+        },
+      },
+      {
+        $project: {
+          suggestion: {
+            $ifNull: ["$location", "$title"],
+          },
+        },
+      },
+      { $group: { _id: "$suggestion" } },
+      { $limit: limit },
+    ]);
+
+    return results.map((r) => r._id);
   }
 
   async findMyProperties(
