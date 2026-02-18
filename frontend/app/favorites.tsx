@@ -11,6 +11,7 @@ import {
   Image,
   Modal,
   RefreshControl,
+  SafeAreaView,
 } from "react-native";
 import {
   useGetUserFavoritesQuery,
@@ -19,8 +20,9 @@ import {
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
+import { FontSize } from "@/constants/Typography";
 
 type Property = {
   _id: string;
@@ -37,7 +39,7 @@ const Favorites = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const { width } = useWindowDimensions();
-  const cardWidth = width * 0.9;
+  const cardWidth = width * 0.92;
 
   const [showModal, setShowModal] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -85,7 +87,7 @@ const Favorites = () => {
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
-        <ActivityIndicator size="large" color={currentTheme.primary} />
+        <ActivityIndicator size="large" color={currentTheme.secondary} />
         <Text style={[styles.loadingText, { color: currentTheme.text }]}>
           Loading your favorite properties...
         </Text>
@@ -114,18 +116,21 @@ const Favorites = () => {
     : [];
 
   const ListEmptyComponent = (
-    <View style={[styles.emptyContainer, { height: width * 0.6 }]}>
+    <View style={[styles.emptyContainer, { height: width * 0.8 }]}>
       <MaterialCommunityIcons
-        name="heart-broken-outline"
-        size={60}
-        color={currentTheme.muted}
+        name="heart-outline"
+        size={80}
+        color={currentTheme.muted + "40"}
       />
       <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
         You don’t have any favorite properties yet.
       </Text>
 
       <TouchableOpacity
-        style={[styles.browseButton, { backgroundColor: currentTheme.primary }]}
+        style={[
+          styles.browseButton,
+          { backgroundColor: currentTheme.secondary },
+        ]}
         onPress={() => router.push("/homePage")}
       >
         <Text style={styles.browseButtonText}>Start Browsing</Text>
@@ -158,85 +163,107 @@ const Favorites = () => {
         ) : (
           <MaterialCommunityIcons
             name="image-off-outline"
-            size={30}
+            size={40}
             color={currentTheme.muted}
           />
         )}
       </View>
 
-      <Text style={[styles.title, { color: currentTheme.text }]}>
-        {item.title ?? "Property Title"}
-      </Text>
-
-      <View style={styles.infoRow}>
-        <MaterialCommunityIcons
-          name="map-marker-outline"
-          size={18}
-          color={currentTheme.secondary}
-        />
-        <Text style={[styles.location, { color: currentTheme.muted }]}>
-          {item.location ?? "Unknown Location"}
-        </Text>
-      </View>
-
-      <View style={styles.infoRow}>
-        <MaterialCommunityIcons
-          name="cash-multiple"
-          size={18}
-          color={currentTheme.primary}
-        />
-        <Text style={[styles.price, { color: currentTheme.primary }]}>
-          Rs. {item.monthlyRent?.toLocaleString() ?? "N/A"} / month
-        </Text>
-      </View>
-
-      <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: currentTheme.success }]}
-          onPress={() => handleOpenDetails(item._id)}
+      <View style={styles.cardContent}>
+        <Text
+          style={[styles.title, { color: currentTheme.text }]}
+          numberOfLines={1}
         >
-          <MaterialCommunityIcons name="eye-outline" size={20} color="#fff" />
-          <Text style={styles.buttonText}>View Details</Text>
-        </TouchableOpacity>
+          {item.title ?? "Property Title"}
+        </Text>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: currentTheme.danger }]}
-          onPress={() => {
-            setSelectedId(item._id);
-            setShowModal(true);
-          }}
-        >
-          <MaterialCommunityIcons name="close" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Remove</Text>
-        </TouchableOpacity>
+        <View style={styles.infoRow}>
+          <MaterialCommunityIcons
+            name="map-marker-outline"
+            size={16}
+            color={currentTheme.secondary}
+          />
+          <Text
+            style={[styles.location, { color: currentTheme.muted }]}
+            numberOfLines={1}
+          >
+            {item.location ?? "Unknown Location"}
+          </Text>
+        </View>
+
+        <View style={styles.priceRow}>
+          <Text style={[styles.priceLabel, { color: currentTheme.muted }]}>
+            Monthly Rent
+          </Text>
+          <Text style={[styles.price, { color: currentTheme.secondary }]}>
+            Rs. {item.monthlyRent?.toLocaleString() ?? "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: currentTheme.secondary }]}
+            onPress={() => handleOpenDetails(item._id)}
+          >
+            <Text style={styles.buttonText}>View Details</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.removeButton, { borderColor: currentTheme.danger }]}
+            onPress={() => {
+              setSelectedId(item._id);
+              setShowModal(true);
+            }}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={20}
+              color={currentTheme.danger}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
+      {/* Updated Header with Back Button */}
+      <View
+        style={[
+          styles.headerWrapper,
+          { borderBottomColor: currentTheme.border },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={28} color={currentTheme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
+          Favorites
+        </Text>
+        <View style={{ width: 28 }} />
+      </View>
+
       <FlatList
-        style={{ flex: 1, backgroundColor: currentTheme.background }}
+        style={{ flex: 1 }}
         data={favoritesArray}
         keyExtractor={(item) => item._id}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={[currentTheme.primary]}
-            tintColor={currentTheme.primary}
+            colors={[currentTheme.secondary]}
+            tintColor={currentTheme.secondary}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.headerContainer}>
-            <Text style={[styles.header, { color: currentTheme.text }]}>
-              ❤️ My Favorite Properties
-            </Text>
-          </View>
         }
         ListEmptyComponent={ListEmptyComponent}
         renderItem={renderFavoriteItem}
         contentContainerStyle={styles.listContentContainer}
+        showsVerticalScrollIndicator={false}
       />
 
       <Modal transparent visible={showModal} animationType="fade">
@@ -244,23 +271,37 @@ const Favorites = () => {
           <View
             style={[styles.modalBox, { backgroundColor: currentTheme.card }]}
           >
+            <View
+              style={[
+                styles.modalIcon,
+                { backgroundColor: currentTheme.danger + "20" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="alert-circle-outline"
+                size={40}
+                color={currentTheme.danger}
+              />
+            </View>
             <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
-              Remove From Favorites?
+              Remove Favorite?
             </Text>
 
             <Text style={[styles.modalDesc, { color: currentTheme.muted }]}>
-              Are you sure you want to remove this property from your favorites?
+              This property will be removed from your favorites list.
             </Text>
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
                 style={[
                   styles.modalBtn,
-                  { backgroundColor: currentTheme.border },
+                  { backgroundColor: currentTheme.border + "50" },
                 ]}
                 onPress={() => setShowModal(false)}
               >
-                <Text style={{ color: currentTheme.text }}>Cancel</Text>
+                <Text style={{ color: currentTheme.text, fontWeight: "600" }}>
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -270,7 +311,7 @@ const Favorites = () => {
                 ]}
                 onPress={confirmRemoval}
               >
-                <Text style={{ color: "#fff" }}>Remove</Text>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -278,118 +319,169 @@ const Favorites = () => {
       </Modal>
 
       <Toast />
-    </>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, fontSize: 16 },
-  errorText: { marginTop: 10, fontSize: 16, fontWeight: "600" },
-  headerContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginTop: Platform.OS === "android" ? 20 : 0,
-    marginBottom: 8,
+  loadingText: { marginTop: 10, fontSize: FontSize.base, fontWeight: "500" },
+  errorText: { marginTop: 10, fontSize: FontSize.sm, fontWeight: "600" },
+  headerWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  header: { fontSize: 28, fontWeight: "800", textAlign: "center" },
+  backButton: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "700",
+  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingTop: 80,
-    minHeight: 300,
-    paddingHorizontal: 30,
+    justifyContent: "center",
+    paddingHorizontal: 40,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: FontSize.base,
     fontWeight: "500",
     marginTop: 15,
     textAlign: "center",
   },
   browseButton: {
     marginTop: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 35,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  browseButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  browseButtonText: {
+    color: "#fff",
+    fontSize: FontSize.base,
+    fontWeight: "700",
+  },
   listContentContainer: {
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 16,
     paddingBottom: 40,
   },
   card: {
-    padding: 18,
     marginBottom: 20,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    elevation: 4,
     shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   imagePlaceholder: {
     width: "100%",
-    height: 150,
-    borderRadius: 10,
-    marginBottom: 10,
+    height: 180,
     justifyContent: "center",
     alignItems: "center",
-    overflow: "hidden",
   },
   propertyImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 8 },
+  cardContent: {
+    padding: 16,
+  },
+  title: {
+    fontSize: FontSize.lg,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
-    gap: 8,
+    marginBottom: 12,
+    gap: 4,
   },
-  location: { fontSize: 14, flexShrink: 1 },
-  price: { fontSize: 17, fontWeight: "bold" },
-  actionsRow: {
+  location: { fontSize: FontSize.sm, flex: 1 },
+  priceRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#e1e1e1",
+    marginBottom: 16,
+  },
+  priceLabel: {
+    fontSize: FontSize.xs,
+    fontWeight: "500",
+  },
+  price: { fontSize: FontSize.base, fontWeight: "800" },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-    marginTop: 16,
   },
   button: {
     flex: 1,
-    flexDirection: "row",
+    height: 48,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
   },
-  buttonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+  removeButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: FontSize.sm },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalBox: {
-    width: "80%",
-    padding: 20,
-    borderRadius: 14,
+    width: "85%",
+    padding: 24,
+    borderRadius: 24,
     alignItems: "center",
   },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10 },
-  modalDesc: { textAlign: "center", fontSize: 14, marginBottom: 20 },
+  modalIcon: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: { fontSize: FontSize.lg, fontWeight: "700", marginBottom: 8 },
+  modalDesc: {
+    textAlign: "center",
+    fontSize: FontSize.base,
+    marginBottom: 24,
+    lineHeight: 20,
+  },
   modalBtnRow: {
     width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    gap: 10,
+    gap: 12,
   },
   modalBtn: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
+    height: 50,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
   },
 });
 
