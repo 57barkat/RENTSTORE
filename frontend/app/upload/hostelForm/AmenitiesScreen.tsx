@@ -63,7 +63,7 @@ const HostelAmenitiesScreen: FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           You can add more amenities after you publish your hostel listing.
         </Text>
 

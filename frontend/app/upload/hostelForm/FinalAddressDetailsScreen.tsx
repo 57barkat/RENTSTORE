@@ -127,7 +127,7 @@ const FinalAddressDetailsScreen: FC = () => {
     if (result.success) {
       Toast.show({
         type: "success",
-        text1: "Apartment listed successfully!",
+        text1: "Hostel listed successfully!",
       });
       setTimeout(() => {
         router.replace("/MyListingsScreen");

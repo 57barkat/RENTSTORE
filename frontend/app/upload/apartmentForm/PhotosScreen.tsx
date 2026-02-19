@@ -14,24 +14,27 @@ import { styles } from "@/styles/PhotosScreen";
 import { FontAwesome } from "@expo/vector-icons";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import Toast from "react-native-toast-message";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 type ImageUriArray = string[];
 
 const ApartmentPhotosScreen: FC = () => {
   const router = useRouter();
-
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
   // --- Context Consumption ---
   const context = useContext(FormContext);
   if (!context) {
     throw new Error(
-      "ApartmentPhotosScreen must be used within an ApartmentFormProvider"
+      "ApartmentPhotosScreen must be used within an ApartmentFormProvider",
     );
   }
   const { data, updateForm } = context;
 
   // --- State Initialization ---
   const [selectedImages, setSelectedImages] = useState<ImageUriArray>(
-    data.photos || []
+    data.photos || [],
   );
   const [loading, setLoading] = useState(false);
 
@@ -88,7 +91,7 @@ const ApartmentPhotosScreen: FC = () => {
   // --- Navigation & Validation ---
   const handleNext = () => {
     router.push(
-      "/upload/apartmentForm/ListingTitleScreen" as `${string}:param`
+      "/upload/apartmentForm/ListingTitleScreen" as `${string}:param`,
     );
   };
 
@@ -116,7 +119,7 @@ const ApartmentPhotosScreen: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={40}
     >
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         You&apos;ll need {MIN_PHOTOS_REQUIRED} photos to get started. You can
         add more or make changes later.
       </Text>
@@ -131,8 +134,8 @@ const ApartmentPhotosScreen: FC = () => {
           {loading
             ? "Loading..."
             : photosCount > 0
-            ? "Add more apartment photos"
-            : "Add apartment photos"}
+              ? "Add more apartment photos"
+              : "Add apartment photos"}
         </Text>
       </TouchableOpacity>
 

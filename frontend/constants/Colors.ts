@@ -37,7 +37,7 @@ export const Colors = {
     muted: "#94A3B8",
 
     tint: tintColorDark,
-    primary: "#3B82F6",
+    primary: "#34D399",
     secondary: "#34D399", // Softer green for dark mode
     accent: "#FBBF24",
 

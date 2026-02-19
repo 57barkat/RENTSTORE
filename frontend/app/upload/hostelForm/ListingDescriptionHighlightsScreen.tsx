@@ -20,18 +20,16 @@ const MealPlanAndRulesScreen: FC = () => {
 
   const MAX_SELECTIONS = 2;
 
-  // Meal plans options
   const MEAL_PLANS = [
     {
-      key: "Breakfast",
+      key: "breakfast",
       label: "Breakfast",
       iconName: "food-croissant" as const,
     },
-    { key: "Lunch", label: "Lunch", iconName: "food" as const },
-    { key: "Dinner", label: "Dinner", iconName: "food-variant" as const },
+    { key: "lunch", label: "Lunch", iconName: "food" as const },
+    { key: "dinner", label: "Dinner", iconName: "food-variant" as const },
   ];
 
-  // Hostel rules
   const RULES = [
     {
       key: "No smoking",
@@ -60,7 +58,6 @@ const MealPlanAndRulesScreen: FC = () => {
     },
   ];
 
-  // State for meal plans & rules
   const [selectedMealPlans, setSelectedMealPlans] = useState<Set<string>>(
     new Set(data.mealPlan ?? []),
   );
@@ -68,12 +65,10 @@ const MealPlanAndRulesScreen: FC = () => {
     new Set(data.rules ?? []),
   );
 
-  // State for highlights (correct property 'highlighted')
   const [selectedHighlights, setSelectedHighlights] = useState<Set<string>>(
     new Set(data.description?.highlighted ?? []),
   );
 
-  // Toggle functions
   const handleToggleMealPlan = (key: string) => {
     setSelectedMealPlans((prev) => {
       const newSet = new Set(prev);
@@ -102,13 +97,12 @@ const MealPlanAndRulesScreen: FC = () => {
     });
   };
 
-  // Navigate to next step
   const handleNext = () => {
     updateForm("mealPlan", Array.from(selectedMealPlans));
     updateForm("rules", Array.from(selectedRules));
     updateForm("description", {
       ...data.description,
-      highlighted: Array.from(selectedHighlights), // ✅ corrected property
+      highlighted: Array.from(selectedHighlights),
     });
     router.push("/upload/hostelForm/PricingScreen" as `${string}:param`);
   };
@@ -147,7 +141,6 @@ const MealPlanAndRulesScreen: FC = () => {
           ))}
         </View>
 
-        {/* Rules */}
         <Text
           style={[styles.subtitle, { color: currentTheme.text, marginTop: 24 }]}
         >
@@ -169,7 +162,6 @@ const MealPlanAndRulesScreen: FC = () => {
           ))}
         </View>
 
-        {/* Highlights */}
         <Text
           style={[styles.subtitle, { color: currentTheme.text, marginTop: 24 }]}
         >

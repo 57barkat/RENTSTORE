@@ -1,14 +1,13 @@
 import React, { useState, FC, useContext } from "react";
-import { Text, View, TextInput, Keyboard } from "react-native";
+import { Text, View, TextInput, Keyboard, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
-import { StyleSheet } from "react-native";
 
-const MIN_PRICE = 0; // Allow 0 if no deposit
+const MIN_PRICE = 0;
 
 const HostelSecurityDepositScreen: FC = () => {
   const context = useContext(FormContext);
@@ -34,7 +33,7 @@ const HostelSecurityDepositScreen: FC = () => {
   const handleNext = () => {
     const numericDeposit = Number(deposit) || 0;
     updateForm("securityDeposit", numericDeposit);
-    router.push("/upload/hostelForm/WeekendPricingScreen"); // Next step
+    router.push("/upload/hostelForm/WeekendPricingScreen");
   };
 
   const isNextDisabled = deposit === "" || Number(deposit) < MIN_PRICE;
@@ -51,8 +50,19 @@ const HostelSecurityDepositScreen: FC = () => {
           Enter hostel security deposit. Leave 0 if none.
         </Text>
 
-        <View style={[styles.inputRow, { borderColor: currentTheme.border }]}>
-          <Text style={[styles.currencySymbol, { color: currentTheme.text }]}>
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+              shadowColor: currentTheme.shadow,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.currencySymbol, { color: currentTheme.primary }]}
+          >
             PKR
           </Text>
 
@@ -65,19 +75,17 @@ const HostelSecurityDepositScreen: FC = () => {
               styles.input,
               {
                 color: currentTheme.text,
-                borderBottomColor: currentTheme.border,
               },
             ]}
             placeholder="0"
-            placeholderTextColor={currentTheme.muted}
+            placeholderTextColor={currentTheme.placeholder}
             maxLength={7}
           />
 
           <MaterialCommunityIcons
-            name="pencil"
+            name="cash"
             size={22}
             color={currentTheme.icon}
-            style={styles.icon}
           />
         </View>
       </View>
@@ -89,39 +97,33 @@ export default HostelSecurityDepositScreen;
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 20,
-    paddingHorizontal: 20,
+    marginVertical: 24,
+    paddingHorizontal: 24,
   },
   label: {
-    fontSize: 14,
-    marginBottom: 10,
+    fontSize: 15,
+    marginBottom: 18,
     textAlign: "center",
+    lineHeight: 20,
   },
-  inputRow: {
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 15,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    paddingVertical: 10,
+    elevation: 2,
   },
   currencySymbol: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: "700",
-    marginRight: 10,
+    marginRight: 14,
   },
   input: {
     flex: 1,
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
-    minHeight: 60,
-    borderBottomWidth: 2,
-    backgroundColor: "transparent",
-  },
-  icon: {
-    marginLeft: 10,
   },
 });

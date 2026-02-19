@@ -15,12 +15,15 @@ import { FontAwesome } from "@expo/vector-icons";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 
 import Toast from "react-native-toast-message";
+import { useTheme } from "@/contextStore/ThemeContext";
+import { Colors } from "@/constants/Colors";
 
 type ImageUriArray = string[];
 
 const HostelPhotosScreen: FC = () => {
   const router = useRouter();
-
+  const { theme } = useTheme();
+  const currentTheme = Colors[theme ?? "light"];
   // --- Context Consumption ---
   const context = useContext(FormContext);
   if (!context) {
@@ -117,7 +120,7 @@ const HostelPhotosScreen: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={40}
     >
-      <Text style={styles.subtitle}>
+      <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         You&apos;ll need {MIN_PHOTOS_REQUIRED} photos to get started. You can
         add more or make changes later.
       </Text>
