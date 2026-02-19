@@ -18,6 +18,11 @@ import { CreatePropertyDto } from "./dto/create-property.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
 import { NearbyPropertyDto } from "./dto/nearby-property.dto";
+import {
+  mapHostelType,
+  parseArrayFields,
+  parseNumericFields,
+} from "./utils/property.utils";
 
 interface PaginationQuery {
   page?: number;
@@ -193,34 +198,32 @@ export class PropertyController {
   async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
     const userId = req.user?.userId;
     console.log("Search query params:", query);
-
-    const numericFields = [
+    parseNumericFields(query, [
       "page",
       "limit",
       "minRent",
       "maxRent",
-      "minSecurity",
-      "maxSecurity",
       "bedrooms",
       "bathrooms",
       "Persons",
       "lat",
       "lng",
       "radiusKm",
-    ];
-    numericFields.forEach((field) => {
-      if (query[field] !== undefined) query[field] = Number(query[field]);
-    });
+    ]);
 
-    const arrayFields = ["amenities", "bills", "highlighted", "safety"];
-    arrayFields.forEach((field) => {
-      if (query[field] && typeof query[field] === "string") {
-        query[field] = query[field].split(",").map((v) => v.trim());
+    parseArrayFields(query, ["amenities", "bills", "mealPlan", "rules"]);
+
+    if (query.hostelType) {
+      const mapped = mapHostelType(query.hostelType);
+      if (!mapped) {
+        return { status: 400, message: "Invalid hostelType" };
       }
-    });
+      query.hostelType = mapped;
+    }
 
     const page = query.page || 1;
     const limit = query.limit || 10;
+
     const filters = { ...query };
     delete filters.page;
     delete filters.limit;

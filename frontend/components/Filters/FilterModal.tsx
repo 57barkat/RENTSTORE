@@ -13,9 +13,19 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { HostPicker } from "./HostPicker";
-import { Filters } from "@/utils/homeTabUtils/filterUtils";
+import {
+  Filters,
+  NumberChip,
+  MultiSelectChips,
+  hostelTypeOptions,
+  AMENITIES,
+  BILLS,
+  MEAL_PLAN,
+  RULES,
+} from "@/utils/homeTabUtils/filterUtils";
 import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
 import { useGetAddressSuggestionsQuery } from "@/services/api";
+// import { Filters } from "@/utils/homeTabUtils/filterUtils";
 
 interface Props {
   visible: boolean;
@@ -45,10 +55,7 @@ export const FilterModal: React.FC<Props> = ({
   const [debouncedAddress, setDebouncedAddress] = React.useState("");
 
   React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedAddress(addressInput);
-    }, 400);
-
+    const timer = setTimeout(() => setDebouncedAddress(addressInput), 400);
     return () => clearTimeout(timer);
   }, [addressInput]);
 
@@ -58,45 +65,8 @@ export const FilterModal: React.FC<Props> = ({
     });
 
   React.useEffect(() => {
-    if (visible) {
-      setAddressInput(filters.addressQuery || "");
-    }
+    if (visible) setAddressInput(filters.addressQuery || "");
   }, [visible]);
-
-  const NumberOption = ({
-    value,
-    selectedKey,
-  }: {
-    value: number;
-    selectedKey: keyof Filters;
-  }) => {
-    const currentValue =
-      typeof filters[selectedKey] === "number"
-        ? filters[selectedKey]
-        : parseInt(filters[selectedKey] as any) || 0;
-
-    const selected = currentValue === value;
-
-    return (
-      <TouchableOpacity
-        onPress={() => setFilters({ ...filters, [selectedKey]: value })}
-        style={[
-          styles.chip,
-          { backgroundColor: selected ? theme.secondary : theme.card },
-          selected && styles.activeChip,
-        ]}
-      >
-        <Text
-          style={{
-            color: selected ? "#fff" : theme.text,
-            fontWeight: selected ? "700" : "400",
-          }}
-        >
-          {value === 0 ? "Any" : `${value}+`}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
 
   return (
     <Modal
@@ -108,16 +78,14 @@ export const FilterModal: React.FC<Props> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1, backgroundColor: theme.background }}
       >
-        {/* ===== Header ===== */}
+        {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close-outline" size={28} color={theme.text} />
           </TouchableOpacity>
-
           <Text style={[styles.headerTitle, { color: theme.text }]}>
             Filters
           </Text>
-
           <TouchableOpacity
             onPress={() => {
               setFilters({});
@@ -135,7 +103,7 @@ export const FilterModal: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* ===== Property Category ===== */}
+          {/* Property Category */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Property Category</Text>
             <HostPicker
@@ -146,11 +114,9 @@ export const FilterModal: React.FC<Props> = ({
             />
           </View>
 
-          {/* ===== Location ===== */}
+          {/* Location */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Location</Text>
-
-            {/* City Input */}
             <View
               style={[
                 styles.inputWrapper,
@@ -174,8 +140,6 @@ export const FilterModal: React.FC<Props> = ({
                 }}
               />
             </View>
-
-            {/* City Suggestions */}
             {citySuggestions.length > 0 && (
               <View
                 style={[
@@ -203,7 +167,6 @@ export const FilterModal: React.FC<Props> = ({
               </View>
             )}
 
-            {/* Address Input */}
             <View
               style={[
                 styles.inputWrapper,
@@ -235,7 +198,6 @@ export const FilterModal: React.FC<Props> = ({
               )}
             </View>
 
-            {/* Address Suggestions */}
             {addressSuggestions.length > 0 && (
               <View
                 style={[
@@ -243,7 +205,7 @@ export const FilterModal: React.FC<Props> = ({
                   { backgroundColor: theme.card, borderColor: theme.border },
                 ]}
               >
-                {addressSuggestions.map((item: string, index: number) => (
+                {addressSuggestions.map((item, index) => (
                   <TouchableOpacity
                     key={item}
                     style={[
@@ -264,7 +226,7 @@ export const FilterModal: React.FC<Props> = ({
             )}
           </View>
 
-          {/* ===== Price Range ===== */}
+          {/* Price Range */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Price Range (Monthly)</Text>
             <View style={styles.row}>
@@ -293,9 +255,7 @@ export const FilterModal: React.FC<Props> = ({
                   }
                 />
               </View>
-
               <View style={styles.rangeDivider} />
-
               <View
                 style={[
                   styles.inputWrapper,
@@ -329,7 +289,13 @@ export const FilterModal: React.FC<Props> = ({
             <Text style={styles.sectionLabel}>Bedrooms</Text>
             <View style={styles.chipRow}>
               {[0, 1, 2, 3, 4].map((num) => (
-                <NumberOption key={num} value={num} selectedKey="bedrooms" />
+                <NumberChip
+                  key={num}
+                  value={num}
+                  selected={filters.bedrooms === num}
+                  onPress={() => setFilters({ ...filters, bedrooms: num })}
+                  theme={theme}
+                />
               ))}
             </View>
           </View>
@@ -339,7 +305,13 @@ export const FilterModal: React.FC<Props> = ({
             <Text style={styles.sectionLabel}>Floor Level</Text>
             <View style={styles.chipRow}>
               {[0, 1, 2, 3, 4, 5].map((num) => (
-                <NumberOption key={num} value={num} selectedKey="floorLevel" />
+                <NumberChip
+                  key={num}
+                  value={num}
+                  selected={filters.floorLevel === num}
+                  onPress={() => setFilters({ ...filters, floorLevel: num })}
+                  theme={theme}
+                />
               ))}
             </View>
           </View>
@@ -349,14 +321,88 @@ export const FilterModal: React.FC<Props> = ({
             <Text style={styles.sectionLabel}>Bathrooms</Text>
             <View style={styles.chipRow}>
               {[0, 1, 2, 3, 4].map((num) => (
-                <NumberOption key={num} value={num} selectedKey="bathrooms" />
+                <NumberChip
+                  key={num}
+                  value={num}
+                  selected={filters.bathrooms === num}
+                  onPress={() => setFilters({ ...filters, bathrooms: num })}
+                  theme={theme}
+                />
               ))}
             </View>
           </View>
+
+          {/* Hostel Type - only if hostel */}
+          {hostOption === "hostel" && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Hostel Type</Text>
+              <MultiSelectChips
+                options={hostelTypeOptions.map((h) => h.label)}
+                selectedOptions={filters.hostelType ? [filters.hostelType] : []}
+                onChange={(v) =>
+                  setFilters({
+                    ...filters,
+                    hostelType: v[0] as "female" | "male" | "mixed" | undefined,
+                  })
+                }
+                theme={theme}
+              />
+            </View>
+          )}
+
+          {/* Amenities */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionLabel}>Amenities</Text>
+            <MultiSelectChips
+              options={AMENITIES}
+              selectedOptions={filters.amenities || []}
+              onChange={(v) => setFilters({ ...filters, amenities: v })}
+              theme={theme}
+            />
+          </View>
+
+          {/* Bills - only if home/apartment */}
+          {hostOption !== "hostel" && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Bills</Text>
+              <MultiSelectChips
+                options={BILLS}
+                selectedOptions={filters.bills || []}
+                onChange={(v) => setFilters({ ...filters, bills: v })}
+                theme={theme}
+              />
+            </View>
+          )}
+
+          {/* Meal Plan - only hostel */}
+          {hostOption === "hostel" && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Meal Plan</Text>
+              <MultiSelectChips
+                options={MEAL_PLAN}
+                selectedOptions={filters.mealPlan || []}
+                onChange={(v) => setFilters({ ...filters, mealPlan: v })}
+                theme={theme}
+              />
+            </View>
+          )}
+
+          {/* Rules - only hostel */}
+          {hostOption === "hostel" && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Rules</Text>
+              <MultiSelectChips
+                options={RULES}
+                selectedOptions={filters.rules || []}
+                onChange={(v) => setFilters({ ...filters, rules: v })}
+                theme={theme}
+              />
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* ===== Footer ===== */}
+      {/* Footer */}
       <View
         style={[
           styles.footer,
@@ -415,24 +461,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    minWidth: 60,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
-    marginRight: 6,
-    marginBottom: 6,
-  },
-  activeChip: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   suggestionBox: {
     borderRadius: 12,
     borderWidth: 1,

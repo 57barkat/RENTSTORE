@@ -12,6 +12,7 @@ import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
 import { PropertyFilters } from "./utils/property-filter.util";
+import { buildMongoFilter } from "./utils/property.utils";
 
 @Injectable()
 export class PropertyService {
@@ -229,116 +230,26 @@ export class PropertyService {
       lng?: number;
       radiusKm?: number;
       area?: string;
+      hostelType?: "male" | "female" | "mixed";
+      amenities?: string[];
+      bills?: string[];
+      mealPlan?: string[];
+      rules?: string[];
     },
     userId?: string,
   ): Promise<any> {
-    const {
-      city,
-      addressQuery,
-      minRent,
-      maxRent,
-      bedrooms,
-      bathrooms,
-      floorLevel,
-      hostOption,
-      sortBy,
-      lat,
-      lng,
-      radiusKm,
-      area,
-    } = filters;
+    const mongoFilter = buildMongoFilter(filters, userId);
 
-    const mongoFilter: any = { status: true };
-    if (userId) mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
-
-    const andConditions: any[] = [];
-
-    // 1️⃣ SMART SEARCH LOGIC
-    const searchInput = addressQuery || area;
-
-    if (searchInput) {
-      const cleanedQuery = searchInput.trim();
-
-      // Create a regex that treats dashes, slashes, and spaces as optional/interchangeable
-      // Example: "I10-1" -> "I[-/\s]?1[-/\s]?0[-/\s]?1"
-      const flexiblePattern = cleanedQuery
-        .replace(/[-/\s]/g, "") // Remove existing separators
-        .split("")
-        .join("[-/\\s]?");
-
-      const searchRegex = { $regex: flexiblePattern, $options: "i" };
-
-      // DETECT SPECIFICITY: Does the query look like a sub-sector? (e.g., "I10/1" or "I10-1")
-      // If it has a sub-sector indicator, we ONLY search location/title/street.
-      // If it's just "I10", we can include the general "area" field.
-      const isSpecific =
-        /\d[-/\s]\d/.test(cleanedQuery) ||
-        (cleanedQuery.length > 3 && /[0-9]$/.test(cleanedQuery));
-
-      if (isSpecific) {
-        andConditions.push({
-          $or: [
-            { location: searchRegex },
-            { title: searchRegex },
-            { "address.street": searchRegex },
-          ],
-        });
-      } else {
-        andConditions.push({
-          $or: [
-            { area: searchRegex },
-            { location: searchRegex },
-            { title: searchRegex },
-          ],
-        });
-      }
-    }
-
-    // 2️⃣ City Filter
-    if (city) {
-      // Matches city inside the address array of objects
-      andConditions.push({
-        "address.city": { $regex: city, $options: "i" },
-      });
-    }
-
-    // 3️⃣ Rental Price Filter
-    if (minRent !== undefined || maxRent !== undefined) {
-      mongoFilter.monthlyRent = {};
-      if (minRent !== undefined) mongoFilter.monthlyRent.$gte = Number(minRent);
-      if (maxRent !== undefined) mongoFilter.monthlyRent.$lte = Number(maxRent);
-    }
-
-    // 4️⃣ Capacity & Host Options
-    if (hostOption)
-      mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
-    if (bedrooms !== undefined)
-      mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
-    if (bathrooms !== undefined)
-      mongoFilter["capacityState.bathrooms"] = Number(bathrooms);
-    if (floorLevel !== undefined)
-      mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
-
-    // 5️⃣ Apply AND conditions to the main filter
-    if (andConditions.length > 0) mongoFilter.$and = andConditions;
-
-    // 6️⃣ Geospatial Logic
-    if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
-      mongoFilter.locationGeo = {
-        $near: {
-          $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-          $maxDistance: Number(radiusKm) * 1000,
-        },
-      };
-    }
-
-    // 7️⃣ Sorting Logic
+    // Sorting
     let sortQuery: any = { featured: -1, _id: -1 };
-    if (sortBy === "price_asc") sortQuery = { monthlyRent: 1, _id: -1 };
-    else if (sortBy === "price_desc") sortQuery = { monthlyRent: -1, _id: -1 };
-    else if (sortBy === "newest") sortQuery = { createdAt: -1, _id: -1 };
+    if (filters.sortBy === "price_asc") sortQuery = { monthlyRent: 1, _id: -1 };
+    else if (filters.sortBy === "price_desc")
+      sortQuery = { monthlyRent: -1, _id: -1 };
+    else if (filters.sortBy === "newest")
+      sortQuery = { createdAt: -1, _id: -1 };
 
     const total = await this.propertyModel.countDocuments(mongoFilter);
+
     const data = await this.propertyModel
       .find(mongoFilter)
       .sort(sortQuery)
@@ -366,7 +277,6 @@ export class PropertyService {
 
     const cleaned = query.trim();
 
-    // Flexible regex like your smart search
     const flexiblePattern = cleaned
       .replace(/[-/\s]/g, "")
       .split("")

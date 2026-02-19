@@ -4,26 +4,23 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  LayoutAnimation,
   Platform,
   UIManager,
-  Modal,
-  Pressable,
+  TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useLocalSearchParams, router } from "expo-router";
 import { HostPicker } from "@/components/Filters/HostPicker";
-import { FilterChips } from "@/components/Filters/FilterChips";
 import { FilterModal } from "@/components/Filters/FilterModal";
+import { FilterHeader } from "@/components/Filters/FilterHeader";
+import { SortModal } from "@/components/Filters/SortModal";
 import { PropertyCard } from "@/components/Properties/PropertyCard";
 import { EmptyState } from "@/components/Properties/EmptyState";
 import { usePropertiesPage } from "@/hooks/useFilteredProperties";
 import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
-import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 
 if (
   Platform.OS === "android" &&
@@ -59,13 +56,17 @@ export default function PropertiesPage() {
     openFilters,
     bedrooms,
     floorLevel,
+    amenities,
+    bills,
+    meal,
+    rules,
+    hostelType,
   } = useLocalSearchParams<any>();
 
   const [hostOption, setHostOption] = useState(property ?? type ?? "home");
   const [modalVisible, setModalVisible] = useState(openFilters === "true");
   const [showFilters, setShowFilters] = useState(true);
 
-  // Sorting States
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
 
@@ -77,13 +78,18 @@ export default function PropertiesPage() {
     bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
     floorLevel: floorLevel ? parseInt(floorLevel) : undefined,
     bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+    amenities: Array.isArray(amenities) ? amenities : undefined,
+    bills: Array.isArray(bills) ? bills : undefined,
+    meal: meal || undefined,
+    rules: Array.isArray(rules) ? rules : undefined,
+    hostelType: hostelType || undefined,
   };
 
   const [hostFiltersStore, setHostFiltersStore] = useState<Record<string, any>>(
     {
-      home: type === "home" || !type ? initialFilters : {},
-      hostel: type === "hostel" ? initialFilters : {},
-      apartment: type === "apartment" ? initialFilters : {},
+      home: type === "home" || !type ? { ...initialFilters } : {},
+      hostel: type === "hostel" ? { ...initialFilters } : {},
+      apartment: type === "apartment" ? { ...initialFilters } : {},
     },
   );
 
@@ -99,6 +105,7 @@ export default function PropertiesPage() {
     isLoading,
     handleToggleFav,
   } = usePropertiesPage(hostFiltersStore[hostOption], hostOption, sortBy);
+  console.log("Current filters:", filters);
 
   useEffect(() => {
     setHostFiltersStore((prev) => ({
@@ -108,7 +115,6 @@ export default function PropertiesPage() {
   }, [filters, hostOption]);
 
   const handleHostChange = (newHost: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setHostOption(newHost);
     setPage(1);
     const savedFilters = hostFiltersStore[newHost] || {};
@@ -120,16 +126,7 @@ export default function PropertiesPage() {
       (chip.key as string) !== "type" && (chip.key as string) !== "hostOption",
   );
 
-  const toggleFilterVisibility = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowFilters(!showFilters);
-  };
-
-  const handleClearAll = () => {
-    const cleared = {};
-    setFilters(cleared);
-    setPage(1);
-  };
+  const toggleFilterVisibility = () => setShowFilters(!showFilters);
 
   const handleSortSelect = (value: string) => {
     setSortBy(value);
@@ -139,7 +136,6 @@ export default function PropertiesPage() {
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
-      {/* ===== Top Header ===== */}
       <View style={styles.topHeader}>
         <View style={{ flex: 1 }} />
         <TouchableOpacity
@@ -156,7 +152,6 @@ export default function PropertiesPage() {
         </TouchableOpacity>
       </View>
 
-      {/* ===== Host Picker ===== */}
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         <HostPicker
           value={hostOption}
@@ -165,97 +160,19 @@ export default function PropertiesPage() {
         />
       </View>
 
-      {/* ===== Filters Header (Collapsible Section) ===== */}
-      <View style={styles.filterSectionContainer}>
-        <View style={styles.filterControls}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Text
-              style={[
-                styles.activeFilterCount,
-                { color: currentTheme.text + "80" },
-              ]}
-            >
-              {selectedChips.length} active filters
-            </Text>
+      <FilterHeader
+        selectedChips={selectedChips}
+        filters={filters}
+        setFilters={setFilters}
+        showFilters={showFilters}
+        toggleFilterVisibility={toggleFilterVisibility}
+        openModal={() => setModalVisible(true)}
+        openSort={() => setSortModalVisible(true)}
+        sortBy={sortBy}
+        sortOptions={SORT_OPTIONS}
+        theme={currentTheme}
+      />
 
-            {/* SORTING OPTION ADDED HERE */}
-            <TouchableOpacity
-              onPress={() => setSortModalVisible(true)}
-              style={styles.sortInlineTrigger}
-            >
-              <View
-                style={[
-                  styles.verticalDivider,
-                  { backgroundColor: currentTheme.border },
-                ]}
-              />
-              <FontAwesome5
-                name="sort-amount-down"
-                size={12}
-                color={currentTheme.secondary}
-              />
-              <Text
-                style={[
-                  styles.sortLabelText,
-                  { color: currentTheme.secondary },
-                ]}
-              >
-                {SORT_OPTIONS.find((o) => o.value === sortBy)?.label.split(
-                  ":",
-                )[0] || "Sort"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            {selectedChips.length > 0 && (
-              <>
-                <TouchableOpacity
-                  onPress={handleClearAll}
-                  style={styles.controlButton}
-                >
-                  <Text
-                    style={{ color: currentTheme.secondary, fontWeight: "700" }}
-                  >
-                    Clear All
-                  </Text>
-                </TouchableOpacity>
-                <View
-                  style={[
-                    styles.divider,
-                    { backgroundColor: currentTheme.border },
-                  ]}
-                />
-              </>
-            )}
-            <TouchableOpacity
-              onPress={toggleFilterVisibility}
-              style={styles.controlButton}
-            >
-              <MaterialIcons
-                name={showFilters ? "keyboard-arrow-up" : "keyboard-arrow-down"}
-                size={24}
-                color={currentTheme.secondary}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {showFilters && (
-          <View style={styles.filterHeader}>
-            <View style={{ flex: 1 }}>
-              <FilterChips
-                chips={selectedChips}
-                onRemove={(key) => setFilters({ ...filters, [key]: undefined })}
-                onOpenModal={() => setModalVisible(true)}
-                theme={currentTheme}
-              />
-            </View>
-          </View>
-        )}
-      </View>
-
-      {/* ===== Content ===== */}
       {isLoading && page === 1 ? (
         <View
           style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
@@ -272,10 +189,7 @@ export default function PropertiesPage() {
             justifyContent: "space-between",
             paddingHorizontal: GUTTER,
           }}
-          contentContainerStyle={{
-            paddingTop: 8,
-            paddingBottom: 20,
-          }}
+          contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
           renderItem={({ item }) => (
             <PropertyCard
               item={item}
@@ -314,7 +228,6 @@ export default function PropertiesPage() {
         />
       )}
 
-      {/* ===== Filter Modal ===== */}
       <FilterModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -329,73 +242,14 @@ export default function PropertiesPage() {
         theme={currentTheme}
       />
 
-      {/* ===== Sort Modal ===== */}
-      <Modal
+      <SortModal
         visible={sortModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSortModalVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setSortModalVisible(false)}
-        >
-          <View
-            style={[
-              styles.sortModalContent,
-              { backgroundColor: currentTheme.card },
-            ]}
-          >
-            <View style={styles.modalHandle} />
-            <Text style={[styles.sortModalTitle, { color: currentTheme.text }]}>
-              Sort Properties
-            </Text>
-
-            {SORT_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.sortOptionItem,
-                  sortBy === option.value && {
-                    backgroundColor: currentTheme.secondary + "10",
-                  },
-                ]}
-                onPress={() => handleSortSelect(option.value)}
-              >
-                <FontAwesome5
-                  name={option.icon}
-                  size={16}
-                  color={
-                    sortBy === option.value
-                      ? currentTheme.secondary
-                      : currentTheme.text + "80"
-                  }
-                />
-                <Text
-                  style={[
-                    styles.sortOptionLabel,
-                    {
-                      color:
-                        sortBy === option.value
-                          ? currentTheme.secondary
-                          : currentTheme.text,
-                    },
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                {sortBy === option.value && (
-                  <MaterialIcons
-                    name="check"
-                    size={20}
-                    color={currentTheme.secondary}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Pressable>
-      </Modal>
+        onClose={() => setSortModalVisible(false)}
+        options={SORT_OPTIONS}
+        selectedValue={sortBy}
+        onSelect={handleSortSelect}
+        theme={currentTheme}
+      />
     </View>
   );
 }
@@ -406,57 +260,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 12,
-  },
-  filterSectionContainer: {
-    marginTop: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.05)",
-  },
-  filterControls: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-  },
-  activeFilterCount: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  sortInlineTrigger: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginLeft: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
-  },
-  sortLabelText: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginLeft: 6,
-  },
-  verticalDivider: {
-    width: 1,
-    height: 14,
-    marginHorizontal: 8,
-  },
-  filterHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingRight: 16,
-    paddingBottom: 8,
-  },
-  controlButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  divider: {
-    width: 1,
-    height: 16,
-    marginHorizontal: 4,
   },
   backButton: {
     width: 36,
@@ -469,43 +272,5 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  sortModalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 24,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#ccc",
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 15,
-  },
-  sortModalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  sortOptionItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  sortOptionLabel: {
-    flex: 1,
-    marginLeft: 15,
-    fontSize: 16,
-    fontWeight: "500",
   },
 });

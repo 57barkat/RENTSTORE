@@ -175,21 +175,26 @@ export const api = createApi({
     getFilteredProperties: builder.query({
       query: (params) => {
         const queryParams = new URLSearchParams();
+
         if (params) {
           Object.entries(params).forEach(([key, value]) => {
             if (value === undefined || value === null) return;
-            queryParams.append(
-              key,
-              Array.isArray(value) ? value.join(",") : String(value),
-            );
+
+            if (Array.isArray(value)) {
+              if (value.length > 0) queryParams.append(key, value.join(","));
+            } else {
+              queryParams.append(key, String(value));
+            }
           });
         }
+
         return {
           url: `/api/v1/properties/search?${queryParams.toString()}`,
           method: "GET",
         };
       },
     }),
+
     getFeaturedProperties: builder.query({
       query: () => ({ url: "/api/v1/properties/featured", method: "GET" }),
     }),

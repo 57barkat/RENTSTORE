@@ -6,7 +6,6 @@ import {
 } from "@/services/propertiesService";
 import { formatProperties } from "@/utils/properties/formatProperties";
 
-// Added sortBy as the third argument
 export const usePropertiesPage = (
   initialFilters: any,
   hostOption: string,
@@ -21,13 +20,12 @@ export const usePropertiesPage = (
   const [debouncedCity] = useDebounce(filters.city, 500);
   const [debouncedAddress] = useDebounce(filters.addressQuery, 500);
 
-  // 1. Pass sortBy to useFilteredProperties so the API request includes sort params
   const { data, isLoading, refetch } = useFilteredProperties(
     {
       ...filters,
       city: debouncedCity,
       addressQuery: debouncedAddress,
-      sortBy, // Pass the sort value here
+      sortBy,
     },
     page,
     hostOption,
@@ -45,16 +43,14 @@ export const usePropertiesPage = (
     [favData],
   );
 
-  // 2. CRITICAL: Reset the list when sortBy or hostOption changes
-  // This ensures old sorted data doesn't mix with new sorted data
   useEffect(() => {
     setPage(1);
     setAllProperties([]);
   }, [sortBy, hostOption]);
 
-  // Update allProperties whenever data or favorites change
   useEffect(() => {
     if (!data?.data) return;
+
     const formatted = formatProperties(
       data.data,
       filters.city || "",
@@ -104,8 +100,8 @@ export const usePropertiesPage = (
 
   return {
     allProperties,
-    setFilters,
     filters,
+    setFilters,
     page,
     setPage,
     loadingMore,
