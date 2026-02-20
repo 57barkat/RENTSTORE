@@ -135,43 +135,67 @@ export class VoiceSearchService {
           parts: [
             {
               text: `
-You are a Pakistan Real Estate Assistant.
+You are a strict JSON filter extractor for a Pakistan rental platform.
 
 User text: "${userText}"
 
-TASKS:
-1. Detect if text contains abusive, irrelevant, or nonsense language.
-2. Extract rental property filters.
+Your job:
+1. Detect abusive or irrelevant text.
+2. Extract ONLY valid filters.
+3. Never explain.
+4. Never add extra keys.
+5. Never guess.
+6. If a filter is not mentioned, return null for numbers/strings and [] for arrays.
 
-If abusive or irrelevant:
-- Set "isAbusive": true
-- filters should be empty object
+Rules:
 
-If normal:
-- Set "isAbusive": false
-- Extract filters correctly.
+CITY:
+- Must be a major Pakistani city.
+- If society/area mentioned, put it in addressQuery.
 
-CITY RULE:
-- City must be major Pakistani city.
-- Society goes in addressQuery.
+RENT:
 - 1 lakh = 100000
 - 50k = 50000
-- hostOption must be "home", "hostel", or "apartment"
-- if min max is not provided but rent is mentioned, use it as maxRent and set minRent to 0.
+- If only one rent value mentioned → set maxRent and minRent = 0.
 
-Return ONLY JSON:
+PROPERTY TYPE:
+- hostOption must be exactly: "home", "hostel", or "apartment".
+
+HOSTEL TYPE:
+- Must be exactly: "male", "female", or "mixed".
+
+AMENITIES:
+Allowed keys only:
+wifi, tv, kitchen, washer, free_parking, paid_parking, ac, workspace,
+pool, hot_tub, patio, bbq, outdoor_dining, fire_pit, pool_table,
+fireplace, piano, exercise, lake_access, beach_access,
+ski_in_out, outdoor_shower, smoke_alarm, first_aid,
+fire_extinguisher, co_alarm
+
+If AC mentioned → use "ac"
+If parking mentioned → choose correct parking key
+
+ARRAY RULE:
+If not mentioned → return empty array [].
+
+Return STRICT JSON ONLY:
 
 {
   "isAbusive": boolean,
   "filters": {
-    "city": "",
-    "addressQuery": "",
-    "minRent": number,
-    "maxRent": number,
-    "bedrooms": number,
-    "bathrooms": number,
-    "floorLevel": number,
-    "hostOption": "home" | "hostel" | "apartment"
+    "city": string | null,
+    "addressQuery": string | null,
+    "minRent": number | null,
+    "maxRent": number | null,
+    "bedrooms": number | null,
+    "bathrooms": number | null,
+    "floorLevel": number | null,
+    "hostOption": "home" | "hostel" | "apartment" | null,
+    "hostelType": "female" | "male" | "mixed" | null,
+    "amenities": string[],
+    "bills": string[],
+    "mealPlan": string[],
+    "rules": string[]
   }
 }
 `,
@@ -246,12 +270,42 @@ Return ONLY JSON:
     const normalized: any = {};
     if (!filters) return normalized;
 
+    const toNumber = (v: any) =>
+      v !== null && v !== undefined && !isNaN(v) ? Number(v) : undefined;
+
     if (filters.city) normalized.city = filters.city;
     if (filters.addressQuery) normalized.addressQuery = filters.addressQuery;
-    if (filters.minRent) normalized.minRent = Number(filters.minRent);
-    if (filters.maxRent) normalized.maxRent = Number(filters.maxRent);
-    if (filters.bedrooms) normalized.bedrooms = Number(filters.bedrooms);
+
+    if (toNumber(filters.minRent) !== undefined)
+      normalized.minRent = toNumber(filters.minRent);
+
+    if (toNumber(filters.maxRent) !== undefined)
+      normalized.maxRent = toNumber(filters.maxRent);
+
+    if (toNumber(filters.bedrooms) !== undefined)
+      normalized.bedrooms = toNumber(filters.bedrooms);
+
+    if (toNumber(filters.bathrooms) !== undefined)
+      normalized.bathrooms = toNumber(filters.bathrooms);
+
+    if (toNumber(filters.floorLevel) !== undefined)
+      normalized.floorLevel = toNumber(filters.floorLevel);
+
     if (filters.hostOption) normalized.hostOption = filters.hostOption;
+
+    if (filters.hostelType) normalized.hostelType = filters.hostelType;
+
+    normalized.amenities = Array.isArray(filters.amenities)
+      ? filters.amenities
+      : [];
+
+    normalized.bills = Array.isArray(filters.bills) ? filters.bills : [];
+
+    normalized.mealPlan = Array.isArray(filters.mealPlan)
+      ? filters.mealPlan
+      : [];
+
+    normalized.rules = Array.isArray(filters.rules) ? filters.rules : [];
 
     return normalized;
   }
