@@ -23,6 +23,7 @@ import { FormProvider } from "@/contextStore/FormContext";
 import Header from "@/components/Header";
 import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
+import { LengthProvider } from "@/contextStore/LengthContext";
 
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
@@ -126,7 +127,9 @@ export default function RootLayout() {
           <CustomThemeProvider>
             <FormProvider>
               <SidebarProvider>
-                <AppContent />
+                <LengthProvider>
+                  <AppContent />
+                </LengthProvider>
               </SidebarProvider>
             </FormProvider>
           </CustomThemeProvider>

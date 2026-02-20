@@ -7,10 +7,7 @@ import {
   Modal,
   StyleSheet,
   Dimensions,
-  ActivityIndicator,
 } from "react-native";
-import { Colors } from "@/constants/Colors";
-import StatBox from "@/components/StatBox";
 import ModalActionButton from "@/components/ModalActionButton";
 import { pickImageFromGallery } from "@/utils/imageUtils";
 import { getColors } from "@/utils/themeUtils";
@@ -24,8 +21,6 @@ interface ProfileHeaderProps {
   profileImage?: string | null;
   name: string;
   phone?: string;
-  uploads: number;
-  favorites: number;
   theme: "light" | "dark";
   onUpload: (file: FormData) => Promise<void>;
   onDelete: () => Promise<void>;
@@ -37,8 +32,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   profileImage,
   name,
   phone,
-  uploads,
-  favorites,
   theme,
   onUpload,
   onDelete,
@@ -64,7 +57,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  // Determine if the phone is verified for icon color
   const isVerified = phone !== "unverified account" && phone !== undefined;
 
   return (
@@ -81,7 +73,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               ? { uri: profileImage }
               : require("@/assets/images/adaptive-icon.png")
           }
-          style={[styles.image, { borderColor: colors.primary }]} // Primary colored border
+          style={[styles.image, { borderColor: colors.primary }]}
         />
         <TouchableOpacity
           style={[styles.editIcon, { backgroundColor: colors.primary }]}
@@ -102,25 +94,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <MaterialIcons
             name="verified"
             size={12}
-            color={isVerified ? colors.primary : colors.secondary + "80"} // Dynamic badge color
+            color={isVerified ? colors.primary : colors.secondary + "80"}
             style={{ marginLeft: 5 }}
           />
         </View>
-      </View>
-
-      {/* Stats as a single, elevated card block */}
-      <View
-        style={[
-          styles.statsContainer,
-          {
-            backgroundColor: colors.card, // Use card color for separation/elevation
-          },
-        ]}
-      >
-        <StatBox label="Uploads" value={uploads} color={colors.secondary} />
-        {/* Vertical separator */}
-        <View style={{ width: 1, backgroundColor: colors.secondary + "20" }} />
-        <StatBox label="Favorites" value={favorites} color={colors.secondary} />
       </View>
 
       <Modal
@@ -167,19 +144,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    // paddingVertical: 30,
     paddingTop: 30,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    // borderBottomColor is now dynamic (colors.card)
   },
-  imageContainer: { position: "relative", marginBottom: 15 },
+  imageContainer: {
+    position: "relative",
+    marginBottom: 15,
+  },
   image: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: IMAGE_SIZE / 2,
-    borderWidth: 4, // Increased border width
-    // borderColor is now dynamic (colors.primary)
+    borderWidth: 4,
   },
   editIcon: {
     position: "absolute",
@@ -193,20 +170,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  infoContainer: { alignItems: "center" },
-  name: { fontWeight: "800", fontSize: 14, marginBottom: 4 },
+  infoContainer: {
+    alignItems: "center",
+  },
+  name: {
+    fontWeight: "800",
+    fontSize: 14,
+    marginBottom: 4,
+  },
   phoneRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  phoneText: { fontSize: 12 },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-evenly", // Better spacing
-    width: "100%", // Use full width of container padding
-    paddingVertical: 4, // Slightly more padding
-    borderRadius: 15, // More rounded corners
-    // Background and border are now dynamic, creating a card look
+  phoneText: {
+    fontSize: 12,
   },
   modalBackdrop: {
     flex: 1,

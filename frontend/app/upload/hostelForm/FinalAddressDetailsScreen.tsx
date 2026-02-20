@@ -87,7 +87,7 @@ const FinalAddressDetailsScreen: FC = () => {
       return;
     }
 
-    updateForm("address", addresses); // ✅ update HostelFormData
+    updateForm("address", addresses);
     const result = await submitData();
 
     if (result.success) {

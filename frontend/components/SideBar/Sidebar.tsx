@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, use } from "react";
 import {
   Animated,
   ScrollView,
@@ -25,6 +25,7 @@ import Toast from "react-native-toast-message";
 import { useRouter, useSegments } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contextStore/AuthContext";
+import { useLength } from "@/contextStore/LengthContext";
 
 const Sidebar: React.FC = () => {
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
@@ -34,7 +35,7 @@ const Sidebar: React.FC = () => {
   const { logout } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-
+  const { fav, upload, setUpload } = useLength();
   const [activeScreen, setActiveScreen] = useState<string>("homePage");
 
   // --------------------------
@@ -45,6 +46,11 @@ const Sidebar: React.FC = () => {
     pollingInterval: 5000,
   });
 
+  useEffect(() => {
+    if (stats) {
+      setUpload(stats.totalProperties);
+    }
+  }, [stats]);
   const [uploadProfileImage] = useUploadProfileImageMutation();
   const [deleteProfileImage] = useDeleteProfileImageMutation();
   const [deleteAccount] = useDeleteUserMutation();
@@ -133,7 +139,6 @@ const Sidebar: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    console.log("Logging out...");
     try {
       await logoutApi().unwrap();
     } catch (error) {
@@ -179,8 +184,6 @@ const Sidebar: React.FC = () => {
             profileImage={stats?.profileImage || null}
             name={stats?.name || "User"}
             phone={stats?.phone || "unverified account"}
-            uploads={stats?.totalProperties || 0}
-            favorites={stats?.totalFavorites || 0}
             theme={theme}
             onUpload={handleUpload}
             onDelete={handleDelete}
@@ -204,6 +207,13 @@ const Sidebar: React.FC = () => {
                 color={themeColors.secondary}
                 onPress={() => handleNavigate(item)}
                 isActive={activeScreen === item.screen}
+                badgeCount={
+                  item.screen === "favorites"
+                    ? fav
+                    : item.screen === "MyListingsScreen"
+                      ? upload
+                      : undefined
+                }
               />
             ))}
           </View>

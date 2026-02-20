@@ -7,7 +7,6 @@ import {
   StyleSheet,
   useWindowDimensions,
   TouchableOpacity,
-  Platform,
   Image,
   Modal,
   RefreshControl,
@@ -23,6 +22,7 @@ import { router } from "expo-router";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { FontSize } from "@/constants/Typography";
+import { useLength } from "@/contextStore/LengthContext";
 
 type Property = {
   _id: string;
@@ -33,6 +33,7 @@ type Property = {
 };
 
 const Favorites = () => {
+  const { fav, setFav } = useLength();
   const queryResult = useGetUserFavoritesQuery(null as any);
   const [removeFavorite] = useRemoveUserFavoriteMutation();
 
@@ -58,10 +59,19 @@ const Favorites = () => {
   useEffect(() => {
     queryResult.refetch();
   }, []);
+  const favoritesArray: Property[] = Array.isArray(queryResult.data)
+    ? queryResult.data
+        .map((fav: any) => fav.property)
+        .filter(
+          (property: Property | null): property is Property => property != null,
+        )
+    : [];
 
+  useEffect(() => {
+    setFav(favoritesArray.length);
+  }, [favoritesArray, setFav]);
   const confirmRemoval = async () => {
     if (!selectedId) return;
-
     try {
       await removeFavorite({ propertyId: selectedId }).unwrap();
       Toast.show({
@@ -69,9 +79,9 @@ const Favorites = () => {
         text1: "Removed from Favorites",
         text2: "This property is no longer in your favorites.",
       });
-
       setShowModal(false);
-      queryResult.refetch();
+      await queryResult.refetch();
+      if (fav > 0) setFav(fav - 1);
     } catch (err) {
       Toast.show({
         type: "error",
@@ -107,14 +117,6 @@ const Favorites = () => {
     );
   }
 
-  const favoritesArray: Property[] = Array.isArray(queryResult.data)
-    ? queryResult.data
-        .map((fav: any) => fav.property)
-        .filter(
-          (property: Property | null): property is Property => property != null,
-        )
-    : [];
-
   const ListEmptyComponent = (
     <View style={[styles.emptyContainer, { height: width * 0.8 }]}>
       <MaterialCommunityIcons
@@ -125,7 +127,6 @@ const Favorites = () => {
       <Text style={[styles.emptyText, { color: currentTheme.muted }]}>
         You don’t have any favorite properties yet.
       </Text>
-
       <TouchableOpacity
         style={[
           styles.browseButton,
@@ -168,7 +169,6 @@ const Favorites = () => {
           />
         )}
       </View>
-
       <View style={styles.cardContent}>
         <Text
           style={[styles.title, { color: currentTheme.text }]}
@@ -176,7 +176,6 @@ const Favorites = () => {
         >
           {item.title ?? "Property Title"}
         </Text>
-
         <View style={styles.infoRow}>
           <MaterialCommunityIcons
             name="map-marker-outline"
@@ -190,7 +189,6 @@ const Favorites = () => {
             {item.location ?? "Unknown Location"}
           </Text>
         </View>
-
         <View style={styles.priceRow}>
           <Text style={[styles.priceLabel, { color: currentTheme.muted }]}>
             Monthly Rent
@@ -199,7 +197,6 @@ const Favorites = () => {
             Rs. {item.monthlyRent?.toLocaleString() ?? "N/A"}
           </Text>
         </View>
-
         <View style={styles.actionsRow}>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: currentTheme.secondary }]}
@@ -207,7 +204,6 @@ const Favorites = () => {
           >
             <Text style={styles.buttonText}>View Details</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.removeButton, { borderColor: currentTheme.danger }]}
             onPress={() => {
@@ -265,32 +261,17 @@ const Favorites = () => {
         contentContainerStyle={styles.listContentContainer}
         showsVerticalScrollIndicator={false}
       />
-
       <Modal transparent visible={showModal} animationType="fade">
         <View style={styles.modalOverlay}>
           <View
             style={[styles.modalBox, { backgroundColor: currentTheme.card }]}
           >
-            <View
-              style={[
-                styles.modalIcon,
-                { backgroundColor: currentTheme.danger + "20" },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name="alert-circle-outline"
-                size={40}
-                color={currentTheme.danger}
-              />
-            </View>
             <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
               Remove Favorite?
             </Text>
-
             <Text style={[styles.modalDesc, { color: currentTheme.muted }]}>
               This property will be removed from your favorites list.
             </Text>
-
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
                 style={[
@@ -303,7 +284,6 @@ const Favorites = () => {
                   Cancel
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.modalBtn,
@@ -317,7 +297,6 @@ const Favorites = () => {
           </View>
         </View>
       </Modal>
-
       <Toast />
     </SafeAreaView>
   );
@@ -393,14 +372,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   propertyImage: { width: "100%", height: "100%", resizeMode: "cover" },
-  cardContent: {
-    padding: 16,
-  },
-  title: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
+  cardContent: { padding: 16 },
+  title: { fontSize: FontSize.lg, fontWeight: "700", marginBottom: 6 },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -417,16 +390,9 @@ const styles = StyleSheet.create({
     borderTopColor: "#e1e1e1",
     marginBottom: 16,
   },
-  priceLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: "500",
-  },
+  priceLabel: { fontSize: FontSize.xs, fontWeight: "500" },
   price: { fontSize: FontSize.base, fontWeight: "800" },
-  actionsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
+  actionsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   button: {
     flex: 1,
     height: 48,
@@ -454,14 +420,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 24,
     alignItems: "center",
-  },
-  modalIcon: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
   },
   modalTitle: { fontSize: FontSize.lg, fontWeight: "700", marginBottom: 8 },
   modalDesc: {
