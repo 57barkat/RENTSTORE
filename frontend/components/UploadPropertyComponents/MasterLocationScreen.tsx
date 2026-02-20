@@ -9,6 +9,7 @@ import {
   StyleSheet,
   FlatList,
   Animated,
+  Linking,
 } from "react-native";
 import Mapbox from "@rnmapbox/maps";
 import * as Location from "expo-location";
@@ -51,8 +52,10 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
   const { theme } = useTheme();
   const router = useRouter();
   const currentTheme = Colors[theme ?? "light"];
+
   if (!formContext)
     throw new Error("FormContext missing! Wrap in <FormProvider>.");
+
   const { updateForm, data } = formContext;
   const [address, setAddress] = useState<string>(data.location ?? "");
   const [finalAddress, setFinalAddress] = useState<Address>({
@@ -63,6 +66,9 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     zipCode: "",
     country: "",
   });
+  const [permissionStatus, setPermissionStatus] = useState<
+    "checking" | "granted" | "denied"
+  >("checking");
   const [areaName, setAreaName] = useState<string>(data.area ?? "");
   const [coords, setCoords] = useState<{
     latitude: number;
@@ -154,30 +160,57 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     [],
   );
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
+  const initLocation = async () => {
+    try {
+      setLoading(true);
+      let { status, canAskAgain } =
+        await Location.getForegroundPermissionsAsync();
+
+      if (status !== "granted" && canAskAgain) {
+        const request = await Location.requestForegroundPermissionsAsync();
+        status = request.status;
+      }
+
+      if (status !== "granted") {
+        setPermissionStatus("denied");
+        setLoading(false);
+        return;
+      }
+
+      setPermissionStatus("granted");
+
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        try {
+          await Location.enableNetworkProviderAsync();
+        } catch (e) {
+          setPermissionStatus("denied");
           setLoading(false);
           return;
         }
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        const newCoords = {
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        };
-        setCoords(newCoords);
-        await getFullAddress(newCoords);
-      } catch (err) {
-        console.error("Fetch Location Error:", err);
-      } finally {
-        setLoading(false);
       }
-    })();
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const newCoords = {
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      };
+
+      setCoords(newCoords);
+      await getFullAddress(newCoords);
+    } catch (err) {
+      console.log("Location error:", err);
+      setPermissionStatus("denied");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    initLocation();
   }, [getFullAddress]);
 
   useEffect(() => {
@@ -252,13 +285,72 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
     }).start();
   };
 
-  if (loading) {
+  if (loading || permissionStatus === "checking") {
     return (
       <View
         style={[styles.center, { backgroundColor: currentTheme.background }]}
       >
         <ActivityIndicator size="large" color={currentTheme.primary} />
       </View>
+    );
+  }
+
+  if (permissionStatus === "denied") {
+    return (
+      <SafeAreaView
+        style={[
+          styles.center,
+          { backgroundColor: currentTheme.background, padding: 30 },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name="map-marker-off"
+          size={64}
+          color={currentTheme.muted}
+        />
+        <Text
+          style={{
+            color: currentTheme.text,
+            fontSize: 18,
+            fontWeight: "700",
+            marginTop: 20,
+            textAlign: "center",
+          }}
+        >
+          Location Access Required
+        </Text>
+        <Text
+          style={{
+            color: currentTheme.muted,
+            textAlign: "center",
+            marginTop: 10,
+            marginBottom: 30,
+          }}
+        >
+          To accurately list your property, we need access to your location
+          services.
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.confirmLocationBtn,
+            {
+              backgroundColor: currentTheme.primary,
+              position: "relative",
+              left: 0,
+              right: 0,
+              width: "100%",
+            },
+          ]}
+          onPress={() => Linking.openSettings()}
+        >
+          <Text style={styles.confirmBtnText}>Open Settings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={initLocation} style={{ marginTop: 20 }}>
+          <Text style={{ color: currentTheme.primary, fontWeight: "600" }}>
+            Try Again
+          </Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     );
   }
 
@@ -290,7 +382,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
                 onChangeText={handleSearch}
                 style={[styles.input, { color: currentTheme.text }]}
                 placeholder="Search address..."
-                placeholderTextColor={currentTheme.muted}
+                placeholderTextColor={currentTheme.placeholder}
               />
               {address.length > 0 && (
                 <TouchableOpacity
@@ -344,7 +436,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
           <View
             style={[styles.mapWrapper, { borderColor: currentTheme.border }]}
           >
-            {coords && (
+            {permissionStatus === "granted" && coords && (
               <Mapbox.MapView
                 style={styles.map}
                 styleURL={

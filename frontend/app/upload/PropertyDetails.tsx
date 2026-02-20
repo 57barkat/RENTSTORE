@@ -1,5 +1,5 @@
 import React, { useState, FC, useContext } from "react";
-import { Text, View } from "react-native";
+import { Text, View, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/PropertyDetails";
@@ -21,7 +21,6 @@ const PropertyDetails: FC = () => {
   const { data, updateForm } = context;
   const router = useRouter();
 
-  // Basic structure for unfurnished houses
   const defaultCapacity: CapacityState = {
     floorLevel: 0,
     bedrooms: 1,
@@ -45,7 +44,11 @@ const PropertyDetails: FC = () => {
     setCapacity((prev) => {
       const current = Number(prev[key] ?? 0);
       const newValue = action === "increment" ? current + 1 : current - 1;
-      return { ...prev, [key]: Math.max(newValue, 1) };
+
+      // Fix: Allow floorLevel to be 0, others must be at least 1
+      const minLimit = key === "floorLevel" ? 0 : 1;
+
+      return { ...prev, [key]: Math.max(newValue, minLimit) };
     });
   };
 
@@ -54,10 +57,7 @@ const PropertyDetails: FC = () => {
     router.push("/upload/AmenitiesScreen");
   };
 
-  const isNextDisabled =
-    (capacity.floorLevel ?? 0) < 1 ||
-    capacity.bedrooms < 1 ||
-    capacity.bathrooms < 1;
+  const isNextDisabled = capacity.bedrooms < 1 || capacity.bathrooms < 1;
 
   return (
     <StepContainer
@@ -71,15 +71,31 @@ const PropertyDetails: FC = () => {
       </Text>
 
       <View style={styles.listContainer}>
-        <CounterInput
-          label="floorLevel"
-          value={capacity.floorLevel ?? 0}
-          minValue={1}
-          onIncrement={() => updateCapacity("floorLevel", "increment")}
-          onDecrement={() => updateCapacity("floorLevel", "decrement")}
-          textColor={currentTheme.text}
-          buttonColor={currentTheme.primary}
-        />
+        <View style={{ marginBottom: 10 }}>
+          <CounterInput
+            label="Floor Level"
+            value={capacity.floorLevel ?? 0}
+            minValue={0}
+            onIncrement={() => updateCapacity("floorLevel", "increment")}
+            onDecrement={() => updateCapacity("floorLevel", "decrement")}
+            textColor={currentTheme.text}
+            buttonColor={currentTheme.primary}
+          />
+          {capacity.floorLevel === 0 && (
+            <Text
+              style={{
+                color: currentTheme.primary,
+                fontSize: 12,
+                marginLeft: 10,
+                marginBottom: -10,
+                fontWeight: "600",
+              }}
+            >
+              Note: 0 is considered Ground Floor
+            </Text>
+          )}
+        </View>
+
         <CounterInput
           label="Bedrooms"
           value={capacity.bedrooms}
@@ -89,6 +105,7 @@ const PropertyDetails: FC = () => {
           textColor={currentTheme.text}
           buttonColor={currentTheme.primary}
         />
+
         <CounterInput
           label="Bathrooms"
           value={capacity.bathrooms}

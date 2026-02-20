@@ -1,8 +1,14 @@
 import React, { FC, useContext, useState } from "react";
-import { Text, View, ScrollView } from "react-native";
+import {
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
-import { styles } from "@/styles/PropertyDetails";
+import { styles as globalStyles } from "@/styles/PropertyDetails";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext, FormData } from "@/contextStore/FormContext";
@@ -21,7 +27,6 @@ const ApartmentPropertyDetails: FC = () => {
 
   const { data, updateForm } = context;
 
-  // ✅ Use capacityState object for rooms and floor
   const [apartmentType, setApartmentType] = useState<FormData["apartmentType"]>(
     data.apartmentType ?? "1BHK",
   );
@@ -29,7 +34,7 @@ const ApartmentPropertyDetails: FC = () => {
   const [capacityState, setCapacityState] = useState({
     bedrooms: data.capacityState?.bedrooms ?? 1,
     bathrooms: data.capacityState?.bathrooms ?? 1,
-    floorLevel: data.capacityState?.floorLevel ?? 1,
+    floorLevel: data.capacityState?.floorLevel ?? 0,
   });
 
   const [furnishing, setFurnishing] = useState<FormData["furnishing"]>(
@@ -41,8 +46,20 @@ const ApartmentPropertyDetails: FC = () => {
     updateForm("apartmentType", apartmentType);
     updateForm("furnishing", furnishing);
     updateForm("parking", parking);
+    updateForm("capacityState", capacityState);
 
     router.push("/upload/apartmentForm/AmenitiesScreen");
+  };
+
+  const updateCapacity = (
+    key: keyof typeof capacityState,
+    type: "inc" | "dec",
+  ) => {
+    setCapacityState((prev) => {
+      const newValue = type === "inc" ? prev[key] + 1 : prev[key] - 1;
+      const minLimit = key === "floorLevel" ? 0 : 1;
+      return { ...prev, [key]: Math.max(newValue, minLimit) };
+    });
   };
 
   const isNextDisabled =
@@ -55,69 +72,65 @@ const ApartmentPropertyDetails: FC = () => {
       isNextDisabled={isNextDisabled}
       progress={25}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={[styles.subtitle, { color: currentTheme.text }]}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        <Text style={[globalStyles.subtitle, { color: currentTheme.text }]}>
           Add essential details like apartment type, rooms, and facilities.
         </Text>
 
         {/* Apartment Type Selection */}
         <Text
-          style={[styles.subtitle, { color: currentTheme.text, marginTop: 16 }]}
+          style={[
+            globalStyles.subtitle,
+            { color: currentTheme.text, marginTop: 16 },
+          ]}
         >
           Select Apartment Type
         </Text>
-        <View
-          style={{ flexDirection: "row", flexWrap: "wrap", marginVertical: 8 }}
-        >
+        <View style={localStyles.selectionRow}>
           {["studio", "1BHK", "2BHK", "3BHK", "penthouse"].map((type) => (
-            <View
+            <TouchableOpacity
               key={type}
-              style={{
-                flex: 1,
-                padding: 12,
-                marginHorizontal: 4,
-                marginVertical: 4,
-                borderRadius: 8,
-                backgroundColor:
-                  apartmentType === type
-                    ? currentTheme.primary
-                    : currentTheme.card,
-                alignItems: "center",
-              }}
+              onPress={() =>
+                setApartmentType(type as FormData["apartmentType"])
+              }
+              style={[
+                localStyles.selectionButton,
+                {
+                  backgroundColor:
+                    apartmentType === type
+                      ? currentTheme.primary
+                      : currentTheme.card,
+                  borderColor:
+                    apartmentType === type
+                      ? currentTheme.primary
+                      : currentTheme.border,
+                },
+              ]}
             >
               <Text
-                onPress={() =>
-                  setApartmentType(type as FormData["apartmentType"])
-                }
                 style={{
                   color: apartmentType === type ? "#fff" : currentTheme.text,
                   fontWeight: "bold",
+                  fontSize: 13,
                 }}
               >
                 {type.toUpperCase()}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
         {/* Counters */}
-        <View style={styles.listContainer}>
+        <View style={globalStyles.listContainer}>
           <CounterInput
             label="Bedrooms"
             value={capacityState.bedrooms}
             minValue={1}
-            onIncrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                bedrooms: prev.bedrooms + 1,
-              }))
-            }
-            onDecrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                bedrooms: prev.bedrooms - 1,
-              }))
-            }
+            onIncrement={() => updateCapacity("bedrooms", "inc")}
+            onDecrement={() => updateCapacity("bedrooms", "dec")}
             textColor={currentTheme.text}
             buttonColor={currentTheme.primary}
           />
@@ -126,101 +139,109 @@ const ApartmentPropertyDetails: FC = () => {
             label="Bathrooms"
             value={capacityState.bathrooms}
             minValue={1}
-            onIncrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                bathrooms: prev.bathrooms + 1,
-              }))
-            }
-            onDecrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                bathrooms: prev.bathrooms - 1,
-              }))
-            }
+            onIncrement={() => updateCapacity("bathrooms", "inc")}
+            onDecrement={() => updateCapacity("bathrooms", "dec")}
             textColor={currentTheme.text}
             buttonColor={currentTheme.primary}
           />
 
-          <CounterInput
-            label="Floor Level"
-            value={capacityState.floorLevel}
-            minValue={1}
-            onIncrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                floorLevel: prev.floorLevel + 1,
-              }))
-            }
-            onDecrement={() =>
-              setCapacityState((prev) => ({
-                ...prev,
-                floorLevel: prev.floorLevel - 1,
-              }))
-            }
-            textColor={currentTheme.text}
-            buttonColor={currentTheme.primary}
-          />
+          <View style={{ marginBottom: 10 }}>
+            <CounterInput
+              label="Floor Level"
+              value={capacityState.floorLevel}
+              minValue={0}
+              onIncrement={() => updateCapacity("floorLevel", "inc")}
+              onDecrement={() => updateCapacity("floorLevel", "dec")}
+              textColor={currentTheme.text}
+              buttonColor={currentTheme.primary}
+            />
+            {capacityState.floorLevel === 0 && (
+              <Text
+                style={{
+                  color: currentTheme.primary,
+                  fontSize: 12,
+                  marginLeft: 10,
+                  marginTop: -20,
+                  fontWeight: "600",
+                }}
+              >
+                Note: 0 is considered Ground Floor
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Furnishing */}
         <Text
-          style={[styles.subtitle, { color: currentTheme.text, marginTop: 16 }]}
+          style={[
+            globalStyles.subtitle,
+            { color: currentTheme.text, marginTop: 16 },
+          ]}
         >
           Furnishing
         </Text>
-        <View style={{ flexDirection: "row", marginVertical: 8 }}>
+        <View style={localStyles.selectionRow}>
           {["furnished", "semi-furnished", "unfurnished"].map((furn) => (
-            <View
+            <TouchableOpacity
               key={furn}
-              style={{
-                flex: 1,
-                padding: 12,
-                marginHorizontal: 4,
-                borderRadius: 8,
-                backgroundColor:
-                  furnishing === furn
-                    ? currentTheme.primary
-                    : currentTheme.card,
-                alignItems: "center",
-              }}
+              onPress={() => setFurnishing(furn as FormData["furnishing"])}
+              style={[
+                localStyles.selectionButton,
+                {
+                  flex: 1,
+                  backgroundColor:
+                    furnishing === furn
+                      ? currentTheme.primary
+                      : currentTheme.card,
+                  borderColor:
+                    furnishing === furn
+                      ? currentTheme.primary
+                      : currentTheme.border,
+                },
+              ]}
             >
               <Text
-                onPress={() => setFurnishing(furn as FormData["furnishing"])}
+                numberOfLines={1}
+                adjustsFontSizeToFit
                 style={{
                   color: furnishing === furn ? "#fff" : currentTheme.text,
                   fontWeight: "bold",
+                  fontSize: 11,
                 }}
               >
                 {furn.toUpperCase()}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
-        {/* Parking */}
         <Text
-          style={[styles.subtitle, { color: currentTheme.text, marginTop: 16 }]}
+          style={[
+            globalStyles.subtitle,
+            { color: currentTheme.text, marginTop: 16 },
+          ]}
         >
           Parking Available
         </Text>
-        <View style={{ flexDirection: "row", marginVertical: 8 }}>
+        <View style={localStyles.selectionRow}>
           {["Yes", "No"].map((option) => (
-            <View
+            <TouchableOpacity
               key={option}
-              style={{
-                flex: 1,
-                padding: 12,
-                marginHorizontal: 4,
-                borderRadius: 8,
-                backgroundColor: (option === "Yes" ? parking : !parking)
-                  ? currentTheme.primary
-                  : currentTheme.card,
-                alignItems: "center",
-              }}
+              onPress={() => setParking(option === "Yes")}
+              style={[
+                localStyles.selectionButton,
+                {
+                  flex: 1,
+                  backgroundColor: (option === "Yes" ? parking : !parking)
+                    ? currentTheme.primary
+                    : currentTheme.card,
+                  borderColor: (option === "Yes" ? parking : !parking)
+                    ? currentTheme.primary
+                    : currentTheme.border,
+                },
+              ]}
             >
               <Text
-                onPress={() => setParking(option === "Yes")}
                 style={{
                   color: (option === "Yes" ? parking : !parking)
                     ? "#fff"
@@ -230,12 +251,30 @@ const ApartmentPropertyDetails: FC = () => {
               >
                 {option}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
       </ScrollView>
     </StepContainer>
   );
 };
+
+const localStyles = StyleSheet.create({
+  selectionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginVertical: 8,
+    gap: 8,
+  },
+  selectionButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 80,
+  },
+});
 
 export default ApartmentPropertyDetails;
