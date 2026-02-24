@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  /* Layout Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-sidebar: var(--sidebar-bg);
+  --color-primary: var(--primary);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+
+  /* Chart Colors */
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-text: var(--chart-text);
+  --color-chart-bar: var(--chart-bar);
+  --color-chart-highlight: var(--chart-highlight);
+
+  --radius-dashboard: 2.5rem;
+}
+
+@layer base {
+  :root {
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card-bg: #ffffff;
+    --sidebar-bg: #0f172a;
+    --primary: #3b82f6;
+    --border: #e2e8f0;
+    --muted: #f1f5f9;
+    --accent: #f1f5f9;
+
+    --chart-grid: #f1f5f9;
+    --chart-text: #94a3b8;
+    --chart-bar: #e2e8f0;
+    --chart-highlight: #3b82f6;
+  }
+
+  .dark {
+    --background: #020617;
+    --foreground: #f8fafc;
+    --card-bg: #0f172a;
+    --sidebar-bg: #000000;
+    --primary: #60a5fa;
+    --border: #1e293b;
+    --muted: #1e293b;
+    --accent: #1e293b;
+
+    --chart-grid: #1e293b;
+    --chart-text: #64748b;
+    --chart-bar: #334155;
+    --chart-highlight: #60a5fa;
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply antialiased transition-colors duration-300;
+  }
+
+  /* Fixed Scrollbar Logic */
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border); /* Changed from bg-muted to var approach */
+    border-radius: 10px;
+  }
+}
