@@ -52,6 +52,7 @@ export default function DashboardPage() {
           title="Total Users"
           value={overview.users.total}
           trend={overview.users.trend}
+          name="Last Month"
           lastMonth={overview.users.lastMonth}
           color="blue"
           icon={<Users size={20} />}
@@ -61,6 +62,7 @@ export default function DashboardPage() {
           title="Total Properties"
           value={overview.properties.total}
           trend={overview.properties.trend}
+          name="Last Month"
           lastMonth={overview.properties.lastMonth}
           color="green"
           icon={<Home size={20} />}
@@ -70,7 +72,8 @@ export default function DashboardPage() {
           title="Pending Approvals"
           value={overview.pendingProperties}
           trend={0}
-          lastMonth="Needs Review"
+          name="Reason"
+          lastMonth="Pending Review"
           color="orange"
           icon={<Clock size={20} />}
         />
@@ -79,6 +82,7 @@ export default function DashboardPage() {
           title="Blocked Users"
           value={overview.blockedUsers}
           trend={0}
+          name="Reason"
           lastMonth="Security"
           color="red"
           icon={<ShieldAlert size={20} />}

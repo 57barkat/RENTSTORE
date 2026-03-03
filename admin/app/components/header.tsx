@@ -1,6 +1,6 @@
 "use client";
 import { useSelector } from "react-redux";
-import { Menu, Bell, Search } from "lucide-react";
+import { Menu, Bell } from "lucide-react";
 import ThemeToggle from "./theme-toggle";
 import { RootState } from "../store";
 
@@ -8,54 +8,69 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const { user, role } = useSelector((state: RootState) => state.auth);
 
   return (
-    <header className="h-20 bg-card border-b border-border flex items-center justify-between px-4 lg:px-8 sticky top-0 z-30">
-      <div className="flex items-center gap-4">
+    <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border/50 flex items-center justify-between px-6 sticky top-0 z-40">
+      <div className="flex items-center gap-6">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 hover:bg-accent rounded-lg"
+          className="lg:hidden p-2 hover:bg-accent rounded-full transition-colors"
         >
-          <Menu size={22} />
+          <Menu size={20} className="text-foreground" />
         </button>
-        <div className="hidden md:flex items-center bg-background border border-border px-4 py-2 rounded-2xl gap-3 w-72">
-          <Search size={18} className="text-gray-400" />
-          <input
-            type="text"
-            placeholder="Quick Search..."
-            className="bg-transparent border-none outline-none text-sm w-full"
-          />
+
+        <div className="hidden md:flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-black text-xs">
+              RS
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold tracking-tight text-foreground leading-none">
+              RentStore
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">
+              {role || "Management"}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         <ThemeToggle />
-        <div className="p-2 hover:bg-accent rounded-xl cursor-pointer relative">
-          <Bell size={20} className="text-gray-500" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-card"></span>
-        </div>
 
-        <div className="h-10 w-[1px] bg-border mx-2 hidden sm:block" />
+        <button className="p-2 hover:bg-accent rounded-full relative transition-all active:scale-95">
+          <Bell
+            size={18}
+            className="text-muted-foreground hover:text-foreground"
+          />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background animate-pulse"></span>
+        </button>
 
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-foreground leading-none">
-              {user?.name || "Admin"}
+        <div className="h-6 w-[1px] bg-border/60 mx-2" />
+
+        <div className="flex items-center gap-3 pl-1 group cursor-pointer">
+          <div className="flex flex-col items-end hidden sm:flex">
+            <p className="text-sm font-semibold text-foreground leading-none">
+              {user?.name || "Administrator"}
             </p>
-            <p className="text-[10px] text-gray-400 uppercase mt-1 tracking-wider">
-              {role || "Staff"}
+            <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+              {user?.email || "admin@rentstore.com"}
             </p>
           </div>
 
-          {user?.profileImage ? (
-            <img
-              src={user.profileImage}
-              alt="avatar"
-              className="w-12 h-12 rounded-2xl object-cover shadow-md border-2 border-primary/10"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-primary/20">
-              {user?.name?.charAt(0) || "A"}
-            </div>
-          )}
+          <div className="relative">
+            {user?.profileImage ? (
+              <img
+                src={user.profileImage}
+                alt="avatar"
+                className="w-9 h-9 rounded-full object-cover ring-2 ring-border group-hover:ring-primary/50 transition-all"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm">
+                {user?.name?.charAt(0) || "A"}
+              </div>
+            )}
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
+          </div>
         </div>
       </div>
     </header>

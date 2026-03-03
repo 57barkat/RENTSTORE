@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useDispatch } from "react-redux";
 import { setCookie } from "nookies";
 import { useRouter } from "next/navigation";
 import apiClient from "@/app/lib/api-client";
@@ -21,7 +20,7 @@ export default function LoginPage() {
         emailOrPhone: email,
         password: password,
       });
-      const { accessToken, refreshToken, user, role } = response.data;
+      const { accessToken, refreshToken } = response.data;
 
       setCookie(null, "admin_token", accessToken, {
         path: "/",
@@ -42,12 +41,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#020617] p-6 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px]" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-6 relative overflow-hidden transition-colors duration-300">
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
 
-      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 bg-white dark:bg-card rounded-[2.5rem] shadow-2xl shadow-blue-500/5 border border-slate-200/50 dark:border-slate-800/50 overflow-hidden z-10">
-        <div className="hidden lg:flex flex-col justify-between p-12 bg-slate-900 dark:bg-slate-950 relative overflow-hidden">
+      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 bg-card rounded-[2.5rem] shadow-2xl border border-border overflow-hidden z-10 transition-colors duration-300">
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar relative overflow-hidden">
           <div className="z-10">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20">
               <span className="text-white font-bold text-xl">R</span>
@@ -72,14 +71,12 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:20px_20px]" />
+          <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(var(--color-primary)_1px,transparent_1px)] [background-size:20px_20px]" />
         </div>
 
         <div className="p-8 lg:p-16 flex flex-col justify-center">
           <div className="mb-10 text-center lg:text-left">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Welcome Back
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
             <p className="text-slate-500 dark:text-slate-400 mt-2">
               Enter your details to access your account
             </p>
@@ -87,7 +84,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 ml-1">
+              <label className="text-sm font-semibold text-foreground/80 ml-1">
                 Email Address
               </label>
               <div className="relative group">
@@ -98,7 +95,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   placeholder="name@company.com"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-foreground"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -108,7 +105,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                <label className="text-sm font-semibold text-foreground/80">
                   Password
                 </label>
                 <button
@@ -126,7 +123,7 @@ export default function LoginPage() {
                 <input
                   type="password"
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all dark:text-white"
+                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-foreground"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -137,7 +134,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary hover:bg-blue-600 disabled:bg-primary/50 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group transition-all"
+              className="w-full bg-primary hover:opacity-90 disabled:opacity-50 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group transition-all"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={20} />

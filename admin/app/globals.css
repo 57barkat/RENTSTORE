@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* Layout Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card-bg);
@@ -11,7 +10,6 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
 
-  /* Chart Colors */
   --color-chart-grid: var(--chart-grid);
   --color-chart-text: var(--chart-text);
   --color-chart-bar: var(--chart-bar);

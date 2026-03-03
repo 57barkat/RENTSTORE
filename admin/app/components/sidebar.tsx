@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  MailWarning,
 } from "lucide-react";
 import { destroyCookie } from "nookies";
 import { useRouter, usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ export default function Sidebar({
     { icon: <Home size={20} />, label: "Dashboard", path: "/dashboard" },
     { icon: <PieChart size={20} />, label: "Properties", path: "/properties" },
     { icon: <Users size={20} />, label: "Users", path: "/users" },
+    { icon: <MailWarning size={20} />, label: "Reports", path: "/reports" },
     { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
 
