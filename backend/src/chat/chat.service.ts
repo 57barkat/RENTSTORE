@@ -74,6 +74,7 @@ export class ChatService {
       chatRoomId,
       senderId: new Types.ObjectId(senderId),
       text,
+      readBy: [new Types.ObjectId(senderId)],
     });
 
     room.lastMessage = text;
@@ -85,25 +86,56 @@ export class ChatService {
 
   async getUserRooms(userId: string): Promise<any[]> {
     if (!userId) return [];
+
+    const userObjectId = new Types.ObjectId(userId);
+
     const rooms = await this.roomModel
-      .find({ participants: new Types.ObjectId(userId) })
+      .find({ participants: userObjectId })
       .populate("participants", "name profileImage email")
       .sort({ lastMessageAt: -1 })
       .exec();
 
-    // We map the rooms to explicitly define who the "other" person is
-    return rooms.map((room) => {
+    const roomIds = rooms.map((room) =>
+      (room._id as Types.ObjectId | string).toString(),
+    );
+
+    const unreadCountsAgg = await this.messageModel.aggregate([
+      {
+        $match: {
+          chatRoomId: { $in: roomIds },
+          senderId: { $ne: userObjectId },
+          readBy: { $nin: [userObjectId] },
+        },
+      },
+      {
+        $group: {
+          _id: "$chatRoomId",
+          unreadCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const unreadCountMap: Record<string, number> = {};
+    unreadCountsAgg.forEach((item) => {
+      unreadCountMap[item._id] = item.unreadCount;
+    });
+
+    const results = rooms.map((room) => {
       const roomObj = room.toObject();
       const otherUser = roomObj.participants.find(
         (p: any) => p._id.toString() !== userId.toString(),
       );
+
+      const roomIdStr = (room._id as Types.ObjectId | string).toString();
       return {
         ...roomObj,
         otherUser: otherUser || null,
+        unreadCount: unreadCountMap[roomIdStr] || 0,
       };
     });
-  }
 
+    return results;
+  }
   async getMessages(chatRoomId: string, userId: string) {
     if (!Types.ObjectId.isValid(chatRoomId)) return [];
 
@@ -115,11 +147,23 @@ export class ChatService {
     );
     if (!isParticipant) throw new ForbiddenException("Access denied");
 
-    // Populate senderId so we always have the image and name for every message
     return this.messageModel
       .find({ chatRoomId })
       .populate("senderId", "name profileImage")
       .sort({ createdAt: 1 })
       .exec();
+  }
+  async markMessagesAsRead(chatRoomId: string, userId: string) {
+    if (!Types.ObjectId.isValid(chatRoomId)) return;
+
+    await this.messageModel.updateMany(
+      {
+        chatRoomId,
+        readBy: { $ne: new Types.ObjectId(userId) },
+      },
+      {
+        $addToSet: { readBy: new Types.ObjectId(userId) },
+      },
+    );
   }
 }

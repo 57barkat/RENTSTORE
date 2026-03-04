@@ -13,7 +13,8 @@ export class Message {
 
   @Prop({ type: String, required: true })
   text: string;
-
+  @Prop({ type: [{ type: Types.ObjectId, ref: "User" }], default: [] })
+  readBy: Types.ObjectId[];
   @Prop(() => Date)
   createdAt: Date;
 

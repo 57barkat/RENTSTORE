@@ -17,6 +17,8 @@ import { AddToFavModule } from "./modules/addToFav/favorite.module";
 import { ProfileModule } from "./profile/profile.module";
 import { VoiceSearchModule } from "./voice-search/voice-search.module";
 import { ChatModule } from "./chat/chat.module";
+import { AdminModule } from "./modules/admin/admin.module";
+import { ReportsModule } from "./modules/report/reports.module";
 
 @Module({
   imports: [
@@ -70,6 +72,8 @@ import { ChatModule } from "./chat/chat.module";
     ProfileModule,
     VoiceSearchModule,
     ChatModule,
+    AdminModule,
+    ReportsModule,
   ],
 })
 export class AppModule {

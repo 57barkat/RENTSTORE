@@ -111,21 +111,33 @@ export default function ChatRoomScreen() {
     if (Array.isArray(fetchedMessages)) setMessages(fetchedMessages);
   }, [fetchedMessages]);
 
+  // Handle Socket & Mark as Read logic
   useEffect(() => {
     if (!roomId || !userId) return;
     let socketInstance: Socket;
+
     const setupSocket = async () => {
       socketInstance = await connectSocket();
       setSocket(socketInstance);
       socketInstance.emit("joinRoom", roomId);
+
+      // Trigger markAsRead when entering the room
+      socketInstance.emit("markAsRead", { roomId });
+
       socketInstance.on("newMessage", (msg) => {
         if (msg.chatRoomId === roomId) {
           setMessages((prev) =>
             prev.find((m) => m._id === msg._id) ? prev : [...prev, msg],
           );
+
+          // Trigger markAsRead when a new message arrives while user is in room
+          if (msg.senderId._id !== userId) {
+            socketInstance.emit("markAsRead", { roomId });
+          }
         }
       });
     };
+
     setupSocket();
     return () => {
       if (socketInstance) {

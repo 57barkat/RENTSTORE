@@ -35,6 +35,8 @@ export class ChatGateway implements OnGatewayConnection {
 
       client.data.userId = payload.sub;
 
+      client.join(payload.sub.toString());
+
       const rooms = await this.chatService.getUserRooms(client.data.userId);
       rooms.forEach((room) => {
         if (room?._id) client.join(room._id.toString());
@@ -74,5 +76,39 @@ export class ChatGateway implements OnGatewayConnection {
     );
 
     this.server.to(data.chatRoomId).emit("newMessage", populatedMessage);
+
+    const room = await this.chatService.createOrGetRoom(senderId, [], "");
+    const otherParticipants = room.participants.filter(
+      (p) => p.toString() !== senderId.toString(),
+    );
+
+    otherParticipants.forEach(async (participantId) => {
+      const updatedRooms = await this.chatService.getUserRooms(
+        participantId.toString(),
+      );
+      this.server
+        .to(participantId.toString())
+        .emit("roomsUpdated", updatedRooms);
+    });
+  }
+
+  @SubscribeMessage("markAsRead")
+  async handleMarkAsRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { roomId: string },
+  ) {
+    if (!client.data.userId || !data?.roomId) return;
+
+    try {
+      await this.chatService.markMessagesAsRead(
+        data.roomId,
+        client.data.userId,
+      );
+
+      const rooms = await this.chatService.getUserRooms(client.data.userId);
+      this.server.to(client.data.userId).emit("roomsUpdated", rooms);
+    } catch (err) {
+      console.error("Mark as read error", err);
+    }
   }
 }

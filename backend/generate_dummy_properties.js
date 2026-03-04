@@ -5,7 +5,6 @@ const { ObjectId } = require("bson");
 // -------------------- Constants --------------------
 const CITY = "Islamabad";
 const SECTORS = ["I-10/1", "I-10/2", "I-10/3", "I-10/4"];
-
 const CITY_COORDS = { lat: [33.65, 33.68], lng: [73.03, 73.07] };
 
 const HOST_OPTIONS = ["home", "apartment", "hostel"];
@@ -35,10 +34,12 @@ const SAFETY_DETAILS = [
   "weapons",
   "noise_monitor",
 ];
+
 const CLOUDINARY_PHOTOS = Array.from(
   { length: 20 },
   (_, i) => `https://picsum.photos/300/200?random=${i + 1}`,
 );
+
 const APARTMENT_TYPES = ["studio", "1BHK", "2BHK", "penthouse"];
 const FURNISHINGS = ["furnished", "semi-furnished", "unfurnished"];
 const HOSTEL_TYPES = ["boys", "girls", "co-ed"];
@@ -52,7 +53,20 @@ const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randomSubarray = (arr, min = 0, max = arr.length) =>
   [...arr].sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
-// -------------------- Owners (Replace with your actual User IDs if needed) --------------------
+/**
+ * Generates a random date within a range of days ago.
+ * Used to populate trends (Last Month vs This Month)
+ * and daily bar charts (Last 7 Days).
+ */
+const randomDateInLastDays = (days) => {
+  const date = new Date();
+  const randomDaysAgo = Math.floor(Math.random() * days);
+  date.setDate(date.getDate() - randomDaysAgo);
+  date.setHours(randomInt(0, 23), randomInt(0, 59), randomInt(0, 59));
+  return date;
+};
+
+// -------------------- Owners --------------------
 const VALID_OWNER_IDS = [
   "6984d4a9ba69fbd9561e82e5",
   "6984a2178e47a637cd2188fe",
@@ -62,7 +76,7 @@ const VALID_OWNER_IDS = [
 ];
 
 // -------------------- Generate Properties --------------------
-function generateI10Properties(count = 5000) {
+function generateI10Properties(count = 500) {
   const properties = [];
 
   for (let i = 0; i < count; i++) {
@@ -70,18 +84,14 @@ function generateI10Properties(count = 5000) {
     const areaOnly = area.split("/")[0]; // "I-10"
     const hostOption = randomChoice(HOST_OPTIONS);
 
-    // Filter Logic Compatibility: Bedrooms and beds
     const bedrooms = randomInt(1, hostOption === "hostel" ? 1 : 5);
     const beds = randomInt(bedrooms, bedrooms + 2);
     const bathrooms = randomInt(1, bedrooms);
     const Persons = beds + 1;
 
-    // Floor Level Logic: 0 = Ground, 1 = 1st, 2 = 2nd, etc.
-    // Homes usually 0-1, Apartments/Hostels 0-4
     const floorLevel =
       hostOption === "home" ? randomInt(0, 1) : randomInt(0, 4);
 
-    // Realistic Pakistani Rent (PKR)
     const monthlyRent = randomInt(20000, 150000);
     const dailyRent = Math.round(monthlyRent / 30);
     const weeklyRent = Math.round(monthlyRent / 4);
@@ -115,15 +125,9 @@ function generateI10Properties(count = 5000) {
     const highlighted = randomSubarray(HIGHLIGHTS, 1, 3);
     const safetyDetails = randomSubarray(SAFETY_DETAILS, 2, 5);
 
-    const cameraDescription =
-      safetyDetails.includes("exterior_camera") ||
-      safetyDetails.includes("noise_monitor")
-        ? randomChoice([
-            "Visible exterior camera above main entrance.",
-            "Ring doorbell camera is active.",
-            "Noise monitoring in shared areas.",
-          ])
-        : null;
+    const cameraDescription = safetyDetails.includes("exterior_camera")
+      ? "Visible exterior camera above main entrance."
+      : null;
 
     const apartmentType =
       hostOption === "apartment" ? randomChoice(APARTMENT_TYPES) : undefined;
@@ -137,6 +141,12 @@ function generateI10Properties(count = 5000) {
       hostOption === "hostel" ? randomSubarray(MEAL_PLANS, 1, 3) : undefined;
     const rules =
       hostOption === "hostel" ? randomSubarray(RULES, 1, 3) : undefined;
+
+    // --- DATE LOGIC FOR TRENDS ---
+    // Generates dates across the last 45 days so "Last Month" vs "This Month" works
+    const createdAt = randomDateInLastDays(45);
+    const updatedAt = new Date(createdAt);
+    updatedAt.setHours(updatedAt.getHours() + randomInt(1, 48)); // Updated slightly after creation
 
     properties.push({
       _id: new ObjectId().toHexString(),
@@ -155,7 +165,6 @@ function generateI10Properties(count = 5000) {
       ALL_BILLS,
       address,
       amenities,
-      // Fixed: Nested Object for Search Filter
       capacityState: {
         Persons,
         bedrooms,
@@ -173,10 +182,11 @@ function generateI10Properties(count = 5000) {
       mealPlan,
       rules,
       status: true,
+      isApproved: Math.random() > 0.3, // 30% stay pending to test dashboard
       featured: Math.random() > 0.9,
       views: randomInt(0, 500),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     });
   }
 
@@ -184,7 +194,7 @@ function generateI10Properties(count = 5000) {
 }
 
 // -------------------- Execution --------------------
-const PROPERTY_COUNT = 50000; // Adjusted for better performance during test
+const PROPERTY_COUNT = 5000; // Set to 50 for testing, change to 5000 if needed
 const properties = generateI10Properties(PROPERTY_COUNT);
 
 const filePath = path.join(__dirname, "dummy_properties.json");
@@ -193,6 +203,6 @@ fs.writeFileSync(
   JSON.stringify({ data: properties, total: properties.length }, null, 2),
 );
 
-console.log(
-  `🚀 Generation Complete! Saved ${PROPERTY_COUNT} properties with floorLevel to: ${filePath}`,
-);
+console.log(`🚀 Generation Complete!`);
+console.log(`📅 Dates distributed over last 45 days for Trend Calculations.`);
+console.log(`📂 File saved to: ${filePath}`);
