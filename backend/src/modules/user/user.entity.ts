@@ -10,6 +10,12 @@ export enum UserRole {
   ADMIN = "admin",
 }
 
+export enum UserAccountStatus {
+  ACTIVE = "ACTIVE",
+  SUSPENDED = "SUSPENDED",
+  BANNED = "BANNED",
+}
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -62,6 +68,7 @@ export class User {
 
   @Prop()
   emailVerificationCode?: string;
+
   @Prop({ default: 0 })
   warnings: number;
 
@@ -70,6 +77,25 @@ export class User {
 
   @Prop()
   emailVerificationCodeExpires?: Date;
+
+  @Prop({
+    type: String,
+    enum: UserAccountStatus,
+    default: UserAccountStatus.ACTIVE,
+  })
+  accountStatus: UserAccountStatus;
+
+  @Prop({ default: 0 })
+  strikeCount: number;
+
+  @Prop()
+  suspendedAt?: Date;
+
+  @Prop()
+  suspensionReason?: string;
+
+  @Prop()
+  bannedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

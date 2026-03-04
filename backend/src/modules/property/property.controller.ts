@@ -12,6 +12,8 @@ import {
   Patch,
   Delete,
   Query,
+  SetMetadata,
+  Request,
 } from "@nestjs/common";
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
@@ -241,8 +243,8 @@ export class PropertyController {
     @Query("city") city?: string,
   ) {
     const userId = req.user?.userId;
+    console.log(page, limit, sort, search, city);
     if (!userId) throw new UnauthorizedException("User not authenticated");
-
     return this.propertyService.findMyProperties(
       userId,
       Number(page),
@@ -299,5 +301,36 @@ export class PropertyController {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findPropertyByIdAndDelete(id, userId);
+  }
+  @Get("admin/unapproved")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async getUnapproved(
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "10",
+  ) {
+    return await this.propertyService.findUnapprovedProperties(
+      Number(page),
+      Number(limit),
+    );
+  }
+  @Patch("admin/approve/:id")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async approve(@Param("id") id: string) {
+    return await this.propertyService.approveProperty(id);
+  }
+  @Delete("admin/delete/:id")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async adminDelete(@Param("id") id: string, @Req() req: any) {
+    return await this.propertyService.adminDeleteProperty(id, req.user.userId);
+  }
+  @Get("admin/view/:id")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async adminViewProperty(@Param("id") id: string, @Req() req: any) {
+    const userId = req.user?.userId;
+    return await this.propertyService.findPropertyById(id, userId);
   }
 }

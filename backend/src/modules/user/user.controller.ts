@@ -7,6 +7,10 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  Patch,
+  SetMetadata,
+  Param,
+  Query,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { UserService } from "./user.service";
@@ -14,6 +18,7 @@ import { AuthService } from "../../services/auth.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
+import { UpdateUserDto } from "./dto/user-update.dto";
 
 @Controller("users")
 export class UserController {
@@ -36,8 +41,20 @@ export class UserController {
       body.emailOrPhone,
       body.password,
     );
+    console.log("Login successful. User:", user, "Role:", user.role);
 
-    return { ...this.mapUser(user), ...tokens };
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      role: user.role,
+      isphoneverified: user.isPhoneVerified,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profileImage: user.profileImage,
+      },
+    };
   }
 
   @Post("verify-email")
@@ -52,9 +69,15 @@ export class UserController {
     return this.authService.issueTokens(user);
   }
 
-  @Get()
-  async getAll(): Promise<UserResponseDto[]> {
-    return (await this.userService.findAll()).map(this.mapUser);
+  @Get("admin/all")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async getAll(
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+    @Query("search") search: string = "",
+  ) {
+    return await this.userService.findAllPaginated(page, limit, search);
   }
 
   @Post("refresh")
@@ -90,5 +113,22 @@ export class UserController {
       createdAt: user["createdAt"],
       updatedAt: user["updatedAt"],
     };
+  }
+  @Patch("admin/update/:id")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async updateUser(
+    @Param("id") id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const updatedUser = await this.userService.updateUser(id, updateUserDto);
+    return this.mapUser(updatedUser as UserDocument);
+  }
+
+  @Delete("admin/delete/:id")
+  @UseGuards(AuthGuard("jwt"))
+  @SetMetadata("roles", ["admin"])
+  async deleteUser(@Param("id") id: string) {
+    return await this.userService.deleteUser(id);
   }
 }

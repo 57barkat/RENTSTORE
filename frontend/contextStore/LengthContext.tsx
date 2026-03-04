@@ -6,13 +6,24 @@ import {
   ReactNode,
   useEffect,
 } from "react";
+
 import { useGetUserFavoritesQuery } from "@/services/api";
+import { useGetRoomsQuery } from "@/hooks/chat";
+
+// You can type this properly if you already have ChatRoom interface
+interface ChatRoom {
+  _id: string;
+  unreadCount?: number;
+}
 
 interface LengthContextType {
   fav: number;
-  setFav: React.Dispatch<React.SetStateAction<number>>;
   upload: number;
+  unread: number;
+
+  setFav: React.Dispatch<React.SetStateAction<number>>;
   setUpload: React.Dispatch<React.SetStateAction<number>>;
+  setUnread: React.Dispatch<React.SetStateAction<number>>;
 }
 
 const LengthContext = createContext<LengthContextType | null>(null);
@@ -20,17 +31,40 @@ const LengthContext = createContext<LengthContextType | null>(null);
 export function LengthProvider({ children }: { children: ReactNode }) {
   const [fav, setFav] = useState(0);
   const [upload, setUpload] = useState(0);
-  const { data } = useGetUserFavoritesQuery(null);
+  const [unread, setUnread] = useState(0);
+
+  const { data: favorites } = useGetUserFavoritesQuery(null);
+
+  const { data: rooms } = useGetRoomsQuery();
 
   useEffect(() => {
-    if (Array.isArray(data)) {
-      setFav(data.filter((f) => f.property != null).length);
+    if (Array.isArray(favorites)) {
+      const validFavorites = favorites.filter((f) => f.property != null);
+      setFav(validFavorites.length);
     }
-  }, [data]);
+  }, [favorites]);
+
+  useEffect(() => {
+    if (Array.isArray(rooms)) {
+      const totalUnread = rooms.reduce(
+        (sum: number, room: ChatRoom) => sum + (room.unreadCount || 0),
+        0,
+      );
+
+      setUnread(totalUnread);
+    }
+  }, [rooms]);
 
   const value = useMemo(
-    () => ({ fav, setFav, upload, setUpload }),
-    [fav, upload],
+    () => ({
+      fav,
+      upload,
+      unread,
+      setFav,
+      setUpload,
+      setUnread,
+    }),
+    [fav, upload, unread],
   );
 
   return (

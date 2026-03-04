@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   ScrollView,
@@ -12,6 +12,9 @@ import {
   Text,
   StyleSheet,
   Image,
+  Alert,
+  Modal,
+  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -29,6 +32,7 @@ import { PropertyFooter } from "@/components/Properties/PropertyFooter";
 
 import { Ionicons } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
+import { usePropertyReportMutation } from "@/services/api";
 
 export const options = { headerShown: false };
 
@@ -41,12 +45,20 @@ export default function PropertyDetails() {
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
 
+  // Reporting State
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedReason, setSelectedReason] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
   const { handleChatOwner, isCreating } = useChatRoom(
     property?.ownerId,
     property?.owner?.name,
     property?.owner?.profileImage,
   );
+
+  const [reportProperty, { isLoading: isReporting }] =
+    usePropertyReportMutation();
 
   if (isLoading) {
     return (
@@ -71,6 +83,34 @@ export default function PropertyDetails() {
         android: `geo:0,0?q=${property.lat},${property.lng}(${property.title})`,
       });
       if (url) Linking.openURL(url);
+    }
+  };
+
+  const reasons = ["SCAM", "RENTED", "INCORRECT_DATA", "OFFENSIVE", "OTHER"];
+
+  const submitReport = async () => {
+    if (!selectedReason) {
+      Alert.alert("Error", "Please select a reason for reporting.");
+      return;
+    }
+    try {
+      await reportProperty({
+        propertyId: id,
+        reason: selectedReason,
+        description:
+          reportDescription ||
+          `User reported this property as ${selectedReason.toLowerCase()}`,
+      }).unwrap();
+
+      setModalVisible(false);
+      setSelectedReason("");
+      setReportDescription("");
+      Alert.alert(
+        "Success",
+        "Thank you for your report. Our team will review this listing.",
+      );
+    } catch (error) {
+      Alert.alert("Error", "Failed to submit report. Please try again later.");
     }
   };
 
@@ -117,8 +157,19 @@ export default function PropertyDetails() {
           <View
             style={[styles.handle, { backgroundColor: currentTheme.border }]}
           />
-
-          {/* Header Section */}
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={styles.reportButton}
+          >
+            <Ionicons
+              name="flag-outline"
+              size={18}
+              color={currentTheme.muted}
+            />
+            <Text style={[styles.reportText, { color: currentTheme.muted }]}>
+              Report this property
+            </Text>
+          </TouchableOpacity>
           <Text style={[styles.tagline, { color: currentTheme.primary }]}>
             {property.hostOption?.toUpperCase()} •{" "}
             {property.featured ? "FEATURED" : "VERIFIED"}
@@ -294,6 +345,109 @@ export default function PropertyDetails() {
           </View>
         </View>
       </ScrollView>
+
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: currentTheme.background },
+            ]}
+          >
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: currentTheme.text }]}>
+                Report Property
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={24} color={currentTheme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.modalLabel, { color: currentTheme.muted }]}>
+              Select a Reason
+            </Text>
+            <View style={styles.reasonContainer}>
+              {reasons.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  onPress={() => setSelectedReason(reason)}
+                  style={[
+                    styles.reasonBadge,
+                    {
+                      borderColor:
+                        selectedReason === reason
+                          ? currentTheme.primary
+                          : currentTheme.border,
+                      backgroundColor:
+                        selectedReason === reason
+                          ? `${currentTheme.primary}20`
+                          : "transparent",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color:
+                        selectedReason === reason
+                          ? currentTheme.primary
+                          : currentTheme.text,
+                      fontWeight: selectedReason === reason ? "700" : "400",
+                    }}
+                  >
+                    {reason}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text
+              style={[
+                styles.modalLabel,
+                { color: currentTheme.muted, marginTop: 15 },
+              ]}
+            >
+              Additional Details (Optional)
+            </Text>
+            <TextInput
+              style={[
+                styles.textArea,
+                {
+                  color: currentTheme.text,
+                  borderColor: currentTheme.border,
+                  backgroundColor: isDark ? "#1A1A1A" : "#F9F9F9",
+                },
+              ]}
+              multiline
+              numberOfLines={4}
+              placeholder="Tell us more about the problem..."
+              placeholderTextColor={currentTheme.muted}
+              value={reportDescription}
+              onChangeText={setReportDescription}
+            />
+
+            <TouchableOpacity
+              onPress={submitReport}
+              disabled={isReporting}
+              style={[
+                styles.submitButton,
+                { backgroundColor: currentTheme.primary },
+              ]}
+            >
+              {isReporting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit Report</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {property.chat && (
         <PropertyFooter
           theme={currentTheme}
@@ -385,6 +539,74 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   ownerName: {
+    fontSize: FontSize.base,
+    fontWeight: "700",
+  },
+  reportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    // marginTop: 30,
+    paddingBottom: 20,
+  },
+  reportText: {
+    marginLeft: 8,
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 24,
+    minHeight: 450,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "800",
+  },
+  modalLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  reasonContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  reasonBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  textArea: {
+    borderRadius: 12,
+    padding: 12,
+    height: 100,
+    textAlignVertical: "top",
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  submitButton: {
+    borderRadius: 15,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  submitButtonText: {
+    color: "white",
     fontSize: FontSize.base,
     fontWeight: "700",
   },

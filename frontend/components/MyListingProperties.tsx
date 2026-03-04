@@ -25,6 +25,21 @@ const MyListingProperties = () => {
   const { width } = useWindowDimensions();
   const logic = useMyPropertiesLogic();
 
+  console.log(logic);
+  // Helper to format button labels
+  const getSortLabel = (key: string) => {
+    switch (key) {
+      case "priceLow":
+        return "Price: Low";
+      case "priceHigh":
+        return "Price: High";
+      case "pending":
+        return "Pending Approval";
+      default:
+        return key.charAt(0).toUpperCase() + key.slice(1);
+    }
+  };
+
   if (logic.isLoading && logic.page === 1) {
     return (
       <View
@@ -56,7 +71,6 @@ const MyListingProperties = () => {
       <FlatList
         style={{ flex: 1, backgroundColor: currentTheme.background }}
         data={logic.properties}
-        // Robust key extractor to prevent "Encountered two children with the same key"
         keyExtractor={(item) => item._id}
         onEndReached={logic.loadMore}
         onEndReachedThreshold={0.5}
@@ -86,31 +100,39 @@ const MyListingProperties = () => {
             </View>
 
             <View style={styles.sortRow}>
-              {["newest", "oldest", "priceLow", "priceHigh"].map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => logic.setSort(item)}
-                  style={[
-                    styles.sortButton,
-                    {
-                      backgroundColor:
-                        logic.sort === item
-                          ? currentTheme.secondary
-                          : currentTheme.card,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{
-                      color: logic.sort === item ? "#fff" : currentTheme.text,
-                      fontSize: FontSize.xs,
-                      fontWeight: "600",
-                    }}
+              {/* ADDED "pending" TO THE ARRAY BELOW */}
+              {["newest", "oldest", "priceLow", "priceHigh", "pending"].map(
+                (item) => (
+                  <TouchableOpacity
+                    key={item}
+                    onPress={() => logic.setSort(item)}
+                    style={[
+                      styles.sortButton,
+                      {
+                        backgroundColor:
+                          logic.sort === item
+                            ? currentTheme.secondary
+                            : currentTheme.card,
+                        borderColor:
+                          logic.sort === item
+                            ? currentTheme.secondary
+                            : currentTheme.border,
+                        borderWidth: 1,
+                      },
+                    ]}
                   >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={{
+                        color: logic.sort === item ? "#fff" : currentTheme.text,
+                        fontSize: 11,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {getSortLabel(item)}
+                    </Text>
+                  </TouchableOpacity>
+                ),
+              )}
             </View>
           </View>
         }
@@ -125,6 +147,40 @@ const MyListingProperties = () => {
               },
             ]}
           >
+            <View style={styles.statusRow}>
+              <View
+                style={[
+                  styles.badge,
+                  {
+                    backgroundColor: item.isApproved
+                      ? currentTheme.success + "15"
+                      : "#FFFBEB",
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.badgeDot,
+                    {
+                      backgroundColor: item.isApproved
+                        ? currentTheme.success
+                        : "#F59E0B",
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.badgeText,
+                    {
+                      color: item.isApproved ? currentTheme.success : "#B45309",
+                    },
+                  ]}
+                >
+                  {item.isApproved ? "Live" : "Pending Approval"}
+                </Text>
+              </View>
+            </View>
+
             <Text
               style={[styles.title, { color: currentTheme.text }]}
               numberOfLines={1}
@@ -171,7 +227,6 @@ const MyListingProperties = () => {
               >
                 <Text style={styles.buttonText}>View</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: currentTheme.info }]}
                 onPress={() => {
@@ -181,7 +236,6 @@ const MyListingProperties = () => {
               >
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[
                   styles.button,
@@ -248,7 +302,6 @@ const MyListingProperties = () => {
           </View>
         </View>
       </Modal>
-
       <Toast />
     </>
   );
@@ -291,7 +344,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
   },
   sortRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  sortButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  sortButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
   card: {
     padding: 20,
     marginBottom: 22,
@@ -302,6 +355,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  statusRow: { flexDirection: "row", marginBottom: 10 },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeDot: { width: 6, height: 6, borderRadius: 3, marginRight: 6 },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   title: { fontSize: FontSize.base, fontWeight: "800", marginBottom: 6 },
   row: { flexDirection: "row", alignItems: "center", marginBottom: 6, gap: 6 },

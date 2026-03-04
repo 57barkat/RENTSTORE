@@ -35,7 +35,7 @@ const Sidebar: React.FC = () => {
   const { logout } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-  const { fav, upload, setUpload } = useLength();
+  const { fav, upload, setUpload, unread } = useLength();
   const [activeScreen, setActiveScreen] = useState<string>("homePage");
 
   // --------------------------
@@ -212,7 +212,9 @@ const Sidebar: React.FC = () => {
                     ? fav
                     : item.screen === "MyListingsScreen"
                       ? upload
-                      : undefined
+                      : item.screen === "ChatListScreen"
+                        ? unread
+                        : undefined
                 }
               />
             ))}

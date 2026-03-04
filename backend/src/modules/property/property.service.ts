@@ -96,6 +96,7 @@ export class PropertyService {
           ...dto,
           ownerId: userId,
           status: true,
+          isApproved: false,
         });
 
         const savedProperty = await property.save();
@@ -127,7 +128,10 @@ export class PropertyService {
     radiusKm: number,
     userId?: string,
   ) {
-    const mongoFilter: FilterQuery<Property> = { status: true };
+    const mongoFilter: FilterQuery<Property> = {
+      status: true,
+      isApproved: true,
+    };
 
     // Exclude user's own listings if userId provided
     if (userId) {
@@ -197,7 +201,7 @@ export class PropertyService {
   }
 
   async findAll(page = 1, limit = 10, ownerId?: string) {
-    const filter: any = { status: true };
+    const filter: any = { status: true, isApproved: true };
     if (ownerId) filter.ownerId = ownerId;
 
     const skip = (page - 1) * limit;
@@ -240,7 +244,8 @@ export class PropertyService {
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
 
-    // Sorting
+    mongoFilter.isApproved = true;
+    mongoFilter.status = true;
     let sortQuery: any = { featured: -1, _id: -1 };
     if (filters.sortBy === "price_asc") sortQuery = { monthlyRent: 1, _id: -1 };
     else if (filters.sortBy === "price_desc")
@@ -320,7 +325,6 @@ export class PropertyService {
   ) {
     const filter: FilterQuery<any> = {
       ownerId: new Types.ObjectId(userId),
-      status: { $ne: false },
     };
 
     if (search) {
@@ -331,9 +335,11 @@ export class PropertyService {
       filter.city = city;
     }
 
-    // Sorting logic
-    let sortOption: any = { createdAt: -1 };
+    if (sort === "pending") {
+      filter.isApproved = false;
+    }
 
+    let sortOption: any = { createdAt: -1 };
     if (sort === "oldest") sortOption = { createdAt: 1 };
     if (sort === "priceLow") sortOption = { price: 1 };
     if (sort === "priceHigh") sortOption = { price: -1 };
@@ -349,14 +355,14 @@ export class PropertyService {
       .lean();
 
     const total = await this.propertyModel.countDocuments(filter);
-
     const favIds = await this.favService.getUserFavoriteIds(userId);
 
     const result = data.map((p) => ({
       ...p,
       isFav: favIds.includes(p._id.toString()),
+      isApproved: p.isApproved ?? false,
     }));
-
+    console.log(result);
     return {
       total,
       page,
@@ -499,5 +505,92 @@ export class PropertyService {
 
     await this.propertyDraftModel.findByIdAndDelete(draftId);
     return { message: "Draft deleted, photos queued for Cloudinary cleanup" };
+  }
+  async findUnapprovedProperties(page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    const [result] = await this.propertyModel.aggregate([
+      { $match: { isApproved: false } },
+
+      { $sort: { createdAt: -1 } },
+
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+
+            {
+              $addFields: {
+                ownerObjId: { $toObjectId: "$ownerId" },
+              },
+            },
+
+            {
+              $lookup: {
+                from: "users",
+                localField: "ownerObjId",
+                foreignField: "_id",
+                as: "ownerId",
+              },
+            },
+
+            { $unwind: { path: "$ownerId", preserveNullAndEmptyArrays: true } },
+
+            {
+              $project: {
+                "ownerId.password": 0,
+                "ownerId.refreshToken": 0,
+                ownerObjId: 0,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const total = result.metadata[0]?.total || 0;
+    const properties = result.data || [];
+
+    return {
+      data: properties,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+  async approveProperty(propertyId: string) {
+    const property = await this.propertyModel.findByIdAndUpdate(
+      propertyId,
+      { isApproved: true, status: true },
+      { new: true },
+    );
+
+    if (!property) throw new NotFoundException("Property not found");
+    return { message: "Property approved successfully", property };
+  }
+  async adminDeleteProperty(propertyId: string, adminUserId: string) {
+    const property = await this.propertyModel.findById(propertyId);
+
+    if (!property) {
+      throw new NotFoundException("Property not found");
+    }
+
+    if (property.photos && property.photos.length > 0) {
+      await this.deletedImagesService.addDeletedImages(
+        property.photos,
+        adminUserId,
+        "property",
+      );
+    }
+
+    await this.propertyModel.findByIdAndDelete(propertyId);
+
+    return {
+      success: true,
+      message: "Property deleted by admin and images queued for removal.",
+    };
   }
 }

@@ -104,7 +104,10 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   status?: boolean;
-
+  @Transform(({ value }) => value === "true" || value === true)
+  @IsOptional()
+  @IsBoolean()
+  isApproved?: boolean = false;
   @IsOptional()
   @IsBoolean()
   featured?: boolean;

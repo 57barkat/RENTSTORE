@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -12,6 +13,7 @@ import { OAuth2Client } from "google-auth-library";
 import * as admin from "firebase-admin";
 import { MailerService } from "@nestjs-modules/mailer";
 import * as serviceAccount from "../../services/firebase-service.json";
+import { UpdateUserDto } from "./dto/user-update.dto";
 
 @Injectable()
 export class UserService {
@@ -180,6 +182,38 @@ export class UserService {
   async findAll() {
     return this.userModel.find();
   }
+  async findAllPaginated(page: number, limit: number, search: string) {
+    const skip = (page - 1) * limit;
+
+    // Create a search filter if search string exists
+    const query = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { phone: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const [users, total] = await Promise.all([
+      this.userModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.userModel.countDocuments(query),
+    ]);
+
+    return {
+      data: users,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
   async clearRefreshToken(userId: string) {
     return this.userModel.findByIdAndUpdate(userId, {
       $unset: { refreshToken: 1 },
@@ -190,5 +224,33 @@ export class UserService {
       isEmailVerified: false,
       createdAt: { $lt: new Date(Date.now() - 5 * 60 * 60 * 1000) },
     });
+  }
+  async updateUser(
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $set: updateUserDto },
+        { new: true, runValidators: true },
+      )
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    return updatedUser;
+  }
+
+  async deleteUser(userId: string) {
+    // Optional: Check if user exists first or has active properties
+    const result = await this.userModel.findByIdAndDelete(userId).exec();
+
+    if (!result) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    return { message: "User deleted successfully", id: userId };
   }
 }

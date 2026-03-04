@@ -124,15 +124,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <Provider store={store}>
         <AuthProvider>
-          <CustomThemeProvider>
-            <FormProvider>
-              <SidebarProvider>
-                <LengthProvider>
+          <LengthProvider>
+            <CustomThemeProvider>
+              <FormProvider>
+                <SidebarProvider>
                   <AppContent />
-                </LengthProvider>
-              </SidebarProvider>
-            </FormProvider>
-          </CustomThemeProvider>
+                </SidebarProvider>
+              </FormProvider>
+            </CustomThemeProvider>
+          </LengthProvider>
         </AuthProvider>
       </Provider>
     </SafeAreaProvider>

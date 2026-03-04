@@ -303,6 +303,13 @@ export const api = createApi({
         method: "GET",
       }),
     }),
+    PropertyReport: builder.mutation({
+      query: (body) => ({
+        url: "/api/v1/reports",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -336,4 +343,5 @@ export const {
   useClearVoiceSessionMutation,
   useGetNearbyPropertiesQuery,
   useGetAddressSuggestionsQuery,
+  usePropertyReportMutation,
 } = api;

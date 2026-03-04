@@ -29,8 +29,14 @@ export class AuthService {
     }
 
     const tokens = await this.issueTokens(user);
+    const role = user.role;
+    const userData = {
+      name: user.name,
+      image: user.profileImage,
+      isPhoneVerified: user.isPhoneVerified,
+    };
 
-    return { user, tokens };
+    return { user, tokens, role, userData };
   }
 
   async issueTokens(user: UserDocument) {

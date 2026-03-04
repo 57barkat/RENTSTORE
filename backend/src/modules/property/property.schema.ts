@@ -1,6 +1,15 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
 
+export type PropertyDocument = Property & Document;
+
+export enum PropertyModerationStatus {
+  ACTIVE = "ACTIVE",
+  UNDER_REVIEW = "UNDER_REVIEW",
+  SUSPENDED = "SUSPENDED",
+  DELETED = "DELETED",
+}
+
 @Schema({ timestamps: true })
 export class Property extends Document {
   @Prop({ type: String }) title?: string;
@@ -85,26 +94,55 @@ export class Property extends Document {
 
   @Prop({ type: String, enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"] })
   apartmentType?: string;
+
   @Prop({ type: String, enum: ["furnished", "semi-furnished", "unfurnished"] })
   furnishing?: string;
+
   @Prop({ type: Boolean }) parking?: boolean;
 
   @Prop({ type: String, enum: ["male", "female", "mixed"] })
   hostelType?: string;
+
   @Prop({ type: [String], default: [] }) mealPlan?: string[];
   @Prop({ type: [String], default: [] }) rules?: string[];
 
   @Prop({ type: String, required: true }) ownerId: string;
 
   @Prop({ type: Boolean, default: false }) status: boolean;
+
   @Prop({ type: Boolean, default: false }) featured: boolean;
+
+  @Prop({ type: Boolean, default: false }) isApproved: boolean;
+
+  @Prop({
+    type: String,
+    enum: PropertyModerationStatus,
+    default: PropertyModerationStatus.ACTIVE,
+  })
+  moderationStatus: PropertyModerationStatus;
+
+  @Prop({ default: true })
+  isVisible: boolean;
+
+  @Prop({ default: 0 })
+  reportCount: number;
+
+  @Prop({ default: 0 })
+  strikeCount: number;
+
+  @Prop()
+  suspendedAt?: Date;
+
+  @Prop()
+  deletedAt?: Date;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
+
 PropertySchema.index({ locationGeo: "2dsphere" });
 PropertySchema.index({ area: 1 });
 PropertySchema.index({ "address.city": 1 });
 PropertySchema.index({ hostOption: 1 });
-PropertySchema.index({ price: 1 });
-PropertySchema.index({ bedrooms: 1 });
-PropertySchema.index({ floorLevel: 1 });
+PropertySchema.index({ monthlyRent: 1 });
+PropertySchema.index({ "capacityState.bedrooms": 1 });
+PropertySchema.index({ "capacityState.floorLevel": 1 });

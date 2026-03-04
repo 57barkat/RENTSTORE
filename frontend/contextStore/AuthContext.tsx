@@ -1,3 +1,4 @@
+"use client";
 import React, {
   createContext,
   useContext,
@@ -15,8 +16,8 @@ export type UserType = {
   id: string;
   name: string;
   email: string;
-  phone: string;
   role: string;
+  profileImage?: string;
   isPhoneVerified: boolean;
 };
 
@@ -40,15 +41,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const refreshAuthState = useCallback(async () => {
     await tokenManager.load();
-
     const accessToken = tokenManager.getAccessToken();
-    const userData = tokenManager.getUserData();
+    const storedUserData = tokenManager.getUserData();
     const verified = await tokenManager.getPhoneVerified();
 
-    if (accessToken && userData) {
-      setUser(userData);
+    if (accessToken && storedUserData) {
+      setUser(storedUserData);
       setIsAuthenticated(true);
       setIsPhoneVerified(verified === "true");
     }
@@ -62,34 +63,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     };
-
     bootstrap();
   }, [refreshAuthState]);
 
-  /**
-   * ✅ Login adjusted for flat backend structure
-   */
   const login = async (response: any) => {
-    // Extract tokens from root
-    const { accessToken, refreshToken, ...userData } = response;
+    const {
+      accessToken,
+      refreshToken,
+      user: userData,
+      role,
+      isphoneverified,
+    } = response;
 
     if (!accessToken || !refreshToken) {
       throw new Error("Missing tokens in server response");
     }
 
-    // Save to persistent storage
+    const verifiedStatus =
+      isphoneverified === true || isphoneverified === "true";
+
+    const finalUser: UserType = {
+      id: userData?.id || userData?._id,
+      name: userData?.name,
+      email: userData?.email,
+      profileImage: userData?.profileImage,
+      role: role || userData?.role,
+      isPhoneVerified: verifiedStatus,
+    };
+
     await tokenManager.setTokens(accessToken, refreshToken);
-    await tokenManager.setUserData(userData);
-    await tokenManager.setPhoneVerified(userData.isPhoneVerified);
-    const userId = userData.id || userData._id;
-    if (userId) {
-      await AsyncStorage.setItem("userId", userId);
-      console.log("UserID successfully saved to AsyncStorage:", userId);
+    await tokenManager.setUserData(finalUser);
+    await tokenManager.setPhoneVerified(verifiedStatus);
+
+    if (finalUser.id) {
+      await AsyncStorage.setItem("userId", finalUser.id);
     }
-    // Update state
-    setUser(userData as UserType);
+
+    setUser(finalUser);
     setIsAuthenticated(true);
-    setIsPhoneVerified(userData.isPhoneVerified);
+    setIsPhoneVerified(verifiedStatus);
   };
 
   const logout = async () => {
@@ -104,7 +116,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setVerified = async (status: boolean) => {
     await tokenManager.setPhoneVerified(status);
     setIsPhoneVerified(status);
-
     if (user) {
       const updatedUser = { ...user, isPhoneVerified: status };
       setUser(updatedUser);
@@ -141,9 +152,5 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => useContext(AuthContext);
 
 const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  loader: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
