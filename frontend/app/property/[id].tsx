@@ -45,7 +45,6 @@ export default function PropertyDetails() {
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
 
-  // Reporting State
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
@@ -192,9 +191,7 @@ export default function PropertyDetails() {
           <View style={styles.statsContainer}>
             <StatItem
               icon={
-                property.capacityState?.floorLevel === 0
-                  ? "office-building"
-                  : "layers-triple"
+                property.capacityState?.floorLevel === 0 ? "business" : "layers"
               }
               label="Floor"
               value={
