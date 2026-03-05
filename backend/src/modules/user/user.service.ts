@@ -12,7 +12,7 @@ import * as bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import * as admin from "firebase-admin";
 import { MailerService } from "@nestjs-modules/mailer";
-import * as serviceAccount from "../../services/firebase-service.json";
+import * as serviceAccount from "../../services/fireabase-privateKey";
 import { UpdateUserDto } from "./dto/user-update.dto";
 
 @Injectable()

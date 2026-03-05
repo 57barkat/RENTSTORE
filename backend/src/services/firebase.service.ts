@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import * as admin from "firebase-admin";
-import * as serviceAccount from "./firebase-service.json";
+import * as serviceAccount from "./fireabase-privateKey";
 @Injectable()
 export class FirebaseService {
   private defaultApp: admin.app.App;
