@@ -22,7 +22,7 @@ const HostelSecurityDepositScreen: FC = () => {
   const currentTheme = Colors[theme ?? "light"];
 
   const [deposit, setDeposit] = useState<string>(
-    data.securityDeposit !== undefined ? String(data.securityDeposit) : "",
+    data.SecuritybasePrice !== undefined ? String(data.SecuritybasePrice) : "",
   );
 
   const handleDepositChange = (text: string) => {
@@ -32,7 +32,7 @@ const HostelSecurityDepositScreen: FC = () => {
 
   const handleNext = () => {
     const numericDeposit = Number(deposit) || 0;
-    updateForm("securityDeposit", numericDeposit);
+    updateForm("SecuritybasePrice", numericDeposit);
     router.push("/upload/apartmentForm/WeekendPricingScreen");
   };
 

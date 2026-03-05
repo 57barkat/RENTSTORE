@@ -189,12 +189,19 @@ export default function PropertyDetails() {
             </Text>
           </TouchableOpacity>
 
-          {/* Stats Bar */}
           <View style={styles.statsContainer}>
             <StatItem
-              icon="account-group-outline"
-              label="Guests"
-              value={property.capacityState?.Persons}
+              icon={
+                property.capacityState?.floorLevel === 0
+                  ? "office-building"
+                  : "layers-triple"
+              }
+              label="Floor"
+              value={
+                property.capacityState?.floorLevel === 0
+                  ? "Ground"
+                  : property.capacityState?.floorLevel
+              }
               theme={currentTheme}
             />
             <StatItem
@@ -210,7 +217,6 @@ export default function PropertyDetails() {
               theme={currentTheme}
             />
           </View>
-
           <View
             style={[styles.divider, { backgroundColor: currentTheme.border }]}
           />
