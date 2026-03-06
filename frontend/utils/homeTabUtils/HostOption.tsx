@@ -7,16 +7,21 @@ const baseHostOptions = [
   {
     id: "hostel",
     label: "Hostel",
-    iconType: "MaterialCommunityIcons",
+    Icon: MaterialCommunityIcons,
     iconName: "bed",
   },
   {
     id: "apartment",
     label: "Apartment",
-    iconType: "MaterialCommunityIcons",
+    Icon: MaterialCommunityIcons,
     iconName: "office-building",
   },
-  { id: "home", label: "Home", iconType: "FontAwesome", iconName: "home" },
+  {
+    id: "home",
+    label: "Home",
+    Icon: FontAwesome,
+    iconName: "home",
+  },
 ] as const;
 
 export const withThemeHostOptions = <T extends typeof baseHostOptions>(
@@ -27,16 +32,13 @@ export const withThemeHostOptions = <T extends typeof baseHostOptions>(
     const currentColors = Colors[theme];
 
     return WrappedOptions.map((opt) => {
-      let IconComponent: any;
-      if (opt.iconType === "MaterialCommunityIcons")
-        IconComponent = MaterialCommunityIcons;
-      if (opt.iconType === "FontAwesome") IconComponent = FontAwesome;
+      const IconComponent = opt.Icon;
 
       return {
         ...opt,
         icon: (
           <IconComponent
-            name={opt.iconName}
+            name={opt.iconName as any}
             size={20}
             color={currentColors.secondary}
           />
