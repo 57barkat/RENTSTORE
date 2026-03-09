@@ -30,24 +30,24 @@ const WelcomeScreen = () => {
 
   const handleNext = () => {
     if (!selectedType) return;
-    if (!isPhoneVerified) {
-      Alert.alert(
-        "Verification Required",
-        "Please verify your phone number to upload a property.",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Verify",
-            onPress: () => router.push("/auth/VerifyPhone"),
-          },
-        ],
-        { cancelable: true },
-      );
-      return;
-    }
+    // if (!isPhoneVerified) {
+    //   Alert.alert(
+    //     "Verification Required",
+    //     "Please verify your phone number to upload a property.",
+    //     [
+    //       {
+    //         text: "Cancel",
+    //         style: "cancel",
+    //       },
+    //       {
+    //         text: "Verify",
+    //         onPress: () => router.push("/auth/VerifyPhone"),
+    //       },
+    //     ],
+    //     { cancelable: true },
+    //   );
+    //   return;
+    // }
 
     if (formContext) {
       formContext.updateForm("hostOption", selectedType);
