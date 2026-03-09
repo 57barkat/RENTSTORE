@@ -34,8 +34,8 @@ import { ReportsModule } from "./modules/report/reports.module";
       useFactory: (config: ConfigService) => ({
         transport: {
           host: config.get<string>("MAIL_HOST") || "smtp.gmail.com",
-          port: config.get<number>("MAIL_PORT") || 465,
-          secure: true,
+          port: config.get<number>("MAIL_PORT") || 587,
+          secure: false,
           auth: {
             user: config.get<string>("MAIL_USER"),
             pass: config.get<string>("MAIL_PASS"),
@@ -43,6 +43,10 @@ import { ReportsModule } from "./modules/report/reports.module";
         },
         defaults: {
           from: config.get<string>("MAIL_FROM"),
+        },
+
+        tls: {
+          rejectUnauthorized: false,
         },
       }),
     }),
