@@ -64,6 +64,8 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
     await tokenManager.clear();
+
+    api.dispatch(api.util.resetApiState());
   }
   return result;
 };

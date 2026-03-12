@@ -87,7 +87,9 @@ export class UserController {
   @UseGuards(AuthGuard("jwt"))
   @Post("logout")
   async logout(@Req() req) {
-    await this.userService.clearRefreshToken(req.user.sub);
+    console.log("User from JWT:", req.user);
+
+    await this.userService.clearRefreshToken(req.user.userId);
     return { message: "Logged out successfully" };
   }
 

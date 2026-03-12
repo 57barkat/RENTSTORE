@@ -68,11 +68,8 @@ const randomDateInLastDays = (days) => {
 
 // -------------------- Owners --------------------
 const VALID_OWNER_IDS = [
-  "6984d4a9ba69fbd9561e82e5",
-  "6984a2178e47a637cd2188fe",
-  "6977a444cd991a27eb2a1e52",
-  "6965056a49669152a2a6890d",
-  "691dde15a9165ac7f6c1a92c",
+  "69af1dd71e57202234444ac2",
+  "69af1ebf1e57202234444acd",
 ];
 
 // -------------------- Generate Properties --------------------
@@ -194,7 +191,7 @@ function generateI10Properties(count = 500) {
 }
 
 // -------------------- Execution --------------------
-const PROPERTY_COUNT = 5000; // Set to 50 for testing, change to 5000 if needed
+const PROPERTY_COUNT = 50000; // Set to 50 for testing, change to 5000 if needed
 const properties = generateI10Properties(PROPERTY_COUNT);
 
 const filePath = path.join(__dirname, "dummy_properties.json");
