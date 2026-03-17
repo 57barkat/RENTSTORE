@@ -14,6 +14,7 @@ import * as admin from "firebase-admin";
 import { MailerService } from "@nestjs-modules/mailer";
 import * as serviceAccount from "../../services/fireabase-privateKey";
 import { UpdateUserDto } from "./dto/user-update.dto";
+import { EmailService } from "src/services/email/email.service";
 
 @Injectable()
 export class UserService {
@@ -21,7 +22,7 @@ export class UserService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private readonly mailerService: MailerService,
+    private readonly emailService: EmailService,
   ) {
     if (!admin.apps.length) {
       admin.initializeApp({
@@ -62,7 +63,7 @@ export class UserService {
       isPhoneVerified: false,
       TermsAndConditionsAccepted: dto.acceptedTerms,
     });
-
+    console.log("Sending email to:", user.email);
     await this.sendEmailVerificationCode(user.email);
 
     return user;
@@ -83,11 +84,7 @@ export class UserService {
       },
     );
 
-    await this.mailerService.sendMail({
-      to: email,
-      subject: "Verify your email",
-      html: `<h2>Your verification code</h2><h1>${code}</h1>`,
-    });
+    this.emailService.sendVerificationEmail(email, code);
   }
 
   async verifyEmail(email: string, code: string): Promise<UserDocument> {

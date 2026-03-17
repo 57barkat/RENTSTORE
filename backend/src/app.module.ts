@@ -2,10 +2,10 @@ import { ConfigService } from "@nestjs/config";
 import { Module, MiddlewareConsumer } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
-import { MailerModule } from "@nestjs-modules/mailer"; // Added
 import appConfig from "./config/app.config";
 import dbConfig from "./config/database.config";
 import { validationSchema } from "./config/validation";
+
 import { UserModule } from "./modules/user/user.module";
 import { ServiceModule } from "./modules/sms/sms.module";
 import { SignupThrottleMiddleware } from "./middleware/signup-throttle.middleware";
@@ -19,32 +19,16 @@ import { VoiceSearchModule } from "./voice-search/voice-search.module";
 import { ChatModule } from "./chat/chat.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { ReportsModule } from "./modules/report/reports.module";
+import { EmailModule } from "./services/email/email.module";
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, dbConfig],
       validationSchema,
-    }),
-
-    MailerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        transport: {
-          host: config.get<string>("MAIL_HOST") || "smtp.gmail.com",
-          port: config.get<number>("MAIL_PORT") || 465,
-          secure: true,
-          auth: {
-            user: config.get<string>("MAIL_USER"),
-            pass: config.get<string>("MAIL_PASS"),
-          },
-        },
-        defaults: {
-          from: config.get<string>("MAIL_FROM"),
-        },
-      }),
     }),
 
     MongooseModule.forRootAsync({
@@ -53,9 +37,8 @@ import { ReportsModule } from "./modules/report/reports.module";
         const db = config.get<{ uri: string; dbName: string }>("database", {
           infer: true,
         });
-        if (!db) {
-          throw new Error("Database config is missing");
-        }
+        if (!db) throw new Error("Database config is missing");
+
         return {
           uri: db.uri,
           dbName: db.dbName,
@@ -74,6 +57,7 @@ import { ReportsModule } from "./modules/report/reports.module";
     ChatModule,
     AdminModule,
     ReportsModule,
+    EmailModule,
   ],
 })
 export class AppModule {
