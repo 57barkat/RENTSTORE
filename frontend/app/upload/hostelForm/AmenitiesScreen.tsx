@@ -46,7 +46,7 @@ const HostelAmenitiesScreen: FC = () => {
   const handleNext = () => {
     const amenitiesKeys = Array.from(selectedAmenities);
     updateForm("amenities" as keyof FormData, amenitiesKeys);
-    console.log("Selected hostel amenities saved to context:", amenitiesKeys);
+    // console.log("Selected hostel amenities saved to context:", amenitiesKeys);
 
     // Hostel-specific next screen
     router.push("/upload/hostelForm/PhotosScreen" as `${string}:param`);

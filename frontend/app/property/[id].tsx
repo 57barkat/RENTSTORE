@@ -15,6 +15,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -23,13 +24,11 @@ import ImageCarousel from "@/utils/properties/Carousel";
 import { formatPrice } from "@/utils/properties/formatPrice";
 import { usePropertyById } from "@/services/propertyService";
 import { useChatRoom } from "@/hooks/useChatRoom";
-
 import { PropertyDetailsHeader } from "@/components/Properties/PropertyDetailsHeader";
 import { StatItem } from "@/components/Properties/PropertyStats";
 import { Badge } from "@/components/Properties/PropertyBadge";
 import { PriceRow } from "@/components/Properties/PropertyPriceCard";
 import { PropertyFooter } from "@/components/Properties/PropertyFooter";
-
 import { Ionicons } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
 import { usePropertyReportMutation } from "@/services/api";
@@ -38,7 +37,6 @@ export const options = { headerShown: false };
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  console.log("PropertyDetails rendered with id:", id);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const isDark = theme === "dark";
@@ -58,6 +56,20 @@ export default function PropertyDetails() {
 
   const [reportProperty, { isLoading: isReporting }] =
     usePropertyReportMutation();
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = `https://expo.dev/@usman_naeem/rent-store?release-channel=default&id=${id}`;
+
+      await Share.share({
+        message: `Check out this property on Rent Store: ${property?.title}\n\nView Property: ${shareUrl}`,
+        url: shareUrl,
+        title: property?.title,
+      });
+    } catch (error: any) {
+      Alert.alert("Error", error.message);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,6 +137,7 @@ export default function PropertyDetails() {
         theme={currentTheme}
         isDark={isDark}
         onBack={() => router.back()}
+        onShare={handleShare}
       />
 
       <ScrollView
@@ -141,8 +154,11 @@ export default function PropertyDetails() {
         <View style={{ height: windowHeight * 0.45 }}>
           <ImageCarousel
             media={
-              property.photos?.map((uri: string) => ({ uri, type: "image" })) ||
-              []
+              property.photos?.map((uri: string, index: number) => ({
+                uri,
+                type: "image",
+                id: `prop-${property.id}-img-${index}`,
+              })) || []
             }
           />
         </View>
@@ -218,7 +234,6 @@ export default function PropertyDetails() {
             style={[styles.divider, { backgroundColor: currentTheme.border }]}
           />
 
-          {/* Owner Profile Section */}
           {property.owner && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
@@ -243,7 +258,6 @@ export default function PropertyDetails() {
             </View>
           )}
 
-          {/* Highlights */}
           {property.description?.highlighted && (
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
@@ -265,7 +279,6 @@ export default function PropertyDetails() {
             </View>
           )}
 
-          {/* Amenities & Bills */}
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
               Amenities & Bills
@@ -292,7 +305,6 @@ export default function PropertyDetails() {
             </View>
           </View>
 
-          {/* Financials */}
           <View
             style={[
               styles.priceCard,
@@ -549,7 +561,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    // marginTop: 30,
     paddingBottom: 20,
   },
   reportText: {

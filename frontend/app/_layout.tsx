@@ -44,7 +44,7 @@ const AppContent = () => {
           theme === "dark" ? "#000000" : "#ffffff",
         );
       } catch (e) {
-        console.warn("Navigation Bar Error: ", e);
+        // console.warn("Navigation Bar Error: ", e);
       }
     };
     setupSystemUI();

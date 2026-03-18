@@ -41,14 +41,14 @@ export default function DraftProperties() {
     refetch,
   } = useGetDraftPropertiesQuery();
 
-  console.log(
-    "Draft Properties Data:",
-    drafts,
-    "Loading:",
-    isLoading,
-    "Error:",
-    isError,
-  );
+  // console.log(
+  //   "Draft Properties Data:",
+  //   drafts,
+  //   "Loading:",
+  //   isLoading,
+  //   "Error:",
+  //   isError,
+  // );
 
   const [deleteProperty] = useFindDraftPropertyByIdAndDeleteMutation();
 
@@ -58,7 +58,7 @@ export default function DraftProperties() {
     try {
       await refetch();
     } catch (e) {
-      console.error("Refetch failed", e);
+      // console.error("Refetch failed", e);
     } finally {
       setRefreshing(false);
     }
@@ -88,7 +88,7 @@ export default function DraftProperties() {
         text1: "Delete Failed",
         text2: "Something went wrong.",
       });
-      console.error(err);
+      // console.error(err);
     }
   };
 

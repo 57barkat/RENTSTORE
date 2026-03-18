@@ -43,7 +43,7 @@ export const useVoiceRecorder = () => {
       setRecording(newRecording);
       setIsRecording(true);
     } catch (err) {
-      console.error("Failed to start recording:", err);
+      // console.error("Failed to start recording:", err);
       Alert.alert("Error", "Could not start recording.");
     }
   };
@@ -61,7 +61,7 @@ export const useVoiceRecorder = () => {
       setRecording(null);
       return recordedUri;
     } catch (err) {
-      console.error("Failed to stop recording:", err);
+      // console.error("Failed to stop recording:", err);
       return null;
     }
   };
@@ -90,7 +90,7 @@ export const useVoiceRecorder = () => {
         }
       });
     } catch (err) {
-      console.error("Failed to play recording:", err);
+      // console.error("Failed to play recording:", err);
     }
   };
 
@@ -101,7 +101,7 @@ export const useVoiceRecorder = () => {
       await sound.stopAsync();
       setIsPlaying(false);
     } catch (err) {
-      console.error("Playback stop error:", err);
+      // console.error("Playback stop error:", err);
     }
   };
 

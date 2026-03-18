@@ -88,7 +88,7 @@ const Favorites = () => {
         text1: "Error Removing Favorite",
         text2: "Something went wrong.",
       });
-      console.error("Remove favorite failed:", err);
+      // console.error("Remove favorite failed:", err);
     }
   };
 

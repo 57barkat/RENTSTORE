@@ -16,7 +16,6 @@ export const useFilteredProperties = (
     page,
     limit: 10,
   });
-  console.log("Filters in service:", data);
   return { data, isLoading, refetch };
 };
 export const useFavorites = () => {

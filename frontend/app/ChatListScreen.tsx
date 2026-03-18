@@ -43,7 +43,7 @@ export default function ChatListScreen() {
     const setupSocket = async () => {
       socketInstance = await connectSocket();
       socketInstance.on("roomsUpdated", (data: any) => {
-        console.log("DEBUG: roomsUpdated event received from backend");
+        // console.log("DEBUG: roomsUpdated event received from backend");
         refetch();
       });
     };
@@ -56,7 +56,7 @@ export default function ChatListScreen() {
 
   useEffect(() => {
     if (rooms) {
-      console.log("DEBUG: Current Rooms Data:", JSON.stringify(rooms, null, 2));
+      // console.log("DEBUG: Current Rooms Data:", JSON.stringify(rooms, null, 2));
     }
   }, [rooms]);
 
@@ -69,7 +69,7 @@ export default function ChatListScreen() {
   const filteredRooms = rooms?.filter((room: ChatRoom) =>
     room.otherUser?.name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-  console.log("DEBUG: Filtered Rooms after search query:", filteredRooms);
+  // console.log("DEBUG: Filtered Rooms after search query:", filteredRooms);
   if (isLoading && !refreshing) {
     return (
       <View
@@ -132,12 +132,12 @@ export default function ChatListScreen() {
         renderItem={({ item }) => {
           const hasUnread =
             item.unreadCount !== undefined && item.unreadCount > 0;
-          console.log(
-            "DEBUG: Rendering chat item with unreadCount:",
-            item.unreadCount,
-            "hasUnread:",
-            hasUnread,
-          );
+          // console.log(
+          //   "DEBUG: Rendering chat item with unreadCount:",
+          //   item.unreadCount,
+          //   "hasUnread:",
+          //   hasUnread,
+          // );
           return (
             <TouchableOpacity
               style={[

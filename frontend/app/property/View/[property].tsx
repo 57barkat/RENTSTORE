@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/Properties/EmptyState";
 import { usePropertiesPage } from "@/hooks/useFilteredProperties";
 import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 import { MaterialIcons } from "@expo/vector-icons";
+import LoadingScreen from "@/components/Common/LoadingScreen";
 
 if (
   Platform.OS === "android" &&
@@ -69,6 +70,7 @@ export default function PropertiesPage() {
 
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  const [isSwitching, setIsSwitching] = useState(false);
 
   const initialFilters = {
     city: city || undefined,
@@ -105,7 +107,6 @@ export default function PropertiesPage() {
     isLoading,
     handleToggleFav,
   } = usePropertiesPage(hostFiltersStore[hostOption], hostOption, sortBy);
-  console.log("Current filters:", filters);
 
   useEffect(() => {
     setHostFiltersStore((prev) => ({
@@ -115,10 +116,12 @@ export default function PropertiesPage() {
   }, [filters, hostOption]);
 
   const handleHostChange = (newHost: string) => {
+    setIsSwitching(true);
     setHostOption(newHost);
     setPage(1);
     const savedFilters = hostFiltersStore[newHost] || {};
     setFilters(savedFilters);
+    setTimeout(() => setIsSwitching(false), 300);
   };
 
   const selectedChips = buildSelectedChips(hostOption, filters).filter(
@@ -129,9 +132,11 @@ export default function PropertiesPage() {
   const toggleFilterVisibility = () => setShowFilters(!showFilters);
 
   const handleSortSelect = (value: string) => {
+    setIsSwitching(true);
     setSortBy(value);
     setSortModalVisible(false);
     setPage(1);
+    setTimeout(() => setIsSwitching(false), 1300);
   };
 
   return (
@@ -173,12 +178,8 @@ export default function PropertiesPage() {
         theme={currentTheme}
       />
 
-      {isLoading && page === 1 ? (
-        <View
-          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
-        >
-          <ActivityIndicator size="large" color={currentTheme.secondary} />
-        </View>
+      {(isLoading || isSwitching) && page === 1 ? (
+        <LoadingScreen currentTheme={currentTheme} />
       ) : (
         <FlatList
           data={allProperties}
@@ -189,7 +190,11 @@ export default function PropertiesPage() {
             justifyContent: "space-between",
             paddingHorizontal: GUTTER,
           }}
-          contentContainerStyle={{ paddingTop: 8, paddingBottom: 20 }}
+          contentContainerStyle={{
+            paddingTop: 8,
+            paddingBottom: 20,
+            flexGrow: 1,
+          }}
           renderItem={({ item }) => (
             <PropertyCard
               item={item}
@@ -224,7 +229,11 @@ export default function PropertiesPage() {
               <View style={{ height: 20 }} />
             )
           }
-          ListEmptyComponent={<EmptyState theme={currentTheme} />}
+          ListEmptyComponent={
+            !isLoading && !isSwitching ? (
+              <EmptyState theme={currentTheme} />
+            ) : null
+          }
         />
       )}
 
@@ -232,8 +241,10 @@ export default function PropertiesPage() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onApply={() => {
+          setIsSwitching(true);
           setModalVisible(false);
           setPage(1);
+          setTimeout(() => setIsSwitching(false), 300);
         }}
         hostOption={hostOption}
         onHostChange={handleHostChange}

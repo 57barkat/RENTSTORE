@@ -64,8 +64,6 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
     await tokenManager.clear();
-
-    api.dispatch(api.util.resetApiState());
   }
   return result;
 };
@@ -275,7 +273,7 @@ export const api = createApi({
           await queryFulfilled;
           dispatch(api.util.resetApiState());
         } catch (err) {
-          console.error("Logout mutation failed", err);
+          // console.error("Logout mutation failed", err);
         }
       },
     }),
@@ -295,7 +293,7 @@ export const api = createApi({
         try {
           await queryFulfilled;
         } catch (err) {
-          console.error("Failed to clear voice session", err);
+          // // console.error("Failed to clear voice session", err);
         }
       },
     }),

@@ -25,7 +25,7 @@ class TokenManager {
       this.refreshToken = refresh[1];
       this.userData = user[1] ? JSON.parse(user[1]) : null;
     } catch (error) {
-      console.warn("TokenManager load failed:", error);
+      // console.warn("TokenManager load failed:", error);
     } finally {
       this.loaded = true;
     }
@@ -40,7 +40,7 @@ class TokenManager {
         [REFRESH_TOKEN_KEY, refreshToken],
       ]);
     } catch (error) {
-      console.warn("TokenManager setTokens failed:", error);
+      // console.warn("TokenManager setTokens failed:", error);
     }
   }
 
@@ -49,7 +49,7 @@ class TokenManager {
     try {
       await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
     } catch (error) {
-      console.warn("TokenManager setUserData failed:", error);
+      // console.warn("TokenManager setUserData failed:", error);
     }
   }
 
@@ -79,7 +79,7 @@ class TokenManager {
         USER_DATA_KEY,
       ]);
     } catch (error) {
-      console.warn("TokenManager clear failed:", error);
+      // console.warn("TokenManager clear failed:", error);
     }
   }
 
@@ -90,7 +90,7 @@ class TokenManager {
         verified ? "true" : "false",
       );
     } catch (err) {
-      console.warn("TokenManager setPhoneVerified failed:", err);
+      // console.warn("TokenManager setPhoneVerified failed:", err);
     }
   }
 
@@ -98,7 +98,7 @@ class TokenManager {
     try {
       return await AsyncStorage.getItem(PHONE_VERIFIED_KEY);
     } catch (err) {
-      console.log(err);
+      // console.log(err);
       return null;
     }
   }

@@ -42,12 +42,12 @@ export const sidebarMenuItems: MenuItem[] = [
     label: "Draft Property",
     screen: "DraftProperties",
   },
-  {
-    iconType: "Feather",
-    iconName: "user-x",
-    label: "Delete Account",
-    screen: "DeleteAccount",
-  },
+  // {
+  //   iconType: "Feather",
+  //   iconName: "user-x",
+  //   label: "Delete Account",
+  //   screen: "DeleteAccount",
+  // },
   {
     iconType: "Ionicons",
     iconName: "shield-checkmark-outline",

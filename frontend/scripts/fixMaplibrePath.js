@@ -19,7 +19,7 @@ if (fs.existsSync(gradleKts)) {
   settingsFile = gradleGroovy;
   isKotlin = false;
 } else {
-  console.error("Cannot find settings.gradle.kts or settings.gradle in android folder!");
+  // console.error("Cannot find settings.gradle.kts or settings.gradle in android folder!");
   process.exit(1);
 }
 
@@ -39,7 +39,7 @@ if (!content.includes("FIX MAPLIBRE RELATIVE PATH")) {
       `}\n`;
 
   fs.writeFileSync(settingsFile, content + patch, "utf8");
-  console.log(`Patched @maplibre maplibre-react-native path to relative (${isKotlin ? "Kotlin DSL" : "Groovy DSL"}).`);
+  // console.log(`Patched @maplibre maplibre-react-native path to relative (${isKotlin ? "Kotlin DSL" : "Groovy DSL"}).`);
 } else {
-  console.log("Patch already applied. Skipping.");
+  // console.log("Patch already applied. Skipping.");
 }

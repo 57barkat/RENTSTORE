@@ -5,9 +5,9 @@ const GOOGLE_API_KEY: string | undefined =
   Constants.expoConfig?.extra?.GOOGLE_MAPS_API_KEY;
 
 if (!GOOGLE_API_KEY) {
-  console.warn("⚠️ GOOGLE_MAPS_API_KEY is missing");
+  // console.warn("⚠️ GOOGLE_MAPS_API_KEY is missing");
 } else {
-  console.log("✅ GOOGLE_MAPS_API_KEY is set", GOOGLE_API_KEY);
+  // console.log("✅ GOOGLE_MAPS_API_KEY is set", GOOGLE_API_KEY);
 }
 
 /**
@@ -29,13 +29,13 @@ export const searchPlaces = async (input: string) => {
     const json = await res.json();
 
     if (json.status !== "OK") {
-      console.warn("Autocomplete error:", json.status, json.error_message);
+      // console.warn("Autocomplete error:", json.status, json.error_message);
       return [];
     }
 
     return json.predictions;
   } catch (error) {
-    console.error("Autocomplete fetch failed:", error);
+    // console.error("Autocomplete fetch failed:", error);
     return [];
   }
 };
@@ -57,13 +57,13 @@ export const placeDetails = async (placeId: string) => {
     const json = await res.json();
 
     if (json.status !== "OK") {
-      console.warn("Place details error:", json.status);
+      // console.warn("Place details error:", json.status);
       return null;
     }
 
     return json.result;
   } catch (error) {
-    console.error("Place details fetch failed:", error);
+    // console.error("Place details fetch failed:", error);
     return null;
   }
 };

@@ -142,7 +142,7 @@ const Sidebar: React.FC = () => {
     try {
       await logoutApi().unwrap();
     } catch (error) {
-      console.warn("Backend logout failed or already unauthorized");
+      // console.warn("Backend logout failed or already unauthorized");
     } finally {
       setTheme("light");
       close();

@@ -2,7 +2,12 @@ import React from "react";
 import { View, TouchableOpacity } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 
-export const PropertyDetailsHeader = ({ theme, isDark, onBack }: any) => (
+export const PropertyDetailsHeader = ({
+  theme,
+  isDark,
+  onBack,
+  onShare,
+}: any) => (
   <View
     style={{
       position: "absolute",
@@ -35,9 +40,9 @@ export const PropertyDetailsHeader = ({ theme, isDark, onBack }: any) => (
           borderRadius: 22,
           justifyContent: "center",
           alignItems: "center",
-          marginRight: 10,
           backgroundColor: isDark ? "rgba(28,28,30,0.8)" : "white",
         }}
+        onPress={onShare}
       >
         <Feather name="share" size={20} color={theme.text} />
       </TouchableOpacity>

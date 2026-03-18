@@ -92,7 +92,7 @@ export default function ChatRoomScreen() {
           setRoomId(room._id);
           router.setParams({ roomId: room._id });
         } catch (err) {
-          console.error("Room error", err);
+          // console.error("Room error", err);
         }
       }
     };

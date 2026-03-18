@@ -50,9 +50,13 @@ export const useHomePageLogic = () => {
   }, []);
 
   const handleCancelVoice = useCallback(async () => {
-    try {
-      await clearVoiceSession().unwrap();
-    } catch {}
+    clearVoiceSession()
+      .unwrap()
+      .catch((err) => {
+        if (err.status === 401) {
+          // console.log("Voice session cleanup unauthorized - ignoring");
+        }
+      });
     setAssistantMessage(null);
     setLastFilters(null);
     if (isRecording) stop();
@@ -151,8 +155,13 @@ export const useHomePageLogic = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await handleCancelVoice();
-    await Promise.all([refetchH(), refetchA(), refetchR(), refetchFavorites()]);
+    handleCancelVoice();
+    await Promise.all([
+      refetchH().catch(() => {}),
+      refetchA().catch(() => {}),
+      refetchR().catch(() => {}),
+      refetchFavorites().catch(() => {}),
+    ]);
     setRefreshing(false);
   }, [handleCancelVoice, refetchH, refetchA, refetchR, refetchFavorites]);
 

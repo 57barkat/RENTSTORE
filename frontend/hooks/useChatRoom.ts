@@ -43,7 +43,7 @@ export const useChatRoom = (
         },
       });
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       Alert.alert("Chat Error", "Could not start conversation.");
     }
   };

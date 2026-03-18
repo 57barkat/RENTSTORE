@@ -6,10 +6,6 @@ export class EmailService {
   private resend = new Resend(process.env.RESEND_API_KEY);
 
   async sendVerificationEmail(email: string, code: string) {
-    // ✅ Debug logs
-    console.log("📧 Sending verification email to:", email);
-    console.log("🔑 API KEY Loaded:", !!process.env.RESEND_API_KEY);
-
     try {
       const response = await this.resend.emails.send({
         from: "contact@binaryscripters.co.uk",

@@ -25,7 +25,7 @@ const MyListingProperties = () => {
   const { width } = useWindowDimensions();
   const logic = useMyPropertiesLogic();
 
-  console.log(logic);
+  // console.log(logic);
   // Helper to format button labels
   const getSortLabel = (key: string) => {
     switch (key) {

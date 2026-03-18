@@ -154,7 +154,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
           };
         }
       } catch (err) {
-        console.error("Reverse Geocode Error:", err);
+        // console.error("Reverse Geocode Error:", err);
       }
     },
     [],
@@ -202,7 +202,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
       setCoords(newCoords);
       await getFullAddress(newCoords);
     } catch (err) {
-      console.log("Location error:", err);
+      // console.log("Location error:", err);
       setPermissionStatus("denied");
     } finally {
       setLoading(false);
@@ -248,7 +248,7 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
           const results = await searchPlaces(text);
           setSuggestions(results);
         } catch (err) {
-          console.error(err);
+          // console.error(err);
         }
       } else {
         setSuggestions([]);

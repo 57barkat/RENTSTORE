@@ -38,7 +38,7 @@ const FinalDescriptionScreen: FC<FinalDescriptionScreenProps> = ({
 
   const handleNext = () => {
     router.push("/upload/BookingSettingsScreen");
-    console.log("Final Description saved:", description);
+    // console.log("Final Description saved:", description);
   };
 
   const isNextDisabled = description.length < MIN_DESCRIPTION_LENGTH;

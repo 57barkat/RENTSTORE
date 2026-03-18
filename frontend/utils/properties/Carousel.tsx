@@ -17,6 +17,7 @@ import GalleryModal from "./GalleryView";
 const { width } = Dimensions.get("window");
 
 interface MediaItem {
+  id: string;
   uri: string;
   type: "image" | "video";
 }
@@ -43,7 +44,7 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
     <View style={styles.container}>
       <FlatList
         data={media}
-        keyExtractor={(_, index) => index.toString()}
+        keyExtractor={(item, index) => item.id || `${item.uri}-${index}`}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -89,7 +90,9 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
       </TouchableOpacity>
 
       <ImageViewing
-        images={media.filter((m) => m.type === "image")}
+        images={media
+          .filter((m) => m.type === "image")
+          .map((m) => ({ uri: m.uri }))}
         imageIndex={activeIndex}
         visible={visible && media[activeIndex].type === "image"}
         onRequestClose={() => setVisible(false)}

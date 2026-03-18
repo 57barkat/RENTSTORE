@@ -37,13 +37,16 @@ export class PropertyService {
     return urls;
   }
 
-  // ---------------------- Service ----------------------
   async createOrUpdate(
     dto: CreatePropertyDto,
     userId: string,
   ): Promise<Property> {
     let property: Property | null = null;
     const propertyId = dto._id;
+
+    if (dto.photos) {
+      dto.photos = Array.from(new Set(dto.photos));
+    }
 
     if (propertyId) {
       property = await this.propertyModel.findById(propertyId);
@@ -54,8 +57,11 @@ export class PropertyService {
 
         const oldPhotos = property.photos || [];
         const newPhotos = dto.photos || [];
+
+        const uniqueNewPhotos = Array.from(new Set(newPhotos));
+
         const photosToDelete = oldPhotos.filter(
-          (url) => !newPhotos.includes(url),
+          (url) => !uniqueNewPhotos.includes(url),
         );
 
         if (photosToDelete.length > 0) {
@@ -66,7 +72,6 @@ export class PropertyService {
           );
         }
 
-        // Update GeoJSON if lat/lng provided
         if (dto.lat !== undefined && dto.lng !== undefined) {
           dto.locationGeo = {
             type: "Point",
@@ -74,7 +79,11 @@ export class PropertyService {
           };
         }
 
-        Object.assign(property, dto);
+        Object.assign(property, {
+          ...dto,
+          photos: uniqueNewPhotos,
+        });
+
         return await property.save();
       }
 
@@ -84,6 +93,7 @@ export class PropertyService {
           throw new UnauthorizedException("Not allowed to promote this draft");
 
         const { _id, ...draftData } = draft.toObject();
+
         if (dto.lat !== undefined && dto.lng !== undefined) {
           dto.locationGeo = {
             type: "Point",
@@ -94,6 +104,7 @@ export class PropertyService {
         property = new this.propertyModel({
           ...draftData,
           ...dto,
+          photos: Array.from(new Set(dto.photos || draftData.photos || [])), // ✅ FIX
           ownerId: userId,
           status: true,
           isApproved: false,
@@ -110,16 +121,21 @@ export class PropertyService {
       );
     }
 
-    // NO ID: New property
+    // ✅ NEW PROPERTY
     if (dto.lat !== undefined && dto.lng !== undefined) {
-      dto.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+      dto.locationGeo = {
+        type: "Point",
+        coordinates: [dto.lng, dto.lat],
+      };
     }
 
     property = new this.propertyModel({
       ...dto,
+      photos: Array.from(new Set(dto.photos || [])), // ✅ FIX
       ownerId: userId,
       status: true,
     });
+
     return await property.save();
   }
   async findNearbyProperties(
@@ -167,18 +183,29 @@ export class PropertyService {
     imageFiles?: Express.Multer.File[],
     userId?: string,
   ) {
-    const photos: string[] = imageFiles?.length
-      ? await this.uploadFilesToCloudinary(imageFiles)
-      : dto.photos || [];
+    let photos: string[] = [];
+
+    if (imageFiles?.length) {
+      const uploaded = await this.uploadFilesToCloudinary(imageFiles);
+      photos = uploaded;
+    } else {
+      photos = dto.photos || [];
+    }
+
+    const uniquePhotos = Array.from(new Set(photos));
 
     if (dto.lat !== undefined && dto.lng !== undefined) {
-      dto.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+      dto.locationGeo = {
+        type: "Point",
+        coordinates: [dto.lng, dto.lat],
+      };
     }
 
     const filter = dto._id ? { _id: dto._id } : { _id: new Types.ObjectId() };
+
     const update = {
       ...dto,
-      photos,
+      photos: uniquePhotos,
       ownerId: new Types.ObjectId(userId),
       status: false,
     };
@@ -396,6 +423,8 @@ export class PropertyService {
     ]);
 
     if (!property) throw new NotFoundException("Property not found");
+
+    property.photos = Array.from(new Set(property.photos || []));
 
     const isOwner =
       userId && property.owner?._id?.toString() === userId.toString();

@@ -70,15 +70,15 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   const setFullFormData: FormContextType["setFullFormData"] = (newData) => {
     setData({ ...newData });
   };
-  console.log("🔄 FormContext data updated:", data);
+  // console.log("🔄 FormContext data updated:", data);
   const submitData: FormContextType["submitData"] = async (overrideData) => {
     try {
       const payload = overrideData ?? data;
-      console.log("🚀 Submitting FINAL property:", payload);
+      // console.log("🚀 Submitting FINAL property:", payload);
       const response = await createProperty(payload).unwrap();
       return { success: true, data: response };
     } catch (error) {
-      console.error("❌ Error submitting:", error);
+      // console.error("❌ Error submitting:", error);
       return { success: false, error };
     }
   };
@@ -88,11 +88,11 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     try {
       const payload = overrideData ?? data;
-      console.log("🗂️ Saving DRAFT:", payload);
+      // console.log("🗂️ Saving DRAFT:", payload);
       const response = await createProperty(payload).unwrap();
       return { success: true, data: response };
     } catch (error) {
-      console.error("❌ Error saving draft:", error);
+      // console.error("❌ Error saving draft:", error);
       return { success: false, error };
     }
   };

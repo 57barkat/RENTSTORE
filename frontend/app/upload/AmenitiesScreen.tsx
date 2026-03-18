@@ -50,7 +50,7 @@ const AmenitiesScreen: FC = () => {
     // We cast to 'amenities' key of FormData to ensure type safety
     updateForm("amenities" as keyof FormData, amenitiesKeys);
 
-    console.log("Selected amenities saved to context:", amenitiesKeys);
+    // console.log("Selected amenities saved to context:", amenitiesKeys);
 
     // 3. Navigate to the next screen
     router.push("/upload/PhotosScreen" as `${string}:param`);
