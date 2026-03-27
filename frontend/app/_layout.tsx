@@ -24,7 +24,10 @@ import Header from "@/components/Header";
 import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
 import { LengthProvider } from "@/contextStore/LengthContext";
-
+// @
+if (__DEV__) {
+  require("../ReactotronConfig");
+}
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
