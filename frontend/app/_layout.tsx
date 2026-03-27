@@ -12,7 +12,6 @@ import Toast from "react-native-toast-message";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as NavigationBar from "expo-navigation-bar";
-
 import { store } from "../services/store";
 import { AuthProvider, useAuth } from "@/contextStore/AuthContext";
 import {
@@ -29,11 +28,11 @@ const AppContent = () => {
   const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-
   const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
+  const [navReady, setNavReady] = useState(false);
 
   useEffect(() => {
     const setupSystemUI = async () => {
@@ -44,7 +43,7 @@ const AppContent = () => {
           theme === "dark" ? "#000000" : "#ffffff",
         );
       } catch (e) {
-        // console.warn("Navigation Bar Error: ", e);
+        console.warn("Navigation bar error:", e);
       }
     };
     setupSystemUI();
@@ -52,57 +51,99 @@ const AppContent = () => {
 
   useEffect(() => {
     if (!fontsLoaded || loading) return;
-
     const segment = segments[0] ?? "";
-    const inAuthGroup =
-      segment === "(auth)" || segment === "signin" || segment === "signup";
-
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace("/signin");
-    } else if (isAuthenticated && (inAuthGroup || segment === "")) {
-      router.replace("/homePage");
-    }
+    const inAuthGroup = ["(auth)", "signin", "signup"].includes(segment);
+    const timeout = setTimeout(() => {
+      if (!isAuthenticated && !inAuthGroup) {
+        router.replace("/signin");
+      } else if (isAuthenticated && (inAuthGroup || segment === "")) {
+        router.replace("/homePage");
+      }
+      setNavReady(true);
+    }, 1);
+    return () => clearTimeout(timeout);
   }, [fontsLoaded, loading, isAuthenticated, segments]);
 
-  if (!fontsLoaded || loading) {
+  if (!fontsLoaded || loading || !navReady) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: theme === "dark" ? "#000" : "#fff",
+        }}
+      >
         <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
 
-  const hideHeaderScreens = new Set([
-    "signin",
-    "signup",
-    "choose-role",
-    "Verification",
-    "property/[id]",
-    "property/edit/[id]",
-    "property/View/[type]",
-    "chat/[roomId]",
-  ]);
-
-  const currentSegment = segments[segments.length - 1] ?? "";
-  const currentPath = segments.join("/");
-
-  const hideHeader =
-    hideHeaderScreens.has(currentSegment) || hideHeaderScreens.has(currentPath);
-
   return (
     <ThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-      {!hideHeader && <Header />}
       <Sidebar />
-
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="signin" />
-        <Stack.Screen name="signup" />
-        <Stack.Screen name="choose-role" />
-        <Stack.Screen name="Verification" />
-        <Stack.Screen name="chat/[roomId]" />
-        <Stack.Screen name="property/[id]" />
-        <Stack.Screen name="property/View/[type]" />
-        <Stack.Screen name="property/edit/[id]" />
+      <Stack
+        screenOptions={{
+          headerShown: true,
+          header: () => <Header />,
+          animation: "slide_from_right",
+          animationDuration: 200,
+        }}
+      >
+        <Stack.Screen
+          name="signin"
+          options={{
+            headerShown: false,
+            animation: "fade",
+          }}
+        />
+        <Stack.Screen
+          name="signup"
+          options={{
+            headerShown: false,
+            animation: "fade",
+          }}
+        />
+        <Stack.Screen
+          name="choose-role"
+          options={{
+            headerShown: false,
+            animation: "slide_from_bottom",
+          }}
+        />
+        <Stack.Screen
+          name="Verification"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="chat/[roomId]"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="property/[id]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="property/View/[type]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="property/edit/[id]"
+          options={{
+            headerShown: false,
+            animation: "slide_from_right",
+          }}
+        />
         <Stack.Screen name="MyListingsScreen" />
         <Stack.Screen name="DraftProperties" />
         <Stack.Screen name="upload" />
@@ -112,8 +153,7 @@ const AppContent = () => {
         <Stack.Screen name="ChatListScreen" />
         <Stack.Screen name="+not-found" />
       </Stack>
-
-      <StatusBar style="auto" />
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <Toast />
     </ThemeProvider>
   );
