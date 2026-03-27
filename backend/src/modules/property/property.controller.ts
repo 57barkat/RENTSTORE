@@ -95,7 +95,7 @@ export class PropertyController {
         })
         .filter((a) => Object.keys(a).length > 0);
     }
-    parsedDto.address = parsedAddress;
+    parsedDto.address = parsedAddress[0] || {};
 
     // Photo upload (for both drafts and complete)
     const photoUrls = files?.photos?.length

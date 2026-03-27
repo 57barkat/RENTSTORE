@@ -43,7 +43,7 @@ const Sidebar: React.FC = () => {
   // --------------------------
   const { data: stats, refetch } = useGetUserStatsQuery(null, {
     refetchOnFocus: true,
-    pollingInterval: 5000,
+    // pollingInterval: 5000,
   });
 
   useEffect(() => {
