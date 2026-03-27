@@ -45,17 +45,16 @@ export class Property extends Document {
   @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];
 
   @Prop({
-    type: [
-      {
-        aptSuiteUnit: String,
-        street: String,
-        city: String,
-        stateTerritory: String,
-        country: String,
-        zipCode: String,
-        _id: false,
-      },
-    ],
+    type: {
+      aptSuiteUnit: String,
+      street: String,
+      city: String,
+      stateTerritory: String,
+      country: String,
+      zipCode: String,
+      _id: false,
+    },
+
     default: [],
   })
   address?: Record<string, any>[];
@@ -139,10 +138,22 @@ export class Property extends Document {
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
 
-PropertySchema.index({ locationGeo: "2dsphere" });
+PropertySchema.index({
+  locationGeo: "2dsphere",
+});
 PropertySchema.index({ area: 1 });
-PropertySchema.index({ "address.city": 1 });
-PropertySchema.index({ hostOption: 1 });
-PropertySchema.index({ monthlyRent: 1 });
+// PropertySchema.index({ "address.city": 1 });
+// PropertySchema.index({ hostOption: 1 });
+// PropertySchema.index({ monthlyRent: 1 });
 PropertySchema.index({ "capacityState.bedrooms": 1 });
 PropertySchema.index({ "capacityState.floorLevel": 1 });
+// High-priority compound index
+PropertySchema.index({ "address.city": 1, moderationStatus: 1, isVisible: 1 });
+// 1. For the main search results (City + Type + Price)
+PropertySchema.index({ "address.city": 1, hostOption: 1, monthlyRent: 1 });
+// 2. For owner dashboards
+PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
+// 3. For global discovery/featured listings
+PropertySchema.index({ featured: 1, moderationStatus: 1, createdAt: -1 });
+// 4. Geospatial + Active status CAN BE
+PropertySchema.index({ locationGeo: "2dsphere", moderationStatus: 1 });
