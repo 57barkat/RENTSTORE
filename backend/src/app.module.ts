@@ -20,6 +20,7 @@ import { ChatModule } from "./chat/chat.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { ReportsModule } from "./modules/report/reports.module";
 import { EmailModule } from "./services/email/email.module";
+import { AgencyModule } from "./modules/Agency/agency.module";
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { EmailModule } from "./services/email/email.module";
     AdminModule,
     ReportsModule,
     EmailModule,
+    AgencyModule,
   ],
 })
 export class AppModule {
