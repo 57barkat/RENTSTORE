@@ -61,7 +61,7 @@ const MyListingProperties = () => {
         color={currentTheme.muted}
       />
       <Text style={[styles.capacityText, { color: currentTheme.muted }]}>
-        {value || "N/A"} {unit}
+        {value || "0"} {unit}
       </Text>
     </View>
   );
@@ -194,18 +194,23 @@ const MyListingProperties = () => {
                 style={[styles.location, { color: currentTheme.muted }]}
                 numberOfLines={1}
               >
-                {item.address?.[0]?.city || "City N/A"},{" "}
-                {item.address?.[0]?.country || "Country N/A"}
+                {item.location ||
+                  `${item.address?.city || "N/A"}, ${item.address?.country || ""}`}
               </Text>
             </View>
 
             <View style={styles.capacityRow}>
               {renderCapacity(
                 "account-group-outline",
-                item.capacityState?.Persons,
-                "Persons",
+                "Floor no",
+                item.capacityState?.floorLevel,
+                // "floor",
               )}
-              {renderCapacity("bed-outline", item.capacityState?.beds, "Beds")}
+              {renderCapacity(
+                "bed-outline",
+                item.capacityState?.bedrooms,
+                "Rooms",
+              )}
               {renderCapacity(
                 "bathtub-outline",
                 item.capacityState?.bathrooms,
@@ -214,7 +219,7 @@ const MyListingProperties = () => {
             </View>
 
             <Text style={[styles.price, { color: currentTheme.secondary }]}>
-              Rs. {item.monthlyRent?.toLocaleString() || "N/A"} / month
+              Rs. {item.monthlyRent?.toLocaleString() || "0"} / month
             </Text>
 
             <View style={styles.actionsRow}>

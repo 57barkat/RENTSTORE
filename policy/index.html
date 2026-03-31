@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RentStore | Privacy Hub</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      :root {
+        --accent: #4f46e5;
+        --accent-glow: rgba(79, 70, 229, 0.1);
+        --glass: rgba(255, 255, 255, 0.6);
+        --text: #0f172a;
+        --subtext: #475569;
+        --border: rgba(226, 232, 240, 0.8);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        color: var(--text);
+        background: #f8fafc;
+        background-image:
+          radial-gradient(
+            at 0% 0%,
+            hsla(253, 16%, 7%, 0.03) 0,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 100% 100%,
+            hsla(225, 39%, 30%, 0.05) 0,
+            transparent 50%
+          );
+        min-height: 100vh;
+        line-height: 1.7;
+        overflow-x: hidden;
+      }
+
+      .blob {
+        position: fixed;
+        width: 500px;
+        height: 500px;
+        background: var(--accent-glow);
+        filter: blur(100px);
+        border-radius: 50%;
+        z-index: -1;
+        top: -10%;
+        right: -10%;
+        animation: float 25s infinite alternate ease-in-out;
+      }
+
+      @keyframes float {
+        from {
+          transform: translate(0, 0) scale(1);
+        }
+        to {
+          transform: translate(-100px, 100px) scale(1.1);
+        }
+      }
+
+      .wrapper {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 80px 24px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 80px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 14px;
+        background: white;
+        color: var(--accent);
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+      }
+
+      header h1 {
+        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #1e293b 0%, #4f46e5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      header p {
+        color: var(--subtext);
+        font-size: 1.1rem;
+        max-width: 500px;
+        margin: 0 auto;
+      }
+
+      .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: minmax(240px, auto);
+        gap: 24px;
+      }
+
+      .item {
+        background: var(--glass);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        padding: 40px;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .item:hover {
+        transform: translateY(-10px);
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 30px 60px -12px rgba(99, 102, 241, 0.15);
+      }
+
+      .wide {
+        grid-column: span 2;
+      }
+      .tall {
+        grid-row: span 2;
+      }
+
+      .icon-wrap {
+        color: var(--accent);
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 52px;
+        height: 52px;
+        background: var(--accent-glow);
+        border-radius: 14px;
+      }
+
+      .item h2 {
+        font-size: 1.35rem;
+        margin-bottom: 14px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .item p {
+        color: var(--subtext);
+        font-size: 1rem;
+      }
+
+      .list-container {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .list-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .list-item i {
+        color: #10b981; /* Success Green */
+      }
+
+      footer {
+        text-align: center;
+        margin-top: 100px;
+        padding-bottom: 40px;
+        font-size: 0.9rem;
+        color: var(--subtext);
+      }
+
+      /* Responsive Logic */
+      @media (max-width: 1024px) {
+        .bento-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .tall {
+          grid-row: span 1; /* Reset tall on tablets for better flow */
+        }
+      }
+
+      @media (max-width: 768px) {
+        .bento-grid {
+          grid-template-columns: 1fr;
+        }
+        .wide,
+        .tall {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .wrapper {
+          padding: 40px 20px;
+        }
+        header {
+          margin-bottom: 40px;
+        }
+        .item {
+          padding: 30px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="blob"></div>
+
+    <div class="wrapper">
+      <header>
+        <div class="badge">
+          <i data-lucide="refresh-cw" size="12" style="margin-right: 6px"></i>
+          Updated March 2026
+        </div>
+        <h1>Privacy Hub</h1>
+        <p>Your data belongs to you. We’re just the guardians of it.</p>
+      </header>
+
+      <div class="bento-grid">
+        <div class="item wide">
+          <div class="icon-wrap"><i data-lucide="shield-check"></i></div>
+          <h2>Our Privacy Promise</h2>
+          <p>
+            We collect only essential data for your account and property
+            listings. All passwords are fully encrypted, and property
+            information is used solely for rental purposes. Sensitive
+            information is protected with enterprise-grade encryption.
+          </p>
+        </div>
+
+        <div class="item">
+          <div class="icon-wrap"><i data-lucide="database"></i></div>
+          <h2>What We Collect</h2>
+          <div class="list-container">
+            <div class="list-item">
+              <i data-lucide="check" size="18"></i> Full Legal Name
+            </div>
+            <div class="list-item">
+              <i data-lucide="check" size="18"></i> Verified Email
+            </div>
+            <div class="list-item">
+              <i data-lucide="check" size="18"></i> Phone Number
+            </div>
+            <div class="list-item">
+              <i data-lucide="check" size="18"></i> Password (Encrypted)
+            </div>
+            <div class="list-item">
+              <i data-lucide="check" size="18"></i> Property Details (Address,
+              Images, Location)
+            </div>
+          </div>
+          <p
+            style="
+              margin-top: auto;
+              padding-top: 30px;
+              font-size: 0.85rem;
+              opacity: 0.8;
+            "
+          >
+            Data is stored until you delete it or an admin removes it. Location
+            and property info is only used for displaying properties to other
+            users.
+          </p>
+        </div>
+
+        <div class="item">
+          <div class="icon-wrap"><i data-lucide="map-pin"></i></div>
+          <h2>Use of Maps</h2>
+          <p>
+            We use Mapbox and Google Maps to display property locations to other
+            users. No personal data beyond the property address is shared with
+            these services.
+          </p>
+        </div>
+
+        <div class="item">
+          <div class="icon-wrap"><i data-lucide="user-minus"></i></div>
+          <h2>User Rights</h2>
+          <p>
+            You can delete or modify your data at any time. Currently, data
+            export is not supported. Location permission is required for
+            property display. Push notifications may be added in future updates.
+            Functional cookies are used to maintain login sessions.
+          </p>
+        </div>
+
+        <div class="item">
+          <div class="icon-wrap"><i data-lucide="cookie"></i></div>
+          <h2>Cookies</h2>
+          <p>
+            We use functional cookies to ensure a smooth user experience. No
+            third-party tracking cookies are used. Cookies help maintain session
+            and user preferences.
+          </p>
+        </div>
+
+        <div class="item wide">
+          <div class="icon-wrap"><i data-lucide="shield-off"></i></div>
+          <h2>Third-Party Integrations</h2>
+          <p>
+            We do not currently process payments. Ads may be displayed on the
+            front page. Maps use Mapbox and Google Maps for property display
+            only. No other third-party services access personal data.
+          </p>
+        </div>
+
+        <div class="item">
+          <div class="icon-wrap"><i data-lucide="info"></i></div>
+          <h2>Legal & Contact Info</h2>
+          <p>
+            We follow applicable laws to protect your data. For privacy
+            questions or deletion requests, contact us at
+            <a href="mailto:contact@rentstore.com">contact@rentstore.com</a>.
+          </p>
+        </div>
+      </div>
+
+      <footer>
+        <p>
+          &copy; 2026 RentStore •
+          <a
+            href="#"
+            style="
+              color: var(--accent);
+              text-decoration: none;
+              font-weight: 600;
+            "
+            >Terms</a
+          >
+          •
+          <a
+            href="#"
+            style="
+              color: var(--accent);
+              text-decoration: none;
+              font-weight: 600;
+            "
+            >Contact</a
+          >
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      lucide.createIcons();
+
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: "0px 0px -50px 0px",
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.style.opacity = "1";
+            entry.target.style.transform = "translateY(0)";
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll(".item").forEach((el) => {
+        el.style.opacity = "0";
+        el.style.transform = "translateY(40px)";
+        el.style.transition = "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
+        observer.observe(el);
+      });
+    </script>
+  </body>
+</html>

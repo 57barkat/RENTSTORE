@@ -26,6 +26,7 @@ import { useRouter, useSegments } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useLength } from "@/contextStore/LengthContext";
+import { useUserStats } from "@/contextStore/UserStatsContext";
 
 const Sidebar: React.FC = () => {
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
@@ -41,13 +42,9 @@ const Sidebar: React.FC = () => {
   // --------------------------
   // User stats
   // --------------------------
-  const { data: stats, refetch } = useGetUserStatsQuery(null, {
-    refetchOnFocus: true,
-    // pollingInterval: 5000,
-  });
-
+  const { stats, isLoading, refetch } = useUserStats();
   useEffect(() => {
-    if (stats) {
+    if (stats?.totalProperties !== undefined) {
       setUpload(stats.totalProperties);
     }
   }, [stats]);
@@ -181,8 +178,8 @@ const Sidebar: React.FC = () => {
         >
           <ProfileHeader
             profileImage={stats?.profileImage || null}
-            name={stats?.name || "User"}
-            phone={stats?.phone || "unverified account"}
+            name={stats?.name || "Loading..."}
+            phone={stats?.phone || "Loading..."}
             theme={theme}
             onUpload={handleUpload}
             onDelete={handleDelete}

@@ -14,7 +14,7 @@ export const useFilteredProperties = (
     ...filters,
     hostOption,
     page,
-    limit: 10,
+    limit: 30,
   });
   return { data, isLoading, refetch };
 };

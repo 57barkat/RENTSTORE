@@ -23,6 +23,7 @@ import Header from "@/components/Header";
 import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
 import { LengthProvider } from "@/contextStore/LengthContext";
+import { UserStatsProvider } from "@/contextStore/UserStatsContext";
 // @
 if (__DEV__) {
   require("../ReactotronConfig");
@@ -171,7 +172,9 @@ export default function RootLayout() {
             <CustomThemeProvider>
               <FormProvider>
                 <SidebarProvider>
-                  <AppContent />
+                  <UserStatsProvider>
+                    <AppContent />
+                  </UserStatsProvider>
                 </SidebarProvider>
               </FormProvider>
             </CustomThemeProvider>

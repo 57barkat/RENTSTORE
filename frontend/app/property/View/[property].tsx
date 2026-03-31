@@ -184,18 +184,12 @@ export default function PropertiesPage() {
         <FlatList
           data={allProperties}
           keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
           numColumns={2}
           columnWrapperStyle={{
             justifyContent: "space-between",
             paddingHorizontal: GUTTER,
           }}
-          contentContainerStyle={{
-            paddingTop: 8,
-            paddingBottom: 20,
-            flexGrow: 1,
-          }}
-          renderItem={({ item }) => (
+          renderItem={({ item, index }) => (
             <PropertyCard
               item={item}
               color={currentTheme.danger}
@@ -204,6 +198,12 @@ export default function PropertiesPage() {
               onToggleFav={handleToggleFav}
             />
           )}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingTop: 8,
+            paddingBottom: 20,
+            flexGrow: 1,
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -212,12 +212,20 @@ export default function PropertiesPage() {
               tintColor={currentTheme.secondary}
             />
           }
-          onEndReached={() => {
-            if (!loadingMore && allProperties.length >= 10) {
-              setPage(page + 1);
+          onScroll={({ nativeEvent }) => {
+            const offsetY = nativeEvent.contentOffset.y;
+            const contentHeight = nativeEvent.contentSize.height;
+            const layoutHeight = nativeEvent.layoutMeasurement.height;
+
+            if (
+              !loadingMore &&
+              allProperties.length >= page * 30 &&
+              offsetY + layoutHeight >= contentHeight * 0.25
+            ) {
+              setPage((prev) => prev + 1);
             }
           }}
-          onEndReachedThreshold={0.5}
+          scrollEventThrottle={16}
           ListFooterComponent={
             loadingMore ? (
               <ActivityIndicator
