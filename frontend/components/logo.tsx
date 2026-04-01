@@ -16,9 +16,9 @@ export default function Logo() {
         color={currentTheme.secondary}
       />
       <Text style={[styles.text, { color: currentTheme.text }]}>
-        Rent
+        Angan
         <Text style={[styles.accent, { color: currentTheme.secondary }]}>
-          Store
+          Stay
         </Text>
       </Text>
     </View>
