@@ -8,6 +8,7 @@ export enum UserRole {
   RENTER = "renter",
   USER = "user",
   ADMIN = "admin",
+  AGENT = "agent",
 }
 
 export enum UserAccountStatus {
@@ -32,6 +33,12 @@ export class User {
 
   @Prop({ required: true, unique: true })
   phone: string;
+
+  @Prop({ type: Types.ObjectId, ref: "Agency" })
+  agency?: Types.ObjectId;
+
+  @Prop({ default: 1 })
+  propertyLimit: number;
 
   @Prop({ required: true, unique: true })
   cnic: string;

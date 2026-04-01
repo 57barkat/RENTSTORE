@@ -1,8 +1,8 @@
 import {
   Injectable,
   BadRequestException,
-  UnauthorizedException,
   NotFoundException,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
@@ -11,10 +11,9 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import * as admin from "firebase-admin";
-import { MailerService } from "@nestjs-modules/mailer";
-import * as serviceAccount from "../../services/fireabase-privateKey";
-import { UpdateUserDto } from "./dto/user-update.dto";
 import { EmailService } from "src/services/email/email.service";
+import { Agency, AgencyDocument } from "../Agency/agency.entity";
+import { UpdateUserDto } from "./dto/user-update.dto";
 
 @Injectable()
 export class UserService {
@@ -22,20 +21,9 @@ export class UserService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Agency.name) private agencyModel: Model<AgencyDocument>,
     private readonly emailService: EmailService,
-  ) {
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert(
-          serviceAccount as admin.ServiceAccount,
-        ),
-      });
-    }
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                                SIGNUP FLOW                                 */
-  /* -------------------------------------------------------------------------- */
+  ) {}
 
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
     await this.cleanupUnverifiedUsers();
@@ -55,27 +43,53 @@ export class UserService {
 
     const password = await bcrypt.hash(dto.password, 10);
 
+    const role = dto.role;
+
+    let propertyLimit = 0;
+
+    switch (role) {
+      case UserRole.USER:
+        propertyLimit = 2;
+        break;
+      case UserRole.AGENT:
+        propertyLimit = 5;
+        break;
+      case UserRole.AGENCY:
+        propertyLimit = 50;
+        break;
+    }
+
     const user = await this.userModel.create({
       ...dto,
       password,
-      role: UserRole.USER,
+      role,
+      propertyLimit,
       isEmailVerified: false,
       isPhoneVerified: false,
       TermsAndConditionsAccepted: dto.acceptedTerms,
     });
-    console.log("Sending email to:", user.email);
+
+    if (role === UserRole.AGENCY && dto.agencyName) {
+      const agency = await this.agencyModel.create({
+        name: dto.agencyName,
+        logo: dto.agencyLogo,
+        address: dto.agencyAddress,
+        owner: user._id,
+        agents: [],
+      });
+
+      user.agency = agency._id as any;
+      user.propertyLimit = 50;
+      await user.save();
+    }
+
     await this.sendEmailVerificationCode(user.email);
 
     return user;
   }
 
-  /* -------------------------------------------------------------------------- */
-  /*                             EMAIL VERIFICATION                              */
-  /* -------------------------------------------------------------------------- */
-
   async sendEmailVerificationCode(email: string) {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-
     await this.userModel.updateOne(
       { email },
       {
@@ -83,7 +97,6 @@ export class UserService {
         emailVerificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
       },
     );
-
     this.emailService.sendVerificationEmail(email, code);
   }
 

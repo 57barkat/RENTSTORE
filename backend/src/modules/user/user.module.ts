@@ -5,12 +5,15 @@ import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
 import { AuthModule } from "../../services/auth.module";
 import { EmailModule } from "src/services/email/email.module";
+import { Agency, AgencySchema } from "../Agency/agency.entity";
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([
+      { name: User.name, schema: UserSchema },
+      { name: Agency.name, schema: AgencySchema },
+    ]),
     forwardRef(() => AuthModule),
-
     EmailModule,
   ],
   providers: [UserService],
