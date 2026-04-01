@@ -13,12 +13,14 @@ import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
 import { PropertyFilters } from "./utils/property-filter.util";
 import { buildMongoFilter } from "./utils/property.utils";
+import { User, UserDocument } from "../user/user.entity";
 
 @Injectable()
 export class PropertyService {
   constructor(
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
     public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService,
     private readonly deletedImagesService: DeletedImagesService,
@@ -38,7 +40,7 @@ export class PropertyService {
   }
 
   async createOrUpdate(
-    dto: CreatePropertyDto,
+    dto: Partial<CreatePropertyDto>,
     userId: string,
   ): Promise<Property> {
     let property: Property | null = null;
@@ -48,6 +50,7 @@ export class PropertyService {
       dto.photos = Array.from(new Set(dto.photos));
     }
 
+    // ========================= UPDATE EXISTING =========================
     if (propertyId) {
       property = await this.propertyModel.findById(propertyId);
 
@@ -57,7 +60,6 @@ export class PropertyService {
 
         const oldPhotos = property.photos || [];
         const newPhotos = dto.photos || [];
-
         const uniqueNewPhotos = Array.from(new Set(newPhotos));
 
         const photosToDelete = oldPhotos.filter(
@@ -87,10 +89,41 @@ export class PropertyService {
         return await property.save();
       }
 
+      // ========================= PROMOTE DRAFT =========================
       const draft = await this.propertyDraftModel.findById(propertyId);
       if (draft) {
         if (draft.ownerId.toString() !== userId.toString())
           throw new UnauthorizedException("Not allowed to promote this draft");
+
+        // 🔥 LIMIT CHECK (IMPORTANT)
+        const user = await this.userModel.findById(userId);
+        if (!user) throw new NotFoundException("User not found");
+
+        let propertyCount = 0;
+
+        if (user.agency) {
+          // 👉 Agency shared limit
+          const agencyUsers = await this.userModel.find({
+            agency: user.agency,
+          });
+
+          const agencyUserIds = agencyUsers.map((u) => u._id);
+
+          propertyCount = await this.propertyModel.countDocuments({
+            ownerId: { $in: agencyUserIds },
+          });
+        } else {
+          // 👉 Normal user limit
+          propertyCount = await this.propertyModel.countDocuments({
+            ownerId: userId,
+          });
+        }
+
+        if (propertyCount >= user.propertyLimit) {
+          throw new UnauthorizedException(
+            `Property limit reached (${user.propertyLimit})`,
+          );
+        }
 
         const { _id, ...draftData } = draft.toObject();
 
@@ -104,7 +137,7 @@ export class PropertyService {
         property = new this.propertyModel({
           ...draftData,
           ...dto,
-          photos: Array.from(new Set(dto.photos || draftData.photos || [])), // ✅ FIX
+          photos: Array.from(new Set(dto.photos || draftData.photos || [])),
           ownerId: userId,
           status: true,
           isApproved: false,
@@ -121,7 +154,40 @@ export class PropertyService {
       );
     }
 
-    // ✅ NEW PROPERTY
+    // ========================= NEW PROPERTY =========================
+
+    // 🔥 LIMIT CHECK (IMPORTANT)
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
+
+    let propertyCount = 0;
+
+    if (user.agency) {
+      // 👉 Agency shared limit
+      const agencyUsers = await this.userModel.find({
+        agency: user.agency,
+      });
+
+      const agencyUserIds = agencyUsers.map((u) => u._id);
+
+      propertyCount = await this.propertyModel.countDocuments({
+        ownerId: { $in: agencyUserIds },
+      });
+    } else {
+      // 👉 Normal user limit
+      propertyCount = await this.propertyModel.countDocuments({
+        ownerId: userId,
+      });
+    }
+
+    if (propertyCount >= user.propertyLimit) {
+      throw new UnauthorizedException(
+        `Property limit reached (${user.propertyLimit})`,
+      );
+    }
+
+    // ========================= CREATE =========================
+
     if (dto.lat !== undefined && dto.lng !== undefined) {
       dto.locationGeo = {
         type: "Point",
@@ -131,7 +197,7 @@ export class PropertyService {
 
     property = new this.propertyModel({
       ...dto,
-      photos: Array.from(new Set(dto.photos || [])), // ✅ FIX
+      photos: Array.from(new Set(dto.photos || [])),
       ownerId: userId,
       status: true,
     });
@@ -179,15 +245,14 @@ export class PropertyService {
   }
 
   async saveDraft(
-    dto: Partial<CreatePropertyDto>,
+    dto: Partial<CreatePropertyDto> & { _id?: string },
     imageFiles?: Express.Multer.File[],
     userId?: string,
   ) {
     let photos: string[] = [];
 
     if (imageFiles?.length) {
-      const uploaded = await this.uploadFilesToCloudinary(imageFiles);
-      photos = uploaded;
+      photos = await this.uploadFilesToCloudinary(imageFiles);
     } else {
       photos = dto.photos || [];
     }
@@ -201,7 +266,9 @@ export class PropertyService {
       };
     }
 
-    const filter = dto._id ? { _id: dto._id } : { _id: new Types.ObjectId() };
+    const filter = dto._id
+      ? { _id: new Types.ObjectId(dto._id) }
+      : { _id: new Types.ObjectId() };
 
     const update = {
       ...dto,
@@ -224,6 +291,7 @@ export class PropertyService {
       .find({ ownerId: ownerObjectId, status: false })
       .sort({ createdAt: -1 })
       .lean();
+
     return drafts;
   }
 
@@ -350,10 +418,11 @@ export class PropertyService {
     search?: string,
     city?: string,
   ) {
+    console.log("Finding properties for user:", userId);
     const filter: FilterQuery<any> = {
-      ownerId: new Types.ObjectId(userId),
+      ownerId: userId,
     };
-
+    console.log("Base filter:", filter);
     if (search) {
       filter.title = { $regex: search, $options: "i" };
     }
@@ -407,9 +476,9 @@ export class PropertyService {
       {
         $addFields: {
           ownerObjId: { $toObjectId: "$ownerId" },
-          views: { $add: [{ $ifNull: ["$views", 0] }, 1] },
         },
       },
+      // 1. Join the User (Owner)
       {
         $lookup: {
           from: "users",
@@ -419,7 +488,49 @@ export class PropertyService {
         },
       },
       { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
-      { $project: { "owner.password": 0, "owner.refreshToken": 0 } },
+
+      // 2. Prepare the Agency ID and Join the Agency
+      {
+        $addFields: {
+          // Ensure owner.agency is treated as an ObjectId for the next lookup
+          "owner.agencyObjId": {
+            $cond: [
+              {
+                $and: [
+                  { $gt: ["$owner.agency", null] },
+                  { $ne: ["$owner.agency", ""] },
+                ],
+              },
+              { $toObjectId: "$owner.agency" },
+              null,
+            ],
+          },
+        },
+      },
+      {
+        $lookup: {
+          from: "agencies",
+          localField: "owner.agencyObjId",
+          foreignField: "_id",
+          as: "owner.agencyDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$owner.agencyDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $project: {
+          "owner.password": 0,
+          "owner.refreshToken": 0,
+          "owner.emailVerificationCode": 0,
+          "owner.agencyObjId": 0,
+          "owner.cnic": 0,
+        },
+      },
     ]);
 
     if (!property) throw new NotFoundException("Property not found");
@@ -468,7 +579,11 @@ export class PropertyService {
       );
     }
 
+    // Prevent _id override
+    if (dto._id) delete dto._id;
+
     Object.assign(property, dto);
+
     if (dto.lat !== undefined && dto.lng !== undefined) {
       property.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
     }
@@ -497,7 +612,6 @@ export class PropertyService {
 
     return property.save();
   }
-
   async findPropertyByIdAndDelete(propertyId: string, userId: string) {
     const property = await this.propertyModel.findById(propertyId);
     if (!property) throw new NotFoundException("Property not found");

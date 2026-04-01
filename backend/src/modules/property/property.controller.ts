@@ -13,12 +13,12 @@ import {
   Delete,
   Query,
   SetMetadata,
-  Request,
 } from "@nestjs/common";
-import { PropertyService } from "./property.service";
-import { CreatePropertyDto } from "./dto/create-property.dto";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
+
+import { PropertyService } from "./property.service";
+import { CreatePropertyDto } from "./dto/create-property.dto";
 import { NearbyPropertyDto } from "./dto/nearby-property.dto";
 import {
   mapHostelType,
@@ -39,16 +39,14 @@ export class PropertyController {
   @Post("create")
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
   async createProperty(
-    @Body() dto: CreatePropertyDto,
+    @Body() dto: Partial<CreatePropertyDto>,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any,
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
-    console.log("🔥 RAW DTO from frontend:", req.body);
-
-    // Helper to parse JSON safely
+    // --- Helper to parse JSON safely ---
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -58,8 +56,8 @@ export class PropertyController {
       }
     };
 
-    // Parse nested fields
-    let parsedDto: any = {
+    // --- Parse nested fields ---
+    const parsedDto: Partial<CreatePropertyDto> = {
       ...dto,
       capacityState: parseJson(dto.capacityState),
       description: parseJson(dto.description) ?? { highlighted: [] },
@@ -72,7 +70,7 @@ export class PropertyController {
       lng: dto.lng ? Number(dto.lng) : undefined,
     };
 
-    // Address handling
+    // --- Address handling ---
     let parsedAddress: any[] = [];
     if (dto.address) {
       try {
@@ -97,19 +95,16 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress[0] || {};
 
-    // Photo upload (for both drafts and complete)
-    const photoUrls = files?.photos?.length
-      ? await Promise.all(
-          files.photos.map((file) =>
-            this.propertyService.cloudinary
-              .uploadFile(file)
-              .then((r) => r.secure_url),
-          ),
-        )
-      : dto.photos || [];
-    parsedDto.photos = photoUrls;
+    // --- Upload photos ---
+    if (files?.photos?.length) {
+      parsedDto.photos = await this.propertyService.uploadFilesToCloudinary(
+        files.photos,
+      );
+    } else if (dto.photos) {
+      parsedDto.photos = Array.from(new Set(dto.photos));
+    }
 
-    // GeoJSON setup
+    // --- GeoJSON ---
     if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
       parsedDto.locationGeo = {
         type: "Point",
@@ -117,12 +112,12 @@ export class PropertyController {
       };
     }
 
-    // --- Strict completeness check ---
+    // --- Check completeness ---
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
       if (typeof value === "string") return value.trim() !== "";
       if (typeof value === "number" || typeof value === "boolean") return true;
-      if (Array.isArray(value)) return value.length > 0; // must have items to be complete
+      if (Array.isArray(value)) return value.length > 0;
       if (typeof value === "object")
         return Object.values(value).some((v) => isFilled(v));
       return false;
@@ -141,28 +136,20 @@ export class PropertyController {
 
     // --- Save draft if incomplete ---
     if (!isComplete) {
-      const draft = await this.propertyService.saveDraft(
-        parsedDto,
-        photoUrls,
-        userId,
-      );
-      return draft;
+      return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
     }
 
-    // --- Save complete property ---
-    const property = await this.propertyService.createOrUpdate(
-      parsedDto,
-      userId,
-    );
-    return property;
+    // --- Save full property ---
+    return this.propertyService.createOrUpdate(parsedDto, userId);
   }
 
   @Get()
-  async getAll(@Req() req: any, @Query() query: PaginationQuery) {
+  async getAll(@Query() query: PaginationQuery) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     return this.propertyService.findAll(page, limit);
   }
+
   @Get("nearby")
   async getNearbyProperties(
     @Query() query: NearbyPropertyDto,
@@ -170,7 +157,6 @@ export class PropertyController {
   ) {
     const userId = req.user?.userId;
     const radiusKm = query.radiusKm || 5;
-    console.log("Nearby query params:", query);
     return this.propertyService.findNearbyProperties(
       query.lat,
       query.lng,
@@ -178,6 +164,7 @@ export class PropertyController {
       userId,
     );
   }
+
   @Get("type/:hostOption")
   async getByHostOption(
     @Param("hostOption") hostOption: string,
@@ -187,7 +174,6 @@ export class PropertyController {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const userId = req.user?.userId;
-
     return this.propertyService.findFiltered(
       page,
       limit,
@@ -197,9 +183,9 @@ export class PropertyController {
   }
 
   @Get("search")
-  async searchProperties(@Req() req: any, @Query() query: Record<string, any>) {
+  async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
-    console.log("Search query params:", query);
+
     parseNumericFields(query, [
       "page",
       "limit",
@@ -212,14 +198,11 @@ export class PropertyController {
       "lng",
       "radiusKm",
     ]);
-
     parseArrayFields(query, ["amenities", "bills", "mealPlan", "rules"]);
 
     if (query.hostelType) {
       const mapped = mapHostelType(query.hostelType);
-      if (!mapped) {
-        return { status: 400, message: "Invalid hostelType" };
-      }
+      if (!mapped) return { status: 400, message: "Invalid hostelType" };
       query.hostelType = mapped;
     }
 
@@ -243,7 +226,7 @@ export class PropertyController {
     @Query("city") city?: string,
   ) {
     const userId = req.user?.userId;
-    console.log(page, limit, sort, search, city);
+    console.log("Fetching properties for user:", userId);
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findMyProperties(
       userId,
@@ -302,35 +285,36 @@ export class PropertyController {
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findPropertyByIdAndDelete(id, userId);
   }
+
+  // --- Admin routes ---
   @Get("admin/unapproved")
-  @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
   async getUnapproved(
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "10",
   ) {
-    return await this.propertyService.findUnapprovedProperties(
+    return this.propertyService.findUnapprovedProperties(
       Number(page),
       Number(limit),
     );
   }
+
   @Patch("admin/approve/:id")
-  @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
   async approve(@Param("id") id: string) {
-    return await this.propertyService.approveProperty(id);
+    return this.propertyService.approveProperty(id);
   }
+
   @Delete("admin/delete/:id")
-  @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
   async adminDelete(@Param("id") id: string, @Req() req: any) {
-    return await this.propertyService.adminDeleteProperty(id, req.user.userId);
+    return this.propertyService.adminDeleteProperty(id, req.user.userId);
   }
+
   @Get("admin/view/:id")
-  @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
   async adminViewProperty(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
-    return await this.propertyService.findPropertyById(id, userId);
+    return this.propertyService.findPropertyById(id, userId);
   }
 }

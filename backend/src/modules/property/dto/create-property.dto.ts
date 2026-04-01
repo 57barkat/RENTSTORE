@@ -5,6 +5,7 @@ import {
   IsArray,
   ValidateNested,
   IsBoolean,
+  IsEnum,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { Property } from "../property.schema";
@@ -27,13 +28,21 @@ class CapacityStateDto {
 }
 
 class SafetyDetailsDataDto {
-  @IsOptional() @IsArray() @IsString({ each: true }) safetyDetails: string[] =
-    [];
-  @IsOptional() @IsString() cameraDescription?: string;
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  safetyDetails: string[] = [];
+
+  @IsOptional()
+  @IsString()
+  cameraDescription?: string;
 }
 
 class DescriptionDto {
-  @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  highlighted: string[] = [];
 }
 
 export class CreatePropertyDto {
@@ -43,33 +52,61 @@ export class CreatePropertyDto {
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() area?: string;
 
-  @Transform(({ value }) => (value ? Number(value) : value))
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
   @IsOptional()
   @IsNumber()
   lat?: number;
 
-  @Transform(({ value }) => (value ? Number(value) : value))
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
   @IsOptional()
   @IsNumber()
   lng?: number;
 
   @IsOptional()
-  locationGeo?: { type: string; coordinates: number[] };
+  locationGeo?: {
+    type: "Point";
+    coordinates: number[];
+  };
 
-  @IsOptional() @IsNumber() monthlyRent?: number;
-  @IsOptional() @IsNumber() dailyRent?: number;
-  @IsOptional() @IsNumber() weeklyRent?: number;
-  @IsOptional() @IsNumber() SecuritybasePrice?: number;
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  monthlyRent?: number;
 
-  @IsOptional() @IsArray() @IsString({ each: true }) ALL_BILLS: string[] = [];
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  dailyRent?: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  weeklyRent?: number;
+
+  @Transform(({ value }) => (value !== undefined ? Number(value) : value))
+  @IsOptional()
+  @IsNumber()
+  SecuritybasePrice?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ALL_BILLS: string[] = [];
 
   @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => AddressDto)
   address: AddressDto[] = [];
 
-  @IsOptional() @IsArray() @IsString({ each: true }) amenities: string[] = [];
-  @IsOptional() @IsArray() @IsString({ each: true }) photos: string[] = [];
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  amenities: string[] = [];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  photos: string[] = [];
 
   @IsOptional()
   @ValidateNested()
@@ -86,15 +123,39 @@ export class CreatePropertyDto {
   @Type(() => SafetyDetailsDataDto)
   safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
-  @IsOptional() @IsString() apartmentType?: string;
-  @IsOptional() @IsString() furnishing?: string;
-  @IsOptional() @IsBoolean() parking?: boolean;
+  @IsOptional()
+  @IsEnum(["studio", "1BHK", "2BHK", "3BHK", "penthouse"])
+  apartmentType?: string;
 
-  @IsOptional() @IsString() hostelType?: string;
-  @IsOptional() @IsArray() @IsString({ each: true }) mealPlan: string[] = [];
-  @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
+  @IsOptional()
+  @IsEnum(["furnished", "semi-furnished", "unfurnished"])
+  furnishing?: string;
 
+  @IsOptional()
+  @IsBoolean()
+  parking?: boolean;
+
+  @IsOptional()
+  @IsEnum(["male", "female", "mixed"])
+  hostelType?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  mealPlan: string[] = [];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  rules: string[] = [];
+
+  @IsOptional()
+  @IsString()
+  agency?: string;
   @IsString() ownerId: string;
+  @IsOptional()
+  @IsString()
+  listedBy?: string;
 
   @IsOptional() @IsString() addressQuery?: string;
   @IsOptional() @IsString() searchText?: string;
@@ -104,10 +165,13 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsBoolean()
   status?: boolean;
+
   @Transform(({ value }) => value === "true" || value === true)
   @IsOptional()
   @IsBoolean()
   isApproved?: boolean = false;
+
+  @Transform(({ value }) => value === "true" || value === true)
   @IsOptional()
   @IsBoolean()
   featured?: boolean;

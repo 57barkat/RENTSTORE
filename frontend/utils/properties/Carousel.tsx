@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  SafeAreaView,
 } from "react-native";
 import ImageViewing from "react-native-image-viewing";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -39,6 +40,22 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
     setActiveIndex(index);
     setVisible(true);
   };
+
+  /**
+   * Custom Header for the Image Viewer
+   * This replaces the default close button with your own CSS-styled version
+   */
+  const ImageHeader = () => (
+    <SafeAreaView style={styles.headerContainer}>
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setVisible(false)}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons name="close" size={26} color="white" />
+      </TouchableOpacity>
+    </SafeAreaView>
+  );
 
   return (
     <View style={styles.container}>
@@ -94,9 +111,13 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
           .filter((m) => m.type === "image")
           .map((m) => ({ uri: m.uri }))}
         imageIndex={activeIndex}
-        visible={visible && media[activeIndex].type === "image"}
+        visible={visible && media[activeIndex]?.type === "image"}
         onRequestClose={() => setVisible(false)}
         backgroundColor={currentTheme.background}
+        // Custom Header implementation here
+        HeaderComponent={ImageHeader}
+        // Allows closing by swiping down
+        swipeToCloseEnabled={true}
       />
 
       <GalleryModal
@@ -123,4 +144,21 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   counterText: { fontWeight: "bold" },
+
+  // Custom Close Button "CSS"
+  headerContainer: {
+    width: "100%",
+    alignItems: "flex-end", // Aligns button to the right
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  closeButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    marginTop: 30,
+    backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark circle for contrast
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });

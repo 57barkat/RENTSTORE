@@ -9,6 +9,7 @@ export const StatItem = ({ icon, label, value, theme }: any) => (
       alignItems: "center",
       padding: 15,
       borderRadius: 20,
+      marginRight: 2,
       backgroundColor: theme.card,
     }}
   >
