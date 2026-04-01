@@ -28,20 +28,22 @@ export const InputField: React.FC<Props> = ({
   textColor = "#000",
   rightIcon,
 }) => (
-  <View style={[styles.container, { backgroundColor }]}>
-    {icon && icon}
-    <TextInput
-      style={[styles.input, { color: textColor }]}
-      placeholder={placeholder}
-      placeholderTextColor="#A0AEC0"
-      value={value}
-      onChangeText={onChange}
-      onBlur={onBlur}
-      secureTextEntry={secureTextEntry}
-      keyboardType={keyboardType}
-    />
+  <View>
+    <View style={[styles.container, { backgroundColor }]}>
+      {icon && <View style={styles.iconWrap}>{icon}</View>}
+      <TextInput
+        style={[styles.input, { color: textColor }]}
+        placeholder={placeholder}
+        placeholderTextColor="#94A3B8"
+        value={value}
+        onChangeText={onChange}
+        onBlur={onBlur}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+      />
+      {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
+    </View>
     {error && <Text style={styles.error}>{error}</Text>}
-    {rightIcon && <View style={styles.rightIconContainer}>{rightIcon}</View>}
   </View>
 );
 
@@ -49,16 +51,14 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#CBD5E0",
     borderRadius: 16,
     paddingHorizontal: 15,
-    marginBottom: 10,
-    height: 55,
+    height: 60,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
-  input: { flex: 1, fontSize: 16 },
-  error: { color: "#EF4444", fontSize: 12, marginLeft: 5, marginTop: 2 },
-  rightIconContainer: {
-    marginLeft: 10,
-  },
+  iconWrap: { marginRight: 10 },
+  input: { flex: 1, fontSize: 16, fontWeight: "500" },
+  error: { color: "#EF4444", fontSize: 12, marginLeft: 5, marginTop: 4 },
+  rightIconContainer: { marginLeft: 10 },
 });

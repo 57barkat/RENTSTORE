@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   ScrollView,
   View,
@@ -16,7 +16,6 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { useCreateUserMutation, useVerifyEmailMutation } from "@/services/api";
 import { signupValidationSchema } from "@/utils/signupValidation";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
-import { getStoredRole } from "@/utils/storage";
 import { createUserPayload } from "@/utils/apiPayload";
 import { Loader } from "@/components/Loader";
 import { InputField } from "@/components/InputField";
@@ -27,12 +26,23 @@ import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TermsModal from "@/components/TermsModal";
 import VerificationModal from "@/components/VerificationModal";
 
+// ✅ Updated Constants based on your structure
+const ROLES = {
+  AGENCY: "agency",
+  USER: "user",
+  AGENT: "agent",
+};
+
 export default function SignUpScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const [role, setRole] = useState<string | null>(null);
+  // ✅ State handles which specific role is selected
+  const [role, setRole] = useState<string>(ROLES.USER);
+
+  console.log("Signup Screen - Selected Role:", role);
+
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
@@ -43,20 +53,9 @@ export default function SignUpScreen() {
   const [createUser, { isLoading: creating }] = useCreateUserMutation();
   const [verifyEmail, { isLoading: verifying }] = useVerifyEmailMutation();
 
-  useEffect(() => {
-    (async () => {
-      const storedRole = await getStoredRole();
-      setRole(storedRole || "user");
-    })();
-  }, []);
-
-  const toggleRole = async (newRole: string) => {
+  const toggleRole = (newRole: string) => {
     setRole(newRole);
   };
-
-  if (!role) {
-    return <Loader visible backgroundColor={currentTheme.background} />;
-  }
 
   const initialValues = {
     name: "",
@@ -73,8 +72,11 @@ export default function SignUpScreen() {
     if (!acceptedTerms) {
       return showErrorToast("Required", "Please accept Terms and Conditions");
     }
+
     try {
-      await createUser(createUserPayload(values, role, acceptedTerms)).unwrap();
+      const payload = createUserPayload(values, role, acceptedTerms);
+      await createUser(payload).unwrap();
+
       setSignupEmail(values.email);
       setShowVerifyModal(true);
       showSuccessToast("Verification Sent", "Check your email");
@@ -89,6 +91,7 @@ export default function SignUpScreen() {
         email: signupEmail,
         code: verificationCode,
       }).unwrap();
+
       showSuccessToast("Verified", "You can now login");
       setShowVerifyModal(false);
       router.replace("/signin");
@@ -107,7 +110,6 @@ export default function SignUpScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* FIGMA HEADER SECTION */}
           <View style={styles.header}>
             <View style={styles.logoRow}>
               <MaterialCommunityIcons
@@ -119,17 +121,18 @@ export default function SignUpScreen() {
                 AnganStay
               </Text>
             </View>
+
             <Text style={[styles.title, { color: currentTheme.text }]}>
               Create Account
             </Text>
             <Text style={[styles.subtitle, { color: currentTheme.muted }]}>
-              {role === "user"
-                ? "Join thousands of happy renters and agencies"
-                : "Register your agency and start listing properties"}
+              {role === ROLES.AGENCY
+                ? "Register your organization professionally"
+                : `Join as a ${role === ROLES.AGENT ? "professional agent" : "standard user"}`}
             </Text>
           </View>
 
-          {/* ROLE SELECTOR (Renter / Agency) */}
+          {/* ROLE SELECTOR - Switching between User, Agent, and Agency */}
           <View
             style={[
               styles.roleSelector,
@@ -137,88 +140,114 @@ export default function SignUpScreen() {
             ]}
           >
             <TouchableOpacity
-              style={[styles.roleBtn, role === "user" && styles.activeRoleBtn]}
-              onPress={() => toggleRole("user")}
+              style={[
+                styles.roleBtn,
+                role === ROLES.USER && styles.activeRoleBtn,
+              ]}
+              onPress={() => toggleRole(ROLES.USER)}
             >
-              <Feather
-                name="user"
-                size={18}
-                color={role === "user" ? currentTheme.text : currentTheme.muted}
-              />
               <Text
                 style={[
                   styles.roleBtnText,
                   {
                     color:
-                      role === "user" ? currentTheme.text : currentTheme.muted,
+                      role === ROLES.USER
+                        ? currentTheme.secondary
+                        : currentTheme.muted,
                   },
                 ]}
               >
-                Renter
+                User
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={[
                 styles.roleBtn,
-                role === "agency" && styles.activeRoleBtn,
+                role === ROLES.AGENT && styles.activeRoleBtn,
               ]}
-              onPress={() => toggleRole("agency")}
+              onPress={() => toggleRole(ROLES.AGENT)}
             >
-              <MaterialCommunityIcons
-                name="office-building"
-                size={18}
-                color={
-                  role === "agency" ? currentTheme.text : currentTheme.muted
-                }
-              />
               <Text
                 style={[
                   styles.roleBtnText,
                   {
                     color:
-                      role === "agency"
-                        ? currentTheme.text
+                      role === ROLES.AGENT
+                        ? currentTheme.secondary
+                        : currentTheme.muted,
+                  },
+                ]}
+              >
+                Agent
+              </Text>
+            </TouchableOpacity>
+
+            {/* <TouchableOpacity
+              style={[
+                styles.roleBtn,
+                role === ROLES.AGENCY && styles.activeRoleBtn,
+              ]}
+              onPress={() => toggleRole(ROLES.AGENCY)}
+            >
+              <Text
+                style={[
+                  styles.roleBtnText,
+                  {
+                    color:
+                      role === ROLES.AGENCY
+                        ? currentTheme.secondary
                         : currentTheme.muted,
                   },
                 ]}
               >
                 Agency
               </Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
-          {/* INFO CARD BASED ON ROLE */}
-          <View
+          {/* DYNAMIC LIMITS CARD */}
+          {/* <View
             style={[
               styles.infoCard,
-              { backgroundColor: role === "user" ? "#EFF6FF" : "#F0FDF4" },
+              {
+                backgroundColor: role === ROLES.AGENCY ? "#f1fdf00" : "#EFF6FF",
+              },
             ]}
           >
-            <View
-              style={[
-                styles.infoIcon,
-                { backgroundColor: role === "user" ? "#DBEAFE" : "#DCFCE7" },
-              ]}
-            >
-              <Feather
-                name={role === "user" ? "user-check" : "briefcase"}
-                size={16}
-                color={"#10B981"}
-              />
-            </View>
+            <Feather
+              name={
+                role === ROLES.USER
+                  ? "user"
+                  : role === ROLES.AGENT
+                    ? "award"
+                    : "briefcase"
+              }
+              size={18}
+              color={role === ROLES.AGENCY ? "#10B981" : "#10B981"}
+            />
             <View>
-              <Text style={[styles.infoTitle, { color: "#166534" }]}>
-                {role === "user"
-                  ? "List up to 1 property"
-                  : "Unlimited property listings"}
-              </Text>
-              <Text style={[styles.infoSub, { color: "#22C55E" }]}>
-                {role === "user"
-                  ? "Full browsing & rental access included"
-                  : "Full agency dashboard after verification"}
-              </Text>
-            </View>
-          </View>
+              {/* <Text
+                style={[
+                  styles.infoTitle,
+                  { color: role === ROLES.AGENCY ? "#166534" : "#1E40AF" },
+                ]}
+              >
+                {role === ROLES.USER
+                  ? "2 Uploads Allowed"
+                  : role === ROLES.AGENT
+                    ? "5 Uploads Allowed"
+                    : "Unlimited Uploads"}
+              </Text> */}
+          {/* <Text style={styles.infoSub}>
+                {role === ROLES.USER
+                  ? "Standard personal use"
+                  : role === ROLES.AGENT
+                    ? "Professional Individual"
+                    : "Full Business Suite"}
+              </Text> */}
+          {/* </View> */}
+          {/* </View>  */}
 
           <Formik
             initialValues={initialValues}
@@ -234,7 +263,8 @@ export default function SignUpScreen() {
               touched,
             }) => (
               <View style={styles.form}>
-                {role === "agency" && (
+                {/* 1. Show Agency-Specific fields only for Agency role */}
+                {role === ROLES.AGENCY && (
                   <AgencyFields
                     role={role}
                     values={values}
@@ -247,29 +277,26 @@ export default function SignUpScreen() {
                   />
                 )}
 
-                {role === "user" && (
-                  <InputField
-                    icon={
-                      <Feather
-                        name="user"
-                        size={20}
-                        color={currentTheme.muted}
-                      />
-                    }
-                    placeholder="Full Name"
-                    value={values.name}
-                    onChange={handleChange("name")}
-                    onBlur={() => handleBlur("name")}
-                    error={touched.name && errors.name}
-                    backgroundColor={currentTheme.card}
-                  />
-                )}
+                {/* 2. Common fields for everyone */}
+                <InputField
+                  icon={
+                    <Feather name="user" size={20} color={currentTheme.muted} />
+                  }
+                  placeholder={
+                    role === ROLES.AGENCY ? "Company Owner Name" : "Full Name"
+                  }
+                  value={values.name}
+                  onChange={handleChange("name")}
+                  onBlur={() => handleBlur("name")}
+                  error={touched.name && errors.name}
+                  backgroundColor={currentTheme.card}
+                />
 
                 <InputField
                   icon={
                     <Feather name="mail" size={20} color={currentTheme.muted} />
                   }
-                  placeholder={role === "agency" ? "Business Email" : "Email"}
+                  placeholder="Email Address"
                   value={values.email}
                   onChange={handleChange("email")}
                   onBlur={() => handleBlur("email")}
@@ -302,7 +329,7 @@ export default function SignUpScreen() {
                       color={currentTheme.muted}
                     />
                   }
-                  placeholder={role === "agency" ? "Owner CNIC" : "CNIC"}
+                  placeholder="CNIC Number"
                   value={values.cnic}
                   onChange={handleChange("cnic")}
                   onBlur={() => handleBlur("cnic")}
@@ -323,7 +350,6 @@ export default function SignUpScreen() {
                   secureTextEntry
                 />
 
-                {/* FIGMA AGREEMENT SECTION */}
                 <View style={styles.agreementWrapper}>
                   <View style={styles.dividerRow}>
                     <View
@@ -347,6 +373,7 @@ export default function SignUpScreen() {
                       ]}
                     />
                   </View>
+
                   <TermsCheckbox
                     acceptedTerms={acceptedTerms}
                     setAcceptedTerms={setAcceptedTerms}
@@ -395,6 +422,7 @@ export default function SignUpScreen() {
           onCancel={() => setShowVerifyModal(false)}
           color={currentTheme.secondary}
         />
+
         <TermsModal
           visible={showTermsModal}
           theme={currentTheme}
@@ -426,21 +454,11 @@ const styles = StyleSheet.create({
   },
   roleBtn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 10,
-    gap: 8,
+    alignItems: "center",
   },
-  activeRoleBtn: {
-    backgroundColor: "#fff",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
+  activeRoleBtn: { backgroundColor: "#fff", elevation: 2, shadowOpacity: 0.1 },
   roleBtnText: { fontWeight: "600", fontSize: 14 },
   infoCard: {
     flexDirection: "row",
@@ -450,9 +468,8 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  infoIcon: { padding: 8, borderRadius: 10 },
   infoTitle: { fontWeight: "700", fontSize: 14 },
-  infoSub: { fontSize: 12, marginTop: 2 },
+  infoSub: { fontSize: 12, marginTop: 2, color: "#64748b" },
   form: { gap: 12 },
   agreementWrapper: { marginTop: 10 },
   dividerRow: {

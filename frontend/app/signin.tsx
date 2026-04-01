@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "../constants/Colors";
@@ -19,7 +20,7 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { InputField } from "@/components/InputField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import VerificationModal from "@/components/VerificationModal";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -51,16 +52,13 @@ export default function SignInScreen() {
     }
 
     try {
-      // 1. Get raw response from backend
       const response = await loginMutation({
         emailOrPhone,
         password,
       }).unwrap();
 
-      // 2. Process login and tokens
       await login(response);
 
-      // 3. Check verification status directly from flat response
       if (response.isPhoneVerified === false) {
         showErrorToast(
           "Phone Not Verified",
@@ -73,13 +71,11 @@ export default function SignInScreen() {
       router.replace("/homePage");
     } catch (err: any) {
       const message = err?.data?.message;
-
       if (message === "VERIFY_EMAIL_REQUIRED") {
         setActualEmail(emailOrPhone);
         setShowEmailModal(true);
         return;
       }
-
       showErrorToast(
         "Login Failed",
         typeof message === "string" ? message : "Invalid credentials",
@@ -100,13 +96,9 @@ export default function SignInScreen() {
       }).unwrap();
 
       showSuccessToast("Email Verified", "You are now logged in.");
-
       setVerificationCode("");
       setShowEmailModal(false);
-
-      // Save verified user session
       await login(response);
-
       router.replace("/homePage");
     } catch (error: any) {
       showErrorToast(
@@ -129,15 +121,25 @@ export default function SignInScreen() {
         bounces={false}
       >
         <ImageBackground
-          source={AuthImage}
+          source={{
+            uri: "https://811a2201-3c29-49ea-80cc-de39dc1f74a8-00-3qf2yb1a4a9ut.janeway.replit.dev/__mockup/images/anganstay-bg.png",
+          }}
           style={styles.backgroundImage}
           resizeMode="cover"
         >
           <View style={styles.overlay}>
+            {/* FIGMA LOGO SECTION */}
+            <View style={styles.logoContainer}>
+              <View style={styles.logoIconBg}>
+                <MaterialCommunityIcons name="home" size={20} color="#2563EB" />
+              </View>
+              <Text style={styles.logoText}>AnganStay</Text>
+            </View>
+
             <View
               style={[
                 styles.formContainer,
-                { backgroundColor: currentTheme.card },
+                { backgroundColor: currentTheme.background },
               ]}
             >
               <View style={styles.headerSection}>
@@ -161,7 +163,7 @@ export default function SignInScreen() {
                   placeholder="Email or Phone"
                   value={emailOrPhone}
                   onChange={setEmailOrPhone}
-                  backgroundColor={currentTheme.background}
+                  backgroundColor={currentTheme.card}
                   textColor={currentTheme.text}
                 />
 
@@ -173,7 +175,7 @@ export default function SignInScreen() {
                   value={password}
                   onChange={setPassword}
                   secureTextEntry={!showPassword}
-                  backgroundColor={currentTheme.background}
+                  backgroundColor={currentTheme.card}
                   textColor={currentTheme.text}
                   rightIcon={
                     <TouchableOpacity
@@ -193,7 +195,7 @@ export default function SignInScreen() {
                 title="Login"
                 onPress={handleSignIn}
                 loading={isLoading}
-                color={currentTheme.primary}
+                color={currentTheme.secondary}
               />
 
               <TouchableOpacity
@@ -204,7 +206,7 @@ export default function SignInScreen() {
                   Don&apos;t have an account?{" "}
                   <Text
                     style={{
-                      color: currentTheme.primary,
+                      color: currentTheme.secondary,
                       fontWeight: "700",
                     }}
                   >
@@ -233,38 +235,58 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: "100%",
-  },
+  backgroundImage: { flex: 1, width: "100%" },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 28,
+    marginBottom: 25,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignSelf: "flex-start",
+    padding: 8,
+    borderRadius: 12,
+  },
+  logoIconBg: {
+    backgroundColor: "#fff",
+    padding: 5,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  logoText: { color: "#fff", fontSize: 20, fontWeight: "800" },
   formContainer: {
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 28,
-    paddingTop: 45,
-    paddingBottom: Platform.OS === "ios" ? 60 : 40,
+    paddingTop: 40,
+    paddingBottom: Platform.OS === "ios" ? 40 : 30,
   },
-  headerSection: {
-    marginBottom: 30,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "800",
-  },
-  subtitle: {
-    fontSize: 16,
-  },
-  inputGroup: {
-    gap: 16,
-    marginBottom: 25,
-  },
-  footerLink: {
-    marginTop: 25,
+  headerSection: { marginBottom: 25 },
+  title: { fontSize: 28, fontWeight: "800" },
+  subtitle: { fontSize: 16, marginTop: 4 },
+  inputGroup: { gap: 12 },
+  forgotPasswordBtn: { alignSelf: "flex-end", marginVertical: 12 },
+  forgotPasswordText: { color: "#2563EB", fontWeight: "600" },
+  orDividerContainer: {
+    flexDirection: "row",
     alignItems: "center",
+    marginVertical: 25,
   },
+  line: { flex: 1, height: 1 },
+  orText: { marginHorizontal: 10, fontSize: 12, fontWeight: "700" },
+  socialButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+  },
+  socialButtonText: { fontSize: 16, fontWeight: "600" },
+  footerLink: { marginTop: 20, alignItems: "center" },
 });
