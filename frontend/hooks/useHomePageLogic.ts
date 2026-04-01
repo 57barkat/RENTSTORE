@@ -15,7 +15,7 @@ import { formatAndTagFavorites } from "@/utils/homeTabUtils/homeHelpers";
 
 export const useHomePageLogic = () => {
   const [search, setSearch] = useState("");
-  const [selectedCity] = useState("");
+  const [selectedCity] = useState(""); // This is currently empty
   const [refreshing, setRefreshing] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuAnimation = useRef(new Animated.Value(0)).current;
@@ -52,11 +52,7 @@ export const useHomePageLogic = () => {
   const handleCancelVoice = useCallback(async () => {
     clearVoiceSession()
       .unwrap()
-      .catch((err) => {
-        if (err.status === 401) {
-          // console.log("Voice session cleanup unauthorized - ignoring");
-        }
-      });
+      .catch(() => {});
     setAssistantMessage(null);
     setLastFilters(null);
     if (isRecording) stop();
@@ -128,31 +124,6 @@ export const useHomePageLogic = () => {
     return clearTimers;
   }, [isRecording, isAutoStop, handleStopAndSend, clearTimers]);
 
-  const toggleMenu = () => {
-    const toValue = isMenuOpen ? 0 : 1;
-    Animated.spring(menuAnimation, {
-      toValue,
-      useNativeDriver: true,
-      tension: 50,
-      friction: 7,
-    }).start();
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleStartAI = () => {
-    toggleMenu();
-    const msg = "Hello! Tell me the city, area, and budget.";
-    setAssistantMessage(msg);
-    setIsSpeaking(true);
-    Speech.speak(msg, {
-      onDone: () => {
-        setIsSpeaking(false);
-        start();
-        setIsRecording(true);
-      },
-    });
-  };
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     handleCancelVoice();
@@ -169,17 +140,48 @@ export const useHomePageLogic = () => {
     () => favData?.map((f: any) => f.property?._id) || [],
     [favData],
   );
-  const homes = useMemo(
-    () => formatAndTagFavorites(hData, selectedCity, favoriteIds),
-    [hData, selectedCity, favoriteIds],
-  );
-  const rooms = useMemo(
-    () => formatAndTagFavorites(rData, selectedCity, favoriteIds),
-    [rData, selectedCity, favoriteIds],
-  );
+
+  // Helper to ensure city extraction consistency on Home Page
+  const processProperties = (rawData: any[]) => {
+    if (!rawData) return [];
+
+    // First, use your existing format utility
+    const formatted = formatAndTagFavorites(rawData, selectedCity, favoriteIds);
+
+    // Second, perform the safety check for the 'city' field
+    return formatted.map((item: any, index: number) => {
+      const raw = rawData[index];
+      let city = item.city;
+
+      if (!city) {
+        // Try address object
+        if (
+          raw?.address &&
+          typeof raw.address === "object" &&
+          !Array.isArray(raw.address)
+        ) {
+          city = raw.address.city;
+        }
+        // Fallback to parsing location string
+        else if (raw?.location) {
+          const parts = raw.location.split(",");
+          const last = parts[parts.length - 1]?.trim();
+          city =
+            last?.toLowerCase() === "pakistan" && parts.length > 1
+              ? parts[parts.length - 2]?.trim()
+              : last;
+        }
+      }
+
+      return { ...item, city: city || "Islamabad" };
+    });
+  };
+
+  const homes = useMemo(() => processProperties(hData), [hData, favoriteIds]);
+  const rooms = useMemo(() => processProperties(rData), [rData, favoriteIds]);
   const apartments = useMemo(
-    () => formatAndTagFavorites(aData, selectedCity, favoriteIds),
-    [aData, selectedCity, favoriteIds],
+    () => processProperties(aData),
+    [aData, favoriteIds],
   );
 
   return {
@@ -195,8 +197,28 @@ export const useHomePageLogic = () => {
     isAutoStop,
     setIsAutoStop,
     assistantMessage,
-    toggleMenu,
-    handleStartAI,
+    toggleMenu: () => {
+      const toValue = isMenuOpen ? 0 : 1;
+      Animated.spring(menuAnimation, {
+        toValue,
+        useNativeDriver: true,
+        tension: 50,
+        friction: 7,
+      }).start();
+      setIsMenuOpen(!isMenuOpen);
+    },
+    handleStartAI: () => {
+      const msg = "Hello! Tell me the city, area, and budget.";
+      setAssistantMessage(msg);
+      setIsSpeaking(true);
+      Speech.speak(msg, {
+        onDone: () => {
+          setIsSpeaking(false);
+          start();
+          setIsRecording(true);
+        },
+      });
+    },
     handleCancelVoice,
     handleStopAndSend,
     onRefresh,

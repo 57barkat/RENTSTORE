@@ -1,6 +1,6 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
-import { Ionicons, Feather } from "@expo/vector-icons";
+import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import { Colors } from "@/constants/Colors";
 import { MenuItem } from "@/utils/sidebarMenuItems";
 
@@ -24,42 +24,53 @@ const NavItem: React.FC<NavItemProps> = ({
   const IconComponent = item.iconType === "Ionicons" ? Ionicons : Feather;
   const themeColors = Colors[theme];
 
-  let itemColor = item.isLogout
-    ? themeColors.danger
-    : isActive
-      ? "#FFFFFF"
-      : color;
+  const isLogout = item.isLogout;
 
-  const backgroundColor = isActive ? themeColors.primary : "transparent";
-  const fontWeight = isActive ? "700" : "500";
+  const baseColor = isLogout ? themeColors.danger : themeColors.primary;
+
+  const iconBgColor = baseColor + "15";
 
   return (
     <TouchableOpacity
-      style={[
-        styles.navItem,
-        {
-          backgroundColor,
-          borderColor: isActive ? "transparent" : themeColors.card,
-          borderWidth: isActive ? 0 : 1,
-        },
-      ]}
+      style={[styles.navItem, { borderBottomColor: themeColors.card + "50" }]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
     >
       <View style={styles.contentContainer}>
-        <IconComponent
-          name={item.iconName as any}
-          size={22}
-          color={itemColor}
-        />
-        <Text style={[styles.navText, { color: itemColor, fontWeight }]}>
+        <View style={[styles.iconWrapper, { backgroundColor: iconBgColor }]}>
+          <IconComponent
+            name={item.iconName as any}
+            size={20}
+            color={baseColor}
+          />
+        </View>
+
+        <Text
+          style={[
+            styles.navText,
+            { color: isLogout ? themeColors.danger : themeColors.secondary },
+          ]}
+        >
           {item.label}
         </Text>
-        {badgeCount !== undefined && badgeCount > 0 && (
-          <View style={[styles.badge, { backgroundColor: themeColors.danger }]}>
-            <Text style={styles.badgeText}>{badgeCount.toString()}</Text>
-          </View>
-        )}
+
+        <View style={styles.rightSection}>
+          {badgeCount !== undefined && badgeCount > 0 ? (
+            <View
+              style={[styles.badge, { backgroundColor: themeColors.danger }]}
+            >
+              <Text style={styles.badgeText}>{badgeCount.toString()}</Text>
+            </View>
+          ) : (
+            <MaterialIcons
+              name="chevron-right"
+              size={20}
+              color={
+                isLogout ? themeColors.danger : themeColors.secondary + "80"
+              }
+            />
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -69,35 +80,43 @@ const styles = StyleSheet.create({
   navItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 7,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    marginBottom: 10,
-    overflow: "hidden",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
   },
   contentContainer: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    marginLeft: 0,
   },
-  navText: {
-    fontSize: 14,
-    marginLeft: 18,
-  },
-  badge: {
-    marginLeft: 8,
-    minWidth: 18,
-    paddingHorizontal: 5,
-    height: 18,
-    borderRadius: 9,
+  iconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
+  navText: {
+    fontSize: 15,
+    fontWeight: "500",
+    marginLeft: 15,
+    flex: 1,
+  },
+  rightSection: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
   badgeText: {
     color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 11,
+    fontWeight: "bold",
   },
 });
 
