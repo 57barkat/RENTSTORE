@@ -1,101 +1,145 @@
 import React from "react";
-import { TouchableOpacity, View, Text, Image, Dimensions } from "react-native";
+import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const { width: WINDOW_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = (WINDOW_WIDTH - 30) / 2;
-const IMAGE_HEIGHT = CARD_WIDTH * 1;
-
-export const PropertyCard = ({
-  item,
-  theme,
-  onPress,
-  onToggleFav,
-  color,
-}: any) => (
+export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => (
   <TouchableOpacity
     activeOpacity={0.9}
-    style={{
-      width: CARD_WIDTH,
-      backgroundColor: theme.card,
-      borderRadius: 16,
-      marginHorizontal: 4,
-      marginVertical: 4,
-      marginBottom: 16,
-      shadowColor: theme.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 8,
-      elevation: 4,
-      overflow: "hidden",
-    }}
+    style={[
+      styles.card,
+      {
+        backgroundColor: theme.background,
+        borderColor: "#E8EEF3",
+        borderWidth: 1,
+      },
+    ]}
     onPress={onPress}
   >
-    <View>
+    <View style={{ position: "relative" }}>
       <Image
         source={{ uri: item.image }}
-        style={{ width: "100%", height: IMAGE_HEIGHT }}
+        style={styles.image}
         resizeMode="cover"
       />
+
       {item.featured && (
         <View
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 6,
-            backgroundColor: theme.secondary,
-            zIndex: 10,
-          }}
+          style={[styles.featuredTag, { backgroundColor: theme.secondary }]}
         >
-          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "500" }}>
-            FEATURED
-          </Text>
+          <Text style={styles.featuredText}>FEATURED</Text>
         </View>
       )}
+
       <TouchableOpacity
-        style={{ position: "absolute", top: 8, right: 8, zIndex: 20 }}
+        style={styles.favButton}
         onPress={() => onToggleFav?.(item.id)}
       >
-        <Ionicons
-          name={item.isFav ? "heart" : "heart-outline"}
-          size={32}
-          color={color}
-        />
+        <View style={styles.heartCircle}>
+          <Ionicons
+            name={item.isFav ? "heart" : "heart-outline"}
+            size={22}
+            color={item.isFav ? "#FF4D4D" : "#64748B"}
+          />
+        </View>
       </TouchableOpacity>
     </View>
 
-    <View style={{ padding: 12 }}>
-      <Text
-        style={{
-          fontSize: 11,
-          fontWeight: "700",
-          color: theme.primary,
-          textTransform: "uppercase",
-          marginBottom: 2,
-        }}
-      >
-        {item.city}
-      </Text>
-      <Text
-        style={{
-          fontSize: 15,
-          fontWeight: "600",
-          color: theme.text,
-          marginBottom: 8,
-        }}
-        numberOfLines={1}
-      >
+    <View style={styles.content}>
+      <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
         {item.title}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-        <Text style={{ fontSize: 16, fontWeight: "800", color: theme.text }}>
+
+      <View style={styles.locationRow}>
+        <Ionicons name="location-outline" size={14} color="#94A3B8" />
+        <Text style={styles.locationText} numberOfLines={1}>
+          {item.city}
+        </Text>
+      </View>
+
+      <View style={styles.priceRow}>
+        <Text style={[styles.priceText, { color: theme.secondary }]}>
           Rs. {item.rent?.toLocaleString()}
         </Text>
-        <Text style={{ fontSize: 12, color: theme.muted }}> /mo</Text>
+        <Text style={styles.perMonth}> / month</Text>
       </View>
     </View>
   </TouchableOpacity>
 );
+
+const styles = StyleSheet.create({
+  card: {
+    width: "100%",
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  image: {
+    width: "100%",
+    height: 200,
+  },
+  featuredTag: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    zIndex: 10,
+  },
+  featuredText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  favButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 20,
+  },
+  heartCircle: {
+    backgroundColor: "#FFFFFF",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 3,
+  },
+  content: {
+    padding: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  locationText: {
+    fontSize: 14,
+    color: "#94A3B8",
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  priceText: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  perMonth: {
+    fontSize: 13,
+    color: "#94A3B8",
+  },
+});

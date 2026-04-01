@@ -13,23 +13,17 @@ import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import { useSidebar } from "@/contextStore/SidebarContext";
 
 export default function Header() {
-  const { theme, setTheme, resetToSystem } = useTheme();
+  const { theme, setTheme } = useTheme();
   const { toggle } = useSidebar();
 
   const isDark = theme === "dark";
-  const isLight = theme === "light";
-  const isSystem = !isDark && !isLight;
 
+  // ✅ Always valid
   const currentTheme = Colors[isDark ? "dark" : "light"];
 
-  const toggleTheme = async () => {
-    if (isSystem) {
-      setTheme("dark");
-    } else if (isDark) {
-      setTheme("light");
-    } else {
-      resetToSystem();
-    }
+  // ✅ Simple toggle (FIXED)
+  const toggleTheme = () => {
+    setTheme(isDark ? "light" : "dark");
   };
 
   return (
@@ -83,22 +77,10 @@ export default function Header() {
           activeOpacity={0.6}
         >
           <MaterialCommunityIcons
-            name={
-              isSystem
-                ? "theme-light-dark"
-                : isDark
-                  ? "moon-waning-crescent"
-                  : "white-balance-sunny"
-            }
+            name={isDark ? "moon-waning-crescent" : "white-balance-sunny"}
             style={{ transform: [{ rotate: "-45deg" }] }}
             size={22}
-            color={
-              isSystem
-                ? currentTheme.primary
-                : isDark
-                  ? currentTheme.secondary
-                  : currentTheme.primary
-            }
+            color={isDark ? currentTheme.secondary : currentTheme.primary}
           />
         </TouchableOpacity>
       </View>

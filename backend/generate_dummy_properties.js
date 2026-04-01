@@ -42,22 +42,19 @@ const CLOUDINARY_PHOTOS = Array.from(
 
 const APARTMENT_TYPES = ["studio", "1BHK", "2BHK", "penthouse"];
 const FURNISHINGS = ["furnished", "semi-furnished", "unfurnished"];
-const HOSTEL_TYPES = ["boys", "girls", "co-ed"];
+const HOSTEL_TYPES = ["male", "female", "mixed"]; // ✅ FIXED
 const MEAL_PLANS = ["breakfast", "lunch", "dinner"];
 const RULES = ["no_smoking", "no_pets", "quiet_hours", "no_party"];
 
 // -------------------- Helpers --------------------
 const randomInt = (min, max) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
+
 const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
 const randomSubarray = (arr, min = 0, max = arr.length) =>
   [...arr].sort(() => 0.5 - Math.random()).slice(0, randomInt(min, max));
 
-/**
- * Generates a random date within a range of days ago.
- * Used to populate trends (Last Month vs This Month)
- * and daily bar charts (Last 7 Days).
- */
 const randomDateInLastDays = (days) => {
   const date = new Date();
   const randomDaysAgo = Math.floor(Math.random() * days);
@@ -66,11 +63,26 @@ const randomDateInLastDays = (days) => {
   return date;
 };
 
-// -------------------- Owners --------------------
+// -------------------- Users & Agencies --------------------
+
+// Convert your existing IDs to ObjectId
 const VALID_OWNER_IDS = [
-  "69af1dd71e57202234444ac2",
-  "69af1ebf1e57202234444acd",
+  new ObjectId("69cbd76f87d1db00d2ce2d6f"),
+  new ObjectId("69aae2a4959b9e5637261c36"),
+  new ObjectId("69a065e517835a522774978a"),
+  new ObjectId("6984d4a9ba69fbd9561e82e5"),
+  new ObjectId("6984a2178e47a637cd2188fe"),
+  new ObjectId("6977a444cd991a27eb2a1e52"),
+  new ObjectId("691dde15a9165ac7f6c1a92c"),
 ];
+
+// Create dummy agencies
+const AGENCIES = VALID_OWNER_IDS.slice(0, 3).map((ownerId) => ({
+  _id: new ObjectId(),
+  name: `agent ${ownerId.toString().slice(-4)}`,
+  owner: ownerId,
+  agents: randomSubarray(VALID_OWNER_IDS, 1, 3),
+}));
 
 // -------------------- Generate Properties --------------------
 function generateI10Properties(count = 500) {
@@ -78,7 +90,7 @@ function generateI10Properties(count = 500) {
 
   for (let i = 0; i < count; i++) {
     const area = randomChoice(SECTORS);
-    const areaOnly = area.split("/")[0]; // "I-10"
+    const areaOnly = area.split("/")[0];
     const hostOption = randomChoice(HOST_OPTIONS);
 
     const bedrooms = randomInt(1, hostOption === "hostel" ? 1 : 5);
@@ -111,9 +123,11 @@ function generateI10Properties(count = 500) {
     const lat =
       Math.random() * (CITY_COORDS.lat[1] - CITY_COORDS.lat[0]) +
       CITY_COORDS.lat[0];
+
     const lng =
       Math.random() * (CITY_COORDS.lng[1] - CITY_COORDS.lng[0]) +
       CITY_COORDS.lng[0];
+
     const locationGeo = { type: "Point", coordinates: [lng, lat] };
 
     const photos = randomSubarray(CLOUDINARY_PHOTOS, 3, 8);
@@ -128,40 +142,61 @@ function generateI10Properties(count = 500) {
 
     const apartmentType =
       hostOption === "apartment" ? randomChoice(APARTMENT_TYPES) : undefined;
+
     const furnishing =
       hostOption === "apartment" ? randomChoice(FURNISHINGS) : undefined;
+
     const parking =
       hostOption === "apartment" ? Math.random() > 0.5 : undefined;
+
     const hostelType =
       hostOption === "hostel" ? randomChoice(HOSTEL_TYPES) : undefined;
+
     const mealPlan =
       hostOption === "hostel" ? randomSubarray(MEAL_PLANS, 1, 3) : undefined;
+
     const rules =
       hostOption === "hostel" ? randomSubarray(RULES, 1, 3) : undefined;
 
-    // --- DATE LOGIC FOR TRENDS ---
-    // Generates dates across the last 45 days so "Last Month" vs "This Month" works
     const createdAt = randomDateInLastDays(45);
     const updatedAt = new Date(createdAt);
-    updatedAt.setHours(updatedAt.getHours() + randomInt(1, 48)); // Updated slightly after creation
+    updatedAt.setHours(updatedAt.getHours() + randomInt(1, 48));
+
+    const ownerId = randomChoice(VALID_OWNER_IDS);
+
+    // Randomly assign agent
+    const agent = Math.random() > 0.6 ? randomChoice(AGENCIES) : null;
 
     properties.push({
-      _id: new ObjectId().toHexString(),
-      ownerId: randomChoice(VALID_OWNER_IDS),
-      title: `${bedrooms} Bed ${hostOption.charAt(0).toUpperCase() + hostOption.slice(1)} in ${area}`,
+      _id: new ObjectId(),
+
+      ownerId: ownerId, // ✅ ObjectId
+      agent: agent ? agent._id : undefined, // ✅ linked agent
+      listedBy: ownerId, // ✅ uploader
+
+      title: `${bedrooms} Bed ${
+        hostOption.charAt(0).toUpperCase() + hostOption.slice(1)
+      } in ${area}`,
+
       hostOption,
       area: areaOnly,
       location: `${area}, ${CITY}`,
+
       lat,
       lng,
       locationGeo,
+
       monthlyRent,
       dailyRent,
       weeklyRent,
       SecuritybasePrice,
+
       ALL_BILLS,
       address,
+
       amenities,
+      photos,
+
       capacityState: {
         Persons,
         bedrooms,
@@ -169,21 +204,35 @@ function generateI10Properties(count = 500) {
         bathrooms,
         floorLevel,
       },
+
       description: { highlighted },
-      safetyDetailsData: { safetyDetails, cameraDescription },
-      photos,
+
+      safetyDetailsData: {
+        safetyDetails,
+        cameraDescription,
+      },
+
       apartmentType,
       furnishing,
       parking,
+
       hostelType,
       mealPlan,
       rules,
+
       status: true,
-      isApproved: Math.random() > 0.3, // 30% stay pending to test dashboard
       featured: Math.random() > 0.9,
+      isApproved: Math.random() > 0.3,
+
+      moderationStatus: "ACTIVE", // ✅ NEW FIELD
+      isVisible: true,
+      reportCount: randomInt(0, 5),
+      strikeCount: randomInt(0, 2),
+
       views: randomInt(0, 500),
-      createdAt: createdAt,
-      updatedAt: updatedAt,
+
+      createdAt,
+      updatedAt,
     });
   }
 
@@ -191,15 +240,25 @@ function generateI10Properties(count = 500) {
 }
 
 // -------------------- Execution --------------------
-const PROPERTY_COUNT = 50000; // Set to 50 for testing, change to 5000 if needed
+const PROPERTY_COUNT = 50000;
+
 const properties = generateI10Properties(PROPERTY_COUNT);
 
 const filePath = path.join(__dirname, "dummy_properties.json");
+
 fs.writeFileSync(
   filePath,
-  JSON.stringify({ data: properties, total: properties.length }, null, 2),
+  JSON.stringify(
+    {
+      data: properties,
+      agencies: AGENCIES,
+      total: properties.length,
+    },
+    null,
+    2,
+  ),
 );
 
-console.log(`🚀 Generation Complete!`);
-console.log(`📅 Dates distributed over last 45 days for Trend Calculations.`);
+console.log("🚀 Generation Complete!");
+console.log("📅 Dates distributed over last 45 days for Trend Calculations.");
 console.log(`📂 File saved to: ${filePath}`);

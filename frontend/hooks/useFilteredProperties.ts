@@ -56,7 +56,35 @@ export const usePropertiesPage = (
       filters.city || "",
       filters.addressQuery || "",
       () => {},
-    ).map((p) => ({ ...p, isFav: favoriteIds.includes(p.id) }));
+    ).map((p, index) => {
+      const rawItem = data.data[index];
+
+      let finalCity = p.city;
+
+      if (!finalCity) {
+        if (
+          rawItem?.address &&
+          typeof rawItem.address === "object" &&
+          rawItem.address.city
+        ) {
+          finalCity = rawItem.address.city;
+        } else if (rawItem?.location) {
+          const parts = rawItem.location.split(",");
+          const lastPart = parts[parts.length - 1]?.trim();
+          if (lastPart?.toLowerCase() === "pakistan" && parts.length > 1) {
+            finalCity = parts[parts.length - 2]?.trim();
+          } else {
+            finalCity = lastPart;
+          }
+        }
+      }
+
+      return {
+        ...p,
+        city: finalCity || "Islamabad",
+        isFav: favoriteIds.includes(p.id),
+      };
+    });
 
     if (page === 1) {
       setAllProperties(formatted);

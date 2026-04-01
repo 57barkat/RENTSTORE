@@ -227,7 +227,7 @@ const Sidebar: React.FC = () => {
             <NavItem
               item={logoutItem}
               theme={theme}
-              color={themeColors.text}
+              color={themeColors.danger}
               onPress={() => handleLogout()}
               isActive={false}
             />
@@ -255,8 +255,8 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 20,
     paddingTop: 0,
-    borderRightWidth: 0, // Removed static border
-    // Added Box Shadow/Elevation for a next-level overlay effect
+    borderRightWidth: 0,
+
     shadowColor: "#000",
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.1,
@@ -266,7 +266,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 15,
     paddingTop: 10,
-    // paddingBottom: 20,
   },
   separator: {
     height: 1,
@@ -276,14 +275,13 @@ const styles = StyleSheet.create({
   },
   navContainer: {
     paddingHorizontal: 15,
-    // paddingBottom: 20,
     paddingVertical: 10,
   },
   bottomContainer: {
     paddingHorizontal: 15,
-    paddingTop: 15, // Increased padding
-    paddingBottom: 35, // Increased bottom padding
-    borderTopWidth: 2, // Thicker border for clear separation
+    paddingTop: 15,
+    paddingBottom: 35,
+    borderTopWidth: 2,
   },
 });
 

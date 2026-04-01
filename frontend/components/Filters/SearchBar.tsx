@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Typography } from "@/constants/Typography";
@@ -27,17 +27,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
         style={({ pressed }) => [
           styles.container,
           {
-            backgroundColor: isDark ? "rgba(30, 31, 36, 0.95)" : "#FFFFFF",
-            borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-            borderWidth: 1,
+            backgroundColor: isDark ? currentTheme.card : "#FFFFFF",
+            borderColor: "#E8EEF3", // Matching the light blue-ish border in the image
+            borderWidth: 1.5,
             opacity: pressed ? 0.9 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }],
           },
         ]}
       >
         <Ionicons
           name="search-outline"
-          size={20}
+          size={22}
           color={isDark ? "#9BA1A6" : "#6B7280"}
           style={styles.icon}
         />
@@ -54,11 +53,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </Text>
         </View>
 
+        {/* Vertical Separator Line */}
+        <View style={[styles.separator, { backgroundColor: "#E8EEF3" }]} />
+
         <View style={styles.filterIconWrapper}>
           <Ionicons
             name="options-outline"
-            size={20}
-            color={currentTheme.secondary}
+            size={22}
+            color={currentTheme.secondary} // Using your brand green
           />
         </View>
       </Pressable>
@@ -71,37 +73,35 @@ export default SearchBar;
 const styles = StyleSheet.create({
   outerContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   container: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 20, // Slightly more rounded for a modern feel
-    paddingHorizontal: 16,
-    height: 56,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    borderRadius: 30, // Full pill shape as seen in image
+    paddingHorizontal: 18,
+    height: 60,
+    // Removed heavy shadows for the clean look in the screenshot
   },
   icon: {
-    marginRight: 12,
+    marginRight: 10,
   },
   textWrapper: {
     flex: 1,
     justifyContent: "center",
   },
   placeholderText: {
-    fontSize: Typography.bodySmall.fontSize,
+    fontSize: 16,
     fontWeight: "400",
   },
+  separator: {
+    width: 1,
+    height: 24,
+    marginHorizontal: 12,
+  },
   filterIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.03)",
     justifyContent: "center",
     alignItems: "center",
+    paddingLeft: 4,
   },
 });

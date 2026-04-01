@@ -25,29 +25,23 @@ const HostOptionsRow: React.FC<HostOptionsRowProps> = ({ onSelect }) => {
   return (
     <View style={styles.container}>
       {options.map((option) => (
-        <View key={option.id} style={styles.optionWrapper}>
-          <TouchableOpacity
-            style={[
-              styles.iconCircle,
-              {
-                backgroundColor: isDark ? "#2A2A32" : "#F3F4F6",
-                borderColor: isDark
-                  ? "rgba(255,255,255,0.05)"
-                  : "rgba(0,0,0,0.02)",
-                borderWidth: 1,
-              },
-            ]}
-            onPress={() => onSelect?.(option.id)}
-            activeOpacity={0.7}
-          >
-            {option.icon}
-          </TouchableOpacity>
-          <Text
-            style={[styles.label, { color: isDark ? "#A1A1AA" : "#4B5563" }]}
-          >
+        <TouchableOpacity
+          key={option.id}
+          style={[
+            styles.optionCard,
+            {
+              backgroundColor: currentColors.card,
+              borderColor: currentColors.border,
+            },
+          ]}
+          onPress={() => onSelect?.(option.id)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.iconContainer}>{option.icon}</View>
+          <Text style={[styles.label, { color: currentColors.muted }]}>
             {option.label}
           </Text>
-        </View>
+        </TouchableOpacity>
       ))}
     </View>
   );
@@ -56,31 +50,36 @@ const HostOptionsRow: React.FC<HostOptionsRowProps> = ({ onSelect }) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 16,
     marginVertical: 20,
+    gap: 12,
   },
-  optionWrapper: {
+  optionCard: {
+    flex: 1,
+    height: 90, // Adjusted height to match the rectangular look in image
+    borderRadius: 16,
+    borderWidth: 1.5,
     alignItems: "center",
-    gap: 8,
-  },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
     justifyContent: "center",
-    alignItems: "center",
+    paddingVertical: 12,
+    // Subtle shadow for elevation
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: Platform.OS === "ios" ? 0.08 : 0.2,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  iconContainer: {
+    marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   label: {
     fontSize: FontSize.xs,
     fontWeight: "600",
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
     textAlign: "center",
   },
 });

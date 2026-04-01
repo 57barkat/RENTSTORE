@@ -5,6 +5,7 @@ import {
   IsString,
   MinLength,
   ValidateIf,
+  IsBoolean,
 } from "class-validator";
 import { UserRole } from "../user.entity";
 
@@ -22,12 +23,26 @@ export class CreateUserDto {
   @IsString()
   phone: string;
 
+  @IsOptional()
   @IsEnum(UserRole)
-  role: UserRole;
+  role?: UserRole;
 
-  @ValidateIf((o) => o.role === UserRole.AGENCY)
+  @IsBoolean()
+  isAgencyPerson: boolean;
+
+  @ValidateIf((o) => o.isAgencyPerson)
   @IsString()
   agencyName?: string;
+
+  @ValidateIf((o) => o.isAgencyPerson)
+  @IsOptional()
+  @IsString()
+  agencyLogo?: string;
+
+  @ValidateIf((o) => o.isAgencyPerson)
+  @IsOptional()
+  @IsString()
+  agencyAddress?: string;
 
   @IsOptional()
   @IsString()
@@ -39,6 +54,7 @@ export class CreateUserDto {
 
   @IsString()
   cnic: string;
-  @IsString()
+
+  @IsBoolean()
   acceptedTerms: boolean;
 }

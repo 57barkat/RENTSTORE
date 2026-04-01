@@ -30,8 +30,6 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const GUTTER = 4;
-
 const SORT_OPTIONS = [
   {
     label: "Price: Low to High",
@@ -45,7 +43,6 @@ const SORT_OPTIONS = [
 export default function PropertiesPage() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
-
   const {
     property,
     type,
@@ -63,15 +60,12 @@ export default function PropertiesPage() {
     rules,
     hostelType,
   } = useLocalSearchParams<any>();
-
   const [hostOption, setHostOption] = useState(property ?? type ?? "home");
   const [modalVisible, setModalVisible] = useState(openFilters === "true");
   const [showFilters, setShowFilters] = useState(true);
-
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
   const [isSwitching, setIsSwitching] = useState(false);
-
   const initialFilters = {
     city: city || undefined,
     addressQuery: addressQuery || undefined,
@@ -86,7 +80,6 @@ export default function PropertiesPage() {
     rules: Array.isArray(rules) ? rules : undefined,
     hostelType: hostelType || undefined,
   };
-
   const [hostFiltersStore, setHostFiltersStore] = useState<Record<string, any>>(
     {
       home: type === "home" || !type ? { ...initialFilters } : {},
@@ -94,7 +87,6 @@ export default function PropertiesPage() {
       apartment: type === "apartment" ? { ...initialFilters } : {},
     },
   );
-
   const {
     allProperties,
     filters,
@@ -107,14 +99,13 @@ export default function PropertiesPage() {
     isLoading,
     handleToggleFav,
   } = usePropertiesPage(hostFiltersStore[hostOption], hostOption, sortBy);
-
+  console.log("Properties fetched:", allProperties);
   useEffect(() => {
     setHostFiltersStore((prev) => ({
       ...prev,
       [hostOption]: filters,
     }));
   }, [filters, hostOption]);
-
   const handleHostChange = (newHost: string) => {
     setIsSwitching(true);
     setHostOption(newHost);
@@ -123,14 +114,11 @@ export default function PropertiesPage() {
     setFilters(savedFilters);
     setTimeout(() => setIsSwitching(false), 300);
   };
-
   const selectedChips = buildSelectedChips(hostOption, filters).filter(
     (chip) =>
       (chip.key as string) !== "type" && (chip.key as string) !== "hostOption",
   );
-
   const toggleFilterVisibility = () => setShowFilters(!showFilters);
-
   const handleSortSelect = (value: string) => {
     setIsSwitching(true);
     setSortBy(value);
@@ -138,7 +126,6 @@ export default function PropertiesPage() {
     setPage(1);
     setTimeout(() => setIsSwitching(false), 1300);
   };
-
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <View style={styles.topHeader}>
@@ -156,7 +143,6 @@ export default function PropertiesPage() {
           />
         </TouchableOpacity>
       </View>
-
       <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
         <HostPicker
           value={hostOption}
@@ -164,7 +150,6 @@ export default function PropertiesPage() {
           theme={currentTheme}
         />
       </View>
-
       <FilterHeader
         selectedChips={selectedChips}
         filters={filters}
@@ -177,22 +162,15 @@ export default function PropertiesPage() {
         sortOptions={SORT_OPTIONS}
         theme={currentTheme}
       />
-
       {(isLoading || isSwitching) && page === 1 ? (
         <LoadingScreen currentTheme={currentTheme} />
       ) : (
         <FlatList
           data={allProperties}
           keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={{
-            justifyContent: "space-between",
-            paddingHorizontal: GUTTER,
-          }}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <PropertyCard
               item={item}
-              color={currentTheme.danger}
               theme={currentTheme}
               onPress={() => router.push(`/property/${item.id}`)}
               onToggleFav={handleToggleFav}
@@ -200,6 +178,7 @@ export default function PropertiesPage() {
           )}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
+            paddingHorizontal: 16,
             paddingTop: 8,
             paddingBottom: 20,
             flexGrow: 1,
@@ -216,7 +195,6 @@ export default function PropertiesPage() {
             const offsetY = nativeEvent.contentOffset.y;
             const contentHeight = nativeEvent.contentSize.height;
             const layoutHeight = nativeEvent.layoutMeasurement.height;
-
             if (
               !loadingMore &&
               allProperties.length >= page * 30 &&
@@ -244,7 +222,6 @@ export default function PropertiesPage() {
           }
         />
       )}
-
       <FilterModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -260,7 +237,6 @@ export default function PropertiesPage() {
         setFilters={setFilters}
         theme={currentTheme}
       />
-
       <SortModal
         visible={sortModalVisible}
         onClose={() => setSortModalVisible(false)}
@@ -275,6 +251,12 @@ export default function PropertiesPage() {
 
 const styles = StyleSheet.create({
   topHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    // zIndex: 10,
+    elevation: 10,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,

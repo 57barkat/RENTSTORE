@@ -8,6 +8,8 @@ import { AuthModule } from "../../services/auth.module";
 import { AddToFavModule } from "../addToFav/favorite.module";
 import { PropertyDraftSchema } from "./draft.schema";
 import { DeletedImagesModule } from "../../deletedImages/deletedImages.module";
+import { UserModule } from "../user/user.module";
+import { User, UserSchema } from "../user/user.entity";
 // import { DeletedImagesModule } from "../deletedImages/deletedImages.module";
 
 @Module({
@@ -15,11 +17,13 @@ import { DeletedImagesModule } from "../../deletedImages/deletedImages.module";
     MongooseModule.forFeature([
       { name: Property.name, schema: PropertySchema },
       { name: "PropertyDraft", schema: PropertyDraftSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     CloudinaryModule,
     AuthModule,
     AddToFavModule,
     DeletedImagesModule,
+    UserModule,
   ],
   controllers: [PropertyController],
   providers: [PropertyService],

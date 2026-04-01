@@ -54,7 +54,6 @@ export class Property extends Document {
       zipCode: String,
       _id: false,
     },
-
     default: [],
   })
   address?: Record<string, any>[];
@@ -91,26 +90,40 @@ export class Property extends Document {
   })
   safetyDetailsData?: Record<string, any>;
 
-  @Prop({ type: String, enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"] })
+  @Prop({
+    type: String,
+    enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"],
+  })
   apartmentType?: string;
 
-  @Prop({ type: String, enum: ["furnished", "semi-furnished", "unfurnished"] })
+  @Prop({
+    type: String,
+    enum: ["furnished", "semi-furnished", "unfurnished"],
+  })
   furnishing?: string;
 
   @Prop({ type: Boolean }) parking?: boolean;
 
-  @Prop({ type: String, enum: ["male", "female", "mixed"] })
+  @Prop({
+    type: String,
+    enum: ["male", "female", "mixed"],
+  })
   hostelType?: string;
 
   @Prop({ type: [String], default: [] }) mealPlan?: string[];
   @Prop({ type: [String], default: [] }) rules?: string[];
 
-  @Prop({ type: String, required: true }) ownerId: string;
+  @Prop({ type: Types.ObjectId, required: true })
+  ownerId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: "Agency" })
+  agency?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: "User" })
+  listedBy?: Types.ObjectId;
 
   @Prop({ type: Boolean, default: false }) status: boolean;
-
   @Prop({ type: Boolean, default: false }) featured: boolean;
-
   @Prop({ type: Boolean, default: false }) isApproved: boolean;
 
   @Prop({
@@ -120,40 +133,45 @@ export class Property extends Document {
   })
   moderationStatus: PropertyModerationStatus;
 
-  @Prop({ default: true })
-  isVisible: boolean;
+  @Prop({ default: true }) isVisible: boolean;
+  @Prop({ default: 0 }) reportCount: number;
+  @Prop({ default: 0 }) strikeCount: number;
 
-  @Prop({ default: 0 })
-  reportCount: number;
-
-  @Prop({ default: 0 })
-  strikeCount: number;
-
-  @Prop()
-  suspendedAt?: Date;
-
-  @Prop()
-  deletedAt?: Date;
+  @Prop() suspendedAt?: Date;
+  @Prop() deletedAt?: Date;
 }
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
 
-PropertySchema.index({
-  locationGeo: "2dsphere",
-});
+// 🔥 Indexes (UNCHANGED + SAFE)
+
+PropertySchema.index({ locationGeo: "2dsphere" });
 PropertySchema.index({ area: 1 });
-// PropertySchema.index({ "address.city": 1 });
-// PropertySchema.index({ hostOption: 1 });
-// PropertySchema.index({ monthlyRent: 1 });
+
 PropertySchema.index({ "capacityState.bedrooms": 1 });
 PropertySchema.index({ "capacityState.floorLevel": 1 });
-// High-priority compound index
-PropertySchema.index({ "address.city": 1, moderationStatus: 1, isVisible: 1 });
-// 1. For the main search results (City + Type + Price)
-PropertySchema.index({ "address.city": 1, hostOption: 1, monthlyRent: 1 });
-// 2. For owner dashboards
+
+PropertySchema.index({
+  "address.city": 1,
+  moderationStatus: 1,
+  isVisible: 1,
+});
+
+PropertySchema.index({
+  "address.city": 1,
+  hostOption: 1,
+  monthlyRent: 1,
+});
+
 PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
-// 3. For global discovery/featured listings
-PropertySchema.index({ featured: 1, moderationStatus: 1, createdAt: -1 });
-// 4. Geospatial + Active status CAN BE
-PropertySchema.index({ locationGeo: "2dsphere", moderationStatus: 1 });
+
+PropertySchema.index({
+  featured: 1,
+  moderationStatus: 1,
+  createdAt: -1,
+});
+
+PropertySchema.index({
+  locationGeo: "2dsphere",
+  moderationStatus: 1,
+});
