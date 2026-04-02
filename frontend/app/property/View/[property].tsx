@@ -22,6 +22,8 @@ import { usePropertiesPage } from "@/hooks/useFilteredProperties";
 import { buildSelectedChips } from "@/utils/homeTabUtils/selectedChips";
 import { MaterialIcons } from "@expo/vector-icons";
 import LoadingScreen from "@/components/Common/LoadingScreen";
+import { useAuth } from "@/contextStore/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 if (
   Platform.OS === "android" &&
@@ -43,6 +45,8 @@ const SORT_OPTIONS = [
 export default function PropertiesPage() {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+  const { isGuest } = useAuth();
+
   const {
     property,
     type,
@@ -60,8 +64,10 @@ export default function PropertiesPage() {
     rules,
     hostelType,
   } = useLocalSearchParams<any>();
+
   const [hostOption, setHostOption] = useState(property ?? type ?? "home");
   const [modalVisible, setModalVisible] = useState(openFilters === "true");
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
@@ -99,7 +105,15 @@ export default function PropertiesPage() {
     isLoading,
     handleToggleFav,
   } = usePropertiesPage(hostFiltersStore[hostOption], hostOption, sortBy);
-  console.log("Properties fetched:", allProperties);
+
+  const onPressFav = (id: string) => {
+    if (isGuest) {
+      setAuthModalVisible(true);
+    } else {
+      handleToggleFav(id);
+    }
+  };
+
   useEffect(() => {
     setHostFiltersStore((prev) => ({
       ...prev,
@@ -173,7 +187,7 @@ export default function PropertiesPage() {
               item={item}
               theme={currentTheme}
               onPress={() => router.push(`/property/${item.id}`)}
-              onToggleFav={handleToggleFav}
+              onToggleFav={onPressFav}
             />
           )}
           showsVerticalScrollIndicator={false}
@@ -222,6 +236,13 @@ export default function PropertiesPage() {
           }
         />
       )}
+
+      <AuthModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+        featureName="Favorites"
+      />
+
       <FilterModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -255,7 +276,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    // zIndex: 10,
     elevation: 10,
     flexDirection: "row",
     alignItems: "center",

@@ -25,13 +25,16 @@ import {
   parseArrayFields,
   parseNumericFields,
 } from "./utils/property.utils";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 
 interface PaginationQuery {
   page?: number;
   limit?: number;
 }
 
-@UseGuards(AuthGuard("jwt"))
+const Public = () => SetMetadata("isPublic", true);
+
+@UseGuards(JwtAuthGuard)
 @Controller("properties")
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
@@ -46,7 +49,6 @@ export class PropertyController {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
-    // --- Helper to parse JSON safely ---
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -56,7 +58,6 @@ export class PropertyController {
       }
     };
 
-    // --- Parse nested fields ---
     const parsedDto: Partial<CreatePropertyDto> = {
       ...dto,
       capacityState: parseJson(dto.capacityState),
@@ -70,7 +71,6 @@ export class PropertyController {
       lng: dto.lng ? Number(dto.lng) : undefined,
     };
 
-    // --- Address handling ---
     let parsedAddress: any[] = [];
     if (dto.address) {
       try {
@@ -95,7 +95,6 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress[0] || {};
 
-    // --- Upload photos ---
     if (files?.photos?.length) {
       parsedDto.photos = await this.propertyService.uploadFilesToCloudinary(
         files.photos,
@@ -104,7 +103,6 @@ export class PropertyController {
       parsedDto.photos = Array.from(new Set(dto.photos));
     }
 
-    // --- GeoJSON ---
     if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
       parsedDto.locationGeo = {
         type: "Point",
@@ -112,7 +110,6 @@ export class PropertyController {
       };
     }
 
-    // --- Check completeness ---
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
       if (typeof value === "string") return value.trim() !== "";
@@ -134,15 +131,14 @@ export class PropertyController {
     const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
     parsedDto.status = isComplete;
 
-    // --- Save draft if incomplete ---
     if (!isComplete) {
       return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
     }
 
-    // --- Save full property ---
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
 
+  @Public()
   @Get()
   async getAll(@Query() query: PaginationQuery) {
     const page = query.page ?? 1;
@@ -150,6 +146,7 @@ export class PropertyController {
     return this.propertyService.findAll(page, limit);
   }
 
+  @Public()
   @Get("nearby")
   async getNearbyProperties(
     @Query() query: NearbyPropertyDto,
@@ -165,6 +162,7 @@ export class PropertyController {
     );
   }
 
+  @Public()
   @Get("type/:hostOption")
   async getByHostOption(
     @Param("hostOption") hostOption: string,
@@ -182,6 +180,7 @@ export class PropertyController {
     );
   }
 
+  @Public()
   @Get("search")
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
@@ -226,7 +225,6 @@ export class PropertyController {
     @Query("city") city?: string,
   ) {
     const userId = req.user?.userId;
-    console.log("Fetching properties for user:", userId);
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findMyProperties(
       userId,
@@ -237,11 +235,14 @@ export class PropertyController {
       city,
     );
   }
+
+  @Public()
   @Get("address-suggestions")
   async getAddressSuggestions(@Query("q") q: string) {
     return this.propertyService.getAddressSuggestions(q);
   }
 
+  @Public()
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
     const userId = req.user?.userId;
@@ -262,6 +263,7 @@ export class PropertyController {
     return this.propertyService.deleteDraftById(id, userId);
   }
 
+  @Public()
   @Get(":id")
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
@@ -286,7 +288,6 @@ export class PropertyController {
     return this.propertyService.findPropertyByIdAndDelete(id, userId);
   }
 
-  // --- Admin routes ---
   @Get("admin/unapproved")
   @SetMetadata("roles", ["admin"])
   async getUnapproved(

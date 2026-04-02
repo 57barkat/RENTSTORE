@@ -24,6 +24,8 @@ import PropertyInfoSection from "@/components/PropertyInfoSection";
 import FinancialDetailsCard from "@/components/FinancialDetailsCard";
 import OwnerSection from "@/components/OwnerSection";
 import ReportModal from "@/components/ReportModal";
+import { useAuth } from "@/contextStore/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 export const options = { headerShown: false };
 
@@ -34,13 +36,15 @@ export default function PropertyDetails() {
   const isDark = theme === "dark";
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
+  const { isGuest } = useAuth();
 
   const [isModalVisible, setModalVisible] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
 
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
-  console.log("Property details fetched:", property);
+
   const { handleChatOwner, isCreating } = useChatRoom(
     property?.ownerId,
     property?.owner?.name,
@@ -49,6 +53,14 @@ export default function PropertyDetails() {
 
   const [reportProperty, { isLoading: isReporting }] =
     usePropertyReportMutation();
+
+  const onPressChat = () => {
+    if (isGuest) {
+      setAuthModalVisible(true);
+    } else {
+      handleChatOwner();
+    }
+  };
 
   const handleShare = async () => {
     try {
@@ -158,10 +170,17 @@ export default function PropertyDetails() {
         </View>
       </ScrollView>
 
+      {/* ✅ Feature Restriction Modal */}
+      <AuthModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+        featureName="Messaging"
+      />
+
       <OwnerSection
         owner={property.owner}
         theme={currentTheme}
-        onChat={handleChatOwner}
+        onChat={onPressChat}
         isCreating={isCreating}
         price={property.monthlyRent}
       />

@@ -24,15 +24,16 @@ import { SidebarProvider } from "@/contextStore/SidebarContext";
 import Sidebar from "@/components/SideBar/Sidebar";
 import { LengthProvider } from "@/contextStore/LengthContext";
 import { UserStatsProvider } from "@/contextStore/UserStatsContext";
-// @
+
 if (__DEV__) {
   require("../ReactotronConfig");
 }
+
 const AppContent = () => {
   const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isGuest, loading } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
@@ -57,16 +58,21 @@ const AppContent = () => {
     if (!fontsLoaded || loading) return;
     const segment = segments[0] ?? "";
     const inAuthGroup = ["(auth)", "signin", "signup"].includes(segment);
+
     const timeout = setTimeout(() => {
-      if (!isAuthenticated && !inAuthGroup) {
-        router.replace("/signin");
-      } else if (isAuthenticated && (inAuthGroup || segment === "")) {
-        router.replace("/homePage");
+      if (isAuthenticated) {
+        if (inAuthGroup || segment === "") {
+          router.replace("/homePage");
+        }
+      } else if (isGuest) {
+        if (segment === "") {
+          router.replace("/homePage");
+        }
       }
       setNavReady(true);
     }, 1);
     return () => clearTimeout(timeout);
-  }, [fontsLoaded, loading, isAuthenticated, segments]);
+  }, [fontsLoaded, loading, isAuthenticated, isGuest, segments]);
 
   if (!fontsLoaded || loading || !navReady) {
     return (

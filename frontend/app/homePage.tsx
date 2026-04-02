@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   View,
@@ -21,11 +21,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useHomePageLogic } from "@/hooks/useHomePageLogic";
 import { getSectionsData } from "@/utils/homeTabUtils/homeHelpers";
 import PhoneVerificationBanner from "@/components/VerificationBanner";
+import { useAuth } from "@/contextStore/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const logic = useHomePageLogic();
+  const { isGuest } = useAuth();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activeFeature, setActiveFeature] = useState("");
+
+  const triggerAuthModal = (feature: string) => {
+    setActiveFeature(feature);
+    setModalVisible(true);
+  };
 
   const sections = getSectionsData(
     logic.homes,
@@ -107,6 +118,11 @@ const HomePage: React.FC = () => {
             onViewAll={() => router.push(`/property/View/${item.hostOption}`)}
             onCardPress={(id) => router.push(`/property/${id}`)}
             onToggleFav={async (id) => {
+              if (isGuest) {
+                triggerAuthModal("Favorites");
+                return;
+              }
+
               logic.favoriteIds.includes(id)
                 ? await logic.removeUserFavorite({ propertyId: id })
                 : await logic.addToFav({ propertyId: id });
@@ -114,6 +130,12 @@ const HomePage: React.FC = () => {
             }}
           />
         )}
+      />
+
+      <AuthModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        featureName={activeFeature}
       />
 
       {logic.isMenuOpen && (
@@ -134,7 +156,11 @@ const HomePage: React.FC = () => {
               ]}
               onPress={() => {
                 logic.toggleMenu();
-                router.push("/NearbyScreen");
+                if (isGuest) {
+                  triggerAuthModal("Nearby Search");
+                } else {
+                  router.push("/NearbyScreen");
+                }
               }}
             >
               <Ionicons name="location" size={12} color="#fff" />
@@ -145,7 +171,14 @@ const HomePage: React.FC = () => {
                 styles.aiButton,
                 { backgroundColor: currentTheme.secondary },
               ]}
-              onPress={logic.handleStartAI}
+              onPress={() => {
+                if (isGuest) {
+                  logic.toggleMenu();
+                  triggerAuthModal("AI Matcher");
+                } else {
+                  logic.handleStartAI();
+                }
+              }}
             >
               <Ionicons name="sparkles" size={12} color="#fff" />
               <Text style={styles.buttonText}>AI Matcher</Text>

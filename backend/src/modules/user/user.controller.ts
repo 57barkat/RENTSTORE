@@ -19,14 +19,15 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
-
+import { Public } from "src/common/decorators/public.decorator";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
 @Controller("users")
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
   ) {}
-
+  @Public()
   @Post("signup")
   async signup(@Body() dto: CreateUserDto) {
     const user = await this.userService.createUser(dto);
@@ -34,7 +35,7 @@ export class UserController {
 
     return { ...this.mapUser(user), ...tokens };
   }
-
+  @Public()
   @Post("login")
   async login(@Body() body: { emailOrPhone: string; password: string }) {
     const { user, tokens } = await this.authService.loginWithPassword(
@@ -56,7 +57,7 @@ export class UserController {
       },
     };
   }
-
+  @Public()
   @Post("verify-email")
   async verifyEmail(@Body() body: { email: string; code: string }) {
     const user = await this.userService.verifyEmail(body.email, body.code);
@@ -79,7 +80,7 @@ export class UserController {
   ) {
     return await this.userService.findAllPaginated(page, limit, search);
   }
-
+  @Public()
   @Post("refresh")
   async refresh(@Body("refreshToken") token: string) {
     return await this.authService.refresh(token);
@@ -92,7 +93,7 @@ export class UserController {
     await this.userService.clearRefreshToken(req.user.userId);
     return { message: "Logged out successfully" };
   }
-
+  @UseGuards(AuthGuard("jwt"))
   @Delete("delete")
   async delete(@Req() req) {
     const user = await this.userService.delete(req.user.sub);

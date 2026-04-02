@@ -24,6 +24,7 @@ export type UserType = {
 type AuthContextType = {
   user: UserType | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   isPhoneVerified: boolean;
   loading: boolean;
   login: (response: any) => Promise<void>;
@@ -39,6 +40,7 @@ export const AuthContext = createContext<AuthContextType>(
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserType | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -51,7 +53,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (accessToken && storedUserData) {
       setUser(storedUserData);
       setIsAuthenticated(true);
+      setIsGuest(false);
       setIsPhoneVerified(verified === "true");
+    } else {
+      setIsGuest(true);
+      setIsAuthenticated(false);
+      setUser(null);
     }
   }, []);
 
@@ -101,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setUser(finalUser);
     setIsAuthenticated(true);
+    setIsGuest(false);
     setIsPhoneVerified(verifiedStatus);
   };
 
@@ -110,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await AsyncStorage.removeItem("userId");
     setUser(null);
     setIsAuthenticated(false);
+    setIsGuest(true);
     setIsPhoneVerified(false);
   };
 
@@ -148,7 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
-
 export const useAuth = () => useContext(AuthContext);
 
 const styles = StyleSheet.create({
