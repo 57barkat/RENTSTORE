@@ -40,6 +40,15 @@ export class User {
   @Prop({ default: 1 })
   propertyLimit: number;
 
+  @Prop({ default: 0 })
+  paidPropertyCredits: number;
+
+  @Prop({ default: 0 })
+  usedPropertyCount: number;
+
+  @Prop({ default: 0 })
+  paidFeaturedCredits: number;
+
   @Prop({ required: true, unique: true })
   cnic: string;
 

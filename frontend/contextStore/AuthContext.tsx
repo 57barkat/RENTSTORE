@@ -11,6 +11,7 @@ import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { tokenManager } from "../services/tokenManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { disconnectSocket } from "@/services/socket";
+import { useLazyGetMeQuery } from "@/services/api";
 
 export type UserType = {
   id: string;
@@ -19,6 +20,10 @@ export type UserType = {
   role: string;
   profileImage?: string;
   isPhoneVerified: boolean;
+  propertyLimit?: number;
+  usedPropertyCount?: number;
+  paidPropertyCredits?: number;
+  paidFeaturedCredits?: number;
 };
 
 type AuthContextType = {
@@ -31,6 +36,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   refreshAuthState: () => Promise<void>;
   setVerified: (status: boolean) => Promise<void>;
+  updateUser: (newUserData: Partial<UserType>) => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>(
@@ -44,35 +50,86 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const refreshAuthState = useCallback(async () => {
-    await tokenManager.load();
-    const accessToken = tokenManager.getAccessToken();
-    const storedUserData = tokenManager.getUserData();
-    const verified = await tokenManager.getPhoneVerified();
+  // ✅ triggerGetMe is a function we can call safely anywhere
+  const [triggerGetMe, { data: latestUserData }] = useLazyGetMeQuery();
 
-    if (accessToken && storedUserData) {
-      setUser(storedUserData);
-      setIsAuthenticated(true);
-      setIsGuest(false);
-      setIsPhoneVerified(verified === "true");
-    } else {
-      setIsGuest(true);
-      setIsAuthenticated(false);
-      setUser(null);
+  /**
+   * Syncs the RTK Query data into the AuthContext state
+   */
+  useEffect(() => {
+    if (latestUserData) {
+      const latestUser = (latestUserData as any).user || latestUserData;
+
+      const formattedUser: UserType = {
+        id: latestUser.id || latestUser._id,
+        name: latestUser.name,
+        email: latestUser.email,
+        profileImage: latestUser.profileImage,
+        role: latestUser.role,
+        isPhoneVerified:
+          latestUser.isphoneverified === true ||
+          latestUser.isPhoneVerified === true,
+        propertyLimit: latestUser.propertyLimit,
+        usedPropertyCount: latestUser.usedPropertyCount,
+        paidPropertyCredits: latestUser.paidPropertyCredits,
+        paidFeaturedCredits: latestUser.paidFeaturedCredits,
+      };
+
+      setUser(formattedUser);
+      setIsPhoneVerified(formattedUser.isPhoneVerified);
+      tokenManager.setUserData(formattedUser);
     }
-  }, []);
+  }, [latestUserData]);
 
+  const refreshAuthState = useCallback(async () => {
+    try {
+      await tokenManager.load();
+      const accessToken = tokenManager.getAccessToken();
+      if (accessToken) {
+        // ✅ Calling the trigger function instead of refetch
+        await triggerGetMe().unwrap();
+      } else {
+        setIsGuest(true);
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Manual refresh failed", error);
+    }
+  }, [triggerGetMe]);
+
+  /**
+   * Initial Bootstrap
+   */
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        await refreshAuthState();
+        await tokenManager.load();
+        const accessToken = tokenManager.getAccessToken();
+        const storedUser = tokenManager.getUserData();
+
+        if (accessToken && storedUser) {
+          setUser(storedUser);
+          setIsAuthenticated(true);
+          setIsGuest(false);
+          setIsPhoneVerified(storedUser.isPhoneVerified);
+
+          // ✅ This is now safe to call during bootstrap!
+          triggerGetMe();
+        } else {
+          setIsGuest(true);
+          setIsAuthenticated(false);
+        }
+      } catch (e) {
+        console.error("Auth bootstrap failed", e);
       } finally {
         setLoading(false);
       }
     };
     bootstrap();
-  }, [refreshAuthState]);
+  }, [triggerGetMe]);
 
+  // ... login, updateUser, logout, setVerified stay exactly the same ...
   const login = async (response: any) => {
     const {
       accessToken,
@@ -81,14 +138,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role,
       isphoneverified,
     } = response;
-
-    if (!accessToken || !refreshToken) {
-      throw new Error("Missing tokens in server response");
-    }
+    if (!accessToken || !refreshToken) throw new Error("Missing tokens");
 
     const verifiedStatus =
       isphoneverified === true || isphoneverified === "true";
-
     const finalUser: UserType = {
       id: userData?.id || userData?._id,
       name: userData?.name,
@@ -96,20 +149,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       profileImage: userData?.profileImage,
       role: role || userData?.role,
       isPhoneVerified: verifiedStatus,
+      propertyLimit: userData?.propertyLimit,
+      usedPropertyCount: userData?.usedPropertyCount,
+      paidPropertyCredits: userData?.paidPropertyCredits,
+      paidFeaturedCredits: userData?.paidFeaturedCredits,
     };
 
     await tokenManager.setTokens(accessToken, refreshToken);
     await tokenManager.setUserData(finalUser);
     await tokenManager.setPhoneVerified(verifiedStatus);
-
-    if (finalUser.id) {
-      await AsyncStorage.setItem("userId", finalUser.id);
-    }
+    if (finalUser.id) await AsyncStorage.setItem("userId", finalUser.id);
 
     setUser(finalUser);
     setIsAuthenticated(true);
     setIsGuest(false);
     setIsPhoneVerified(verifiedStatus);
+  };
+
+  const updateUser = async (newUserData: Partial<UserType> | any) => {
+    if (!user) return;
+    const dataToMerge = newUserData.user ? newUserData.user : newUserData;
+    const updatedUser = {
+      ...user,
+      ...dataToMerge,
+      id: dataToMerge.id || dataToMerge._id || user.id,
+    };
+    setUser(updatedUser);
+    await tokenManager.setUserData(updatedUser);
   };
 
   const logout = async () => {
@@ -145,18 +211,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated,
+        isGuest,
         isPhoneVerified,
         loading,
         login,
         logout,
         refreshAuthState,
         setVerified,
+        updateUser,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
+
 export const useAuth = () => useContext(AuthContext);
 
 const styles = StyleSheet.create({

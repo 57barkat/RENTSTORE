@@ -5,6 +5,7 @@ import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
 import { CapacityState } from "@/types/PropertyDetails.types";
 import React, { createContext, useState, ReactNode } from "react";
 import { useCreatePropertyMutation } from "@/services/api";
+import { useAuth } from "./AuthContext"; // AuthContext hook
 
 export interface SubmitResult {
   success: boolean;
@@ -60,8 +61,8 @@ export const FormContext = createContext<FormContextType | undefined>(
 
 export const FormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<FormData>({});
-
   const [createProperty] = useCreatePropertyMutation();
+  const { updateUser } = useAuth();
 
   const updateForm: FormContextType["updateForm"] = (step, values) => {
     setData((prev) => ({ ...prev, [step]: values }));
@@ -70,15 +71,24 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   const setFullFormData: FormContextType["setFullFormData"] = (newData) => {
     setData({ ...newData });
   };
-  // console.log("🔄 FormContext data updated:", data);
+
   const submitData: FormContextType["submitData"] = async (overrideData) => {
     try {
       const payload = overrideData ?? data;
-      // console.log("🚀 Submitting FINAL property:", payload);
+      console.log("Submitting property payload:", payload);
       const response = await createProperty(payload).unwrap();
+
+      if (response.user) {
+        console.log(
+          "Syncing user stats from property response:",
+          response.user,
+        );
+        await updateUser(response.user);
+      }
+
       return { success: true, data: response };
     } catch (error) {
-      // console.error("❌ Error submitting:", error);
+      console.error("Property submission failed:", error);
       return { success: false, error };
     }
   };
@@ -88,18 +98,15 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     try {
       const payload = overrideData ?? data;
-      // console.log("🗂️ Saving DRAFT:", payload);
       const response = await createProperty(payload).unwrap();
       return { success: true, data: response };
     } catch (error) {
-      // console.error("❌ Error saving draft:", error);
+      console.error("Draft save failed:", error);
       return { success: false, error };
     }
   };
 
-  const clearForm = () => {
-    setData({});
-  };
+  const clearForm = () => setData({});
 
   return (
     <FormContext.Provider

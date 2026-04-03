@@ -1,4 +1,6 @@
+import { BadRequestException } from "@nestjs/common";
 import { Types } from "mongoose";
+import { UserDocument } from "src/modules/user/user.entity";
 
 export const parseNumericFields = (
   query: Record<string, any>,
@@ -146,4 +148,67 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   return mongoFilter;
+};
+
+export const processPhotos = (photos?: string[]): string[] => {
+  return photos ? Array.from(new Set(photos)) : [];
+};
+
+export const formatLocationGeo = (lat?: number, lng?: number) => {
+  if (lat !== undefined && lng !== undefined) {
+    return {
+      type: "Point" as const,
+      coordinates: [lng, lat],
+    };
+  }
+  return undefined;
+};
+
+/**
+ * Logic to check and deduct credits from the user object.
+ * Does NOT save to DB (we return a boolean so the service handles the save).
+ */
+export const validateAndDeductCredits = (
+  user: UserDocument,
+  isNewUpload: boolean,
+  isFeaturedRequest: boolean,
+): boolean => {
+  let userNeedsSaving = false;
+
+  // 1. Standard Property Upload Credit
+  if (isNewUpload) {
+    const currentUsage = user.usedPropertyCount || 0;
+    const maxLimit = user.propertyLimit || 0;
+    const credits = user.paidPropertyCredits || 0;
+
+    if (currentUsage >= maxLimit) {
+      if (credits > 0) {
+        user.propertyLimit = maxLimit + 1;
+        user.paidPropertyCredits = credits - 1;
+        userNeedsSaving = true;
+      } else {
+        throw new BadRequestException({
+          message: "Standard upload limit reached.",
+          error: "LIMIT_EXCEEDED",
+          requiresUpgrade: true,
+        });
+      }
+    }
+  }
+
+  // 2. Featured Property Credit
+  if (isFeaturedRequest) {
+    const featuredCredits = user.paidFeaturedCredits || 0;
+    if (featuredCredits > 0) {
+      user.paidFeaturedCredits = featuredCredits - 1;
+      userNeedsSaving = true;
+    } else {
+      throw new BadRequestException({
+        message: "Insufficient Featured Credits.",
+        error: "FEATURED_LIMIT_EXCEEDED",
+      });
+    }
+  }
+
+  return userNeedsSaving;
 };

@@ -146,7 +146,7 @@ const HomePage: React.FC = () => {
         </Animated.View>
       )}
 
-      {!showAssistant && (
+      {/* {!showAssistant && (
         <View style={styles.floatingActions}>
           <Animated.View style={[actionStyle, { gap: 12 }]}>
             <TouchableOpacity
@@ -197,7 +197,7 @@ const HomePage: React.FC = () => {
             </Animated.View>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
 
       {showAssistant && (
         <VoiceAssistant

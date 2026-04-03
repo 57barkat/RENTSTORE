@@ -11,6 +11,7 @@ import {
   SetMetadata,
   Param,
   Query,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { UserService } from "./user.service";
@@ -54,7 +55,34 @@ export class UserController {
         name: user.name,
         email: user.email,
         profileImage: user.profileImage,
+        propertyLimit: user.propertyLimit,
+        paidPropertyCredits: user.paidPropertyCredits,
+        usedPropertyCount: user.usedPropertyCount,
+        paidFeaturedCredits: user.paidFeaturedCredits,
       },
+    };
+  }
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  async getMe(@Req() req) {
+    const userId = req.user.userId || req.user.id || req.user.sub;
+
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+      isphoneverified: user.isPhoneVerified,
+      propertyLimit: user.propertyLimit,
+      usedPropertyCount: user.usedPropertyCount,
+      paidPropertyCredits: user.paidPropertyCredits,
+      paidFeaturedCredits: user.paidFeaturedCredits,
     };
   }
   @Public()
@@ -69,7 +97,12 @@ export class UserController {
     const user = await this.userService.googleLogin(token);
     return this.authService.issueTokens(user);
   }
-
+  @UseGuards(JwtAuthGuard)
+  @Get("upload-status")
+  async getUploadStatus(@Req() req) {
+    const userId = req.user.userId;
+    return this.userService.getPropertyUploadStatus(userId);
+  }
   @Get("admin/all")
   @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
@@ -133,5 +166,19 @@ export class UserController {
   @SetMetadata("roles", ["admin"])
   async deleteUser(@Param("id") id: string) {
     return await this.userService.deleteUser(id);
+  }
+  @UseGuards(JwtAuthGuard)
+  @Patch("admin/update-credits/:userId")
+  async updateCredits(
+    @Param("userId") userId: string,
+    @Body()
+    updateDto: { paidPropertyCredits?: number; paidFeaturedCredits?: number },
+    @Req() req: any,
+  ) {
+    if (req.user.role !== "admin") {
+      throw new UnauthorizedException("Only admins can modify credits");
+    }
+
+    return await this.userService.updateUserCredits(userId, updateDto);
   }
 }

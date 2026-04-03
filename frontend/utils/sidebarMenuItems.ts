@@ -42,6 +42,12 @@ export const sidebarMenuItems: MenuItem[] = [
     label: "Draft Property",
     screen: "DraftProperties",
   },
+  {
+    iconType: "Ionicons",
+    iconName: "receipt-outline",
+    label: "Transaction History",
+    screen: "TransactionHistory",
+  },
   // {
   //   iconType: "Feather",
   //   iconName: "user-x",

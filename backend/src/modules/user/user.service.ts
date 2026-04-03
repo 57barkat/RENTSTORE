@@ -14,6 +14,7 @@ import * as admin from "firebase-admin";
 import { EmailService } from "src/services/email/email.service";
 import { Agency, AgencyDocument } from "../Agency/agency.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
+import { Property } from "../property/property.schema";
 
 @Injectable()
 export class UserService {
@@ -22,6 +23,8 @@ export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Agency.name) private agencyModel: Model<AgencyDocument>,
+    @InjectModel(Property.name)
+    private propertyModel: Model<Property>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -49,10 +52,10 @@ export class UserService {
 
     switch (role) {
       case UserRole.USER:
-        propertyLimit = 2;
+        propertyLimit = 1;
         break;
       case UserRole.AGENT:
-        propertyLimit = 5;
+        propertyLimit = 3;
         break;
       case UserRole.AGENCY:
         propertyLimit = 50;
@@ -100,6 +103,28 @@ export class UserService {
     this.emailService.sendVerificationEmail(email, code);
   }
 
+  async handleSuccessfulPayment(userId: string, packageId: string) {
+    const packages = {
+      single: { p: 1, f: 0 },
+      standard: { p: 5, f: 0 },
+      business_pro: { p: 20, f: 5 },
+    };
+
+    const credits = packages[packageId];
+    if (!credits) throw new Error("Invalid Package");
+
+    return await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        $inc: {
+          paidPropertyCredits: credits.p,
+          paidFeaturedCredits: credits.f,
+        },
+      },
+      { new: true },
+    );
+  }
+
   async verifyEmail(email: string, code: string): Promise<UserDocument> {
     const user = await this.userModel.findOne({ email });
 
@@ -126,7 +151,40 @@ export class UserService {
 
     return user;
   }
+  async updateUserCredits(
+    userId: string,
+    updateDto: { paidPropertyCredits?: number; paidFeaturedCredits?: number },
+  ) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
 
+    // 1. Update Standard Property Credits only if provided in payload
+    if (updateDto.paidPropertyCredits !== undefined) {
+      const currentProps = Number(user.paidPropertyCredits) || 0;
+      user.paidPropertyCredits =
+        currentProps + Number(updateDto.paidPropertyCredits);
+      console.log(
+        `[CREDIT_UPDATE] Added ${updateDto.paidPropertyCredits} Property Credits to User ${userId}`,
+      );
+    }
+
+    // 2. Update Featured Credits only if provided in payload
+    if (updateDto.paidFeaturedCredits !== undefined) {
+      const currentFeatured = Number(user.paidFeaturedCredits) || 0;
+      user.paidFeaturedCredits =
+        currentFeatured + Number(updateDto.paidFeaturedCredits);
+      console.log(
+        `[CREDIT_UPDATE] Added ${updateDto.paidFeaturedCredits} Featured Credits to User ${userId}`,
+      );
+    }
+
+    const updatedUser = await user.save();
+
+    return {
+      message: "Credits updated successfully",
+      updatedUser,
+    };
+  }
   /* -------------------------------------------------------------------------- */
   /*                               GOOGLE LOGIN                                  */
   /* -------------------------------------------------------------------------- */
@@ -163,7 +221,40 @@ export class UserService {
   /* -------------------------------------------------------------------------- */
   /*                               AUTH HELPERS                                  */
   /* -------------------------------------------------------------------------- */
+  async getPropertyUploadStatus(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
 
+    let propertyCount = 0;
+
+    if (user.agency) {
+      const agencyUsers = await this.userModel.find({
+        agency: user.agency,
+      });
+
+      const agencyUserIds = agencyUsers.map((u) => u._id);
+
+      propertyCount = await this.propertyModel.countDocuments({
+        ownerId: { $in: agencyUserIds },
+      });
+    } else {
+      propertyCount = await this.propertyModel.countDocuments({
+        ownerId: userId,
+      });
+    }
+
+    const remainingFree = Math.max(user.propertyLimit - propertyCount, 0);
+
+    const canUpload = remainingFree > 0 || user.paidPropertyCredits > 0;
+
+    return {
+      limit: user.propertyLimit,
+      used: propertyCount,
+      remainingFree,
+      paidCredits: user.paidPropertyCredits,
+      canUpload,
+    };
+  }
   async validatePassword(emailOrPhone: string, password: string) {
     const user = await this.userModel.findOne({
       $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],

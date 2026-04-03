@@ -155,6 +155,8 @@ const AppContent = () => {
           }}
         />
         <Stack.Screen name="MyListingsScreen" />
+        <Stack.Screen name="TransactionHistory" />
+        <Stack.Screen name="shop/BuyCredits.tsx" />
         <Stack.Screen name="DraftProperties" />
         <Stack.Screen name="upload" />
         <Stack.Screen name="PrivacyPolicyScreen" />

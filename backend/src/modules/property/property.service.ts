@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -14,7 +15,11 @@ import { DeletedImagesService } from "../../deletedImages/deletedImages.service"
 import { PropertyFilters } from "./utils/property-filter.util";
 import { buildMongoFilter } from "./utils/property.utils";
 import { User, UserDocument } from "../user/user.entity";
-
+import {
+  processPhotos,
+  formatLocationGeo,
+  validateAndDeductCredits,
+} from "./utils/property.utils";
 @Injectable()
 export class PropertyService {
   constructor(
@@ -42,30 +47,43 @@ export class PropertyService {
   async createOrUpdate(
     dto: Partial<CreatePropertyDto>,
     userId: string,
-  ): Promise<Property> {
-    let property: Property | null = null;
+  ): Promise<{ property: Property; user: any }> {
     const propertyId = dto._id;
 
-    if (dto.photos) {
-      dto.photos = Array.from(new Set(dto.photos));
-    }
+    // 1. Fetch User
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
 
-    // ========================= UPDATE EXISTING =========================
+    // 2. Data Pre-processing (Type Safe)
+    const cleanedPhotos = processPhotos(dto.photos);
+    dto.photos = cleanedPhotos; // Update DTO so it carries the clean array
+
+    const locationGeo = formatLocationGeo(dto.lat, dto.lng);
+    if (locationGeo) dto.locationGeo = locationGeo;
+
+    // Internal helper to handle the credit save logic
+    const handleCredits = async (isNew: boolean, isFeatured: boolean) => {
+      const needsSave = validateAndDeductCredits(user, isNew, isFeatured);
+      if (needsSave) await user.save();
+    };
+
+    // ========================= CASE A: UPDATE EXISTING =========================
     if (propertyId) {
-      property = await this.propertyModel.findById(propertyId);
+      const existingProperty = await this.propertyModel.findById(propertyId);
 
-      if (property) {
-        if (property.ownerId.toString() !== userId.toString())
+      if (existingProperty) {
+        if (existingProperty.ownerId.toString() !== userId.toString())
           throw new UnauthorizedException("Not allowed to edit this property");
 
-        const oldPhotos = property.photos || [];
-        const newPhotos = dto.photos || [];
-        const uniqueNewPhotos = Array.from(new Set(newPhotos));
+        // Check if newly marking as featured
+        if (dto.featured === true && existingProperty.featured !== true) {
+          await handleCredits(false, true);
+        }
 
-        const photosToDelete = oldPhotos.filter(
-          (url) => !uniqueNewPhotos.includes(url),
+        // Safe photo deletion check
+        const photosToDelete = (existingProperty.photos || []).filter(
+          (url) => !cleanedPhotos.includes(url),
         );
-
         if (photosToDelete.length > 0) {
           await this.deletedImagesService.addDeletedImages(
             photosToDelete,
@@ -74,70 +92,29 @@ export class PropertyService {
           );
         }
 
-        if (dto.lat !== undefined && dto.lng !== undefined) {
-          dto.locationGeo = {
-            type: "Point",
-            coordinates: [dto.lng, dto.lat],
-          };
-        }
-
-        Object.assign(property, {
-          ...dto,
-          photos: uniqueNewPhotos,
-        });
-
-        return await property.save();
+        Object.assign(existingProperty, dto);
+        return { property: await existingProperty.save(), user };
       }
 
-      // ========================= PROMOTE DRAFT =========================
+      // ========================= CASE B: PROMOTE DRAFT =========================
       const draft = await this.propertyDraftModel.findById(propertyId);
       if (draft) {
         if (draft.ownerId.toString() !== userId.toString())
-          throw new UnauthorizedException("Not allowed to promote this draft");
+          throw new UnauthorizedException("Not allowed to promote draft");
 
-        // 🔥 LIMIT CHECK (IMPORTANT)
-        const user = await this.userModel.findById(userId);
-        if (!user) throw new NotFoundException("User not found");
-
-        let propertyCount = 0;
-
-        if (user.agency) {
-          // 👉 Agency shared limit
-          const agencyUsers = await this.userModel.find({
-            agency: user.agency,
-          });
-
-          const agencyUserIds = agencyUsers.map((u) => u._id);
-
-          propertyCount = await this.propertyModel.countDocuments({
-            ownerId: { $in: agencyUserIds },
-          });
-        } else {
-          // 👉 Normal user limit
-          propertyCount = await this.propertyModel.countDocuments({
-            ownerId: userId,
-          });
-        }
-
-        if (propertyCount >= user.propertyLimit) {
-          throw new UnauthorizedException(
-            `Property limit reached (${user.propertyLimit})`,
-          );
-        }
+        const wantsFeatured = dto.featured === true || draft.featured === true;
+        await handleCredits(true, wantsFeatured);
 
         const { _id, ...draftData } = draft.toObject();
+        const combinedPhotos = processPhotos([
+          ...(dto.photos ?? []),
+          ...(draftData.photos ?? []),
+        ]);
 
-        if (dto.lat !== undefined && dto.lng !== undefined) {
-          dto.locationGeo = {
-            type: "Point",
-            coordinates: [dto.lng, dto.lat],
-          };
-        }
-
-        property = new this.propertyModel({
+        const property = new this.propertyModel({
           ...draftData,
           ...dto,
-          photos: Array.from(new Set(dto.photos || draftData.photos || [])),
+          photos: combinedPhotos,
           ownerId: userId,
           status: true,
           isApproved: false,
@@ -146,64 +123,79 @@ export class PropertyService {
         const savedProperty = await property.save();
         await this.propertyDraftModel.findByIdAndDelete(propertyId);
 
-        return savedProperty;
+        user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
+        return { property: savedProperty, user: await user.save() };
       }
 
-      throw new NotFoundException(
-        "Property or Draft not found with provided ID",
-      );
+      throw new NotFoundException("Property or Draft not found");
     }
 
-    // ========================= NEW PROPERTY =========================
+    // ========================= CASE C: NEW CREATE =========================
+    await handleCredits(true, dto.featured === true);
 
-    // 🔥 LIMIT CHECK (IMPORTANT)
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException("User not found");
-
-    let propertyCount = 0;
-
-    if (user.agency) {
-      // 👉 Agency shared limit
-      const agencyUsers = await this.userModel.find({
-        agency: user.agency,
-      });
-
-      const agencyUserIds = agencyUsers.map((u) => u._id);
-
-      propertyCount = await this.propertyModel.countDocuments({
-        ownerId: { $in: agencyUserIds },
-      });
-    } else {
-      // 👉 Normal user limit
-      propertyCount = await this.propertyModel.countDocuments({
-        ownerId: userId,
-      });
-    }
-
-    if (propertyCount >= user.propertyLimit) {
-      throw new UnauthorizedException(
-        `Property limit reached (${user.propertyLimit})`,
-      );
-    }
-
-    // ========================= CREATE =========================
-
-    if (dto.lat !== undefined && dto.lng !== undefined) {
-      dto.locationGeo = {
-        type: "Point",
-        coordinates: [dto.lng, dto.lat],
-      };
-    }
-
-    property = new this.propertyModel({
+    const property = new this.propertyModel({
       ...dto,
-      photos: Array.from(new Set(dto.photos || [])),
+      photos: cleanedPhotos,
       ownerId: userId,
       status: true,
     });
 
-    return await property.save();
+    const savedProperty = await property.save();
+    user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
+
+    return { property: savedProperty, user: await user.save() };
   }
+
+  async promoteToFeatured(
+    propertyId: string,
+    userId: string,
+  ): Promise<{ property: Property; user: any }> {
+    const property = await this.propertyModel.findById(propertyId);
+    if (!property) throw new NotFoundException("Property not found");
+
+    if (property.ownerId.toString() !== userId) {
+      throw new UnauthorizedException("You do not own this property");
+    }
+
+    if (!property.isApproved) {
+      throw new BadRequestException(
+        "Property must be approved before it can be featured.",
+      );
+    }
+
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found.");
+
+    const availableCredits = Number(user.paidFeaturedCredits) || 0;
+
+    if (availableCredits <= 0) {
+      throw new BadRequestException({
+        message: "You do not have enough Featured Credits.",
+        foundCredits: user.paidFeaturedCredits,
+      });
+    }
+
+    if (Array.isArray(property.address) && property.address.length === 0) {
+      property.address = undefined;
+    }
+
+    const fifteenDaysFromNow = new Date();
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
+
+    property.featured = true;
+    property.featuredUntil = fifteenDaysFromNow;
+
+    user.paidFeaturedCredits = availableCredits - 1;
+    const updatedUser = await user.save();
+
+    const savedProperty = await property.save({ validateBeforeSave: false });
+
+    return {
+      property: savedProperty,
+      user: updatedUser,
+    };
+  }
+
   async findNearbyProperties(
     lat: number,
     lng: number,
@@ -323,43 +315,48 @@ export class PropertyService {
   async findFiltered(
     page = 1,
     limit = 10,
-    filters: PropertyFilters & {
-      sortBy?: string;
-      lat?: number;
-      lng?: number;
-      radiusKm?: number;
-      area?: string;
-      hostelType?: "male" | "female" | "mixed";
-      amenities?: string[];
-      bills?: string[];
-      mealPlan?: string[];
-      rules?: string[];
-    },
+    filters: any,
     userId?: string,
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
 
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
-    let sortQuery: any = { featured: -1, _id: -1 };
-    if (filters.sortBy === "price_asc") sortQuery = { monthlyRent: 1, _id: -1 };
+    mongoFilter.moderationStatus = "ACTIVE";
+
+    let secondarySort: any = { _id: -1 };
+    if (filters.sortBy === "price_asc")
+      secondarySort = { monthlyRent: 1, _id: -1 };
     else if (filters.sortBy === "price_desc")
-      sortQuery = { monthlyRent: -1, _id: -1 };
+      secondarySort = { monthlyRent: -1, _id: -1 };
     else if (filters.sortBy === "newest")
-      sortQuery = { createdAt: -1, _id: -1 };
+      secondarySort = { createdAt: -1, _id: -1 };
+    const sortQuery = {
+      featured: -1,
+      ...secondarySort,
+    };
 
     const total = await this.propertyModel.countDocuments(mongoFilter);
 
     const data = await this.propertyModel
       .find(mongoFilter)
-      .sort(sortQuery)
+      .sort(sortQuery as any)
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .populate("ownerId", "name email phone profileImage")
       .lean();
+    const now = new Date();
+    const processedData = data.map((property) => {
+      const isExpired =
+        property.featuredUntil && new Date(property.featuredUntil) < now;
+      return {
+        ...property,
+        featured: isExpired ? false : property.featured,
+      };
+    });
 
     return {
-      data,
+      data: processedData,
       total,
       page: Number(page),
       limit: Number(limit),

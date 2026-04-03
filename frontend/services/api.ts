@@ -1,8 +1,9 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
+import { UserType } from "@/contextStore/AuthContext";
 
-export const API_URL = "http://localhost:3000";
+export const API_URL = "https://banefully-jointed-freya.ngrok-free.dev";
 
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||
@@ -71,7 +72,7 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRefresh,
-  tagTypes: ["Property", "Favorites", "User"],
+  tagTypes: ["Property", "Favorites", "User", "DraftProperties", "Payments"],
   endpoints: (builder) => ({
     createUser: builder.mutation({
       query: (body) => ({ url: "/api/v1/users/signup", method: "POST", body }),
@@ -81,6 +82,13 @@ export const api = createApi({
     }),
     deleteUser: builder.mutation({
       query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
+    }),
+    getMe: builder.query<UserType, void>({
+      query: () => ({
+        url: "/api/v1/users/me",
+        method: "GET",
+      }),
+      providesTags: ["User"],
     }),
     createProperty: builder.mutation({
       query: (body) => {
@@ -310,6 +318,20 @@ export const api = createApi({
         body,
       }),
     }),
+    promoteProperty: builder.mutation<any, string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/feature`,
+        method: "POST",
+      }),
+      invalidatesTags: ["DraftProperties"],
+    }),
+    getPaymentHistory: builder.query<any[], void>({
+      query: () => ({
+        url: "/api/v1/payments/history",
+        method: "GET",
+      }),
+      providesTags: ["Payments"],
+    }),
   }),
 });
 
@@ -317,6 +339,8 @@ export const {
   useCreateUserMutation,
   useLoginMutation,
   useDeleteUserMutation,
+  useGetMeQuery,
+  useLazyGetMeQuery,
   useCreatePropertyMutation,
   useFindMyPropertiesQuery,
   useFindPropertyByIdQuery,
@@ -344,4 +368,6 @@ export const {
   useGetNearbyPropertiesQuery,
   useGetAddressSuggestionsQuery,
   usePropertyReportMutation,
+  usePromotePropertyMutation,
+  useGetPaymentHistoryQuery,
 } = api;

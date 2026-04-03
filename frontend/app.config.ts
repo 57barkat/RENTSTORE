@@ -8,7 +8,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: "rent-store",
   scheme: "rentstoreapp",
   version: "1.0.0",
-  platforms: ["android", "ios"],
+  platforms: ["android", "ios", "web"],
   orientation: "portrait",
 
   icon: "./assets/images/icon.png",

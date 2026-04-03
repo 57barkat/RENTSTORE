@@ -137,7 +137,13 @@ export class PropertyController {
 
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/feature")
+  async featureProperty(@Param("id") propertyId: string, @Req() req: any) {
+    const userId = req.user.userId;
 
+    return await this.propertyService.promoteToFeatured(propertyId, userId);
+  }
   @Public()
   @Get()
   async getAll(@Query() query: PaginationQuery) {

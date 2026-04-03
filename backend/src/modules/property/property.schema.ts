@@ -133,6 +133,9 @@ export class Property extends Document {
   })
   moderationStatus: PropertyModerationStatus;
 
+  @Prop({ type: Date })
+  featuredUntil?: Date;
+
   @Prop({ default: true }) isVisible: boolean;
   @Prop({ default: 0 }) reportCount: number;
   @Prop({ default: 0 }) strikeCount: number;
