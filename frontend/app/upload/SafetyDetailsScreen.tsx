@@ -28,10 +28,10 @@ const SafetyDetailsScreen: FC = () => {
   const { data, updateForm } = formContext as FormContextType;
 
   const [checkedDetails, setCheckedDetails] = useState<Set<string>>(
-    new Set(data.safetyDetailsData?.safetyDetails ?? [])
+    new Set(data.safetyDetailsData?.safetyDetails ?? []),
   );
   const [cameraDescription, setCameraDescription] = useState(
-    data.safetyDetailsData?.cameraDescription ?? ""
+    data.safetyDetailsData?.cameraDescription ?? "",
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -66,7 +66,7 @@ const SafetyDetailsScreen: FC = () => {
         });
       }
     },
-    [checkedDetails]
+    [checkedDetails],
   );
 
   const handleModalContinue = useCallback((description: string) => {
@@ -90,12 +90,12 @@ const SafetyDetailsScreen: FC = () => {
     updateForm("safetyDetailsData", finalData);
     router.push("/upload/FinalAddressDetailsScreen");
   };
-
+  const isNextDisabled = checkedDetails.size === 0;
   return (
     <StepContainer
       title="Share safety details"
       onNext={handleNext}
-      isNextDisabled={false}
+      isNextDisabled={isNextDisabled}
       progress={96}
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>

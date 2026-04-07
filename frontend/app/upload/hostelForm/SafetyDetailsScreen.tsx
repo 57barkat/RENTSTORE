@@ -90,12 +90,12 @@ const SafetyDetailsScreen: FC = () => {
     updateForm("safetyDetailsData", finalData);
     router.push("/upload/hostelForm/FinalAddressDetailsScreen");
   };
-
+  const isNextDisabled = checkedDetails.size === 0;
   return (
     <StepContainer
       title="Share safety details"
       onNext={handleNext}
-      isNextDisabled={false}
+      isNextDisabled={isNextDisabled}
       progress={96}
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>

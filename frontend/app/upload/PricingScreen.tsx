@@ -70,7 +70,7 @@ const PricingScreen: FC = () => {
             onChangeText={handlePriceChange}
             onBlur={() => Keyboard.dismiss()}
             style={[styles.input, { color: currentTheme.text }]}
-            placeholder="10"
+            placeholder="0"
             placeholderTextColor={currentTheme.placeholder}
             maxLength={7}
           />

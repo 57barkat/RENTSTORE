@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import {
   FlatList,
   View,
-  Text,
   StyleSheet,
   RefreshControl,
-  TouchableOpacity,
   Animated,
   Pressable,
 } from "react-native";
@@ -17,7 +15,6 @@ import HostOptionsRowProps from "@/components/Filters/HostOptions";
 import AdsSliderProps from "@/components/Filters/AdsSlider";
 import { PropertySection } from "@/components/Filters/PropertySection";
 import VoiceAssistant from "@/components/Assistant/VoiceAssistant";
-import { Ionicons } from "@expo/vector-icons";
 import { useHomePageLogic } from "@/hooks/useHomePageLogic";
 import { getSectionsData } from "@/utils/homeTabUtils/homeHelpers";
 import PhoneVerificationBanner from "@/components/VerificationBanner";
@@ -54,28 +51,6 @@ const HomePage: React.FC = () => {
     logic.isSpeaking;
 
   const backdropStyle = { opacity: logic.menuAnimation };
-  const actionStyle = {
-    opacity: logic.menuAnimation,
-    transform: [
-      { scale: logic.menuAnimation },
-      {
-        translateY: logic.menuAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [100, 0],
-        }),
-      },
-    ],
-  };
-  const rotateStyle = {
-    transform: [
-      {
-        rotate: logic.menuAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: ["0deg", "45deg"],
-        }),
-      },
-    ],
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
@@ -123,9 +98,16 @@ const HomePage: React.FC = () => {
                 return;
               }
 
-              logic.favoriteIds.includes(id)
-                ? await logic.removeUserFavorite({ propertyId: id })
-                : await logic.addToFav({ propertyId: id });
+              const isFav = logic.favoriteIds?.some(
+                (favId: any) => String(favId) === String(id),
+              );
+
+              if (isFav) {
+                await logic.removeUserFavorite({ propertyId: id });
+              } else {
+                await logic.addToFav({ propertyId: id });
+              }
+
               logic.refetchFavorites();
             }}
           />

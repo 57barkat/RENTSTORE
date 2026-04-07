@@ -62,7 +62,6 @@ import { PaymentModule } from "./services/payment/payment.module";
     EmailModule,
     AgencyModule,
     PaymentModule,
-    PaymentModule,
   ],
 })
 export class AppModule {

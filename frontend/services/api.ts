@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
 import { UserType } from "@/contextStore/AuthContext";
+import Constants from "expo-constants";
 
 export const API_URL = "https://banefully-jointed-freya.ngrok-free.dev";
 
@@ -12,12 +13,27 @@ export const API_URL = "https://banefully-jointed-freya.ngrok-free.dev";
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: async (headers) => {
-    // Ensure tokens are loaded from storage
+    // 1. Ensure tokens are loaded from storage
     await tokenManager.load();
     const token = tokenManager.getAccessToken();
+
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+
+    const expoExtra = Constants?.expoConfig?.extra;
+
+    if (!expoExtra || !expoExtra.myAppSecret) {
+      console.warn(
+        "MY_APP_SECRET is. missing from app.json/app.config.js! Using fallback.",
+      );
+    }
+
+    // 3. Set the secret with a fallback
+    const secret = expoExtra?.myAppSecret;
+
+    headers.set("x-frontend-secret", secret);
+
     return headers;
   },
 });
@@ -280,7 +296,7 @@ export const api = createApi({
         try {
           await queryFulfilled;
           dispatch(api.util.resetApiState());
-        } catch (err) {
+        } catch {
           // console.error("Logout mutation failed", err);
         }
       },
@@ -300,7 +316,7 @@ export const api = createApi({
       onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
         try {
           await queryFulfilled;
-        } catch (err) {
+        } catch {
           // // console.error("Failed to clear voice session", err);
         }
       },
@@ -318,10 +334,14 @@ export const api = createApi({
         body,
       }),
     }),
-    promoteProperty: builder.mutation<any, string>({
-      query: (id) => ({
-        url: `/api/v1/properties/${id}/feature`,
+    promoteProperty: builder.mutation<
+      any,
+      { id: string; type: "boost" | "featured" }
+    >({
+      query: ({ id, type }) => ({
+        url: `/api/v1/properties/${id}/promote`,
         method: "POST",
+        body: { type },
       }),
       invalidatesTags: ["DraftProperties"],
     }),
@@ -331,6 +351,14 @@ export const api = createApi({
         method: "GET",
       }),
       providesTags: ["Payments"],
+    }),
+    incrementView: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/view`,
+        method: "POST",
+      }),
+      // Optional: if you want the search results to reflect the new view count immediately
+      // invalidatesTags: (result, error, id) => [{ type: 'Property', id }],
     }),
   }),
 });
@@ -370,4 +398,5 @@ export const {
   usePropertyReportMutation,
   usePromotePropertyMutation,
   useGetPaymentHistoryQuery,
+  useIncrementViewMutation,
 } = api;

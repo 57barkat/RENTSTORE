@@ -59,6 +59,12 @@ export class UserController {
         paidPropertyCredits: user.paidPropertyCredits,
         usedPropertyCount: user.usedPropertyCount,
         paidFeaturedCredits: user.paidFeaturedCredits,
+        subscription: user.subscription,
+        subscriptionStartDate: user.subscriptionStartDate,
+        subscriptionEndDate: user.subscriptionEndDate,
+        subscriptionAutoRenew: user.subscriptionAutoRenew,
+        subscriptionTrialUsed: user.subscriptionTrialUsed,
+        prioritySlotCredits: user.prioritySlotCredits,
       },
     };
   }
@@ -83,6 +89,12 @@ export class UserController {
       usedPropertyCount: user.usedPropertyCount,
       paidPropertyCredits: user.paidPropertyCredits,
       paidFeaturedCredits: user.paidFeaturedCredits,
+      subscription: user.subscription,
+      subscriptionStartDate: user.subscriptionStartDate,
+      subscriptionEndDate: user.subscriptionEndDate,
+      subscriptionAutoRenew: user.subscriptionAutoRenew,
+      subscriptionTrialUsed: user.subscriptionTrialUsed,
+      prioritySlotCredits: user.prioritySlotCredits,
     };
   }
   @Public()

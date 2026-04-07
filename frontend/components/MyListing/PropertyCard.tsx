@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
+import { getPriceDisplay } from "@/utils/properties/formatProperties";
 
 const PropertyCard = ({
   item,
@@ -31,7 +32,7 @@ const PropertyCard = ({
   };
 
   const timeLeft = getFeaturedTimeLeft(item.featuredUntil);
-
+  const priceInfo = getPriceDisplay(item);
   const renderCapacity = (iconName: string, value: any, unit: string) => (
     <View style={styles.capacityItem}>
       <MaterialCommunityIcons
@@ -57,35 +58,49 @@ const PropertyCard = ({
       ]}
     >
       <View style={styles.statusRow}>
-        <View
-          style={[
-            styles.badge,
-            {
-              backgroundColor: item.isApproved
-                ? currentTheme.secondary + "15"
-                : "#FFFBEB",
-            },
-          ]}
-        >
+        <View style={styles.badgeRow}>
           <View
             style={[
-              styles.badgeDot,
+              styles.badge,
               {
                 backgroundColor: item.isApproved
-                  ? currentTheme.secondary
-                  : "#F59E0B",
+                  ? currentTheme.secondary + "15"
+                  : "#FFFBEB",
               },
             ]}
-          />
-          <Text
-            style={[
-              styles.badgeText,
-              { color: item.isApproved ? currentTheme.secondary : "#B45309" },
-            ]}
           >
-            {item.isApproved ? "Live" : "Pending Approval"}
-          </Text>
+            <View
+              style={[
+                styles.badgeDot,
+                {
+                  backgroundColor: item.isApproved
+                    ? currentTheme.secondary
+                    : "#F59E0B",
+                },
+              ]}
+            />
+            <Text
+              style={[
+                styles.badgeText,
+                { color: item.isApproved ? currentTheme.secondary : "#B45309" },
+              ]}
+            >
+              {item.isApproved ? "Live" : "Pending Approval"}
+            </Text>
+          </View>
+
+          {item.isBoosted && (
+            <View style={[styles.boostBadge, { backgroundColor: "#FFF9E6" }]}>
+              <MaterialCommunityIcons
+                name="rocket-launch"
+                size={12}
+                color="#FFB800"
+              />
+              <Text style={styles.boostBadgeText}>BOOSTED</Text>
+            </View>
+          )}
         </View>
+
         {item.featured && (
           <View
             style={[
@@ -134,7 +149,9 @@ const PropertyCard = ({
       </View>
 
       <Text style={[styles.price, { color: currentTheme.secondary }]}>
-        Rs. {item.monthlyRent?.toLocaleString() || "0"} / month
+        {priceInfo
+          ? `Rs. ${priceInfo.val.toLocaleString()} / ${priceInfo.label}`
+          : "Price N/A"}
       </Text>
 
       <View style={styles.actionsRow}>
@@ -150,7 +167,8 @@ const PropertyCard = ({
         >
           <Text style={styles.buttonText}>Edit</Text>
         </TouchableOpacity>
-        {!item.featured && item.isApproved && (
+
+        {!item.featured && !item.isBoosted && item.isApproved && (
           <TouchableOpacity
             style={[styles.button, { backgroundColor: "#EAB308" }]}
             onPress={onPromote}
@@ -163,6 +181,7 @@ const PropertyCard = ({
             )}
           </TouchableOpacity>
         )}
+
         <TouchableOpacity
           style={[styles.button, { backgroundColor: currentTheme.danger }]}
           onPress={onDelete}
@@ -192,6 +211,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   badge: {
     flexDirection: "row",
     alignItems: "center",
@@ -206,8 +230,22 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
+  boostBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: "#FFB800",
+  },
+  boostBadgeText: {
+    fontSize: 9,
+    fontWeight: "900",
+    color: "#FFB800",
+  },
   featuredTag: {
-    backgroundColor: "#EAB308",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,

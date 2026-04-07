@@ -12,18 +12,16 @@ import ModalActionButton from "@/components/ModalActionButton";
 import { pickImageFromGallery } from "@/utils/imageUtils";
 import { getColors } from "@/utils/themeUtils";
 import Toast from "react-native-toast-message";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
-const IMAGE_SIZE = width * 0.28; // Adjusted size to match image scale
+const IMAGE_SIZE = width * 0.28;
 
 interface ProfileHeaderProps {
   profileImage?: string | null;
   name: string;
   phone?: string;
-  listingsCount?: number; // Added for stats
-  savedCount?: number; // Added for stats
-  rating?: number; // Added for stats
+  subscription?: string;
   theme: "light" | "dark";
   onUpload: (file: FormData) => Promise<void>;
   onDelete: () => Promise<void>;
@@ -35,9 +33,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   profileImage,
   name,
   phone,
-  listingsCount = 0,
-  savedCount = 0,
-  rating = 0,
+  subscription,
   theme,
   onUpload,
   onDelete,
@@ -64,12 +60,34 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   };
 
   const isVerified = phone !== "unverified account" && phone !== undefined;
+  const subStatus = subscription?.toLowerCase();
+  const isPro = subStatus === "pro";
+  const isStandard = subStatus === "standard";
+
+  const GOLD = "#EAB308";
+  const GOLD_DARK = "#B45309";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.imageContainer}>
         <View
-          style={[styles.imageWrapper, { borderColor: colors.primary + "30" }]}
+          style={[
+            styles.imageWrapper,
+            {
+              borderColor: isPro
+                ? GOLD
+                : isStandard
+                  ? colors.primary
+                  : colors.primary + "30",
+              borderWidth: isPro || isStandard ? 3 : 1.5,
+              shadowColor: isPro ? GOLD : "transparent",
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: isPro ? 0.6 : 0,
+              shadowRadius: 12,
+              elevation: isPro ? 8 : 0,
+              backgroundColor: colors.card,
+            },
+          ]}
         >
           <Image
             source={
@@ -80,16 +98,75 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             style={styles.image}
           />
         </View>
+
         <TouchableOpacity
-          style={[styles.editIcon, { backgroundColor: colors.primary }]}
+          style={[
+            styles.editIcon,
+            { backgroundColor: isPro ? GOLD : colors.primary },
+          ]}
           onPress={() => setModalVisible(true)}
         >
-          <MaterialIcons name="camera-alt" size={16} color="white" />
+          <MaterialIcons
+            name="camera-alt"
+            size={16}
+            color={isPro ? "black" : "white"}
+          />
         </TouchableOpacity>
       </View>
 
       <View style={styles.infoContainer}>
-        <Text style={[styles.name, { color: colors.secondary }]}>{name}</Text>
+        <View style={styles.nameRow}>
+          <Text
+            style={[
+              styles.name,
+              {
+                color: isPro
+                  ? theme === "dark"
+                    ? "#FDE047"
+                    : GOLD_DARK
+                  : colors.secondary,
+              },
+            ]}
+          >
+            {name}
+          </Text>
+          {isPro && (
+            <MaterialCommunityIcons
+              name="crown"
+              size={26}
+              color={GOLD}
+              style={styles.badgeIcon}
+            />
+          )}
+          {isStandard && (
+            <MaterialCommunityIcons
+              name="shield-check"
+              size={22}
+              color={colors.primary}
+              style={styles.badgeIcon}
+            />
+          )}
+        </View>
+
+        {isPro && (
+          <View style={[styles.proBadge, { backgroundColor: GOLD }]}>
+            <Text style={styles.proBadgeText}>PRO MEMBER</Text>
+          </View>
+        )}
+
+        {isStandard && (
+          <View
+            style={[
+              styles.standardBadge,
+              { backgroundColor: colors.primary + "20" },
+            ]}
+          >
+            <Text style={[styles.standardBadgeText, { color: colors.primary }]}>
+              STANDARD MEMBER
+            </Text>
+          </View>
+        )}
+
         <View style={styles.phoneRow}>
           {phone && (
             <Text
@@ -101,43 +178,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           <MaterialIcons
             name="verified"
             size={14}
-            color={isVerified ? colors.primary : colors.secondary + "40"}
+            color={
+              isPro
+                ? colors.primary
+                : isVerified
+                  ? colors.primary
+                  : colors.secondary + "40"
+            }
             style={{ marginLeft: 4 }}
           />
         </View>
       </View>
-
-      {/* Stats Row Section */}
-      {/* <View
-        style={[styles.statsContainer, { borderTopColor: colors.card + "50" }]}
-      >
-        <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: colors.secondary }]}>
-            {listingsCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.secondary + "80" }]}>
-            Listings
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.card }]} />
-        <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: colors.secondary }]}>
-            {savedCount}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.secondary + "80" }]}>
-            Saved
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.card }]} />
-        <View style={styles.statBox}>
-          <Text style={[styles.statValue, { color: colors.secondary }]}>
-            {rating}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.secondary + "80" }]}>
-            Rating
-          </Text>
-        </View>
-      </View> */}
 
       <Modal
         transparent
@@ -181,20 +232,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    paddingTop: 40,
-    paddingHorizontal: 20,
-  },
-  imageContainer: {
-    position: "relative",
-    marginBottom: 12,
-  },
-  imageWrapper: {
-    padding: 2,
-    borderWidth: 1,
-    borderRadius: (IMAGE_SIZE + 10) / 2,
-  },
+  container: { alignItems: "center", paddingTop: 40, paddingHorizontal: 20 },
+  imageContainer: { position: "relative", marginBottom: 12 },
+  imageWrapper: { padding: 4, borderRadius: 100 },
   image: {
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
@@ -202,54 +242,49 @@ const styles = StyleSheet.create({
   },
   editIcon: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    borderRadius: 15,
-    padding: 6,
-    borderWidth: 2,
+    bottom: 4,
+    right: 4,
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 3,
     borderColor: "white",
   },
-  infoContainer: {
-    alignItems: "center",
-    marginBottom: 25,
+  infoContainer: { alignItems: "center", marginBottom: 25 },
+  nameRow: { flexDirection: "row", alignItems: "center" },
+  name: { fontWeight: "900", fontSize: 24, letterSpacing: -0.5 },
+  badgeIcon: { marginLeft: 8 },
+  proBadge: {
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 20,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  name: {
-    fontWeight: "bold",
-    fontSize: 20,
-    marginBottom: 2,
+  proBadgeText: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "black",
+    letterSpacing: 1.5,
   },
-  phoneRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  standardBadge: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
   },
-  phoneText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    width: "100%",
-    paddingVertical: 15,
-    borderTopWidth: 1,
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  statBox: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
+  standardBadgeText: {
+    fontSize: 10,
     fontWeight: "800",
+    letterSpacing: 1,
   },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: "60%",
-  },
+  phoneRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  phoneText: { fontSize: 14, fontWeight: "500" },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "#00000080",
@@ -257,11 +292,11 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "100%",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 30,
+    paddingTop: 12,
+    paddingBottom: 34,
   },
 });
 

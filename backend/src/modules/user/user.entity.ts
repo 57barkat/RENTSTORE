@@ -17,6 +17,11 @@ export enum UserAccountStatus {
   BANNED = "BANNED",
 }
 
+export enum SubscriptionType {
+  FREE = "free",
+  STARTER = "standard",
+  PRO = "pro",
+}
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -37,6 +42,21 @@ export class User {
   @Prop({ type: Types.ObjectId, ref: "Agency" })
   agency?: Types.ObjectId;
 
+  @Prop({ default: SubscriptionType.FREE })
+  subscription: SubscriptionType;
+
+  @Prop({ default: Date.now })
+  subscriptionStartDate: Date;
+
+  @Prop({ default: Date.now })
+  subscriptionEndDate: Date;
+
+  @Prop({ default: false })
+  subscriptionAutoRenew: boolean;
+
+  @Prop({ default: false })
+  subscriptionTrialUsed: boolean;
+
   @Prop({ default: 1 })
   propertyLimit: number;
 
@@ -45,6 +65,9 @@ export class User {
 
   @Prop({ default: 0 })
   usedPropertyCount: number;
+
+  @Prop({ default: 0 })
+  prioritySlotCredits: number;
 
   @Prop({ default: 0 })
   paidFeaturedCredits: number;

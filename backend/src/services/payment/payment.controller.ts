@@ -1,3 +1,4 @@
+import { PaymentSocketGateway } from "src/services/payment/payment-socket.gateway";
 import {
   Controller,
   Post,
@@ -22,6 +23,7 @@ export class PaymentController {
   constructor(
     private readonly userService: UserService,
     private readonly paymentService: PaymentService,
+    private readonly paymentGateway: PaymentSocketGateway,
   ) {}
 
   @Public()
@@ -54,7 +56,6 @@ export class PaymentController {
     @Body() body: any,
     @Headers("x-sfpy-signature") signature: string,
   ) {
-    console.log("📥 RAW SAFEPAY WEBHOOK BODY:", JSON.stringify(body, null, 2));
     const secret = process.env.SAFEPAY_WEBHOOK_SECRET;
     const token = body.data?.token;
     const notification = body.data?.notification;
@@ -102,6 +103,10 @@ export class PaymentController {
           );
 
           await this.paymentService.markInternalPaymentAsCompleted(trackerId);
+          this.paymentGateway.emitSubscriptionMessage(
+            userId.toString(),
+            `Your payment for ${packageId} was successful!`,
+          );
         } else {
           console.warn(
             `⚠️ No pending local record found for tracker: ${trackerId}`,

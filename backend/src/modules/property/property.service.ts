@@ -146,10 +146,12 @@ export class PropertyService {
     return { property: savedProperty, user: await user.save() };
   }
 
-  async promoteToFeatured(
+  async promoteListing(
     propertyId: string,
     userId: string,
+    type: "boost" | "featured",
   ): Promise<{ property: Property; user: any }> {
+    // 1. Basic Validations
     const property = await this.propertyModel.findById(propertyId);
     if (!property) throw new NotFoundException("Property not found");
 
@@ -159,35 +161,41 @@ export class PropertyService {
 
     if (!property.isApproved) {
       throw new BadRequestException(
-        "Property must be approved before it can be featured.",
+        "Property must be approved before promotion.",
       );
     }
 
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException("User not found.");
 
-    const availableCredits = Number(user.paidFeaturedCredits) || 0;
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 15);
 
-    if (availableCredits <= 0) {
-      throw new BadRequestException({
-        message: "You do not have enough Featured Credits.",
-        foundCredits: user.paidFeaturedCredits,
-      });
+    if (type === "featured") {
+      const credits = Number(user.paidFeaturedCredits) || 0;
+      if (credits <= 0)
+        throw new BadRequestException("No Featured Credits remaining.");
+
+      property.featured = true;
+      property.featuredUntil = expirationDate;
+      property.sortWeight = 3;
+      user.paidFeaturedCredits = credits - 1;
+    } else if (type === "boost") {
+      const slots = Number(user.prioritySlotCredits) || 0;
+      if (slots <= 0)
+        throw new BadRequestException("No Boost Slots remaining.");
+
+      property.isBoosted = true;
+
+      property.sortWeight = 2;
+      user.prioritySlotCredits = slots - 1;
     }
 
     if (Array.isArray(property.address) && property.address.length === 0) {
       property.address = undefined;
     }
 
-    const fifteenDaysFromNow = new Date();
-    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
-
-    property.featured = true;
-    property.featuredUntil = fifteenDaysFromNow;
-
-    user.paidFeaturedCredits = availableCredits - 1;
     const updatedUser = await user.save();
-
     const savedProperty = await property.save({ validateBeforeSave: false });
 
     return {
@@ -286,7 +294,11 @@ export class PropertyService {
 
     return drafts;
   }
-
+  async incrementViews(propertyId: string) {
+    return await this.propertyModel
+      .findByIdAndUpdate(propertyId, { $inc: { views: 1 } }, { new: true })
+      .exec();
+  }
   async findAll(page = 1, limit = 10, ownerId?: string) {
     const filter: any = { status: true, isApproved: true };
     if (ownerId) filter.ownerId = ownerId;
@@ -311,60 +323,143 @@ export class PropertyService {
       totalPages: Math.ceil(total / limit),
     };
   }
-
   async findFiltered(
-    page = 1,
-    limit = 10,
-    filters: any,
-    userId?: string,
+    page = 1, // Default to page 1 if not provided
+    limit = 10, // Default to 10 items per page
+    filters: any, // Object containing user-selected filters (price, type, etc.)
+    userId?: string, // Optional ID to exclude the user's own properties
   ): Promise<any> {
+    // Generate the base MongoDB query object from provided filters
     const mongoFilter = buildMongoFilter(filters, userId);
 
+    // If a user is logged in, exclude their own properties from the results
+    if (userId) mongoFilter.ownerId = { $ne: userId };
+
+    // Hardcoded constraints: only show approved, active, and moderated properties
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
 
-    let secondarySort: any = { _id: -1 };
+    // Calculate how many items to skip based on the current page
+    const skip = (Number(page) - 1) * Number(limit);
+    const now = new Date(); // Current timestamp for date comparisons
+    const sortOptions = {};
+    // Determine the secondary sort order based on user selection
+    let secondarySort: any = { createdAt: -1 }; // Default: Newest first
     if (filters.sortBy === "price_asc")
-      secondarySort = { monthlyRent: 1, _id: -1 };
+      secondarySort = { monthlyRent: 1 }; // Cheapest first
     else if (filters.sortBy === "price_desc")
-      secondarySort = { monthlyRent: -1, _id: -1 };
-    else if (filters.sortBy === "newest")
-      secondarySort = { createdAt: -1, _id: -1 };
-    const sortQuery = {
-      featured: -1,
-      ...secondarySort,
+      secondarySort = { monthlyRent: -1 }; // Most expensive first
+    else if (filters.sortBy === "newest") secondarySort = { createdAt: -1 };
+    else if (filters.sortBy === "popular") {
+      sortOptions["views"] = -1;
+    }
+
+    // Combine secondary sort with _id to ensure consistent pagination order
+    const finalSort = { ...secondarySort, _id: -1 };
+
+    // Placeholder for Featured Ads (currently skipped/empty)
+    const featuredIds: string[] = [];
+
+    // Since no featured ads are fetched, the full limit is available for regular ads
+    const adjustedLimit = Number(limit);
+
+    // Build the main filter, explicitly excluding featured properties and specific IDs
+    const mainFilter = {
+      ...mongoFilter,
+      // featured: true,
+      _id: { $nin: featuredIds }, // Exclude IDs already picked as featured
     };
 
-    const total = await this.propertyModel.countDocuments(mongoFilter);
+    // Execute a multi-bucket aggregation to group properties by their weight
+    const results = await this.propertyModel.aggregate([
+      { $match: mainFilter }, // Filter the entire collection first
+      {
+        $facet: {
+          // Group properties with sortWeight 3 (Business Pro)
+          weight3: [
+            { $match: { sortWeight: 3 } },
+            { $sort: finalSort },
+            { $limit: skip + adjustedLimit * 5 }, // Fetch enough for deep pagination
+          ],
+          // Group properties with sortWeight 2 (Standard Pro)
+          weight2: [
+            { $match: { sortWeight: 2 } },
+            { $sort: finalSort },
+            { $limit: skip + adjustedLimit * 5 },
+          ],
+          // Group properties with sortWeight 1 (Free/Basic)
+          weight1: [
+            { $match: { sortWeight: 1 } },
+            { $sort: finalSort },
+            { $limit: skip + adjustedLimit * 5 },
+          ],
+          // Get total count of all matching properties for pagination meta-data
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ]);
 
-    const data = await this.propertyModel
-      .find(mongoFilter)
-      .sort(sortQuery as any)
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
-      .populate("ownerId", "name email phone profileImage")
-      .lean();
-    const now = new Date();
-    const processedData = data.map((property) => {
-      const isExpired =
-        property.featuredUntil && new Date(property.featuredUntil) < now;
-      return {
-        ...property,
-        featured: isExpired ? false : property.featured,
-      };
+    // Create local copies of each weight group for manipulation
+    const w3Copy = [...(results[0].weight3 || [])];
+    const w2Copy = [...(results[0].weight2 || [])];
+    const w1Copy = [...(results[0].weight1 || [])];
+    const totalRegular = results[0].totalCount[0]?.count || 0;
+    const total = totalRegular;
+
+    // This array will hold the properties in the specific interleaved order
+    const interleavedData: any[] = [];
+    // Calculate total items needed (skipped items + items for current page)
+    const maxNeeded = skip + adjustedLimit;
+
+    // Begin the 4:3:3 Interleaving process
+    while (
+      (w3Copy.length > 0 || w2Copy.length > 0 || w1Copy.length > 0) &&
+      interleavedData.length < maxNeeded
+    ) {
+      // 1. Take up to 4 items from Weight 3
+      for (let i = 0; i < 4 && interleavedData.length < maxNeeded; i++) {
+        if (w3Copy.length > 0) interleavedData.push(w3Copy.shift());
+      }
+      // 2. Take up to 3 items from Weight 2
+      for (let i = 0; i < 3 && interleavedData.length < maxNeeded; i++) {
+        if (w2Copy.length > 0) interleavedData.push(w2Copy.shift());
+      }
+      // 3. Take up to 3 items from Weight 1
+      for (let i = 0; i < 3 && interleavedData.length < maxNeeded; i++) {
+        if (w1Copy.length > 0) interleavedData.push(w1Copy.shift());
+      }
+    }
+
+    // Extract only the items meant for the current page (e.g., items 10-20)
+    const paginatedData = interleavedData.slice(skip, skip + adjustedLimit);
+
+    // Populate owner details (Name, Image, Subscription) for the final result set
+    const populatedMainData = await this.propertyModel.populate(paginatedData, {
+      path: "ownerId",
+      select: "name email phone profileImage subscription",
     });
+    const propertyIds = populatedMainData.map((p) => p._id);
 
+    if (propertyIds.length > 0) {
+      // We don't use 'await' here because we don't want the user
+      // to wait for the database write before seeing their search results.
+      this.propertyModel
+        .updateMany({ _id: { $in: propertyIds } }, { $inc: { impressions: 1 } })
+        .exec()
+        .catch((err) => console.error("Impression update failed", err));
+    }
+    // Return formatted response with data and pagination metadata
     return {
-      data: processedData,
-      total,
+      data: populatedMainData, // The interleaved and paginated properties
+      total, // Total number of properties matching filters
       page: Number(page),
       limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit)),
+      totalPages: Math.ceil(total / Number(limit)), // Calculate total pages
       message:
-        data.length > 0
-          ? "Properties fetched successfully."
-          : "No properties match your search.",
+        populatedMainData.length > 0
+          ? "Fetched successfully."
+          : "No results found.",
     };
   }
   async getAddressSuggestions(query: string, limit = 5) {
@@ -561,7 +656,70 @@ export class PropertyService {
 
     return data;
   }
+  async getOwnerDashboard(ownerId: string) {
+    const stats = await this.propertyModel.aggregate([
+      // 1. Filter only properties belonging to this owner
+      { $match: { ownerId: ownerId } },
 
+      // 2. Group all properties to calculate global totals
+      {
+        $facet: {
+          totalStats: [
+            {
+              $group: {
+                _id: null,
+                totalProperties: { $sum: 1 },
+                totalViews: { $sum: "$views" },
+                totalImpressions: { $sum: { $ifNull: ["$impressions", 0] } },
+                activeListings: {
+                  $sum: { $cond: [{ $eq: ["$status", true] }, 1, 0] },
+                },
+              },
+            },
+          ],
+          // 3. Get the specific performance of each property
+          perPropertyStats: [
+            { $sort: { views: -1 } }, // Show most popular first
+            { $limit: 10 }, // Limit to top 10 for mobile performance
+            {
+              $project: {
+                title: 1,
+                views: 1,
+                impressions: { $ifNull: ["$impressions", 0] },
+                sortWeight: 1,
+                status: 1,
+                thumbnail: { $arrayElemAt: ["$photos", 0] },
+                // Calculate Click-Through Rate (CTR) percentage
+                ctr: {
+                  $cond: [
+                    { $gt: ["$impressions", 0] },
+                    {
+                      $multiply: [{ $divide: ["$views", "$impressions"] }, 100],
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+      // 4. Clean up the output format
+      {
+        $project: {
+          totals: { $arrayElemAt: ["$totalStats", 0] },
+          properties: "$perPropertyStats",
+        },
+      },
+    ]);
+
+    return (
+      stats[0] || {
+        totals: { totalProperties: 0, totalViews: 0, totalImpressions: 0 },
+        properties: [],
+      }
+    );
+  }
   async updateProperty(
     id: string,
     dto: Partial<CreatePropertyDto>,

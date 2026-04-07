@@ -113,7 +113,7 @@ export class Property extends Document {
   @Prop({ type: [String], default: [] }) mealPlan?: string[];
   @Prop({ type: [String], default: [] }) rules?: string[];
 
-  @Prop({ type: Types.ObjectId, required: true })
+  @Prop({ type: Types.ObjectId, required: true, index: true })
   ownerId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: "Agency" })
@@ -123,8 +123,24 @@ export class Property extends Document {
   listedBy?: Types.ObjectId;
 
   @Prop({ type: Boolean, default: false }) status: boolean;
-  @Prop({ type: Boolean, default: false }) featured: boolean;
   @Prop({ type: Boolean, default: false }) isApproved: boolean;
+  @Prop({ type: Number, default: 1, enum: [1, 2, 3] })
+  sortWeight: number;
+
+  @Prop({ type: Boolean, default: false })
+  featured: boolean;
+
+  @Prop({ type: Date })
+  featuredUntil?: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isBoosted: boolean;
+
+  @Prop({ default: 0 })
+  views: number;
+
+  @Prop({ default: 0 })
+  impressions: Number;
 
   @Prop({
     type: String,
@@ -132,9 +148,6 @@ export class Property extends Document {
     default: PropertyModerationStatus.ACTIVE,
   })
   moderationStatus: PropertyModerationStatus;
-
-  @Prop({ type: Date })
-  featuredUntil?: Date;
 
   @Prop({ default: true }) isVisible: boolean;
   @Prop({ default: 0 }) reportCount: number;
@@ -146,35 +159,14 @@ export class Property extends Document {
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
 
-// 🔥 Indexes (UNCHANGED + SAFE)
-
-PropertySchema.index({ locationGeo: "2dsphere" });
-PropertySchema.index({ area: 1 });
-
-PropertySchema.index({ "capacityState.bedrooms": 1 });
-PropertySchema.index({ "capacityState.floorLevel": 1 });
-
 PropertySchema.index({
-  "address.city": 1,
   moderationStatus: 1,
   isVisible: 1,
-});
-
-PropertySchema.index({
-  "address.city": 1,
-  hostOption: 1,
-  monthlyRent: 1,
-});
-
-PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
-
-PropertySchema.index({
-  featured: 1,
-  moderationStatus: 1,
+  sortWeight: -1,
   createdAt: -1,
 });
 
-PropertySchema.index({
-  locationGeo: "2dsphere",
-  moderationStatus: 1,
-});
+PropertySchema.index({ locationGeo: "2dsphere" });
+PropertySchema.index({ area: 1 });
+PropertySchema.index({ "address.city": 1, moderationStatus: 1, isVisible: 1 });
+PropertySchema.index({ ownerId: 1, moderationStatus: 1 });

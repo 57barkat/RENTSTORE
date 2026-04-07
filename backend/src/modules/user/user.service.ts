@@ -105,24 +105,55 @@ export class UserService {
 
   async handleSuccessfulPayment(userId: string, packageId: string) {
     const packages = {
-      single: { p: 1, f: 0 },
-      standard: { p: 5, f: 0 },
-      business_pro: { p: 20, f: 5 },
-    };
-
-    const credits = packages[packageId];
-    if (!credits) throw new Error("Invalid Package");
-
-    return await this.userModel.findByIdAndUpdate(
-      userId,
-      {
-        $inc: {
-          paidPropertyCredits: credits.p,
-          paidFeaturedCredits: credits.f,
-        },
+      standard: {
+        p: 10,
+        f: 0,
+        limitInc: 10,
+        priorityInc: 2,
+        sub: "standard",
       },
-      { new: true },
-    );
+      pro: {
+        p: 40,
+        f: 0,
+        limitInc: 40,
+        priorityInc: 8,
+        sub: "pro",
+      },
+      featured_boost: {
+        p: 0,
+        f: 1,
+        limitInc: 0,
+        priorityInc: 0,
+        sub: null,
+      },
+    };
+    const config = packages[packageId];
+    if (!config) throw new Error("Invalid Package");
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const update: any = {
+      $inc: {
+        paidPropertyCredits: config.p,
+        paidFeaturedCredits: config.f,
+        propertyLimit: config.limitInc,
+        prioritySlotCredits: config.priorityInc,
+      },
+    };
+    if (config.sub) {
+      update.$set = {
+        subscription: config.sub,
+        subscriptionStartDate: startDate.toISOString(),
+        subscriptionEndDate: endDate.toISOString(),
+        subscriptionAutoRenew: false,
+      };
+    }
+
+    return await this.userModel.findByIdAndUpdate(userId, update, {
+      new: true,
+    });
   }
 
   async verifyEmail(email: string, code: string): Promise<UserDocument> {

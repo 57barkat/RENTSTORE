@@ -12,10 +12,13 @@ export class AuthService {
   ) {}
 
   async loginWithPassword(emailOrPhone: string, password: string) {
+    const normalizedIdentifier = emailOrPhone.toLowerCase().trim();
+
     const user = await this.userService.validatePassword(
-      emailOrPhone,
+      normalizedIdentifier,
       password,
     );
+
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
     if (user.isBlocked) {
@@ -23,8 +26,9 @@ export class AuthService {
         "Your account has been blocked due to multiple warnings. Please contact support.",
       );
     }
+
     if (!user.isEmailVerified) {
-      await this.userService.sendEmailVerificationCode(user.email);
+      await this.userService.sendEmailVerificationCode(normalizedIdentifier);
       throw new UnauthorizedException("VERIFY_EMAIL_REQUIRED");
     }
 

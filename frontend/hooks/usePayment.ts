@@ -4,17 +4,33 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
+import { tokenManager } from "@/services/tokenManager";
 
 export const usePayment = () => {
   const [loading, setLoading] = useState(false);
   const { user, updateUser, refreshAuthState } = useAuth();
   const router = useRouter();
 
+  const getSecret = () =>
+    Constants?.expoConfig?.extra?.myAppSecret || "aganstaysecretkey";
+
   const verifyPaymentOnBackend = async (tracker: string) => {
     setLoading(true);
     try {
+      await tokenManager.load();
+      const token = tokenManager.getAccessToken();
+
       const res = await fetch(
         `https://banefully-jointed-freya.ngrok-free.dev/api/v1/payments/verify?tracker=${tracker}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "x-frontend-secret": getSecret(),
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
       const data = await res.json();
 
@@ -26,8 +42,8 @@ export const usePayment = () => {
       } else {
         Alert.alert("Pending", "Confirmation not received from bank yet.");
       }
-    } catch (err) {
-      Alert.alert("Error", "Failed to verify payment.");
+    } catch (err: any) {
+      Alert.alert("Error", "Failed to verify payment.", err);
     } finally {
       setLoading(false);
     }
@@ -36,11 +52,18 @@ export const usePayment = () => {
   const handlePayment = async (packageId: string) => {
     setLoading(true);
     try {
+      await tokenManager.load();
+      const token = tokenManager.getAccessToken();
+
       const res = await fetch(
         "https://banefully-jointed-freya.ngrok-free.dev/api/v1/payments/create-checkout",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-frontend-secret": getSecret(),
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ userId: user?.id, packageId }),
         },
       );
@@ -60,8 +83,8 @@ export const usePayment = () => {
       } else {
         refreshAuthState();
       }
-    } catch (err) {
-      Alert.alert("Error", "Could not initiate payment flow.");
+    } catch (err: any) {
+      Alert.alert("Error", "Could not initiate payment flow.", err);
     } finally {
       setLoading(false);
     }

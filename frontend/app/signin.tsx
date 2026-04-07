@@ -57,6 +57,8 @@ export default function SignInScreen() {
         password,
       }).unwrap();
 
+      console.log(response);
+
       await login(response);
 
       if (response.isPhoneVerified === false) {

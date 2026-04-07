@@ -62,8 +62,15 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     area,
   } = filters;
 
-  const mongoFilter: any = { status: true };
-  if (userId) mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+  const mongoFilter: any = {
+    status: true,
+    isApproved: true,
+    moderationStatus: "ACTIVE",
+  };
+
+  if (userId) {
+    mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+  }
 
   const andConditions: any[] = [];
 
@@ -76,6 +83,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
       .split("")
       .join("[-/\\s]?");
     const searchRegex = { $regex: flexiblePattern, $options: "i" };
+
     const isSpecific =
       /\d[-/\s]\d/.test(cleanedQuery) ||
       (cleanedQuery.length > 3 && /[0-9]$/.test(cleanedQuery));
@@ -96,8 +104,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   // City
-  if (city)
+  if (city) {
     andConditions.push({ "address.city": { $regex: city, $options: "i" } });
+  }
 
   // Rent
   if (minRent !== undefined || maxRent !== undefined) {
@@ -107,8 +116,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   // Host options
-  if (hostOption)
+  if (hostOption) {
     mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
+  }
 
   // Hostel type mapping
   if (hostelType) {
@@ -117,7 +127,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
       male: ["male", "boys"],
       mixed: ["mixed", "co-ed"],
     };
-    mongoFilter.$or = mapping[hostelType].map((val) => ({ hostelType: val }));
+    if (mapping[hostelType]) {
+      mongoFilter.hostelType = { $in: mapping[hostelType] };
+    }
   }
 
   // Arrays
@@ -135,9 +147,11 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
 
   // Apply AND conditions
-  if (andConditions.length > 0) mongoFilter.$and = andConditions;
+  if (andConditions.length > 0) {
+    mongoFilter.$and = andConditions;
+  }
 
-  // Geospatial
+  // Geospatial (Note: $near requires a 2dsphere index)
   if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
     mongoFilter.locationGeo = {
       $near: {

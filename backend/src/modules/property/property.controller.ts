@@ -26,13 +26,12 @@ import {
   parseNumericFields,
 } from "./utils/property.utils";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { GetUser, Public } from "src/common/decorators/public.decorator";
 
 interface PaginationQuery {
   page?: number;
   limit?: number;
 }
-
-const Public = () => SetMetadata("isPublic", true);
 
 @UseGuards(JwtAuthGuard)
 @Controller("properties")
@@ -138,22 +137,26 @@ export class PropertyController {
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
   @UseGuards(JwtAuthGuard)
-  @Post(":id/feature")
-  async featureProperty(@Param("id") propertyId: string, @Req() req: any) {
+  @Post(":id/promote")
+  async promoteProperty(
+    @Param("id") propertyId: string,
+    @Body("type") type: "boost" | "featured",
+    @Req() req: any,
+  ) {
     const userId = req.user.userId;
-
-    return await this.propertyService.promoteToFeatured(propertyId, userId);
+    return await this.propertyService.promoteListing(propertyId, userId, type);
   }
-  @Public()
   @Get()
+  @Public()
   async getAll(@Query() query: PaginationQuery) {
+    console.log("Fetching all properties with query:", query);
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     return this.propertyService.findAll(page, limit);
   }
 
-  @Public()
   @Get("nearby")
+  @Public()
   async getNearbyProperties(
     @Query() query: NearbyPropertyDto,
     @Req() req: any,
@@ -168,16 +171,16 @@ export class PropertyController {
     );
   }
 
-  @Public()
   @Get("type/:hostOption")
+  @Public()
   async getByHostOption(
     @Param("hostOption") hostOption: string,
     @Query() query: PaginationQuery,
-    @Req() req: any,
+    @GetUser("userId") userId?: string,
   ) {
+    console.log("Filtering by hostOption:", userId);
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const userId = req.user?.userId;
     return this.propertyService.findFiltered(
       page,
       limit,
@@ -185,9 +188,8 @@ export class PropertyController {
       userId,
     );
   }
-
-  @Public()
   @Get("search")
+  @Public()
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
 
@@ -242,13 +244,17 @@ export class PropertyController {
     );
   }
 
-  @Public()
   @Get("address-suggestions")
+  @Public()
   async getAddressSuggestions(@Query("q") q: string) {
     return this.propertyService.getAddressSuggestions(q);
   }
-
+  @Get("dashboard-stats")
   @Public()
+  async getDashboardStats(@Req() req: any) {
+    const userId = req.user?.userId;
+    return this.propertyService.getOwnerDashboard(userId);
+  }
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
     const userId = req.user?.userId;
@@ -269,8 +275,8 @@ export class PropertyController {
     return this.propertyService.deleteDraftById(id, userId);
   }
 
-  @Public()
   @Get(":id")
+  @Public()
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
     return this.propertyService.findPropertyById(id, userId);
@@ -285,6 +291,11 @@ export class PropertyController {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.updateProperty(id, dto, userId);
+  }
+  @Post(":id/view")
+  @Public()
+  async incrementViews(@Param("id") id: string) {
+    return await this.propertyService.incrementViews(id);
   }
 
   @Delete(":id")

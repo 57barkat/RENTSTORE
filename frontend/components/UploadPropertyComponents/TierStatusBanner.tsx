@@ -12,25 +12,21 @@ const TierStatusBanner = () => {
   const router = useRouter();
   const currentTheme = Colors[theme ?? "light"];
 
+  // Data from AuthContext
   const used = user?.usedPropertyCount || 0;
   const limit = user?.propertyLimit || 0;
-  const credits = user?.paidPropertyCredits || 0;
+  const featured = user?.paidFeaturedCredits || 0;
+  const priority = user?.prioritySlotCredits || 0;
 
-  const isFreeTierActive = used < limit;
-  const remainingFree = limit - used;
-  const hasNoCredits = used >= limit && credits <= 0;
+  const remainingUploads = limit - used;
+  const isOutOfUploads = remainingUploads <= 0;
+  const isPro = user?.subscription === "pro";
 
   useEffect(() => {
-    if (user && hasNoCredits) {
-      const checkAndRefresh = async () => {
-        console.log("Empty credits detected, checking for updates...");
-        if (refreshAuthState) {
-          await refreshAuthState();
-        }
-      };
-      checkAndRefresh();
+    if (user && isOutOfUploads && refreshAuthState) {
+      refreshAuthState();
     }
-  }, [hasNoCredits, !!user]);
+  }, [isOutOfUploads, !!user]);
 
   if (!user) return null;
 
@@ -44,86 +40,115 @@ const TierStatusBanner = () => {
         styles.container,
         {
           backgroundColor: currentTheme.card,
-          borderColor: hasNoCredits ? currentTheme.error : currentTheme.border,
-          borderWidth: hasNoCredits ? 1.5 : 1,
+          borderColor: isOutOfUploads
+            ? currentTheme.error
+            : isPro
+              ? "#EAB308"
+              : currentTheme.border,
+          borderWidth: isOutOfUploads || isPro ? 1.5 : 1,
         },
       ]}
     >
       <View style={styles.row}>
         <MaterialCommunityIcons
           name={
-            hasNoCredits
+            isOutOfUploads
               ? "alert-circle-outline"
-              : isFreeTierActive
-                ? "gift-outline"
-                : "ticket-confirmation-outline"
+              : isPro
+                ? "crown-outline"
+                : "account-check-outline"
           }
-          size={24}
+          size={26}
           color={
-            hasNoCredits
+            isOutOfUploads
               ? currentTheme.error
-              : isFreeTierActive
-                ? currentTheme.primary
-                : currentTheme.success
+              : isPro
+                ? "#EAB308"
+                : currentTheme.primary
           }
         />
 
         <View style={styles.textContainer}>
           <Text style={[styles.label, { color: currentTheme.muted }]}>
-            {hasNoCredits
-              ? "Limit Exceeded"
-              : isFreeTierActive
-                ? "Free Tier Remaining"
-                : "Paid Credits Available"}
+            {isPro ? "Pro Subscription Active" : "Account Capacity"}
           </Text>
           <Text
             style={[
               styles.value,
-              { color: hasNoCredits ? currentTheme.error : currentTheme.text },
-            ]}
-          >
-            {hasNoCredits
-              ? "No uploads available"
-              : isFreeTierActive
-                ? `${remainingFree} of ${limit} uploads`
-                : `${credits} premium uploads`}
-          </Text>
-        </View>
-
-        {!hasNoCredits && (
-          <View
-            style={[
-              styles.badge,
               {
-                backgroundColor: isFreeTierActive
-                  ? currentTheme.primary + "15"
-                  : currentTheme.success + "15",
+                color: isOutOfUploads ? currentTheme.error : currentTheme.text,
               },
             ]}
           >
-            <Text
-              style={[
-                styles.badgeText,
-                {
-                  color: isFreeTierActive
-                    ? currentTheme.primary
-                    : currentTheme.success,
-                },
-              ]}
-            >
-              {isFreeTierActive ? "FREE" : "PAID"}
-            </Text>
-          </View>
-        )}
+            {isOutOfUploads
+              ? "Upload limit reached"
+              : `${remainingUploads} uploads available`}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.badge,
+            {
+              backgroundColor: isPro
+                ? "#EAB30820"
+                : currentTheme.primary + "15",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.badgeText,
+              { color: isPro ? "#B45309" : currentTheme.primary },
+            ]}
+          >
+            {user.subscription?.toUpperCase() || "FREE"}
+          </Text>
+        </View>
       </View>
 
-      {hasNoCredits && (
+      {/* New Row for Premium Perks: Featured & Priority */}
+      {(featured > 0 || priority > 0) && (
+        <View
+          style={[
+            styles.perksRow,
+            { borderTopColor: currentTheme.border + "50" },
+          ]}
+        >
+          {featured > 0 && (
+            <View style={styles.perkItem}>
+              <MaterialCommunityIcons
+                name="star-circle"
+                size={16}
+                color="#F59E0B"
+              />
+              <Text style={[styles.perkText, { color: currentTheme.text }]}>
+                {featured} Featured
+              </Text>
+            </View>
+          )}
+          {priority > 0 && (
+            <View style={styles.perkItem}>
+              <MaterialCommunityIcons
+                name="lightning-bolt"
+                size={16}
+                color="#8B5CF6"
+              />
+              <Text style={[styles.perkText, { color: currentTheme.text }]}>
+                {priority} Priority Slots
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {isOutOfUploads && (
         <TouchableOpacity
           onPress={handleUpgradePress}
           style={styles.footerLink}
         >
           <Text style={[styles.footerLinkText, { color: currentTheme.info }]}>
-            View pricing plans and packages →
+            Upgrade plan to list more properties →
           </Text>
         </TouchableOpacity>
       )}
@@ -136,13 +161,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 10,
     padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    elevation: 2,
+    borderRadius: 14,
+    elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   row: {
     flexDirection: "row",
@@ -153,34 +177,51 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   label: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
     marginBottom: 2,
   },
   value: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  perksRow: {
+    flexDirection: "row",
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+  },
+  perkItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  perkText: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginLeft: 4,
   },
   footerLink: {
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 0.5,
-    borderTopColor: "#E2E8F0",
+    borderTopColor: "#CBD5E1",
     alignItems: "center",
   },
   footerLinkText: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
 

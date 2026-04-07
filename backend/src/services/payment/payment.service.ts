@@ -38,8 +38,9 @@ export class PaymentService {
   async createCheckout(userId: string, packageId: string) {
     const prices: Record<string, number> = {
       single: 300,
-      standard: 1200,
-      business_pro: 5500,
+      standard: 1500,
+      pro: 5500,
+      featured_boost: 800,
     };
 
     const amount = prices[packageId];

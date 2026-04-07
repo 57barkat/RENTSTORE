@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   View,
@@ -13,9 +13,10 @@ import { FontSize } from "@/constants/Typography";
 interface PromoteModalProps {
   visible: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (type: "boost" | "featured") => void;
   propertyTitle: string;
-  currentCredits: number;
+  featuredCredits: number;
+  boostCredits: number;
   isPromoting: boolean;
   currentTheme: any;
 }
@@ -25,60 +26,97 @@ const PromoteConfirmationModal = ({
   onClose,
   onConfirm,
   propertyTitle,
-  currentCredits,
+  featuredCredits,
+  boostCredits,
   isPromoting,
   currentTheme,
 }: PromoteModalProps): React.ReactNode => {
-  const remainingCredits = Math.max(0, (currentCredits || 0) - 1);
+  const [selectedType, setSelectedType] = useState<"boost" | "featured">(
+    "boost",
+  );
+
+  const currentSelectionCredits =
+    selectedType === "boost" ? boostCredits : featuredCredits;
+  const canPromote = currentSelectionCredits > 0;
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.box, { backgroundColor: currentTheme.card }]}>
-          <View style={styles.iconContainer}>
-            <MaterialCommunityIcons
-              name="star-shooting"
-              size={48}
-              color="#EAB308"
-            />
-          </View>
-
           <Text style={[styles.title, { color: currentTheme.text }]}>
-            Feature Property?
+            Promote Listing
           </Text>
 
           <Text style={[styles.message, { color: currentTheme.muted }]}>
-            You are about to use 1 credit to promote:{"\n"}
+            Select promotion type for:{"\n"}
             <Text style={{ color: currentTheme.text, fontWeight: "700" }}>
               {propertyTitle}
             </Text>
           </Text>
 
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              onPress={() => setSelectedType("boost")}
+              style={[
+                styles.optionCard,
+                {
+                  borderColor:
+                    selectedType === "boost" ? "#FFB800" : currentTheme.border,
+                },
+                selectedType === "boost" && { backgroundColor: "#FFF9E6" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="rocket-launch"
+                size={24}
+                color={
+                  selectedType === "boost" ? "#FFB800" : currentTheme.muted
+                }
+              />
+              <Text style={[styles.optionTitle, { color: currentTheme.text }]}>
+                Boost
+              </Text>
+              <Text style={styles.optionCredits}>{boostCredits} Slots</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSelectedType("featured")}
+              style={[
+                styles.optionCard,
+                {
+                  borderColor:
+                    selectedType === "featured"
+                      ? "#4F46E5"
+                      : currentTheme.border,
+                },
+                selectedType === "featured" && { backgroundColor: "#EEF2FF" },
+              ]}
+            >
+              <MaterialCommunityIcons
+                name="crown"
+                size={24}
+                color={
+                  selectedType === "featured" ? "#4F46E5" : currentTheme.muted
+                }
+              />
+              <Text style={[styles.optionTitle, { color: currentTheme.text }]}>
+                Featured
+              </Text>
+              <Text style={styles.optionCredits}>{featuredCredits} Left</Text>
+            </TouchableOpacity>
+          </View>
+
           <View
             style={[
-              styles.statsContainer,
+              styles.infoBox,
               { backgroundColor: currentTheme.background },
             ]}
           >
-            <View style={styles.statRow}>
-              <Text style={[styles.statLabel, { color: currentTheme.muted }]}>
-                Current Credits
-              </Text>
-              <Text style={[styles.statValue, { color: currentTheme.text }]}>
-                {currentCredits}
-              </Text>
-            </View>
-            <View
-              style={[styles.divider, { backgroundColor: currentTheme.border }]}
-            />
-            <View style={styles.statRow}>
-              <Text style={[styles.statLabel, { color: currentTheme.muted }]}>
-                After Promotion
-              </Text>
-              <Text style={[styles.statValue, { color: "#EAB308" }]}>
-                {remainingCredits}
-              </Text>
-            </View>
+            <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
+              {selectedType === "boost"
+                ? "Moves your property to the top of search results."
+                : "Highlights your property with a premium badge (10x views)."}
+            </Text>
           </View>
 
           <View style={styles.buttons}>
@@ -93,17 +131,27 @@ const PromoteConfirmationModal = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={onConfirm}
-              disabled={isPromoting || currentCredits <= 0}
+              onPress={() => onConfirm(selectedType)}
+              disabled={isPromoting || !canPromote}
               style={[
                 styles.confirmBtn,
-                { backgroundColor: currentCredits > 0 ? "#EAB308" : "#ccc" },
+                {
+                  backgroundColor: !canPromote
+                    ? "#ccc"
+                    : selectedType === "boost"
+                      ? "#FFB800"
+                      : "#4F46E5",
+                },
               ]}
             >
               {isPromoting ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
-                <Text style={styles.confirmText}>Confirm & Feature</Text>
+                <Text style={styles.confirmText}>
+                  {canPromote
+                    ? `Use 1 ${selectedType === "boost" ? "Slot" : "Credit"}`
+                    : "No Credits"}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -120,8 +168,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  box: { width: "85%", borderRadius: 24, padding: 24, elevation: 10 },
-  iconContainer: { alignSelf: "center", marginBottom: 16 },
+  box: { width: "90%", borderRadius: 24, padding: 24, elevation: 10 },
   title: {
     fontSize: FontSize.lg,
     fontWeight: "900",
@@ -134,15 +181,38 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 20,
   },
-  statsContainer: { borderRadius: 16, padding: 16, marginBottom: 24 },
-  statRow: {
+  toggleContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
   },
-  statLabel: { fontSize: FontSize.xs, fontWeight: "600" },
-  statValue: { fontSize: FontSize.base, fontWeight: "800" },
-  divider: { height: 1, marginVertical: 10 },
+  optionCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: "center",
+    gap: 4,
+  },
+  optionTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+  },
+  optionCredits: {
+    fontSize: 10,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  infoBox: {
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  infoText: {
+    fontSize: 12,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
   buttons: { flexDirection: "row", gap: 12 },
   cancelBtn: { flex: 1, paddingVertical: 14, alignItems: "center" },
   cancelText: { fontWeight: "700", fontSize: FontSize.sm },

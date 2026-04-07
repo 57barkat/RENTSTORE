@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   View,
@@ -11,7 +11,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { useMyPropertiesLogic } from "@/hooks/useMyPropertiesLogic";
 import { useAuth } from "@/contextStore/AuthContext";
@@ -32,16 +32,28 @@ const MyListingProperties = () => {
   const [targetProperty, setTargetProperty] = useState<any>(null);
   const [promoteProperty, { isLoading: isPromoting }] =
     usePromotePropertyMutation();
-  console.log("PROMOTION RESPONSE:", logic);
 
-  const handlePromote = async (id: string) => {
+  useFocusEffect(
+    useCallback(() => {
+      logic.onRefresh();
+    }, []),
+  );
+
+  const handlePromote = async (id: string, type: "boost" | "featured") => {
     try {
-      const response = await promoteProperty(id).unwrap();
+      const response = await promoteProperty({ id, type }).unwrap();
       if (response.user) await updateUser(response.user);
-      Toast.show({ type: "success", text1: "Property Featured" });
+      Toast.show({
+        type: "success",
+        text1: type === "boost" ? "Property Boosted" : "Property Featured",
+      });
       logic.onRefresh();
     } catch (err: any) {
-      Toast.show({ type: "error", text1: "Failed", text2: err.data?.message });
+      Toast.show({
+        type: "error",
+        text1: "Failed",
+        text2: err.data?.message || "Something went wrong",
+      });
     }
   };
 
@@ -50,9 +62,9 @@ const MyListingProperties = () => {
     setPromoteModalVisible(true);
   };
 
-  const handleConfirmPromote = async () => {
+  const handleConfirmPromote = async (type: "boost" | "featured") => {
     if (!targetProperty) return;
-    await handlePromote(targetProperty._id);
+    await handlePromote(targetProperty._id, type);
     setPromoteModalVisible(false);
   };
 
@@ -83,31 +95,42 @@ const MyListingProperties = () => {
         ListHeaderComponent={
           <ListHeader
             currentTheme={currentTheme}
-            userCredits={user?.paidFeaturedCredits}
             search={logic.search}
             setSearch={logic.setSearch}
             sort={logic.sort}
             setSort={logic.setSort}
+            user={user}
           />
         }
-        renderItem={({ item }) => (
-          <PropertyCard
-            item={item}
-            currentTheme={currentTheme}
-            width={width}
-            isPromoting={isPromoting}
-            onView={() => router.push(`/property/${item._id}`)}
-            onEdit={() => {
-              logic.formContext?.setFullFormData(item);
-              router.push("/upload/CreateStep");
-            }}
-            onDelete={() => {
-              logic.setSelectedPropertyId(item._id);
-              logic.setDeleteModalVisible(true);
-            }}
-            onPromote={() => handleOpenPromoteModal(item)}
-          />
-        )}
+        renderItem={({ item }) => {
+          const handleEdit = () => {
+            logic.formContext?.setFullFormData(item);
+            const routes: Record<string, string> = {
+              home: "/upload/PropertyDetails",
+              apartment: "/upload/apartmentForm/PropertyDetails",
+              hostel: "/upload/hostelForm/PropertyDetails",
+            };
+            const targetRoute =
+              routes[item.hostOption] || "/upload/PropertyDetails";
+            router.push(targetRoute);
+          };
+
+          return (
+            <PropertyCard
+              item={item}
+              currentTheme={currentTheme}
+              width={width}
+              isPromoting={isPromoting}
+              onView={() => router.push(`/property/${item._id}`)}
+              onEdit={handleEdit}
+              onDelete={() => {
+                logic.setSelectedPropertyId(item._id);
+                logic.setDeleteModalVisible(true);
+              }}
+              onPromote={() => handleOpenPromoteModal(item)}
+            />
+          );
+        }}
         ListFooterComponent={
           logic.isFetching && logic.page > 1 ? (
             <ActivityIndicator style={{ marginVertical: 20 }} />
@@ -121,7 +144,8 @@ const MyListingProperties = () => {
         onClose={() => setPromoteModalVisible(false)}
         onConfirm={handleConfirmPromote}
         propertyTitle={targetProperty?.title || ""}
-        currentCredits={user?.paidFeaturedCredits || 0}
+        featuredCredits={user?.paidFeaturedCredits || 0}
+        boostCredits={user?.prioritySlotCredits || 0}
         isPromoting={isPromoting}
         currentTheme={currentTheme}
       />

@@ -15,31 +15,53 @@ import { useRouter } from "expo-router";
 import { usePayment } from "@/hooks/usePayment";
 import { PackageBenefits } from "@/components/Shop/PackageBenefits";
 
-const packages = [
+interface Package {
+  id: "free" | "standard" | "pro" | "featured_boost";
+  title: string;
+  credits: string;
+  price: string;
+  description: string;
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  isFree?: boolean;
+  popular?: boolean;
+  isAddon?: boolean;
+}
+
+const packages: Package[] = [
   {
-    id: "single",
-    title: "Single Slot",
-    credits: "1 Property Upload",
-    price: "RS 300",
-    description: "Quick one-time upload.",
-    icon: "numeric-1-circle-outline",
+    id: "free",
+    title: "Free Listing",
+    credits: "3 Uploads / Month",
+    price: "FREE",
+    description: "Perfect for testing the waters.",
+    icon: "leaf",
+    isFree: true,
   },
   {
     id: "standard",
-    title: "Standard Pack",
-    credits: "5 Property Uploads",
-    price: "RS 1,200",
-    description: "Best for homeowners.",
-    icon: "layers-triple-outline",
+    title: "Starter Pack",
+    credits: "10 Listings + 2 Priority",
+    price: "RS 1,500",
+    description: "Best for individual landlords.",
+    icon: "rocket-launch-outline",
     popular: true,
   },
   {
-    id: "business_pro",
-    title: "Business Pro",
-    credits: "20 Uploads + 5 Featured",
-    price: "RS 5,500",
-    description: "Ultimate agent toolkit.",
-    icon: "shield-star-outline",
+    id: "pro",
+    title: "Pro Package",
+    credits: "40 Listings + 8 Priority",
+    price: "RS 4,000",
+    description: "For serious agents & agencies.",
+    icon: "crown-outline",
+  },
+  {
+    id: "featured_boost",
+    title: "Featured Only",
+    credits: "Single Property Boost",
+    price: "RS 800",
+    description: "Get 10x more views on one listing.",
+    icon: "lightning-bolt-outline",
+    isAddon: true,
   },
 ];
 
@@ -47,8 +69,16 @@ const BuyCredits = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const router = useRouter();
-  const [selectedTier, setSelectedTier] = useState("standard");
+  const [selectedTier, setSelectedTier] = useState<Package["id"]>("standard");
   const { handlePayment, loading } = usePayment();
+
+  const handleAction = () => {
+    if (selectedTier === "free") {
+      router.replace("/(tabs)/profile");
+      return;
+    }
+    handlePayment(selectedTier);
+  };
 
   return (
     <SafeAreaView
@@ -73,12 +103,14 @@ const BuyCredits = () => {
         showsVerticalScrollIndicator={false}
       >
         <Text style={[styles.title, { color: currentTheme.text }]}>
-          Expand your reach
+          Choose your plan
         </Text>
 
         {packages.map((pkg) => {
           const isSelected = selectedTier === pkg.id;
-          const isPro = pkg.id === "business_pro";
+          const isProTier = pkg.id === "pro";
+          const isFeaturedAddon = pkg.id === "featured_boost";
+
           return (
             <TouchableOpacity
               key={pkg.id}
@@ -89,7 +121,7 @@ const BuyCredits = () => {
                 {
                   backgroundColor: currentTheme.card,
                   borderColor: isSelected
-                    ? isPro
+                    ? isProTier
                       ? currentTheme.accent
                       : currentTheme.primary
                     : currentTheme.border,
@@ -113,18 +145,27 @@ const BuyCredits = () => {
                   style={[
                     styles.iconBox,
                     {
-                      backgroundColor: isPro
+                      backgroundColor: isProTier
                         ? currentTheme.accent + "15"
-                        : currentTheme.primary + "10",
+                        : isFeaturedAddon
+                          ? "#EAB30820"
+                          : currentTheme.primary + "10",
                     },
                   ]}
                 >
                   <MaterialCommunityIcons
-                    name={pkg.icon as any}
+                    name={pkg.icon}
                     size={26}
-                    color={isPro ? currentTheme.accent : currentTheme.primary}
+                    color={
+                      isProTier
+                        ? currentTheme.accent
+                        : isFeaturedAddon
+                          ? "#EAB308"
+                          : currentTheme.primary
+                    }
                   />
                 </View>
+
                 <View style={styles.infoBox}>
                   <Text
                     style={[styles.cardTitle, { color: currentTheme.text }]}
@@ -135,7 +176,7 @@ const BuyCredits = () => {
                     style={[
                       styles.cardCredits,
                       {
-                        color: isPro
+                        color: isProTier
                           ? currentTheme.accent
                           : currentTheme.primary,
                       },
@@ -144,9 +185,19 @@ const BuyCredits = () => {
                     {pkg.credits}
                   </Text>
                 </View>
-                <Text style={[styles.cardPrice, { color: currentTheme.text }]}>
-                  {pkg.price}
-                </Text>
+
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text
+                    style={[styles.cardPrice, { color: currentTheme.text }]}
+                  >
+                    {pkg.price}
+                  </Text>
+                  {!pkg.isAddon && !pkg.isFree && (
+                    <Text style={{ fontSize: 10, color: currentTheme.muted }}>
+                      /month
+                    </Text>
+                  )}
+                </View>
               </View>
 
               <Text style={[styles.cardDesc, { color: currentTheme.muted }]}>
@@ -159,16 +210,33 @@ const BuyCredits = () => {
         })}
 
         <TouchableOpacity
-          style={[styles.payButton, { backgroundColor: currentTheme.primary }]}
-          onPress={() => handlePayment(selectedTier)}
+          style={[
+            styles.payButton,
+            {
+              backgroundColor:
+                selectedTier === "free"
+                  ? currentTheme.muted
+                  : currentTheme.primary,
+              opacity: loading ? 0.7 : 1,
+            },
+          ]}
+          onPress={handleAction}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.payButtonText}>Proceed to Payment</Text>
+            <Text style={styles.payButtonText}>
+              {selectedTier === "free"
+                ? "Continue with Free"
+                : "Proceed to Payment"}
+            </Text>
           )}
         </TouchableOpacity>
+
+        <Text style={[styles.footerNote, { color: currentTheme.muted }]}>
+          All plans include basic dashboard access and 24/7 automated support.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -235,6 +303,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   payButtonText: { color: "#FFF", fontSize: 16, fontWeight: "700" },
+  footerNote: {
+    textAlign: "center",
+    fontSize: 11,
+    marginTop: 20,
+    lineHeight: 16,
+  },
 });
 
 export default BuyCredits;

@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { Text, TouchableOpacity, Alert, View } from "react-native";
+import { Text, TouchableOpacity, Alert, View, ScrollView } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import StepContainer from "@/app/upload/Welcome";
@@ -16,10 +16,8 @@ const WelcomeScreen = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  // Get user data for credit check
   const { isPhoneVerified, user } = useAuth();
 
-  // Logic: User has access if they have free slots OR paid credits
   const used = user?.usedPropertyCount || 0;
   const limit = user?.propertyLimit || 0;
   const credits = user?.paidPropertyCredits || 0;
@@ -74,53 +72,58 @@ const WelcomeScreen = () => {
       onNext={handleNext}
       isNextDisabled={!selectedType || !hasAccess}
     >
-      <TierStatusBanner />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        <TierStatusBanner />
 
-      <View style={{ marginTop: 10, opacity: hasAccess ? 1 : 0.5 }}>
-        {!hasAccess && (
-          <Text
-            style={{
-              color: currentTheme.error,
-              textAlign: "center",
-              marginBottom: 10,
-              fontWeight: "bold",
-            }}
-          >
-            Upload limit reached. Upgrade your tier to continue.
-          </Text>
-        )}
-
-        {hostOptions.map((option) => (
-          <TouchableOpacity
-            key={option.value}
-            disabled={!hasAccess}
-            onPress={() => setSelectedType(option.value)}
-            style={[
-              styles.card,
-              { backgroundColor: currentTheme.card },
-              selectedType === option.value && {
-                borderColor: currentTheme.primary,
-                borderWidth: 2,
-              },
-              !hasAccess && { borderColor: currentTheme.border },
-            ]}
-          >
+        <View style={{ marginTop: 10, opacity: hasAccess ? 1 : 0.5 }}>
+          {!hasAccess && (
             <Text
+              style={{
+                color: currentTheme.error,
+                textAlign: "center",
+                marginBottom: 10,
+                fontWeight: "bold",
+              }}
+            >
+              Upload limit reached. Upgrade your tier to continue.
+            </Text>
+          )}
+
+          {hostOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              disabled={!hasAccess}
+              onPress={() => setSelectedType(option.value)}
               style={[
-                styles.cardTitle,
-                { color: hasAccess ? currentTheme.text : currentTheme.muted },
+                styles.card,
+                { backgroundColor: currentTheme.card },
+                selectedType === option.value && {
+                  borderColor: currentTheme.primary,
+                  borderWidth: 2,
+                },
+                !hasAccess && { borderColor: currentTheme.border },
               ]}
             >
-              {option.title}
-            </Text>
-            <MaterialCommunityIcons
-              name={option.icon as any}
-              size={60}
-              color={hasAccess ? currentTheme.primary : currentTheme.muted}
-            />
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text
+                style={[
+                  styles.cardTitle,
+                  { color: hasAccess ? currentTheme.text : currentTheme.muted },
+                ]}
+              >
+                {option.title}
+              </Text>
+              <MaterialCommunityIcons
+                name={option.icon as any}
+                size={60}
+                color={hasAccess ? currentTheme.primary : currentTheme.muted}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
     </StepContainer>
   );
 };
