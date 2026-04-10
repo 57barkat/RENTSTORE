@@ -30,6 +30,15 @@ export class User {
   @Prop({ required: true })
   password: string;
 
+  @Prop()
+  resetPasswordCode?: string;
+
+  @Prop()
+  resetPasswordCodeExpires?: Date;
+
+  @Prop({ default: false })
+  isResetCodeVerified: boolean;
+
   @Prop({ required: true, enum: UserRole })
   role: UserRole;
 

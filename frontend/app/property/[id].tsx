@@ -50,7 +50,7 @@ export default function PropertyDetails() {
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
   const isOwner = user?.id === property?.ownerId;
 
-  const shareUrl = `https://expo.dev/@usman_naeem/rent-store?id=${id}`;
+  const shareUrl = `https://exp+rent-store?id=${id}`;
 
   const { handleChatOwner, isCreating } = useChatRoom(
     property?.ownerId,

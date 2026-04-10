@@ -69,9 +69,9 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-RentStore Property Seeder
+Anganstay Property Seeder
 
-This script generates dummy property data and inserts it into your MongoDB RentStore database. It supports batch inserts and automatically converts \_id and ownerId to ObjectId.
+This script generates dummy property data and inserts it into your MongoDB Anganstay database. It supports batch inserts and automatically converts \_id and ownerId to ObjectId.
 
 Prerequisites
 
@@ -115,9 +115,9 @@ Skips duplicates if \_id already exists (upsert).
 
 Configuration
 
-Database name: Make sure to match your existing DB name (RentStore) in the script:
+Database name: Make sure to match your existing DB name (Anganstay) in the script:
 
-const db = client.db('RentStore');
+const db = client.db('Anganstay');
 
 MongoDB URI: Default is local:
 
@@ -134,7 +134,7 @@ Verify Inserted Data
 You can verify using Mongo shell:
 
 mongo
-use RentStore
+use Anganstay
 db.properties.count()
 db.properties.findOne()
 

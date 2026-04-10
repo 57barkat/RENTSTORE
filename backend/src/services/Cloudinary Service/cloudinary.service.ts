@@ -13,7 +13,7 @@ export class CloudinaryService {
 
     if (!cloudName || !apiKey || !apiSecret) {
       throw new Error(
-        "Cloudinary configuration missing. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment."
+        "Cloudinary configuration missing. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your environment.",
       );
     }
 
@@ -64,7 +64,7 @@ export class CloudinaryService {
           (error, result) => {
             if (error) return reject(error);
             resolve(result); // contains secure_url, public_id, etc.
-          }
+          },
         );
 
         streamifier.createReadStream(fileBuffer).pipe(uploadStream);

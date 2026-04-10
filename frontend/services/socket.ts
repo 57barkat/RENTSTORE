@@ -1,10 +1,10 @@
 import { io, Socket } from "socket.io-client";
-import Constants from "expo-constants";
 import { tokenManager } from "./tokenManager";
 
-export const SOCKET_URL = (
-  Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000"
-).replace("/api/v1", "");
+export const SOCKET_URL = process.env.EXPO_PUBLIC_API_URL.replace(
+  "/api/v1",
+  "",
+);
 
 let socket: Socket | null = null;
 

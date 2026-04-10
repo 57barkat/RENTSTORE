@@ -22,6 +22,11 @@ import { UserDocument } from "./user.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
 import { Public } from "src/common/decorators/public.decorator";
 import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import {
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyResetCodeDto,
+} from "./dto/forgot-password.dto";
 @Controller("users")
 export class UserController {
   constructor(
@@ -67,6 +72,24 @@ export class UserController {
         prioritySlotCredits: user.prioritySlotCredits,
       },
     };
+  }
+
+  @Public()
+  @Post("forgot-password")
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return await this.userService.requestPasswordReset(dto.email);
+  }
+
+  @Public()
+  @Post("verify-reset-code")
+  async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return await this.userService.verifyResetCode(dto.email, dto.code);
+  }
+
+  @Public()
+  @Post("reset-password")
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return await this.userService.resetPassword(dto);
   }
   @UseGuards(JwtAuthGuard)
   @Get("me")

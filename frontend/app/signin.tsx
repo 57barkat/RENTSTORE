@@ -8,11 +8,9 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
-  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Colors } from "../constants/Colors";
-import AuthImage from "../assets/images/authimage.jpg";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { useLoginMutation, useVerifyEmailMutation } from "@/services/api";
@@ -20,7 +18,8 @@ import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { InputField } from "@/components/InputField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import VerificationModal from "@/components/VerificationModal";
-import { Feather, MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -38,6 +37,7 @@ export default function SignInScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const [loginMutation, { isLoading }] = useLoginMutation();
+  const [showForgotModal, setShowForgotModal] = useState(false);
   const [verifyEmail] = useVerifyEmailMutation();
 
   useEffect(() => {
@@ -56,8 +56,6 @@ export default function SignInScreen() {
         emailOrPhone,
         password,
       }).unwrap();
-
-      console.log(response);
 
       await login(response);
 
@@ -124,16 +122,19 @@ export default function SignInScreen() {
       >
         <ImageBackground
           source={{
-            uri: "https://811a2201-3c29-49ea-80cc-de39dc1f74a8-00-3qf2yb1a4a9ut.janeway.replit.dev/__mockup/images/anganstay-bg.png",
+            uri: "https://images.pexels.com/photos/29174521/pexels-photo-29174521/free-photo-of-modern-apartment-building-with-autumn-foliage.jpeg?auto=compress&cs=tinysrgb&w=600",
           }}
           style={styles.backgroundImage}
           resizeMode="cover"
         >
           <View style={styles.overlay}>
-            {/* FIGMA LOGO SECTION */}
             <View style={styles.logoContainer}>
               <View style={styles.logoIconBg}>
-                <MaterialCommunityIcons name="home" size={20} color="#2563EB" />
+                <MaterialCommunityIcons
+                  name="home"
+                  size={20}
+                  color={currentTheme.secondary}
+                />
               </View>
               <Text style={styles.logoText}>AnganStay</Text>
             </View>
@@ -191,6 +192,26 @@ export default function SignInScreen() {
                     </TouchableOpacity>
                   }
                 />
+
+                {/* PREMIUM FORGOT PASSWORD BUTTON PLACEMENT */}
+                <TouchableOpacity
+                  style={[
+                    styles.forgotPasswordBtn,
+                    { backgroundColor: `${currentTheme.secondary}15` }, // 15 adds 8% opacity to your theme color
+                  ]}
+                  onPress={() => setShowForgotModal(true)}
+                  activeOpacity={0.6}
+                  hitSlop={{ top: 10, bottom: 10, left: 20, right: 10 }}
+                >
+                  <Text
+                    style={[
+                      styles.forgotPasswordText,
+                      { color: currentTheme.secondary },
+                    ]}
+                  >
+                    Forgot Password?
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <PrimaryButton
@@ -218,7 +239,11 @@ export default function SignInScreen() {
               </TouchableOpacity>
             </View>
           </View>
-
+          <ForgotPasswordModal
+            visible={showForgotModal}
+            theme={currentTheme}
+            onClose={() => setShowForgotModal(false)}
+          />
           <VerificationModal
             visible={showEmailModal}
             theme={currentTheme}
@@ -270,25 +295,19 @@ const styles = StyleSheet.create({
   headerSection: { marginBottom: 25 },
   title: { fontSize: 28, fontWeight: "800" },
   subtitle: { fontSize: 16, marginTop: 4 },
-  inputGroup: { gap: 12 },
-  forgotPasswordBtn: { alignSelf: "flex-end", marginVertical: 12 },
-  forgotPasswordText: { color: "#2563EB", fontWeight: "600" },
-  orDividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 25,
+  inputGroup: { gap: 12, marginBottom: 20 },
+  forgotPasswordBtn: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  line: { flex: 1, height: 1 },
-  orText: { marginHorizontal: 10, fontSize: 12, fontWeight: "700" },
-  socialButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 10,
+  forgotPasswordText: {
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  socialButtonText: { fontSize: 16, fontWeight: "600" },
   footerLink: { marginTop: 20, alignItems: "center" },
 });

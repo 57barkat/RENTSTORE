@@ -62,15 +62,15 @@ export class PaymentService {
       });
 
       const auth = await this.safepay.authorization.create();
-      const ngrokUrl = "https://banefully-jointed-freya.ngrok-free.dev";
+      const Return_Uri = process.env.BACKEND_URL;
 
       const checkoutUrl =
         `https://sandbox.api.getsafepay.com/checkout/pay?beacon=${session.token}` +
         `&tbt=${auth}` +
         `&env=sandbox` +
         `&source=mobile` +
-        `&return_url=${encodeURIComponent(`${ngrokUrl}/api/v1/payments/payment-success`)}` +
-        `&cancel_url=${encodeURIComponent(`${ngrokUrl}/api/v1/payments/payment-cancel`)}`;
+        `&return_url=${encodeURIComponent(`${Return_Uri}/api/v1/payments/payment-success`)}` +
+        `&cancel_url=${encodeURIComponent(`${Return_Uri}/api/v1/payments/payment-cancel`)}`;
 
       return {
         url: checkoutUrl,

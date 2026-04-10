@@ -139,7 +139,7 @@ Verify scheme in `app.json`:
 ```json
 {
   "expo": {
-    "scheme": "rentstoreapp"
+    "scheme": "anganstayapp"
   }
 }
 ```

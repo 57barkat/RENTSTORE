@@ -12,38 +12,62 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>("isPublic", [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    // If it's a public route, don't just return true immediately.
-    // Check if the request is coming from your authorized frontend.
+    const request = context.switchToHttp().getRequest();
+    const authHeader = request.headers.authorization;
+    const frontendSecret = request.headers["x-frontend-secret"];
+
+    // 1. Logic for PUBLIC routes
     if (isPublic) {
-      const request = context.switchToHttp().getRequest();
-      const frontendSecret = request.headers["x-frontend-secret"];
-      console.log("Incoming Secret:", frontendSecret);
-      console.log("Expected Secret:", process.env.MY_APP_SECRET);
-      // Compare with the secret stored in your .env file
-      if (frontendSecret === process.env.MY_APP_SECRET) {
+      let hasValidUser = false;
+
+      // Try to validate the Bearer Token if it exists
+      if (authHeader) {
+        try {
+          const result = await super.canActivate(context);
+          if (result) hasValidUser = true;
+        } catch (e) {
+          // Token was invalid/expired, but we don't crash yet because it's public
+        }
+      }
+
+      // Check the Frontend Secret
+      const hasValidSecret = frontendSecret === process.env.MY_APP_SECRET;
+
+      // PASS if they have a valid token OR a valid secret
+      if (hasValidUser || hasValidSecret) {
         return true;
       }
-      try {
-        return super.canActivate(context) as boolean;
-      } catch (e) {
-        throw new UnauthorizedException("Invalid Secret or Token");
-      }
+
+      // FAIL if they have neither
+      throw new UnauthorizedException("Invalid Secret or Token required");
     }
 
-    return super.canActivate(context);
+    // 2. Logic for PRIVATE routes
+    return super.canActivate(context) as Promise<boolean>;
   }
 
-  handleRequest(err, user, info) {
-    // This allows the @GetUser() decorator to work even if no user is found
+  handleRequest(err, user, info, context: ExecutionContext) {
+    const isPublic = this.reflector.getAllAndOverride<boolean>("isPublic", [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // If there's an error or no user:
     if (err || !user) {
+      // If the route is private, throw the error
+      if (!isPublic) {
+        throw err || new UnauthorizedException();
+      }
+      // If the route is public, just return null (Guest mode)
       return null;
     }
+
     return user;
   }
 }

@@ -158,6 +158,7 @@ const AppContent = () => {
         <Stack.Screen name="TransactionHistory" />
         <Stack.Screen name="shop/BuyCredits.tsx" />
         <Stack.Screen name="DraftProperties" />
+        <Stack.Screen name="OwnerDashboard" />
         <Stack.Screen name="upload" />
         <Stack.Screen name="PrivacyPolicyScreen" />
         <Stack.Screen name="favorites" />

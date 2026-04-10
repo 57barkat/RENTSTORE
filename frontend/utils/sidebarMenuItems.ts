@@ -5,12 +5,19 @@ export interface MenuItem {
   screen?: string;
   isLogout?: boolean;
 }
+
 export const sidebarMenuItems: MenuItem[] = [
   {
     iconType: "Ionicons",
     iconName: "home-outline",
     label: "Home",
     screen: "homePage",
+  },
+  {
+    iconType: "Feather",
+    iconName: "bar-chart-2",
+    label: "Insights & Analytics",
+    screen: "OwnerDashboard",
   },
   {
     iconType: "Ionicons",
@@ -48,12 +55,6 @@ export const sidebarMenuItems: MenuItem[] = [
     label: "Transaction History",
     screen: "TransactionHistory",
   },
-  // {
-  //   iconType: "Feather",
-  //   iconName: "user-x",
-  //   label: "Delete Account",
-  //   screen: "DeleteAccount",
-  // },
   {
     iconType: "Ionicons",
     iconName: "shield-checkmark-outline",

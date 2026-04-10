@@ -121,6 +121,8 @@ export class PropertyService {
         });
 
         const savedProperty = await property.save();
+        console.timeLog("Total", "DB Save Done");
+        console.timeEnd("Total");
         await this.propertyDraftModel.findByIdAndDelete(propertyId);
 
         user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
@@ -324,138 +326,125 @@ export class PropertyService {
     };
   }
   async findFiltered(
-    page = 1, // Default to page 1 if not provided
-    limit = 10, // Default to 10 items per page
-    filters: any, // Object containing user-selected filters (price, type, etc.)
-    userId?: string, // Optional ID to exclude the user's own properties
+    page = 1,
+    limit = 10,
+    filters: any,
+    userId?: string,
   ): Promise<any> {
-    // Generate the base MongoDB query object from provided filters
     const mongoFilter = buildMongoFilter(filters, userId);
-
-    // If a user is logged in, exclude their own properties from the results
     if (userId) mongoFilter.ownerId = { $ne: userId };
+    console.log("Constructed Mongo Filter:", userId);
 
-    // Hardcoded constraints: only show approved, active, and moderated properties
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
 
-    // Calculate how many items to skip based on the current page
     const skip = (Number(page) - 1) * Number(limit);
-    const now = new Date(); // Current timestamp for date comparisons
-    const sortOptions = {};
-    // Determine the secondary sort order based on user selection
-    let secondarySort: any = { createdAt: -1 }; // Default: Newest first
-    if (filters.sortBy === "price_asc")
-      secondarySort = { monthlyRent: 1 }; // Cheapest first
+    const adjustedLimit = Number(limit);
+    const maxNeeded = skip + adjustedLimit;
+
+    let secondarySort: any = { createdAt: -1 };
+    if (filters.sortBy === "price_asc") secondarySort = { monthlyRent: 1 };
     else if (filters.sortBy === "price_desc")
-      secondarySort = { monthlyRent: -1 }; // Most expensive first
+      secondarySort = { monthlyRent: -1 };
     else if (filters.sortBy === "newest") secondarySort = { createdAt: -1 };
-    else if (filters.sortBy === "popular") {
-      sortOptions["views"] = -1;
-    }
+    else if (filters.sortBy === "popular") secondarySort = { views: -1 };
 
-    // Combine secondary sort with _id to ensure consistent pagination order
     const finalSort = { ...secondarySort, _id: -1 };
-
-    // Placeholder for Featured Ads (currently skipped/empty)
     const featuredIds: string[] = [];
 
-    // Since no featured ads are fetched, the full limit is available for regular ads
-    const adjustedLimit = Number(limit);
-
-    // Build the main filter, explicitly excluding featured properties and specific IDs
     const mainFilter = {
       ...mongoFilter,
-      // featured: true,
-      _id: { $nin: featuredIds }, // Exclude IDs already picked as featured
+      _id: { $nin: featuredIds },
     };
 
-    // Execute a multi-bucket aggregation to group properties by their weight
     const results = await this.propertyModel.aggregate([
-      { $match: mainFilter }, // Filter the entire collection first
+      { $match: mainFilter },
       {
         $facet: {
-          // Group properties with sortWeight 3 (Business Pro)
           weight3: [
             { $match: { sortWeight: 3 } },
             { $sort: finalSort },
-            { $limit: skip + adjustedLimit * 5 }, // Fetch enough for deep pagination
+            { $limit: maxNeeded * 2 }, // Optimization: Fetch only what's realistically needed for interleaving
           ],
-          // Group properties with sortWeight 2 (Standard Pro)
           weight2: [
             { $match: { sortWeight: 2 } },
             { $sort: finalSort },
-            { $limit: skip + adjustedLimit * 5 },
+            { $limit: maxNeeded * 2 },
           ],
-          // Group properties with sortWeight 1 (Free/Basic)
           weight1: [
             { $match: { sortWeight: 1 } },
             { $sort: finalSort },
-            { $limit: skip + adjustedLimit * 5 },
+            { $limit: maxNeeded * 2 },
           ],
-          // Get total count of all matching properties for pagination meta-data
           totalCount: [{ $count: "count" }],
         },
       },
     ]);
 
-    // Create local copies of each weight group for manipulation
-    const w3Copy = [...(results[0].weight3 || [])];
-    const w2Copy = [...(results[0].weight2 || [])];
-    const w1Copy = [...(results[0].weight1 || [])];
-    const totalRegular = results[0].totalCount[0]?.count || 0;
-    const total = totalRegular;
+    const w3Data = results[0].weight3 || [];
+    const w2Data = results[0].weight2 || [];
+    const w1Data = results[0].weight1 || [];
+    const total = results[0].totalCount[0]?.count || 0;
 
-    // This array will hold the properties in the specific interleaved order
     const interleavedData: any[] = [];
-    // Calculate total items needed (skipped items + items for current page)
-    const maxNeeded = skip + adjustedLimit;
+    let w3Idx = 0,
+      w2Idx = 0,
+      w1Idx = 0;
 
-    // Begin the 4:3:3 Interleaving process
+    // Faster O(1) Interleaving using pointers instead of .shift()
     while (
-      (w3Copy.length > 0 || w2Copy.length > 0 || w1Copy.length > 0) &&
-      interleavedData.length < maxNeeded
+      interleavedData.length < maxNeeded &&
+      (w3Idx < w3Data.length || w2Idx < w2Data.length || w1Idx < w1Data.length)
     ) {
-      // 1. Take up to 4 items from Weight 3
-      for (let i = 0; i < 4 && interleavedData.length < maxNeeded; i++) {
-        if (w3Copy.length > 0) interleavedData.push(w3Copy.shift());
+      // 1. Weight 3 (Up to 4)
+      for (
+        let i = 0;
+        i < 4 && interleavedData.length < maxNeeded && w3Idx < w3Data.length;
+        i++
+      ) {
+        interleavedData.push(w3Data[w3Idx++]);
       }
-      // 2. Take up to 3 items from Weight 2
-      for (let i = 0; i < 3 && interleavedData.length < maxNeeded; i++) {
-        if (w2Copy.length > 0) interleavedData.push(w2Copy.shift());
+      // 2. Weight 2 (Up to 3)
+      for (
+        let i = 0;
+        i < 3 && interleavedData.length < maxNeeded && w2Idx < w2Data.length;
+        i++
+      ) {
+        interleavedData.push(w2Data[w2Idx++]);
       }
-      // 3. Take up to 3 items from Weight 1
-      for (let i = 0; i < 3 && interleavedData.length < maxNeeded; i++) {
-        if (w1Copy.length > 0) interleavedData.push(w1Copy.shift());
+      // 3. Weight 1 (Up to 3)
+      for (
+        let i = 0;
+        i < 3 && interleavedData.length < maxNeeded && w1Idx < w1Data.length;
+        i++
+      ) {
+        interleavedData.push(w1Data[w1Idx++]);
       }
     }
 
-    // Extract only the items meant for the current page (e.g., items 10-20)
     const paginatedData = interleavedData.slice(skip, skip + adjustedLimit);
 
-    // Populate owner details (Name, Image, Subscription) for the final result set
     const populatedMainData = await this.propertyModel.populate(paginatedData, {
       path: "ownerId",
       select: "name email phone profileImage subscription",
     });
+
     const propertyIds = populatedMainData.map((p) => p._id);
 
     if (propertyIds.length > 0) {
-      // We don't use 'await' here because we don't want the user
-      // to wait for the database write before seeing their search results.
       this.propertyModel
         .updateMany({ _id: { $in: propertyIds } }, { $inc: { impressions: 1 } })
         .exec()
         .catch((err) => console.error("Impression update failed", err));
     }
-    // Return formatted response with data and pagination metadata
+
     return {
-      data: populatedMainData, // The interleaved and paginated properties
-      total, // Total number of properties matching filters
+      data: populatedMainData,
+      total,
       page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit)), // Calculate total pages
+      limit: adjustedLimit,
+      totalPages: Math.ceil(total / adjustedLimit),
       message:
         populatedMainData.length > 0
           ? "Fetched successfully."
@@ -656,12 +645,15 @@ export class PropertyService {
 
     return data;
   }
-  async getOwnerDashboard(ownerId: string) {
+  async getOwnerDashboard(ownerId: string, page = 1, limit = 10) {
+    const skip = (Number(page) - 1) * Number(limit);
+    const pageSize = Number(limit);
+
     const stats = await this.propertyModel.aggregate([
-      // 1. Filter only properties belonging to this owner
+      // 1. Filter by owner
       { $match: { ownerId: ownerId } },
 
-      // 2. Group all properties to calculate global totals
+      // 2. Multi-stage processing using Facets
       {
         $facet: {
           totalStats: [
@@ -677,10 +669,10 @@ export class PropertyService {
               },
             },
           ],
-          // 3. Get the specific performance of each property
           perPropertyStats: [
-            { $sort: { views: -1 } }, // Show most popular first
-            { $limit: 10 }, // Limit to top 10 for mobile performance
+            { $sort: { views: -1 } },
+            { $skip: skip },
+            { $limit: pageSize },
             {
               $project: {
                 title: 1,
@@ -689,12 +681,16 @@ export class PropertyService {
                 sortWeight: 1,
                 status: 1,
                 thumbnail: { $arrayElemAt: ["$photos", 0] },
-                // Calculate Click-Through Rate (CTR) percentage
                 ctr: {
                   $cond: [
-                    { $gt: ["$impressions", 0] },
+                    { $gt: [{ $ifNull: ["$impressions", 0] }, 0] },
                     {
-                      $multiply: [{ $divide: ["$views", "$impressions"] }, 100],
+                      $multiply: [
+                        {
+                          $divide: ["$views", { $ifNull: ["$impressions", 1] }],
+                        },
+                        100,
+                      ],
                     },
                     0,
                   ],
@@ -704,7 +700,8 @@ export class PropertyService {
           ],
         },
       },
-      // 4. Clean up the output format
+
+      // 3. Final formatting to clean up facet arrays
       {
         $project: {
           totals: { $arrayElemAt: ["$totalStats", 0] },
@@ -713,12 +710,30 @@ export class PropertyService {
       },
     ]);
 
-    return (
-      stats[0] || {
-        totals: { totalProperties: 0, totalViews: 0, totalImpressions: 0 },
-        properties: [],
-      }
-    );
+    // 4. Handle Empty Results
+    const result = stats[0] || {
+      totals: {
+        totalProperties: 0,
+        totalViews: 0,
+        totalImpressions: 0,
+        activeListings: 0,
+      },
+      properties: [],
+    };
+
+    const totalItems = result.totals?.totalProperties || 0;
+
+    return {
+      totals: result.totals,
+      data: result.properties,
+      meta: {
+        totalItems,
+        itemCount: result.properties.length,
+        itemsPerPage: pageSize,
+        totalPages: Math.ceil(totalItems / pageSize),
+        currentPage: Number(page),
+      },
+    };
   }
   async updateProperty(
     id: string,

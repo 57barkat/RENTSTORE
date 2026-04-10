@@ -5,7 +5,43 @@ import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
 import { CapacityState } from "@/types/PropertyDetails.types";
 import React, { createContext, useState, ReactNode } from "react";
 import { useCreatePropertyMutation } from "@/services/api";
-import { useAuth } from "./AuthContext"; // AuthContext hook
+import { useAuth } from "./AuthContext";
+import Constants from "expo-constants";
+
+const CLOUDINARY_CLOUD_NAME =
+  process.env.CLOUDINARY_CLOUD_NAME ||
+  Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET =
+  Constants.expoConfig?.extra?.UPLOAD_PRESET || process.env.UPLOAD_PRESET;
+// --- Cloudinary Config ---
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+// const UPLOAD_PRESET = "property_upload";
+
+/**
+ * Helper to upload a single file to Cloudinary directly from the device
+ */
+const uploadToCloudinary = async (fileUri: string): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", {
+    uri: fileUri,
+    type: "image/jpeg",
+    name: "property_image.jpg",
+  } as any);
+  formData.append("upload_preset", UPLOAD_PRESET);
+
+  const response = await fetch(CLOUDINARY_URL, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error?.message || "Cloudinary Upload Failed");
+  }
+
+  const result = await response.json();
+  return result.secure_url;
+};
 
 export interface SubmitResult {
   success: boolean;
@@ -34,13 +70,10 @@ export interface FormData {
   ALL_BILLS?: BillType[];
   safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
-
   SecuritybasePrice?: number;
-
   apartmentType?: "studio" | "1BHK" | "2BHK" | "3BHK" | "penthouse";
   furnishing?: "furnished" | "semi-furnished" | "unfurnished";
   parking?: boolean;
-
   hostelType?: "male" | "female" | "mixed";
   mealPlan?: string[];
   rules?: string[];
@@ -72,23 +105,42 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     setData({ ...newData });
   };
 
+  /**
+   * Main Submission Logic
+   */
   const submitData: FormContextType["submitData"] = async (overrideData) => {
     try {
-      const payload = overrideData ?? data;
-      console.log("Submitting property payload:", payload);
+      const sourceData = overrideData ?? data;
+      // Deep copy to avoid mutating the UI state during upload
+      const payload = JSON.parse(JSON.stringify(sourceData));
+
+      // 1. Check if we need to upload photos
+      if (payload.photos && payload.photos.length > 0) {
+        console.log("Starting high-speed Cloudinary uploads...");
+
+        const uploadPromises = payload.photos.map(async (uri: string) => {
+          // Only upload if it's a local file URI
+          if (uri.startsWith("http")) return uri;
+          return await uploadToCloudinary(uri);
+        });
+
+        // Fire all uploads in parallel
+        payload.photos = await Promise.all(uploadPromises);
+        console.log("Uploads complete. Photos ready as URLs.");
+      }
+
+      // 2. Send the cleaned JSON payload to your backend
+      // This will now be near-instant because it's just text
+      console.log("Submitting property payload to backend...");
       const response = await createProperty(payload).unwrap();
 
       if (response.user) {
-        console.log(
-          "Syncing user stats from property response:",
-          response.user,
-        );
         await updateUser(response.user);
       }
 
       return { success: true, data: response };
     } catch (error) {
-      console.error("Property submission failed:", error);
+      console.error("Submission failed:", error);
       return { success: false, error };
     }
   };
@@ -97,9 +149,9 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     overrideData,
   ) => {
     try {
-      const payload = overrideData ?? data;
-      const response = await createProperty(payload).unwrap();
-      return { success: true, data: response };
+      // For drafts, we can just save the local URIs or upload them
+      // (Better to upload so the draft has images)
+      return await submitData(overrideData);
     } catch (error) {
       console.error("Draft save failed:", error);
       return { success: false, error };

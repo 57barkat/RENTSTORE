@@ -45,6 +45,7 @@ export class PropertyController {
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any,
   ) {
+    console.log("Received createProperty request with DTO:", dto);
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
@@ -192,7 +193,6 @@ export class PropertyController {
   @Public()
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
-
     parseNumericFields(query, [
       "page",
       "limit",
@@ -250,10 +250,14 @@ export class PropertyController {
     return this.propertyService.getAddressSuggestions(q);
   }
   @Get("dashboard-stats")
-  @Public()
-  async getDashboardStats(@Req() req: any) {
-    const userId = req.user?.userId;
-    return this.propertyService.getOwnerDashboard(userId);
+  @UseGuards(JwtAuthGuard)
+  async getDashboardStats(
+    @Req() req: any,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    const userId = req.user.userId;
+    return this.propertyService.getOwnerDashboard(userId, page, limit);
   }
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {

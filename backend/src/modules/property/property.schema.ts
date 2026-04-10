@@ -159,14 +159,33 @@ export class Property extends Document {
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
 
+// 1. PRIMARY SEARCH INDEX (The "ESR" Rule: Equality, Sort, Range)
+// This covers your status checks and the default 'newest' sort.
 PropertySchema.index({
   moderationStatus: 1,
-  isVisible: 1,
+  status: 1,
+  isApproved: 1,
   sortWeight: -1,
   createdAt: -1,
 });
 
+// 2. PRICE SORT INDEXES
+// Needed when filters.sortBy is price_asc or price_desc
+PropertySchema.index({
+  moderationStatus: 1,
+  status: 1,
+  isApproved: 1,
+  monthlyRent: 1,
+});
+PropertySchema.index({
+  moderationStatus: 1,
+  status: 1,
+  isApproved: 1,
+  monthlyRent: -1,
+});
+
+// 3. GEOSPATIAL (Keep this as is)
 PropertySchema.index({ locationGeo: "2dsphere" });
-PropertySchema.index({ area: 1 });
-PropertySchema.index({ "address.city": 1, moderationStatus: 1, isVisible: 1 });
-PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
+
+// 4. OWNER LOOKUP (For the dashboard)
+PropertySchema.index({ ownerId: 1, createdAt: -1 });

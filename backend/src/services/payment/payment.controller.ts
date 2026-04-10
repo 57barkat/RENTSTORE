@@ -12,7 +12,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import * as crypto from "crypto";
-import { Response } from "express";
 import { UserService } from "src/modules/user/user.service";
 import { PaymentService } from "./payment.service";
 import { Public } from "src/common/decorators/public.decorator";

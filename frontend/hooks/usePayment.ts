@@ -6,6 +6,7 @@ import { useAuth } from "@/contextStore/AuthContext";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { tokenManager } from "@/services/tokenManager";
+import { API_URL } from "@/services/api";
 
 export const usePayment = () => {
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,7 @@ export const usePayment = () => {
       const token = tokenManager.getAccessToken();
 
       const res = await fetch(
-        `https://banefully-jointed-freya.ngrok-free.dev/api/v1/payments/verify?tracker=${tracker}`,
+        `${API_URL}/api/v1/payments/verify?tracker=${tracker}`,
         {
           method: "GET",
           headers: {
@@ -55,18 +56,15 @@ export const usePayment = () => {
       await tokenManager.load();
       const token = tokenManager.getAccessToken();
 
-      const res = await fetch(
-        "https://banefully-jointed-freya.ngrok-free.dev/api/v1/payments/create-checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-frontend-secret": getSecret(),
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ userId: user?.id, packageId }),
+      const res = await fetch(`${API_URL}/api/v1/payments/create-checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-frontend-secret": getSecret(),
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ userId: user?.id, packageId }),
+      });
 
       const data = await res.json();
       if (!data.url) throw new Error("Invalid session");

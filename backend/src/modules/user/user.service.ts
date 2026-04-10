@@ -15,6 +15,7 @@ import { EmailService } from "src/services/email/email.service";
 import { Agency, AgencyDocument } from "../Agency/agency.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
 import { Property } from "../property/property.schema";
+import { ResetPasswordDto } from "./dto/forgot-password.dto";
 
 @Injectable()
 export class UserService {
@@ -182,6 +183,60 @@ export class UserService {
 
     return user;
   }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.userModel.findOne({ email });
+    if (!user)
+      return {
+        message: "If your email is registered, you will receive a code.",
+      };
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetPasswordCode = code;
+    user.resetPasswordCodeExpires = new Date(Date.now() + 15 * 60 * 1000);
+    user.isResetCodeVerified = false;
+    await user.save();
+
+    await this.emailService.sendVerificationEmail(email, code);
+
+    return { message: "Reset code sent successfully" };
+  }
+
+  async verifyResetCode(email: string, code: string) {
+    const user = await this.userModel.findOne({
+      email,
+      resetPasswordCode: code,
+      resetPasswordCodeExpires: { $gt: new Date() },
+    });
+
+    if (!user) throw new BadRequestException("INVALID_OR_EXPIRED_CODE");
+
+    user.isResetCodeVerified = true;
+    await user.save();
+
+    return { message: "Code verified. You may now reset your password." };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.userModel.findOne({
+      email: dto.email,
+      isResetCodeVerified: true,
+    });
+
+    if (!user) throw new UnauthorizedException("VERIFICATION_REQUIRED");
+
+    const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
+
+    user.password = hashedPassword;
+    user.resetPasswordCode = undefined;
+    user.resetPasswordCodeExpires = undefined;
+    user.isResetCodeVerified = false; // Lock it back up
+    await user.save();
+
+    return { message: "Password reset successful" };
+  }
+
   async updateUserCredits(
     userId: string,
     updateDto: { paidPropertyCredits?: number; paidFeaturedCredits?: number },

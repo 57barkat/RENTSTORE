@@ -25,7 +25,7 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight text-foreground leading-none">
-              RentStore
+              Anganstay
             </span>
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">
               {role || "Management"}

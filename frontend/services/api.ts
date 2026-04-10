@@ -4,11 +4,11 @@ import { tokenManager } from "./tokenManager";
 import { UserType } from "@/contextStore/AuthContext";
 import Constants from "expo-constants";
 
-export const API_URL = "https://banefully-jointed-freya.ngrok-free.dev";
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||
-//   "http://172.16.18.99:3000" ||
+//   "http://192.168.81.201:3000" ||
 //   "http://10.98.91.143:3000";
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
@@ -108,30 +108,17 @@ export const api = createApi({
     }),
     createProperty: builder.mutation({
       query: (body) => {
-        const formData = new FormData();
-        Object.entries(body).forEach(([key, value]) => {
-          if (key === "photos") return;
-          if (value !== undefined && value !== null) {
-            if (typeof value === "object") {
-              formData.append(key, JSON.stringify(value));
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-        if (Array.isArray(body.photos)) {
-          body.photos.forEach((uri: string, idx: number) => {
-            formData.append("photos", {
-              uri,
-              name: `photo_${idx}.jpeg`,
-              type: "image/jpeg",
-            } as any);
-          });
-        }
+        // 🚀 NO MORE FORMDATA
+
+        // Since images are now 'https://...' strings from Cloudinary,
+        // we just send the whole object as clean JSON.
         return {
           url: "/api/v1/properties/create",
           method: "POST",
-          body: formData,
+          body: body, // Standard JSON payload
+          headers: {
+            "Content-Type": "application/json",
+          },
         };
       },
     }),
@@ -360,6 +347,35 @@ export const api = createApi({
       // Optional: if you want the search results to reflect the new view count immediately
       // invalidatesTags: (result, error, id) => [{ type: 'Property', id }],
     }),
+    getDashboardStats: builder.query({
+      query: ({ page = 1, limit = 10 }) => ({
+        url: `/api/v1/properties/dashboard-stats`,
+        params: { page, limit },
+        method: "GET",
+      }),
+      providesTags: ["Property"],
+    }),
+    forgotPassword: builder.mutation({
+      query: (body: { email: string }) => ({
+        url: "/api/v1/users/forgot-password",
+        method: "POST",
+        body,
+      }),
+    }),
+    verifyResetCode: builder.mutation({
+      query: (body: { email: string; code: string }) => ({
+        url: "/api/v1/users/verify-reset-code",
+        method: "POST",
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation({
+      query: (body: { email: string; newPassword: string }) => ({
+        url: "/api/v1/users/reset-password",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -399,4 +415,8 @@ export const {
   usePromotePropertyMutation,
   useGetPaymentHistoryQuery,
   useIncrementViewMutation,
+  useGetDashboardStatsQuery,
+  useForgotPasswordMutation,
+  useVerifyResetCodeMutation,
+  useResetPasswordMutation,
 } = api;

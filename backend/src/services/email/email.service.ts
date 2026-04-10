@@ -8,12 +8,12 @@ export class EmailService {
   async sendVerificationEmail(email: string, code: string) {
     try {
       const response = await this.resend.emails.send({
-        from: "contact@binaryscripters.co.uk",
+        from: "info@anganstay.com",
         to: email,
         subject: "Verify your email",
         html: `<h2>Your verification code</h2><h1>${code}</h1>`,
         text: `YOUR VERIFICATION CODE: ${code}`,
-        replyTo: "contact@binaryscripters.co.uk",
+        replyTo: "info@anganstay.com",
       });
 
       return response;

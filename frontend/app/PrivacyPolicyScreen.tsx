@@ -13,7 +13,7 @@ const PrivacyPolicyScreen = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={[styles.heading, { color: currentTheme.text }]}>
-          RentStore Privacy Policy
+          Anganstay Privacy Policy
         </Text>
         <Text style={[styles.date, { color: currentTheme.muted }]}>
           Effective Date: September 17, 2025
@@ -83,7 +83,7 @@ const PrivacyPolicyScreen = () => {
           8. Children’s Privacy
         </Text>
         <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          RentStore is not intended for children under 13 years old. We do not
+          Anganstay is not intended for children under 13 years old. We do not
           knowingly collect data from children.
         </Text>
 
@@ -100,7 +100,7 @@ const PrivacyPolicyScreen = () => {
         </Text>
         <Text style={[styles.paragraph, { color: currentTheme.text }]}>
           Email: barkat.khattak@codeshop.biz{"\n"}
-          App Name: RentStore
+          App Name: Anganstay
         </Text>
       </ScrollView>
     </SafeAreaView>
