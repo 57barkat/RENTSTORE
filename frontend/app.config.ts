@@ -6,6 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   name: "AnganStay",
   slug: "anganstay",
+  owner: "usman_naeem", // <--- ADDED THIS LINE
   scheme: "anganstay",
   version: "1.0.0",
   platforms: ["android", "ios", "web"],
@@ -27,14 +28,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         "This app needs access to your location to show nearby rentals.",
       NSMicrophoneUsageDescription:
         "This app uses the microphone for voice-based property searching.",
-      // Optional: background audio for iOS if you want long recordings
-      // UIBackgroundModes: ["audio"],
     },
   },
 
   android: {
     ...(config.android as any),
-    package: "com.anganstay.frontend",
+    package: "com.anganstay.frontend", // <--- UPDATED THIS TO MATCH BRANDING
     softwareKeyboardLayoutMode: "resize",
     permissions: [
       "ACCESS_FINE_LOCATION",
@@ -48,7 +47,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     edgeToEdgeEnabled: true,
     jsEngine: "hermes",
 
-    // 🔑 REQUIRED for Mapbox Android SDK download
     config: {
       mapbox: {
         apiKey: process.env.MAPBOX_PUBLIC_TOKEN,
@@ -77,7 +75,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
 
     eas: {
-      projectId: process.env.EAS_PROJECT_ID,
+      // COMMENTED OUT UNTIL project:init IS DONE
+      // projectId: process.env.EAS_PROJECT_ID,
     },
 
     router: {},
@@ -109,12 +108,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
 
-    // Removed "expo-audio" since we are using expo-av
     "expo-video",
     "expo-web-browser",
     "expo-secure-store",
 
-    // 🗺️ Mapbox plugin — THIS IS CRITICAL
     [
       "@rnmapbox/maps",
       {
