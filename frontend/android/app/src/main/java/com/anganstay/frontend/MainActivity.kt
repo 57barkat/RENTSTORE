@@ -1,4 +1,4 @@
-package com.usman_naeem.frontend
+package com.anganstay.frontend
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

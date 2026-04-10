@@ -1,4 +1,4 @@
-package com.usman_naeem.frontend
+package com.anganstay.frontend
 
 import android.app.Application
 import android.content.res.Configuration

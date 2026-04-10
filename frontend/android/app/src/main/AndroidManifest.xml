@@ -28,8 +28,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="rentstoreapp"/>
-        <data android:scheme="exp+rent-store"/>
+        <data android:scheme="anganstay"/>
+        <data android:scheme="exp+anganstay"/>
       </intent-filter>
     </activity>
   </application>
