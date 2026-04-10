@@ -75,8 +75,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
 
     eas: {
-      // COMMENTED OUT UNTIL project:init IS DONE
-      // projectId: process.env.EAS_PROJECT_ID,
+      projectId: process.env.EAS_PROJECT_ID,
     },
 
     router: {},
