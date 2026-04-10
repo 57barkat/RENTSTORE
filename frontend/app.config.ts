@@ -4,11 +4,11 @@ import { ConfigContext, ExpoConfig } from "@expo/config";
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
 
-  name: "Rent Store",
-  slug: "rent-store",
-  scheme: "rentstoreapp",
+  name: "AnganStay",
+  slug: "anganstay",
+  scheme: "anganstay",
   version: "1.0.0",
-  platforms: ["android", "ios"],
+  platforms: ["android", "ios", "web"],
   orientation: "portrait",
 
   icon: "./assets/images/icon.png",
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     ...config.ios,
     supportsTablet: true,
-    bundleIdentifier: "com.usman_naeem.frontend",
+    bundleIdentifier: "com.anganstay.frontend",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
@@ -34,7 +34,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   android: {
     ...(config.android as any),
-    package: "com.usman_naeem.frontend",
+    package: "com.anganstay.frontend",
     softwareKeyboardLayoutMode: "resize",
     permissions: [
       "ACCESS_FINE_LOCATION",
@@ -68,15 +68,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     ...config.extra,
-
+    myAppSecret: process.env.MY_APP_SECRET,
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
-
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
+    UPLOAD_PRESET: process.env.UPLOAD_PRESET,
     MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
     MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
 
     eas: {
-      projectId: "44299887-b9d1-4e31-8ce5-0b8686a8f699",
+      projectId: process.env.EAS_PROJECT_ID,
     },
 
     router: {},

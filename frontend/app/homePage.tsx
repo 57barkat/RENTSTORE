@@ -1,11 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   View,
-  Text,
   StyleSheet,
   RefreshControl,
-  TouchableOpacity,
   Animated,
   Pressable,
 } from "react-native";
@@ -17,15 +15,25 @@ import HostOptionsRowProps from "@/components/Filters/HostOptions";
 import AdsSliderProps from "@/components/Filters/AdsSlider";
 import { PropertySection } from "@/components/Filters/PropertySection";
 import VoiceAssistant from "@/components/Assistant/VoiceAssistant";
-import { Ionicons } from "@expo/vector-icons";
 import { useHomePageLogic } from "@/hooks/useHomePageLogic";
 import { getSectionsData } from "@/utils/homeTabUtils/homeHelpers";
 import PhoneVerificationBanner from "@/components/VerificationBanner";
+import { useAuth } from "@/contextStore/AuthContext";
+import AuthModal from "@/components/AuthModal";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const logic = useHomePageLogic();
+  const { isGuest } = useAuth();
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [activeFeature, setActiveFeature] = useState("");
+
+  const triggerAuthModal = (feature: string) => {
+    setActiveFeature(feature);
+    setModalVisible(true);
+  };
 
   const sections = getSectionsData(
     logic.homes,
@@ -43,28 +51,6 @@ const HomePage: React.FC = () => {
     logic.isSpeaking;
 
   const backdropStyle = { opacity: logic.menuAnimation };
-  const actionStyle = {
-    opacity: logic.menuAnimation,
-    transform: [
-      { scale: logic.menuAnimation },
-      {
-        translateY: logic.menuAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [100, 0],
-        }),
-      },
-    ],
-  };
-  const rotateStyle = {
-    transform: [
-      {
-        rotate: logic.menuAnimation.interpolate({
-          inputRange: [0, 1],
-          outputRange: ["0deg", "45deg"],
-        }),
-      },
-    ],
-  };
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
@@ -107,13 +93,31 @@ const HomePage: React.FC = () => {
             onViewAll={() => router.push(`/property/View/${item.hostOption}`)}
             onCardPress={(id) => router.push(`/property/${id}`)}
             onToggleFav={async (id) => {
-              logic.favoriteIds.includes(id)
-                ? await logic.removeUserFavorite({ propertyId: id })
-                : await logic.addToFav({ propertyId: id });
+              if (isGuest) {
+                triggerAuthModal("Favorites");
+                return;
+              }
+
+              const isFav = logic.favoriteIds?.some(
+                (favId: any) => String(favId) === String(id),
+              );
+
+              if (isFav) {
+                await logic.removeUserFavorite({ propertyId: id });
+              } else {
+                await logic.addToFav({ propertyId: id });
+              }
+
               logic.refetchFavorites();
             }}
           />
         )}
+      />
+
+      <AuthModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        featureName={activeFeature}
       />
 
       {logic.isMenuOpen && (
@@ -124,7 +128,7 @@ const HomePage: React.FC = () => {
         </Animated.View>
       )}
 
-      {!showAssistant && (
+      {/* {!showAssistant && (
         <View style={styles.floatingActions}>
           <Animated.View style={[actionStyle, { gap: 12 }]}>
             <TouchableOpacity
@@ -134,7 +138,11 @@ const HomePage: React.FC = () => {
               ]}
               onPress={() => {
                 logic.toggleMenu();
-                router.push("/NearbyScreen");
+                if (isGuest) {
+                  triggerAuthModal("Nearby Search");
+                } else {
+                  router.push("/NearbyScreen");
+                }
               }}
             >
               <Ionicons name="location" size={12} color="#fff" />
@@ -145,7 +153,14 @@ const HomePage: React.FC = () => {
                 styles.aiButton,
                 { backgroundColor: currentTheme.secondary },
               ]}
-              onPress={logic.handleStartAI}
+              onPress={() => {
+                if (isGuest) {
+                  logic.toggleMenu();
+                  triggerAuthModal("AI Matcher");
+                } else {
+                  logic.handleStartAI();
+                }
+              }}
             >
               <Ionicons name="sparkles" size={12} color="#fff" />
               <Text style={styles.buttonText}>AI Matcher</Text>
@@ -164,7 +179,7 @@ const HomePage: React.FC = () => {
             </Animated.View>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
 
       {showAssistant && (
         <VoiceAssistant

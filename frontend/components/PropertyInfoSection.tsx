@@ -4,6 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
 import { StatItem } from "@/components/Properties/PropertyStats";
 import { Badge } from "@/components/Properties/PropertyBadge";
+import { getPriceDisplay } from "@/utils/properties/formatProperties";
 
 export default function PropertyInfoSection({
   property,
@@ -13,7 +14,7 @@ export default function PropertyInfoSection({
   const fullAddress = property.address?.[0]
     ? `${property.address[0].street}, ${property.address[0].city}, ${property.address[0].stateTerritory}`
     : property.location;
-
+  const priceInfo = getPriceDisplay(property);
   return (
     <View>
       <View style={styles.headerRow}>
@@ -28,9 +29,13 @@ export default function PropertyInfoSection({
         </View>
         <View style={styles.priceContainer}>
           <Text style={[styles.priceTag, { color: theme.secondary }]}>
-            Rs{property.monthlyRent?.toLocaleString()}
+            {priceInfo ? `Rs. ${priceInfo.val.toLocaleString()}` : "Price N/A"}
           </Text>
-          <Text style={[styles.priceSub, { color: theme.muted }]}>/month</Text>
+          {priceInfo && (
+            <Text style={[styles.priceSub, { color: theme.muted }]}>
+              /{priceInfo.label}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -154,7 +159,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 20,
   },
   locationText: { fontSize: 12, marginLeft: 4, fontWeight: "500" },
   navigateBtn: {

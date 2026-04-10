@@ -67,7 +67,7 @@ export default function Sidebar({
               className="font-bold text-xl tracking-tight text-white cursor-pointer"
               onClick={() => router.push("/dashboard")}
             >
-              RentStore
+              Anganstay
             </span>
           )}
 

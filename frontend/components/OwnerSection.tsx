@@ -8,7 +8,7 @@ import {
   Platform,
   Linking,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 export default function OwnerSection({
@@ -16,32 +16,16 @@ export default function OwnerSection({
   theme,
   onChat,
   isCreating,
+  isOwner,
 }: any) {
   const router = useRouter();
 
   if (!owner) return null;
 
-  const agency = owner.agencyDetails;
-  const isAgencyRole = owner.role === "agency" && !!agency;
+  const isAgencyRole = owner.role === "agency";
   const isAgentRole = owner.role === "agent";
-
-  // HIERARCHY SWAP: Owner is primary
-  const primaryName = owner.name;
-
-  const secondaryLabel = isAgencyRole
-    ? `at ${agency.name}`
-    : isAgentRole
-      ? "Professional Agent"
-      : "Owner";
-
-  const displayImage =
-    owner.profileImage || (isAgencyRole ? agency.logo : null);
-
-  const handleAgencyNavigation = () => {
-    if (isAgencyRole && agency._id) {
-      router.push(`/agency/${agency._id}`);
-    }
-  };
+  const isProUser = owner.subscription === "pro";
+  const displayImage = owner.profileImage || "https://via.placeholder.com/150";
 
   return (
     <View
@@ -52,79 +36,80 @@ export default function OwnerSection({
     >
       <View style={styles.footerContent}>
         <TouchableOpacity
-          onPress={handleAgencyNavigation}
+          onPress={() => isAgencyRole && router.push(`/agency/${owner._id}`)}
           disabled={!isAgencyRole}
           style={styles.infoWrapper}
           activeOpacity={0.7}
         >
           <View style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: displayImage || "https://via.placeholder.com/150",
-              }}
-              style={styles.avatar}
-            />
-            {(isAgencyRole || isAgentRole) && (
+            <View
+              style={[
+                styles.imageBorder,
+                { borderColor: isProUser ? "#D4AF37" : "transparent" },
+              ]}
+            >
+              <Image source={{ uri: displayImage }} style={styles.avatar} />
+            </View>
+
+            {(owner.isPhoneVerified || owner.isEmailVerified) && (
               <View
-                style={[styles.badgeIcon, { backgroundColor: theme.primary }]}
+                style={[styles.verifyBadge, { backgroundColor: theme.primary }]}
               >
-                <Ionicons name="shield-checkmark" size={10} color="white" />
+                <Ionicons name="checkmark" size={10} color="white" />
               </View>
             )}
           </View>
 
           <View style={styles.textColumn}>
-            <Text
-              style={[styles.ownerName, { color: theme.text }]}
-              numberOfLines={1}
-            >
-              {primaryName}
-            </Text>
-
-            <View style={styles.statusRow}>
+            <View style={styles.nameRow}>
               <Text
-                style={[
-                  styles.statusText,
-                  {
-                    color:
-                      isAgencyRole || isAgentRole
-                        ? theme.secondary
-                        : theme.muted,
-                  },
-                ]}
+                style={[styles.ownerName, { color: theme.text }]}
                 numberOfLines={1}
               >
-                {secondaryLabel}
+                {owner.name || "Owner"}
               </Text>
-              {isAgencyRole && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={10}
-                  color={theme.secondary}
-                  style={{ marginLeft: 2 }}
+              {isProUser && (
+                <FontAwesome5
+                  name="crown"
+                  size={14}
+                  color="#D4AF37"
+                  style={styles.crownIcon}
                 />
               )}
             </View>
+
+            <Text
+              style={[styles.statusText, { color: theme.secondary }]}
+              numberOfLines={1}
+            >
+              {isAgentRole
+                ? "Professional Agent"
+                : isAgencyRole
+                  ? "Agency"
+                  : "Individual Host"}
+            </Text>
           </View>
         </TouchableOpacity>
 
-        <View style={styles.actionWrapper}>
-          <TouchableOpacity
-            onPress={onChat}
-            disabled={isCreating}
-            style={[styles.chatBtn, { backgroundColor: theme.primary }]}
-          >
-            <Ionicons name="chatbubble-ellipses" size={18} color="white" />
-            <Text style={styles.chatBtnText}>Chat</Text>
-          </TouchableOpacity>
+        {!isOwner && (
+          <View style={styles.actionWrapper}>
+            <TouchableOpacity
+              onPress={onChat}
+              disabled={isCreating}
+              style={[styles.chatBtn, { backgroundColor: theme.primary }]}
+            >
+              <Ionicons name="chatbubble-ellipses" size={18} color="white" />
+              <Text style={styles.chatBtnText}>Chat</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => Linking.openURL(`tel:${owner.phone}`)}
-            style={[styles.callBtn, { borderColor: theme.border }]}
-          >
-            <Ionicons name="call-outline" size={20} color={theme.text} />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => Linking.openURL(`tel:${owner.phone}`)}
+              style={[styles.callBtn, { borderColor: theme.border }]}
+            >
+              <Ionicons name="call-outline" size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -140,12 +125,11 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 34 : 16,
     borderTopWidth: 1,
-    backgroundColor: "white",
-    elevation: 20,
+    elevation: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
   },
   footerContent: {
     flexDirection: "row",
@@ -161,16 +145,21 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: "relative",
   },
+  imageBorder: {
+    padding: 2,
+    borderWidth: 2,
+    borderRadius: 16,
+  },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 12,
     backgroundColor: "#f0f0f0",
   },
-  badgeIcon: {
+  verifyBadge: {
     position: "absolute",
-    bottom: -4,
-    right: -4,
+    bottom: -2,
+    right: -2,
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -183,19 +172,22 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     flexShrink: 1,
   },
-  ownerName: {
-    fontSize: 15,
-    fontWeight: "800",
-    lineHeight: 18,
-  },
-  statusRow: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
+    gap: 6,
+  },
+  ownerName: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  crownIcon: {
+    marginTop: -2,
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
+    marginTop: 1,
   },
   actionWrapper: {
     flexDirection: "row",
@@ -209,8 +201,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 14,
     gap: 6,
-    minWidth: 90,
-    justifyContent: "center",
   },
   chatBtnText: {
     color: "white",

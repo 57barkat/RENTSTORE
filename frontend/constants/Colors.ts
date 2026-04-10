@@ -11,11 +11,12 @@ export const Colors = {
     muted: "#64748B",
 
     tint: tintColorLight,
+    // primary: "#da6623", // Deep Navy (Trust)
     primary: "#10B981", // Deep Navy (Trust)
     secondary: "#10B981", // Emerald Green (Success/Growth)
-    accent: "#F59E0B", // Amber for "New" or "Featured" tags
+    accent: "#f59f0bb0", // Amber for "New" or "Featured" tags
     danger: "#E11D48",
-
+    featured: "#fb2424be", // Amber for "Featured" properties
     success: "#059669",
     error: "#DC2626",
     warning: "#D97706",
@@ -35,7 +36,7 @@ export const Colors = {
     card: "#1E293B",
     border: "#334155",
     muted: "#94A3B8",
-
+    featured: "#fb2424be",
     tint: tintColorDark,
     primary: "#34D399",
     secondary: "#34D399", // Softer green for dark mode

@@ -1,22 +1,39 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
+import { UserType } from "@/contextStore/AuthContext";
+import Constants from "expo-constants";
 
-export const API_URL = "http://localhost:3000";
+export const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||
-//   "http://172.16.18.99:3000" ||
+//   "http://192.168.81.201:3000" ||
 //   "http://10.98.91.143:3000";
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: async (headers) => {
-    // Ensure tokens are loaded from storage
+    // 1. Ensure tokens are loaded from storage
     await tokenManager.load();
     const token = tokenManager.getAccessToken();
+
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
+
+    const expoExtra = Constants?.expoConfig?.extra;
+
+    if (!expoExtra || !expoExtra.myAppSecret) {
+      console.warn(
+        "MY_APP_SECRET is. missing from app.json/app.config.js! Using fallback.",
+      );
+    }
+
+    // 3. Set the secret with a fallback
+    const secret = expoExtra?.myAppSecret;
+
+    headers.set("x-frontend-secret", secret);
+
     return headers;
   },
 });
@@ -71,7 +88,7 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
 export const api = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithRefresh,
-  tagTypes: ["Property", "Favorites", "User"],
+  tagTypes: ["Property", "Favorites", "User", "DraftProperties", "Payments"],
   endpoints: (builder) => ({
     createUser: builder.mutation({
       query: (body) => ({ url: "/api/v1/users/signup", method: "POST", body }),
@@ -82,32 +99,26 @@ export const api = createApi({
     deleteUser: builder.mutation({
       query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
     }),
+    getMe: builder.query<UserType, void>({
+      query: () => ({
+        url: "/api/v1/users/me",
+        method: "GET",
+      }),
+      providesTags: ["User"],
+    }),
     createProperty: builder.mutation({
       query: (body) => {
-        const formData = new FormData();
-        Object.entries(body).forEach(([key, value]) => {
-          if (key === "photos") return;
-          if (value !== undefined && value !== null) {
-            if (typeof value === "object") {
-              formData.append(key, JSON.stringify(value));
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-        if (Array.isArray(body.photos)) {
-          body.photos.forEach((uri: string, idx: number) => {
-            formData.append("photos", {
-              uri,
-              name: `photo_${idx}.jpeg`,
-              type: "image/jpeg",
-            } as any);
-          });
-        }
+        // 🚀 NO MORE FORMDATA
+
+        // Since images are now 'https://...' strings from Cloudinary,
+        // we just send the whole object as clean JSON.
         return {
           url: "/api/v1/properties/create",
           method: "POST",
-          body: formData,
+          body: body, // Standard JSON payload
+          headers: {
+            "Content-Type": "application/json",
+          },
         };
       },
     }),
@@ -272,7 +283,7 @@ export const api = createApi({
         try {
           await queryFulfilled;
           dispatch(api.util.resetApiState());
-        } catch (err) {
+        } catch {
           // console.error("Logout mutation failed", err);
         }
       },
@@ -292,7 +303,7 @@ export const api = createApi({
       onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
         try {
           await queryFulfilled;
-        } catch (err) {
+        } catch {
           // // console.error("Failed to clear voice session", err);
         }
       },
@@ -310,6 +321,61 @@ export const api = createApi({
         body,
       }),
     }),
+    promoteProperty: builder.mutation<
+      any,
+      { id: string; type: "boost" | "featured" }
+    >({
+      query: ({ id, type }) => ({
+        url: `/api/v1/properties/${id}/promote`,
+        method: "POST",
+        body: { type },
+      }),
+      invalidatesTags: ["DraftProperties"],
+    }),
+    getPaymentHistory: builder.query<any[], void>({
+      query: () => ({
+        url: "/api/v1/payments/history",
+        method: "GET",
+      }),
+      providesTags: ["Payments"],
+    }),
+    incrementView: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/view`,
+        method: "POST",
+      }),
+      // Optional: if you want the search results to reflect the new view count immediately
+      // invalidatesTags: (result, error, id) => [{ type: 'Property', id }],
+    }),
+    getDashboardStats: builder.query({
+      query: ({ page = 1, limit = 10 }) => ({
+        url: `/api/v1/properties/dashboard-stats`,
+        params: { page, limit },
+        method: "GET",
+      }),
+      providesTags: ["Property"],
+    }),
+    forgotPassword: builder.mutation({
+      query: (body: { email: string }) => ({
+        url: "/api/v1/users/forgot-password",
+        method: "POST",
+        body,
+      }),
+    }),
+    verifyResetCode: builder.mutation({
+      query: (body: { email: string; code: string }) => ({
+        url: "/api/v1/users/verify-reset-code",
+        method: "POST",
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation({
+      query: (body: { email: string; newPassword: string }) => ({
+        url: "/api/v1/users/reset-password",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
@@ -317,6 +383,8 @@ export const {
   useCreateUserMutation,
   useLoginMutation,
   useDeleteUserMutation,
+  useGetMeQuery,
+  useLazyGetMeQuery,
   useCreatePropertyMutation,
   useFindMyPropertiesQuery,
   useFindPropertyByIdQuery,
@@ -344,4 +412,11 @@ export const {
   useGetNearbyPropertiesQuery,
   useGetAddressSuggestionsQuery,
   usePropertyReportMutation,
+  usePromotePropertyMutation,
+  useGetPaymentHistoryQuery,
+  useIncrementViewMutation,
+  useGetDashboardStatsQuery,
+  useForgotPasswordMutation,
+  useVerifyResetCodeMutation,
+  useResetPasswordMutation,
 } = api;

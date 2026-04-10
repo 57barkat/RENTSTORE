@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import {
   View,
@@ -11,8 +12,10 @@ import {
   Share,
   Alert,
   StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { usePropertyById } from "@/services/propertyService";
@@ -24,6 +27,10 @@ import PropertyInfoSection from "@/components/PropertyInfoSection";
 import FinancialDetailsCard from "@/components/FinancialDetailsCard";
 import OwnerSection from "@/components/OwnerSection";
 import ReportModal from "@/components/ReportModal";
+import { useAuth } from "@/contextStore/AuthContext";
+import AuthModal from "@/components/AuthModal";
+import { formatPhoneForWhatsApp } from "@/utils/properties/formatProperties";
+import { useTrackView } from "@/hooks/useTrackView";
 
 export const options = { headerShown: false };
 
@@ -34,25 +41,39 @@ export default function PropertyDetails() {
   const isDark = theme === "dark";
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
-
+  const { isGuest, user } = useAuth();
   const [isModalVisible, setModalVisible] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
-
+  useTrackView(id);
   const { property, isLoading, refetch, isFetching } = usePropertyById(id);
-  console.log("Property details fetched:", property);
+  const isOwner = user?.id === property?.ownerId;
+
+  const shareUrl = `https://exp+rent-store?id=${id}`;
+
   const { handleChatOwner, isCreating } = useChatRoom(
     property?.ownerId,
     property?.owner?.name,
     property?.owner?.profileImage,
   );
 
-  const [reportProperty, { isLoading: isReporting }] =
-    usePropertyReportMutation();
+  const [
+    ,
+    // reportProperty
+    { isLoading: isReporting },
+  ] = usePropertyReportMutation();
+
+  const onPressChat = () => {
+    if (isGuest) {
+      setAuthModalVisible(true);
+    } else {
+      handleChatOwner();
+    }
+  };
 
   const handleShare = async () => {
     try {
-      const shareUrl = `https://expo.dev/@usman_naeem/rent-store?id=${id}`;
       await Share.share({
         message: `Check out ${property?.title} on Rent Store!\n${shareUrl}`,
         url: shareUrl,
@@ -61,6 +82,23 @@ export default function PropertyDetails() {
     } catch (error: any) {
       Alert.alert("Error", error.message);
     }
+  };
+
+  const handleWhatsApp = () => {
+    if (!property?.owner?.phone) {
+      Alert.alert("Error", "Owner phone number not available.");
+      return;
+    }
+
+    const phone = formatPhoneForWhatsApp(property.owner.phone);
+
+    const message = `Hi, I'm interested in your property:\n\n*${property.title}*\n📍 ${property.location || "No address provided"}\n\nLink: ${shareUrl}`;
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    Linking.openURL(url).catch(() => {
+      Alert.alert("Error", "Unable to open WhatsApp.");
+    });
   };
 
   const handleMapRedirect = () => {
@@ -84,6 +122,8 @@ export default function PropertyDetails() {
   }
 
   if (!property) return null;
+
+  const showWhatsApp = isOwner && property.owner?.subscription !== "free";
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
@@ -158,12 +198,29 @@ export default function PropertyDetails() {
         </View>
       </ScrollView>
 
+      {showWhatsApp && (
+        <TouchableOpacity
+          style={styles.whatsappSticky}
+          onPress={handleWhatsApp}
+          activeOpacity={0.9}
+        >
+          <Ionicons name="logo-whatsapp" size={32} color="#FFF" />
+        </TouchableOpacity>
+      )}
+
+      <AuthModal
+        visible={authModalVisible}
+        onClose={() => setAuthModalVisible(false)}
+        featureName="Messaging"
+      />
+
       <OwnerSection
         owner={property.owner}
         theme={currentTheme}
-        onChat={handleChatOwner}
+        onChat={onPressChat}
         isCreating={isCreating}
         price={property.monthlyRent}
+        isOwner={isOwner}
       />
     </View>
   );
@@ -193,5 +250,22 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 20,
     opacity: 0.2,
+  },
+  whatsappSticky: {
+    position: "absolute",
+    bottom: 100,
+    right: 20,
+    backgroundColor: "#25D366",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    zIndex: 999,
   },
 });

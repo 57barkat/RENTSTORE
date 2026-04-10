@@ -10,7 +10,7 @@ import { PropertyDraftSchema } from "./draft.schema";
 import { DeletedImagesModule } from "../../deletedImages/deletedImages.module";
 import { UserModule } from "../user/user.module";
 import { User, UserSchema } from "../user/user.entity";
-// import { DeletedImagesModule } from "../deletedImages/deletedImages.module";
+import { SubscriptionCleanupService } from "./cronjobs/property.cron";
 
 @Module({
   imports: [
@@ -26,7 +26,7 @@ import { User, UserSchema } from "../user/user.entity";
     UserModule,
   ],
   controllers: [PropertyController],
-  providers: [PropertyService],
+  providers: [PropertyService, SubscriptionCleanupService],
   exports: [PropertyService],
 })
 export class PropertyModule {}

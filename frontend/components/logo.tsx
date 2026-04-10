@@ -1,26 +1,16 @@
-import { View, Text, StyleSheet } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { View, StyleSheet, Image } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { Colors } from "@/constants/Colors";
-import { FontSize } from "@/constants/Typography";
+const LightLogo = require("@/assets/images/light.png");
+const DarkLogo = require("@/assets/images/dark.png");
 
 export default function Logo() {
   const { theme } = useTheme();
-  const currentTheme = Colors[theme ?? "light"];
+
+  const logoSource = theme === "dark" ? DarkLogo : LightLogo;
 
   return (
     <View style={styles.container}>
-      <MaterialCommunityIcons
-        name="home-city"
-        size={30}
-        color={currentTheme.secondary}
-      />
-      <Text style={[styles.text, { color: currentTheme.text }]}>
-        Angan
-        <Text style={[styles.accent, { color: currentTheme.secondary }]}>
-          Stay
-        </Text>
-      </Text>
+      <Image source={logoSource} style={styles.logo} resizeMode="contain" />
     </View>
   );
 }
@@ -30,15 +20,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     width: "100%",
-    flexDirection: "row",
     marginVertical: 20,
   },
-  text: {
-    fontSize: FontSize.lg,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  accent: {
-    // Color is now handled dynamically via props
+  logo: {
+    width: 180,
+    height: 60,
   },
 });

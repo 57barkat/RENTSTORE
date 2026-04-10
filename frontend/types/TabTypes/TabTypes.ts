@@ -10,13 +10,20 @@ interface PropertyItem {
 
 interface PropertyCardProps {
   id: string;
+  _id?: string;
   title: string;
   city?: string;
+  location?: string;
   country?: string;
   rent?: number;
+  monthlyRent?: number;
   image?: string;
+  photos?: string[];
   featured?: boolean;
+  isBoosted?: boolean;
+  sortWeight?: number;
   isFav?: boolean;
+  views: number;
   onFavPress?: (id: string) => void;
 }
 

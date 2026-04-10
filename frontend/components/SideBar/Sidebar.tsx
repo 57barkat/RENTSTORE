@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, use } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -15,7 +15,6 @@ import { slideAnimation } from "@/utils/animations";
 import { Colors } from "@/constants/Colors";
 import ProfileHeader from "./ProfileHeader";
 import {
-  useGetUserStatsQuery,
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
   useDeleteUserMutation,
@@ -23,7 +22,6 @@ import {
 } from "@/services/api";
 import Toast from "react-native-toast-message";
 import { useRouter, useSegments } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useLength } from "@/contextStore/LengthContext";
 import { useUserStats } from "@/contextStore/UserStatsContext";
@@ -33,49 +31,36 @@ const Sidebar: React.FC = () => {
   const { isOpen, close } = useSidebar();
   const { theme, setTheme } = useTheme();
   const themeColors = Colors[theme];
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
   const { fav, upload, setUpload, unread } = useLength();
   const [activeScreen, setActiveScreen] = useState<string>("homePage");
 
-  // --------------------------
-  // User stats
-  // --------------------------
-  const { stats, isLoading, refetch } = useUserStats();
+  const { stats, refetch } = useUserStats();
+
   useEffect(() => {
     if (stats?.totalProperties !== undefined) {
       setUpload(stats.totalProperties);
     }
   }, [stats]);
+
   const [uploadProfileImage] = useUploadProfileImageMutation();
   const [deleteProfileImage] = useDeleteProfileImageMutation();
-  const [deleteAccount] = useDeleteUserMutation();
+  const [logoutApi] = useLogoutMutation();
 
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
-  const [loadingDeleteAccount, setLoadingDeleteAccount] = useState(false);
-  const [logoutApi] = useLogoutMutation();
 
-  // --------------------------
-  // Slide animation
-  // --------------------------
   useEffect(() => {
     slideAnimation(slideAnim, isOpen, SIDEBAR_WIDTH);
   }, [isOpen]);
 
-  // --------------------------
-  // Profile image handlers
-  // --------------------------
   const handleUpload = async (formData: FormData) => {
     try {
       setLoadingUpload(true);
       await uploadProfileImage(formData).unwrap();
-      Toast.show({
-        type: "success",
-        text1: "Success",
-        text2: "Profile uploaded",
-      });
+      Toast.show({ type: "success", text1: "Profile uploaded" });
       refetch();
     } catch {
       Toast.show({ type: "error", text1: "Upload Failed" });
@@ -97,31 +82,11 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  // --------------------------
-  // Delete account
-  // --------------------------
-  const handleDeleteAccount = async () => {
-    try {
-      setLoadingDeleteAccount(true);
-      // await deleteAccount().unwrap();
-      Toast.show({ type: "success", text1: "Account Deleted" });
-      router.replace("/signin");
-      close();
-    } catch {
-      Toast.show({ type: "error", text1: "Could not delete account" });
-    } finally {
-      setLoadingDeleteAccount(false);
-    }
-  };
-
-  // --------------------------
-  // Navigation handler
-  // --------------------------
   const handleNavigate = (item: MenuItem) => {
     if (item.isLogout) {
       handleLogout();
     } else if (item.screen === "DeleteAccount") {
-      handleDeleteAccount();
+      // handleDeleteAccount();
     } else if (item.screen) {
       let path = item.screen;
 
@@ -138,17 +103,15 @@ const Sidebar: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logoutApi().unwrap();
-    } catch (error) {
-      // console.warn("Backend logout failed or already unauthorized");
+    } catch {
     } finally {
       setTheme("light");
       close();
-
       await logout();
-
       router.replace("/signin");
     }
   };
+
   useEffect(() => {
     const current = segments[segments.length - 1];
     if (current) setActiveScreen(current);
@@ -168,7 +131,6 @@ const Sidebar: React.FC = () => {
             width: SIDEBAR_WIDTH,
             backgroundColor: themeColors.background,
             transform: [{ translateX: slideAnim }],
-            // borderRightColor is replaced by shadow
           },
         ]}
       >
@@ -178,8 +140,9 @@ const Sidebar: React.FC = () => {
         >
           <ProfileHeader
             profileImage={stats?.profileImage || null}
-            name={stats?.name || "Loading..."}
-            phone={stats?.phone || "Loading..."}
+            name={stats?.name || "User"}
+            phone={stats?.phone}
+            subscription={user?.subscription}
             theme={theme}
             onUpload={handleUpload}
             onDelete={handleDelete}
@@ -228,7 +191,7 @@ const Sidebar: React.FC = () => {
               item={logoutItem}
               theme={theme}
               color={themeColors.danger}
-              onPress={() => handleLogout()}
+              onPress={handleLogout}
               isActive={false}
             />
           </View>
@@ -254,29 +217,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     zIndex: 20,
-    paddingTop: 0,
-    borderRightWidth: 0,
-
     shadowColor: "#000",
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 8,
   },
-  scrollContent: {
-    paddingHorizontal: 15,
-    paddingTop: 10,
-  },
+  scrollContent: { paddingHorizontal: 15, paddingTop: 10 },
   separator: {
     height: 1,
     width: "90%",
     alignSelf: "center",
     marginVertical: 5,
   },
-  navContainer: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
+  navContainer: { paddingHorizontal: 15, paddingVertical: 10 },
   bottomContainer: {
     paddingHorizontal: 15,
     paddingTop: 15,

@@ -23,16 +23,16 @@ const ApartmentSafetyDetailsScreen: FC = () => {
   const context = useContext(FormContext);
   if (!context)
     throw new Error(
-      "ApartmentSafetyDetailsScreen must be used within ApartmentFormProvider"
+      "ApartmentSafetyDetailsScreen must be used within ApartmentFormProvider",
     );
 
   const { data, updateForm } = context;
 
   const [checkedDetails, setCheckedDetails] = useState<Set<string>>(
-    new Set(data.safetyDetailsData?.safetyDetails ?? [])
+    new Set(data.safetyDetailsData?.safetyDetails ?? []),
   );
   const [cameraDescription, setCameraDescription] = useState(
-    data.safetyDetailsData?.cameraDescription ?? ""
+    data.safetyDetailsData?.cameraDescription ?? "",
   );
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -67,7 +67,7 @@ const ApartmentSafetyDetailsScreen: FC = () => {
         });
       }
     },
-    [checkedDetails]
+    [checkedDetails],
   );
 
   const handleModalContinue = useCallback((description: string) => {
@@ -91,12 +91,13 @@ const ApartmentSafetyDetailsScreen: FC = () => {
     updateForm("safetyDetailsData", finalData);
     router.push("/upload/apartmentForm/FinalAddressDetailsScreen");
   };
+  const isNextDisabled = checkedDetails.size === 0;
 
   return (
     <StepContainer
       title="Share apartment safety details"
       onNext={handleNext}
-      isNextDisabled={false}
+      isNextDisabled={isNextDisabled}
       progress={96}
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>

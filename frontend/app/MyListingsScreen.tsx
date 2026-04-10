@@ -1,6 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import MyListingProperties from "@/components/MyListingProperties";
+import MyListingProperties from "@/components/MyListing/MyListingProperties";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 

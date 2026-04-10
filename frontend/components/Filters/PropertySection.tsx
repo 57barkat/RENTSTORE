@@ -13,12 +13,11 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { PropertySectionProps } from "@/types/TabTypes/TabTypes";
 import { Ionicons } from "@expo/vector-icons";
-import { FontSize } from "@/constants/Typography";
+import { getPriceDisplay } from "@/utils/properties/formatProperties";
 
 const WINDOW_WIDTH = Dimensions.get("window").width;
-// Adjusted width and height to match the vertical rectangular look in the image
-const ITEM_WIDTH = WINDOW_WIDTH * 0.58;
-const ITEM_HEIGHT = 280;
+const ITEM_WIDTH = WINDOW_WIDTH * 0.7;
+const ITEM_HEIGHT = 300;
 
 export const PropertySection: React.FC<
   PropertySectionProps & {
@@ -40,13 +39,13 @@ export const PropertySection: React.FC<
   const currentTheme = Colors[theme ?? "light"];
 
   return (
-    <View style={{ marginVertical: 18 }}>
+    <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           {sectionTitle}
         </Text>
         {onViewAll && (
-          <TouchableOpacity onPress={onViewAll}>
+          <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
             <Text
               style={[styles.viewAllText, { color: currentTheme.secondary }]}
             >
@@ -57,101 +56,160 @@ export const PropertySection: React.FC<
       </View>
 
       {loading ? (
-        <View style={{ padding: 16 }}>
+        <View style={styles.loaderContainer}>
           <ActivityIndicator size="small" color={currentTheme.secondary} />
         </View>
       ) : (
         <FlatList
           horizontal
           data={properties}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) =>
+            item.id || item._id || Math.random().toString()
+          }
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 15, paddingBottom: 10 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.card,
-                {
-                  backgroundColor: currentTheme.background,
-                  width: cardWidth,
-                  height: cardHeight,
-                  borderColor: "#E8EEF3",
-                  borderWidth: 1,
-                },
-              ]}
-              onPress={() => onCardPress?.(item.id)}
-              activeOpacity={0.9}
-            >
-              <View style={{ height: cardHeight * 0.55 }}>
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.cardImage}
-                  resizeMode="cover"
-                />
+          snapToInterval={cardWidth + 16}
+          decelerationRate="fast"
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => {
+            const isFeatured = item.featured === true || item.sortWeight === 3;
+            const isBoosted = item.isBoosted === true || item.sortWeight === 2;
+            const priceInfo = getPriceDisplay(item);
 
-                <TouchableOpacity
-                  style={styles.favButton}
-                  onPress={() => onToggleFav?.(item.id)}
-                >
-                  <View style={styles.heartCircle}>
-                    <Ionicons
-                      name={item.isFav ? "heart" : "heart-outline"}
-                      size={20}
-                      color={item.isFav ? "#FF4D4D" : "#64748B"}
-                    />
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor: currentTheme.card,
+                    width: cardWidth,
+                    height: cardHeight,
+                    borderColor: isFeatured
+                      ? currentTheme.featured
+                      : theme === "dark"
+                        ? "#334155"
+                        : "#E8EEF3",
+                    borderWidth: isFeatured ? 1.5 : 1,
+                    elevation: isFeatured ? 8 : 4,
+                  },
+                ]}
+                onPress={() => onCardPress?.(item.id)}
+                activeOpacity={0.9}
+              >
+                <View style={{ height: cardHeight * 0.55 }}>
+                  <Image
+                    source={{
+                      uri:
+                        item.image ||
+                        item.photos?.[0] ||
+                        "https://via.placeholder.com/300",
+                    }}
+                    style={styles.cardImage}
+                    resizeMode="cover"
+                  />
+
+                  <View style={styles.topRowOverlay}>
+                    {isFeatured ? (
+                      <View
+                        style={[
+                          styles.tag,
+                          styles.featuredTag,
+                          {
+                            backgroundColor: currentTheme.featured,
+                            shadowColor: currentTheme.featured,
+                          },
+                        ]}
+                      >
+                        <Ionicons name="flash" size={10} color="#FFF" />
+                        <Text style={styles.tagText}>FEATURED AD</Text>
+                      </View>
+                    ) : isBoosted ? (
+                      <View
+                        style={[
+                          styles.tag,
+                          { backgroundColor: currentTheme.secondary },
+                        ]}
+                      >
+                        <Ionicons name="rocket" size={10} color="#FFF" />
+                        <Text style={styles.tagText}>BOOSTED</Text>
+                      </View>
+                    ) : (
+                      <View /> // Spacer
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.heartCircle}
+                      onPress={() => onToggleFav?.(item.id)}
+                    >
+                      <Ionicons
+                        name={item.isFav ? "heart" : "heart-outline"}
+                        size={18}
+                        color={item.isFav ? "#FF4D4D" : "#1E293B"}
+                      />
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
-
-                {item.featured && (
-                  <View
-                    style={[
-                      styles.featuredTag,
-                      { backgroundColor: currentTheme.secondary },
-                    ]}
-                  >
-                    <Text style={styles.featuredText}>FEATURED</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.cardContent}>
-                <Text
-                  style={[styles.cardTitle, { color: currentTheme.text }]}
-                  numberOfLines={1}
-                >
-                  {item.title}
-                </Text>
-
-                <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={14} color="#94A3B8" />
-                  <Text
-                    style={[styles.locationText, { color: "#94A3B8" }]}
-                    numberOfLines={1}
-                  >
-                    {item.city}
-                  </Text>
                 </View>
 
-                <Text style={styles.rentText}>
-                  <Text
-                    style={{ color: currentTheme.secondary, fontWeight: "800" }}
-                  >
-                    Rs. {item.rent?.toLocaleString()}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "#94A3B8",
-                      fontWeight: "400",
-                      fontSize: 12,
-                    }}
-                  >
-                    {" "}
-                    / month
-                  </Text>
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
+                <View style={styles.cardContent}>
+                  <View>
+                    <Text
+                      style={[styles.cardTitle, { color: currentTheme.text }]}
+                      numberOfLines={1}
+                    >
+                      {item.title}
+                    </Text>
+
+                    <View style={styles.locationRow}>
+                      <Ionicons
+                        name="location-sharp"
+                        size={12}
+                        color={currentTheme.secondary}
+                      />
+                      <Text style={styles.locationText} numberOfLines={1}>
+                        {item.location || item.city || "Islamabad"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.footerRow}>
+                    <View style={styles.priceContainer}>
+                      <Text
+                        style={[
+                          styles.rentAmount,
+                          { color: currentTheme.secondary },
+                        ]}
+                      >
+                        {priceInfo
+                          ? `Rs. ${priceInfo.val.toLocaleString()}`
+                          : "Price N/A"}
+                      </Text>
+                      {priceInfo && (
+                        <Text
+                          style={[
+                            styles.rentUnit,
+                            { color: currentTheme.muted },
+                          ]}
+                        >
+                          /{priceInfo.label}
+                        </Text>
+                      )}
+                    </View>
+
+                    {(isFeatured || isBoosted) && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color={
+                          isFeatured
+                            ? currentTheme.featured
+                            : currentTheme.secondary
+                        }
+                      />
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
         />
       )}
     </View>
@@ -159,88 +217,110 @@ export const PropertySection: React.FC<
 };
 
 const styles = StyleSheet.create({
+  container: { marginVertical: 14 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 22,
-    fontWeight: "800",
+    fontWeight: "900",
     letterSpacing: -0.5,
   },
   viewAllText: {
     fontSize: 14,
     fontWeight: "700",
+    opacity: 0.8,
   },
+  loaderContainer: { padding: 40, alignItems: "center" },
+  listContent: { paddingLeft: 20, paddingRight: 4, paddingBottom: 15 },
   card: {
-    borderRadius: 20,
+    borderRadius: 28,
     marginRight: 16,
     overflow: "hidden",
-    // Clean shadow for premium feel
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.12,
     shadowRadius: 10,
-    elevation: 2,
   },
-  cardImage: {
-    width: "100%",
-    height: "100%",
-  },
-  featuredTag: {
+  cardImage: { width: "100%", height: "100%" },
+  topRowOverlay: {
     position: "absolute",
     top: 12,
     left: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    right: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  featuredText: {
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  featuredTag: {
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+  },
+  tagText: {
     color: "#ffffff",
-    fontSize: 10,
-    fontWeight: "800",
+    fontSize: 9,
+    fontWeight: "900",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  heartCircle: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardContent: {
-    padding: 14,
+    padding: 16,
     flex: 1,
     justifyContent: "space-between",
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: "700",
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: -4,
   },
   locationText: {
     fontSize: 13,
     fontWeight: "500",
   },
-  rentText: {
-    fontSize: 16,
-    marginTop: 4,
-  },
-  favButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-  },
-  heartCircle: {
-    backgroundColor: "#FFFFFF",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+  },
+  priceContainer: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 2,
+  },
+  rentAmount: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  rentUnit: {
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

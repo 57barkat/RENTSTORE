@@ -1,4 +1,4 @@
-import React, { ReactNode, useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   View,
   Text,
@@ -96,7 +96,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
   const handleCrossPress = () => {
     formContext?.clearForm();
     if (progress >= 20) {
-      router.replace("/upload");
+      router.replace("/homePage");
     } else {
       router.back();
     }
@@ -110,7 +110,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
     >
       <View style={styles.header}>
         {progress >= 20 &&
-          progress <= 99 &&
+          progress <= 90 &&
           (formContext?.data?.status === undefined ||
             formContext?.data?.status === false) && (
             <TouchableOpacity

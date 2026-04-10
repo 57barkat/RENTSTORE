@@ -25,13 +25,15 @@ import {
   parseArrayFields,
   parseNumericFields,
 } from "./utils/property.utils";
+import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { GetUser, Public } from "src/common/decorators/public.decorator";
 
 interface PaginationQuery {
   page?: number;
   limit?: number;
 }
 
-@UseGuards(AuthGuard("jwt"))
+@UseGuards(JwtAuthGuard)
 @Controller("properties")
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
@@ -43,10 +45,10 @@ export class PropertyController {
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any,
   ) {
+    console.log("Received createProperty request with DTO:", dto);
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
-    // --- Helper to parse JSON safely ---
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -56,7 +58,6 @@ export class PropertyController {
       }
     };
 
-    // --- Parse nested fields ---
     const parsedDto: Partial<CreatePropertyDto> = {
       ...dto,
       capacityState: parseJson(dto.capacityState),
@@ -70,7 +71,6 @@ export class PropertyController {
       lng: dto.lng ? Number(dto.lng) : undefined,
     };
 
-    // --- Address handling ---
     let parsedAddress: any[] = [];
     if (dto.address) {
       try {
@@ -95,7 +95,6 @@ export class PropertyController {
     }
     parsedDto.address = parsedAddress[0] || {};
 
-    // --- Upload photos ---
     if (files?.photos?.length) {
       parsedDto.photos = await this.propertyService.uploadFilesToCloudinary(
         files.photos,
@@ -104,7 +103,6 @@ export class PropertyController {
       parsedDto.photos = Array.from(new Set(dto.photos));
     }
 
-    // --- GeoJSON ---
     if (parsedDto.lat !== undefined && parsedDto.lng !== undefined) {
       parsedDto.locationGeo = {
         type: "Point",
@@ -112,7 +110,6 @@ export class PropertyController {
       };
     }
 
-    // --- Check completeness ---
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
       if (typeof value === "string") return value.trim() !== "";
@@ -134,23 +131,33 @@ export class PropertyController {
     const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
     parsedDto.status = isComplete;
 
-    // --- Save draft if incomplete ---
     if (!isComplete) {
       return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
     }
 
-    // --- Save full property ---
     return this.propertyService.createOrUpdate(parsedDto, userId);
   }
-
+  @UseGuards(JwtAuthGuard)
+  @Post(":id/promote")
+  async promoteProperty(
+    @Param("id") propertyId: string,
+    @Body("type") type: "boost" | "featured",
+    @Req() req: any,
+  ) {
+    const userId = req.user.userId;
+    return await this.propertyService.promoteListing(propertyId, userId, type);
+  }
   @Get()
+  @Public()
   async getAll(@Query() query: PaginationQuery) {
+    console.log("Fetching all properties with query:", query);
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     return this.propertyService.findAll(page, limit);
   }
 
   @Get("nearby")
+  @Public()
   async getNearbyProperties(
     @Query() query: NearbyPropertyDto,
     @Req() req: any,
@@ -166,14 +173,15 @@ export class PropertyController {
   }
 
   @Get("type/:hostOption")
+  @Public()
   async getByHostOption(
     @Param("hostOption") hostOption: string,
     @Query() query: PaginationQuery,
-    @Req() req: any,
+    @GetUser("userId") userId?: string,
   ) {
+    console.log("Filtering by hostOption:", userId);
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const userId = req.user?.userId;
     return this.propertyService.findFiltered(
       page,
       limit,
@@ -181,11 +189,10 @@ export class PropertyController {
       userId,
     );
   }
-
   @Get("search")
+  @Public()
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
-
     parseNumericFields(query, [
       "page",
       "limit",
@@ -226,7 +233,6 @@ export class PropertyController {
     @Query("city") city?: string,
   ) {
     const userId = req.user?.userId;
-    console.log("Fetching properties for user:", userId);
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findMyProperties(
       userId,
@@ -237,11 +243,22 @@ export class PropertyController {
       city,
     );
   }
+
   @Get("address-suggestions")
+  @Public()
   async getAddressSuggestions(@Query("q") q: string) {
     return this.propertyService.getAddressSuggestions(q);
   }
-
+  @Get("dashboard-stats")
+  @UseGuards(JwtAuthGuard)
+  async getDashboardStats(
+    @Req() req: any,
+    @Query("page") page: number = 1,
+    @Query("limit") limit: number = 10,
+  ) {
+    const userId = req.user.userId;
+    return this.propertyService.getOwnerDashboard(userId, page, limit);
+  }
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
     const userId = req.user?.userId;
@@ -263,6 +280,7 @@ export class PropertyController {
   }
 
   @Get(":id")
+  @Public()
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
     return this.propertyService.findPropertyById(id, userId);
@@ -278,6 +296,11 @@ export class PropertyController {
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.updateProperty(id, dto, userId);
   }
+  @Post(":id/view")
+  @Public()
+  async incrementViews(@Param("id") id: string) {
+    return await this.propertyService.incrementViews(id);
+  }
 
   @Delete(":id")
   async deleteProperty(@Param("id") id: string, @Req() req: any) {
@@ -286,7 +309,6 @@ export class PropertyController {
     return this.propertyService.findPropertyByIdAndDelete(id, userId);
   }
 
-  // --- Admin routes ---
   @Get("admin/unapproved")
   @SetMetadata("roles", ["admin"])
   async getUnapproved(
