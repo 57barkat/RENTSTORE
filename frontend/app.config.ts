@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   name: "AnganStay",
   slug: "anganstay",
-  owner: "usman_naeem", // <--- ADDED THIS LINE
+  owner: "usman_naeem",
   scheme: "anganstay",
   version: "1.0.0",
   platforms: ["android", "ios", "web"],
@@ -33,7 +33,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   android: {
     ...(config.android as any),
-    package: "com.anganstay.frontend", // <--- UPDATED THIS TO MATCH BRANDING
+    package: "com.anganstay.frontend",
     softwareKeyboardLayoutMode: "resize",
     permissions: [
       "ACCESS_FINE_LOCATION",

@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -11,24 +12,18 @@ import StepContainer from "@/app/upload/Welcome";
 import { styles } from "@/styles/FinalAddressDetailsScreen";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { InputField } from "@/components/UploadPropertyComponents/AdderssInputField";
+import { FormContext } from "@/contextStore/FormContext";
 import { validateAddresses, AddressErrors } from "@/utils/propertyValidator";
 import Toast from "react-native-toast-message";
 import { router } from "expo-router";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { FormContext } from "@/contextStore/FormContext";
 
 const ApartmentFinalAddressDetailsScreen: FC = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
-  const context = useContext(FormContext);
-  if (!context)
-    throw new Error(
-      "ApartmentFinalAddressDetailsScreen must be used within an FormContext",
-    );
-
-  const { data, updateForm, submitData } = context;
+  const { data, updateForm, submitData, clearForm } = useContext(FormContext)!;
 
   const initialAddress: Address = {
     country: "PAKISTAN",
@@ -39,19 +34,20 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
     zipCode: "",
   };
 
-  const [addresses, setAddresses] = useState<Address[]>(
-    data.address?.length ? data.address : [initialAddress],
-  );
+  const toArray = (addr: any): Address[] => {
+    if (Array.isArray(addr)) return addr;
+    if (addr && typeof addr === "object") return [addr];
+    return [initialAddress];
+  };
+
+  const [addresses, setAddresses] = useState<Address[]>(toArray(data?.address));
+
   const [errors, setErrors] = useState<AddressErrors>({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!data.address || data.address.length === 0) {
-      setAddresses([initialAddress]);
-    } else {
-      setAddresses(data.address);
-    }
-  }, [data.address]);
+    setAddresses(toArray(data?.address));
+  }, [data?.address]);
 
   const handleChange = useCallback(
     (index: number, field: keyof Address, value: string) => {
@@ -60,6 +56,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
           i === index ? { ...addr, [field]: value } : addr,
         ),
       );
+
       setErrors((prev: any) => ({
         ...prev,
         [index]: { ...prev[index], [field]: undefined },
@@ -81,20 +78,24 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
       return;
     }
 
-    // Pass latest addresses directly to submit
-    const result = await submitData({ ...data, address: addresses });
+    setLoading(true);
+
     updateForm("address", addresses);
+
+    const result = await submitData({ ...data, address: addresses });
 
     if (result.success) {
       Toast.show({
         type: "success",
-        text1: "Apartment listed successfully!",
+        text1: "Property listed successfully!",
       });
       setTimeout(() => {
         router.replace("/MyListingsScreen");
-        context?.clearForm();
+        clearForm();
+        setLoading(false);
       }, 1500);
     } else {
+      setLoading(false);
       Toast.show({
         type: "error",
         text1: "Upload failed",
@@ -106,7 +107,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <StepContainer
-        title="This is the final stage to submit your apartment listing"
+        title="Provide a few final details"
         onNext={handleNext}
         isNextDisabled={loading}
         progress={100}
@@ -117,7 +118,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
         >
           <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
             <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-              Apartment Address
+              Residential Addresses
             </Text>
 
             {addresses.map((address, index) => (
@@ -130,56 +131,57 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
 
                 <InputField
                   label="Street address"
-                  value={address.street}
+                  value={address.street || ""}
                   onChange={(text) => handleChange(index, "street", text)}
                   themeColors={currentTheme.text}
                 />
-                {errors[index]?.street && (
-                  <Text style={styles.errorText}>{errors[index]?.street}</Text>
-                )}
 
                 <InputField
-                  label="Apartment / Suite / Unit"
-                  value={address.aptSuiteUnit}
+                  label="Apt, suite, unit (if applicable)"
+                  value={address.aptSuiteUnit || ""}
                   onChange={(text) => handleChange(index, "aptSuiteUnit", text)}
                   themeColors={currentTheme.text}
                 />
 
                 <InputField
-                  label="City"
-                  value={address.city}
+                  label="City / town"
+                  value={address.city || ""}
                   onChange={(text) => handleChange(index, "city", text)}
                   themeColors={currentTheme.text}
                 />
-                {errors[index]?.city && (
-                  <Text style={styles.errorText}>{errors[index]?.city}</Text>
-                )}
 
                 <InputField
-                  label="State / Territory"
-                  value={address.stateTerritory}
+                  label="State / territory"
+                  value={address.stateTerritory || ""}
                   onChange={(text) =>
                     handleChange(index, "stateTerritory", text)
                   }
                   themeColors={currentTheme.text}
                 />
-                {errors[index]?.stateTerritory && (
-                  <Text style={styles.errorText}>
-                    {errors[index]?.stateTerritory}
-                  </Text>
-                )}
 
                 <InputField
                   label="ZIP code"
-                  value={address.zipCode}
+                  value={address.zipCode || ""}
                   onChange={(text) => handleChange(index, "zipCode", text)}
                   themeColors={currentTheme.text}
                 />
-                {errors[index]?.zipCode && (
-                  <Text style={styles.errorText}>{errors[index]?.zipCode}</Text>
-                )}
               </View>
             ))}
+
+            <TouchableOpacity
+              onPress={() => setAddresses((prev) => [...prev, initialAddress])}
+              disabled={loading}
+            >
+              <Text
+                style={{
+                  color: loading ? "#999" : "#007AFF",
+                  textAlign: "center",
+                  marginTop: 10,
+                }}
+              >
+                + Add Another Address
+              </Text>
+            </TouchableOpacity>
 
             <Toast />
           </ScrollView>
@@ -202,7 +204,7 @@ const ApartmentFinalAddressDetailsScreen: FC = () => {
         >
           <ActivityIndicator size="large" color="#fff" />
           <Text style={{ color: "#fff", marginTop: 10, fontSize: 16 }}>
-            Uploading your apartment...
+            Uploading your property...
           </Text>
         </View>
       )}

@@ -44,7 +44,7 @@ export const PropertySection: React.FC<
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           {sectionTitle}
         </Text>
-        {onViewAll && (
+        {onViewAll && properties && properties.length > 0 && (
           <TouchableOpacity onPress={onViewAll} activeOpacity={0.7}>
             <Text
               style={[styles.viewAllText, { color: currentTheme.secondary }]}
@@ -59,7 +59,7 @@ export const PropertySection: React.FC<
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="small" color={currentTheme.secondary} />
         </View>
-      ) : (
+      ) : properties && properties.length > 0 ? (
         <FlatList
           horizontal
           data={properties}
@@ -133,7 +133,7 @@ export const PropertySection: React.FC<
                         <Text style={styles.tagText}>BOOSTED</Text>
                       </View>
                     ) : (
-                      <View /> // Spacer
+                      <View />
                     )}
 
                     <TouchableOpacity
@@ -164,8 +164,19 @@ export const PropertySection: React.FC<
                         size={12}
                         color={currentTheme.secondary}
                       />
-                      <Text style={styles.locationText} numberOfLines={1}>
-                        {item.location || item.city || "Islamabad"}
+                      <Text
+                        style={[
+                          styles.locationText,
+                          {
+                            color:
+                              currentTheme.text ||
+                              (theme === "dark" ? "#FFFFFF" : "#000000"),
+                            opacity: 0.7,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.location || item.city}
                       </Text>
                     </View>
                   </View>
@@ -211,6 +222,14 @@ export const PropertySection: React.FC<
             );
           }}
         />
+      ) : (
+        <View style={styles.emptySectionContainer}>
+          <Text
+            style={[styles.emptySectionText, { color: currentTheme.muted }]}
+          >
+            No listings available for {sectionTitle}
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -236,6 +255,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   loaderContainer: { padding: 40, alignItems: "center" },
+  emptySectionContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  emptySectionText: {
+    fontSize: 14,
+    fontStyle: "italic",
+  },
   listContent: { paddingLeft: 20, paddingRight: 4, paddingBottom: 15 },
   card: {
     borderRadius: 28,

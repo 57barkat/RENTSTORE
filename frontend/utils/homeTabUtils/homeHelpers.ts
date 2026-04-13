@@ -42,17 +42,23 @@ export const getSectionsData = (
     properties: homes,
     queryLoading: homesLoading,
     hostOption: "home",
+    error: homes.length === 0 && !homesLoading ? "No homes found." : null,
   },
   {
     title: "Hostels",
     properties: rooms,
     queryLoading: roomsLoading,
     hostOption: "hostel",
+    error: rooms.length === 0 && !roomsLoading ? "No hostels found." : null,
   },
   {
     title: "Apartments",
     properties: apartments,
     queryLoading: apartmentsLoading,
     hostOption: "apartment",
+    error:
+      apartments.length === 0 && !apartmentsLoading
+        ? "No apartments found."
+        : null,
   },
 ];
