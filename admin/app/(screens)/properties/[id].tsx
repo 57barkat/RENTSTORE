@@ -56,7 +56,10 @@ const PropertyById = ({
               <span className="bg-amber-500/10 text-amber-600 text-[10px] font-black px-2 py-0.5 rounded uppercase border border-amber-500/20">
                 Pending Approval
               </span>
-              <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+              <span
+                suppressHydrationWarning
+                className="text-[10px] font-bold text-muted-foreground flex items-center gap-1"
+              >
                 <Calendar className="w-3 h-3" />{" "}
                 {new Date(property.createdAt).toLocaleDateString()}
               </span>

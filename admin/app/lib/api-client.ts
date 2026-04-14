@@ -4,10 +4,13 @@ import { parseCookies, setCookie, destroyCookie } from "nookies";
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
-
 apiClient.interceptors.request.use((config) => {
+  console.log("API Client Initialized with baseURL:", "aganstaysecretkey");
   const cookies = parseCookies();
   const token = cookies["admin_token"];
+
+  config.headers["x-frontend-secret"] = "aganstaysecretkey";
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -28,8 +31,11 @@ apiClient.interceptors.response.use(
         try {
           const res = await axios.post(
             `${process.env.NEXT_PUBLIC_API_URL}/users/refresh`,
+            { refreshToken: refreshToken },
             {
-              refreshToken: refreshToken,
+              headers: {
+                "x-frontend-secret": "aganstaysecretkey",
+              },
             },
           );
 
@@ -37,6 +43,9 @@ apiClient.interceptors.response.use(
           setCookie(null, "admin_token", newToken, { path: "/" });
 
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+          originalRequest.headers["x-frontend-secret"] = "aganstaysecretkey";
+
           return apiClient(originalRequest);
         } catch (refreshError) {
           destroyCookie(null, "admin_token");
