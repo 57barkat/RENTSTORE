@@ -1,7 +1,7 @@
 import {
-  Injectable,
-  ForbiddenException,
   BadRequestException,
+  ForbiddenException,
+  Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
@@ -25,7 +25,7 @@ export class ChatService {
   ) {
     const participantIds = [...new Set([userId, ...participants])]
       .map((id) => new Types.ObjectId(id))
-      .sort();
+      .sort((a, b) => a.toString().localeCompare(b.toString()));
 
     let room = await this.roomModel.findOne({
       participants: { $all: participantIds, $size: participantIds.length },
@@ -63,7 +63,7 @@ export class ChatService {
     }
 
     const isParticipant = room.participants.some(
-      (p) => p.toString() === senderId.toString(),
+      (participant) => participant.toString() === senderId.toString(),
     );
 
     if (!isParticipant) {
@@ -71,7 +71,7 @@ export class ChatService {
     }
 
     const message = await this.messageModel.create({
-      chatRoomId,
+      chatRoomId: new Types.ObjectId(chatRoomId),
       senderId: new Types.ObjectId(senderId),
       text,
       readBy: [new Types.ObjectId(senderId)],
@@ -93,11 +93,9 @@ export class ChatService {
       .find({ participants: userObjectId })
       .populate("participants", "name profileImage email")
       .sort({ lastMessageAt: -1 })
-      .exec();
+      .lean();
 
-    const roomIds = rooms.map((room) =>
-      (room._id as Types.ObjectId | string).toString(),
-    );
+    const roomIds = rooms.map((room) => new Types.ObjectId(room._id.toString()));
 
     const unreadCountsAgg = await this.messageModel.aggregate([
       {
@@ -115,55 +113,126 @@ export class ChatService {
       },
     ]);
 
-    const unreadCountMap: Record<string, number> = {};
-    unreadCountsAgg.forEach((item) => {
-      unreadCountMap[item._id] = item.unreadCount;
-    });
+    const unreadCountMap = new Map(
+      unreadCountsAgg.map((item) => [item._id.toString(), item.unreadCount]),
+    );
 
-    const results = rooms.map((room) => {
-      const roomObj = room.toObject();
-      const otherUser = roomObj.participants.find(
-        (p: any) => p._id.toString() !== userId.toString(),
-      );
-
-      const roomIdStr = (room._id as Types.ObjectId | string).toString();
-      return {
-        ...roomObj,
-        otherUser: otherUser || null,
-        unreadCount: unreadCountMap[roomIdStr] || 0,
-      };
-    });
-
-    return results;
+    return rooms.map((room) => this.toRoomSummary(room, userId, unreadCountMap));
   }
-  async getMessages(chatRoomId: string, userId: string) {
-    if (!Types.ObjectId.isValid(chatRoomId)) return [];
+
+  async getRoomSummary(roomId: string, userId: string) {
+    if (!Types.ObjectId.isValid(roomId)) {
+      throw new BadRequestException("Invalid Room ID format");
+    }
+
+    const room = await this.roomModel
+      .findById(roomId)
+      .populate("participants", "name profileImage email")
+      .lean();
+
+    if (!room) {
+      throw new NotFoundException("Room not found");
+    }
+
+    const isParticipant = room.participants.some(
+      (participant: any) => participant._id.toString() === userId.toString(),
+    );
+    if (!isParticipant) {
+      throw new ForbiddenException("Access denied");
+    }
+
+    const userObjectId = new Types.ObjectId(userId);
+    const unreadCount = await this.messageModel.countDocuments({
+      chatRoomId: new Types.ObjectId(roomId),
+      senderId: { $ne: userObjectId },
+      readBy: { $nin: [userObjectId] },
+    });
+
+    return this.toRoomSummary(
+      room,
+      userId,
+      new Map([[room._id.toString(), unreadCount]]),
+    );
+  }
+
+  async getRoomParticipantIds(chatRoomId: string) {
+    const room = await this.roomModel.findById(chatRoomId).select("participants");
+    if (!room) {
+      throw new NotFoundException("Chat room not found");
+    }
+
+    return room.participants.map((participant) => participant.toString());
+  }
+
+  async getMessages(
+    chatRoomId: string,
+    userId: string,
+    options?: { before?: string; limit?: number },
+  ) {
+    if (!Types.ObjectId.isValid(chatRoomId)) return { data: [], hasMore: false };
 
     const room = await this.roomModel.findById(chatRoomId);
     if (!room) throw new NotFoundException("Room not found");
 
     const isParticipant = room.participants.some(
-      (p) => p.toString() === userId.toString(),
+      (participant) => participant.toString() === userId.toString(),
     );
     if (!isParticipant) throw new ForbiddenException("Access denied");
 
-    return this.messageModel
-      .find({ chatRoomId })
+    const normalizedLimit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+    const messageFilter: Record<string, any> = {
+      chatRoomId: new Types.ObjectId(chatRoomId),
+    };
+
+    if (options?.before) {
+      messageFilter.createdAt = { $lt: new Date(options.before) };
+    }
+
+    const messages = await this.messageModel
+      .find(messageFilter)
       .populate("senderId", "name profileImage")
-      .sort({ createdAt: 1 })
-      .exec();
+      .sort({ createdAt: -1 })
+      .limit(normalizedLimit + 1)
+      .lean();
+
+    const hasMore = messages.length > normalizedLimit;
+    const page = hasMore ? messages.slice(0, normalizedLimit) : messages;
+
+    return {
+      data: page.reverse(),
+      hasMore,
+    };
   }
+
   async markMessagesAsRead(chatRoomId: string, userId: string) {
     if (!Types.ObjectId.isValid(chatRoomId)) return;
 
     await this.messageModel.updateMany(
       {
-        chatRoomId,
+        chatRoomId: new Types.ObjectId(chatRoomId),
         readBy: { $ne: new Types.ObjectId(userId) },
       },
       {
         $addToSet: { readBy: new Types.ObjectId(userId) },
       },
     );
+  }
+
+  private toRoomSummary(
+    room: any,
+    userId: string,
+    unreadCountMap: Map<string, number>,
+  ) {
+    const otherUser = room.participants.find(
+      (participant: any) => participant._id.toString() !== userId.toString(),
+    );
+
+    const roomId = room._id.toString();
+    return {
+      ...room,
+      _id: roomId,
+      otherUser: otherUser || null,
+      unreadCount: unreadCountMap.get(roomId) || 0,
+    };
   }
 }

@@ -1,5 +1,8 @@
 import { Types } from "mongoose";
 
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const parseNumericFields = (
   query: Record<string, any>,
   numericFields: string[],
@@ -72,6 +75,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     const flexiblePattern = cleanedQuery
       .replace(/[-/\s]/g, "")
       .split("")
+      .map((char) => escapeRegex(char))
       .join("[-/\\s]?");
     const searchRegex = { $regex: flexiblePattern, $options: "i" };
     const isSpecific =
@@ -94,8 +98,11 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   // City
-  if (city)
-    andConditions.push({ "address.city": { $regex: city, $options: "i" } });
+  if (city) {
+    andConditions.push({
+      "address.city": { $regex: `^${escapeRegex(city)}$`, $options: "i" },
+    });
+  }
 
   // Rent
   if (minRent !== undefined || maxRent !== undefined) {
@@ -105,8 +112,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   // Host options
-  if (hostOption)
-    mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
+  if (hostOption) {
+    mongoFilter.hostOption = hostOption;
+  }
 
   // Hostel type mapping
   if (hostelType) {
@@ -115,7 +123,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
       male: ["male", "boys"],
       mixed: ["mixed", "co-ed"],
     };
-    mongoFilter.$or = mapping[hostelType].map((val) => ({ hostelType: val }));
+    mongoFilter.hostelType = { $in: mapping[hostelType] };
   }
 
   // Arrays

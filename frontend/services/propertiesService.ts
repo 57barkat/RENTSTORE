@@ -18,8 +18,10 @@ export const useFilteredProperties = (
   });
   return { data, isLoading, refetch };
 };
-export const useFavorites = () => {
-  const { data, refetch } = useGetUserFavoritesQuery(null);
+export const useFavorites = (enabled = true) => {
+  const { data, refetch } = useGetUserFavoritesQuery(null, {
+    skip: !enabled,
+  });
   const [addToFav] = useAddToFavMutation();
   const [removeFromFav] = useRemoveUserFavoriteMutation();
   return { data, refetch, addToFav, removeFromFav };

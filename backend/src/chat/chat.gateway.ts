@@ -77,19 +77,18 @@ export class ChatGateway implements OnGatewayConnection {
 
     this.server.to(data.chatRoomId).emit("newMessage", populatedMessage);
 
-    const room = await this.chatService.createOrGetRoom(senderId, [], "");
-    const otherParticipants = room.participants.filter(
-      (p) => p.toString() !== senderId.toString(),
-    );
+    const participantIds =
+      await this.chatService.getRoomParticipantIds(data.chatRoomId);
 
-    otherParticipants.forEach(async (participantId) => {
-      const updatedRooms = await this.chatService.getUserRooms(
-        participantId.toString(),
-      );
-      this.server
-        .to(participantId.toString())
-        .emit("roomsUpdated", updatedRooms);
-    });
+    await Promise.all(
+      participantIds.map(async (participantId) => {
+        const updatedRoom = await this.chatService.getRoomSummary(
+          data.chatRoomId,
+          participantId,
+        );
+        this.server.to(participantId).emit("roomUpdated", updatedRoom);
+      }),
+    );
   }
 
   @SubscribeMessage("markAsRead")
@@ -105,8 +104,11 @@ export class ChatGateway implements OnGatewayConnection {
         client.data.userId,
       );
 
-      const rooms = await this.chatService.getUserRooms(client.data.userId);
-      this.server.to(client.data.userId).emit("roomsUpdated", rooms);
+      const updatedRoom = await this.chatService.getRoomSummary(
+        data.roomId,
+        client.data.userId,
+      );
+      this.server.to(client.data.userId).emit("roomUpdated", updatedRoom);
     } catch (err) {
       console.error("Mark as read error", err);
     }

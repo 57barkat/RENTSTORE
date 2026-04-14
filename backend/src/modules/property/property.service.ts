@@ -14,6 +14,7 @@ import { DeletedImagesService } from "../../deletedImages/deletedImages.service"
 import { PropertyFilters } from "./utils/property-filter.util";
 import { buildMongoFilter } from "./utils/property.utils";
 import { User, UserDocument } from "../user/user.entity";
+import { PropertyViewTrackerService } from "./property-view-tracker.service";
 
 @Injectable()
 export class PropertyService {
@@ -24,19 +25,37 @@ export class PropertyService {
     public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService,
     private readonly deletedImagesService: DeletedImagesService,
+    private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
 
   async uploadFilesToCloudinary(
     files: Express.Multer.File[],
   ): Promise<string[]> {
     if (!files || files.length === 0) return [];
-    const urls = await Promise.all(
-      files.map(async (file) => {
-        const uploaded = await this.cloudinary.uploadFile(file);
-        return uploaded.secure_url;
+    return this.mapWithConcurrency(files, 2, async (file) => {
+      const uploaded = await this.cloudinary.uploadFile(file);
+      return uploaded.secure_url;
+    });
+  }
+
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    concurrency: number,
+    mapper: (item: T, index: number) => Promise<R>,
+  ): Promise<R[]> {
+    const results = new Array<R>(items.length);
+    let nextIndex = 0;
+
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+        while (nextIndex < items.length) {
+          const currentIndex = nextIndex++;
+          results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+        }
       }),
     );
-    return urls;
+
+    return results;
   }
 
   async createOrUpdate(
@@ -348,22 +367,26 @@ export class PropertyService {
     else if (filters.sortBy === "newest")
       sortQuery = { createdAt: -1, _id: -1 };
 
-    const total = await this.propertyModel.countDocuments(mongoFilter);
+    const normalizedPage = Number(page);
+    const normalizedLimit = Number(limit);
 
-    const data = await this.propertyModel
-      .find(mongoFilter)
-      .sort(sortQuery)
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
-      .populate("ownerId", "name email phone profileImage")
-      .lean();
+    const [total, data] = await Promise.all([
+      this.propertyModel.countDocuments(mongoFilter),
+      this.propertyModel
+        .find(mongoFilter)
+        .sort(sortQuery)
+        .skip((normalizedPage - 1) * normalizedLimit)
+        .limit(normalizedLimit)
+        .populate("ownerId", "name email phone profileImage")
+        .lean(),
+    ]);
 
     return {
       data,
       total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / Number(limit)),
+      page: normalizedPage,
+      limit: normalizedLimit,
+      totalPages: Math.ceil(total / normalizedLimit),
       message:
         data.length > 0
           ? "Properties fetched successfully."
@@ -376,11 +399,12 @@ export class PropertyService {
     }
 
     const cleaned = query.trim();
-
-    const flexiblePattern = cleaned
+    const escapedChars = cleaned
       .replace(/[-/\s]/g, "")
       .split("")
-      .join("[-/\\s]?");
+      .map((char) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+    const flexiblePattern = escapedChars.join("[-/\\s]?");
 
     const regex = new RegExp(flexiblePattern, "i");
 
@@ -388,6 +412,7 @@ export class PropertyService {
       {
         $match: {
           status: true,
+          isApproved: true,
           $or: [
             { location: regex },
             { title: regex },
@@ -418,17 +443,15 @@ export class PropertyService {
     search?: string,
     city?: string,
   ) {
-    console.log("Finding properties for user:", userId);
     const filter: FilterQuery<any> = {
       ownerId: userId,
     };
-    console.log("Base filter:", filter);
     if (search) {
       filter.title = { $regex: search, $options: "i" };
     }
 
     if (city) {
-      filter.city = city;
+      filter["address.city"] = city;
     }
 
     if (sort === "pending") {
@@ -458,7 +481,6 @@ export class PropertyService {
       isFav: favIds.includes(p._id.toString()),
       isApproved: p.isApproved ?? false,
     }));
-    console.log(result);
     return {
       total,
       page,
@@ -541,17 +563,14 @@ export class PropertyService {
       userId && property.owner?._id?.toString() === userId.toString();
     property.chat = !isOwner && !!userId;
 
-    await this.propertyModel.updateOne(
-      { _id: objectId },
-      { $inc: { views: 1 } },
-    );
+    this.propertyViewTracker.queueView(propertyId);
 
     return property;
   }
 
   async getFeaturedProperties(userId?: string) {
     const data = (await this.propertyModel
-      .find()
+      .find({ status: true, isApproved: true })
       .sort({ views: -1 })
       .limit(5)
       .populate("ownerId", "name email")

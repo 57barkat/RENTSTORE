@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
 import { PropertyService } from "./property.service";
+import { PropertyViewTrackerService } from "./property-view-tracker.service";
 import { PropertyController } from "./property.controller";
 import { Property, PropertySchema } from "./property.schema";
 import { CloudinaryModule } from "../../services/Cloudinary Service/cloudinary.module";
@@ -26,7 +27,7 @@ import { User, UserSchema } from "../user/user.entity";
     UserModule,
   ],
   controllers: [PropertyController],
-  providers: [PropertyService],
+  providers: [PropertyService, PropertyViewTrackerService],
   exports: [PropertyService],
 })
 export class PropertyModule {}

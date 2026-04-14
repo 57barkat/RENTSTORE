@@ -22,3 +22,5 @@ export class ChatRoom {
 }
 
 export const ChatRoomSchema = SchemaFactory.createForClass(ChatRoom);
+ChatRoomSchema.index({ participants: 1, lastMessageAt: -1 });
+ChatRoomSchema.index({ participants: 1, propertyId: 1 });

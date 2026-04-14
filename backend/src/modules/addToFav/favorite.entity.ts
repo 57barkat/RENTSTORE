@@ -11,3 +11,4 @@ export class AddToFav extends Document {
 }
 
 export const AddToFavSchema = SchemaFactory.createForClass(AddToFav);
+AddToFavSchema.index({ user: 1, property: 1 }, { unique: true });

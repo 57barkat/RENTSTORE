@@ -136,6 +136,7 @@ export class Property extends Document {
   @Prop({ default: true }) isVisible: boolean;
   @Prop({ default: 0 }) reportCount: number;
   @Prop({ default: 0 }) strikeCount: number;
+  @Prop({ default: 0 }) views: number;
 
   @Prop() suspendedAt?: Date;
   @Prop() deletedAt?: Date;
@@ -161,9 +162,12 @@ PropertySchema.index({
   "address.city": 1,
   hostOption: 1,
   monthlyRent: 1,
+  status: 1,
+  isApproved: 1,
 });
 
 PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
+PropertySchema.index({ ownerId: 1, createdAt: -1 });
 
 PropertySchema.index({
   featured: 1,
@@ -174,4 +178,25 @@ PropertySchema.index({
 PropertySchema.index({
   locationGeo: "2dsphere",
   moderationStatus: 1,
+});
+
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  hostOption: 1,
+  featured: -1,
+  createdAt: -1,
+});
+
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  createdAt: -1,
+});
+
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  monthlyRent: 1,
+  createdAt: -1,
 });

@@ -1,8 +1,14 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import Constants from "expo-constants";
 import { isTokenExpired } from "../auth/jwt";
 import { tokenManager } from "./tokenManager";
 
-export const API_URL = "http://localhost:3000";
+const configuredApiUrl =
+  Constants.expoConfig?.extra?.apiUrl ??
+  process.env.EXPO_PUBLIC_API_URL ??
+  "http://localhost:3000";
+
+export const API_URL = configuredApiUrl.replace(/\/api\/v1\/?$/, "");
 
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||

@@ -7,6 +7,7 @@ import {
   UseGuards,
   BadRequestException,
   Param,
+  Query,
 } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { AuthGuard } from "@nestjs/passport";
@@ -40,8 +41,16 @@ export class ChatController {
   }
 
   @Get("messages/:roomId")
-  async getMessages(@Req() req, @Param("roomId") roomId: string) {
+  async getMessages(
+    @Req() req,
+    @Param("roomId") roomId: string,
+    @Query("before") before?: string,
+    @Query("limit") limit?: string,
+  ) {
     if (!roomId) throw new BadRequestException("roomId is required");
-    return await this.chatService.getMessages(roomId, req.user.userId);
+    return await this.chatService.getMessages(roomId, req.user.userId, {
+      before,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 }
