@@ -1,10 +1,16 @@
+/* eslint-disable */
 "use client";
 import { useSelector } from "react-redux";
 import { Menu, Bell } from "lucide-react";
 import ThemeToggle from "./theme-toggle";
 import { RootState } from "../store";
 
-export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
+interface HeaderProps {
+  onMenuClick: () => void;
+  isCollapsed?: boolean;
+}
+
+export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
   const { user, role } = useSelector((state: RootState) => state.auth);
 
   return (

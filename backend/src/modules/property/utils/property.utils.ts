@@ -109,10 +109,22 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   }
 
   // Rent
+  // Rent (Multi-field support for Daily, Weekly, and Monthly)
   if (minRent !== undefined || maxRent !== undefined) {
-    mongoFilter.monthlyRent = {};
-    if (minRent !== undefined) mongoFilter.monthlyRent.$gte = Number(minRent);
-    if (maxRent !== undefined) mongoFilter.monthlyRent.$lte = Number(maxRent);
+    const priceQuery: any = {};
+    if (minRent !== undefined) priceQuery.$gte = Number(minRent);
+    if (maxRent !== undefined) priceQuery.$lte = Number(maxRent);
+
+    // This ensures that if ANY of the price fields match the range,
+    // the property is shown.
+    const priceConditions = [
+      { monthlyRent: priceQuery },
+      { dailyRent: priceQuery },
+      { weeklyRent: priceQuery },
+    ];
+
+    // Push to andConditions to avoid overwriting other filters
+    andConditions.push({ $or: priceConditions });
   }
 
   // Host options
