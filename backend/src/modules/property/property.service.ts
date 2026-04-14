@@ -121,8 +121,6 @@ export class PropertyService {
         });
 
         const savedProperty = await property.save();
-        console.timeLog("Total", "DB Save Done");
-        console.timeEnd("Total");
         await this.propertyDraftModel.findByIdAndDelete(propertyId);
 
         user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
@@ -333,7 +331,6 @@ export class PropertyService {
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
     if (userId) mongoFilter.ownerId = { $ne: userId };
-    console.log("Constructed Mongo Filter:", userId);
 
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
@@ -499,11 +496,11 @@ export class PropertyService {
     search?: string,
     city?: string,
   ) {
-    console.log("Finding properties for user:", userId);
+    // console.log("Finding properties for user:", userId);
     const filter: FilterQuery<any> = {
       ownerId: userId,
     };
-    console.log("Base filter:", filter);
+    // console.log("Base filter:", filter);
     if (search) {
       filter.title = { $regex: search, $options: "i" };
     }
@@ -539,7 +536,6 @@ export class PropertyService {
       isFav: favIds.includes(p._id.toString()),
       isApproved: p.isApproved ?? false,
     }));
-    console.log(result);
     return {
       total,
       page,
