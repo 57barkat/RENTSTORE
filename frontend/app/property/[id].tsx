@@ -123,7 +123,7 @@ export default function PropertyDetails() {
 
   if (!property) return null;
 
-  const showWhatsApp = isOwner && property.owner?.subscription !== "free";
+  const showWhatsApp = property.owner?.subscription !== "free";
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>

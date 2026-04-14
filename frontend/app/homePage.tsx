@@ -6,6 +6,7 @@ import {
   RefreshControl,
   Animated,
   Pressable,
+  Text,
 } from "react-native";
 import SearchBar from "@/components/Filters/SearchBar";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -20,6 +21,7 @@ import { getSectionsData } from "@/utils/homeTabUtils/homeHelpers";
 import PhoneVerificationBanner from "@/components/VerificationBanner";
 import { useAuth } from "@/contextStore/AuthContext";
 import AuthModal from "@/components/AuthModal";
+import { Ionicons } from "@expo/vector-icons";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -52,16 +54,35 @@ const HomePage: React.FC = () => {
 
   const backdropStyle = { opacity: logic.menuAnimation };
 
+  const EmptyListComponent = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="business-outline" size={80} color={currentTheme.muted} />
+      <Text style={[styles.emptyTitle, { color: currentTheme.text }]}>
+        No Properties Found
+      </Text>
+      <Text style={[styles.emptySubtitle, { color: currentTheme.muted }]}>
+        We couldn&lsquo;t find any listings right now. Please pull down to
+        refresh or check back later.
+      </Text>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
       <FlatList
         data={sections}
         keyExtractor={(item) => item.title}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          !logic.homesLoading && !logic.roomsLoading && !logic.apartmentsLoading
+            ? EmptyListComponent
+            : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={logic.refreshing}
             onRefresh={logic.onRefresh}
+            tintColor={currentTheme.secondary}
           />
         }
         ListHeaderComponent={
@@ -237,6 +258,26 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   buttonText: { color: "#fff", marginLeft: 8, fontWeight: "700", fontSize: 10 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    marginTop: 16,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+    opacity: 0.7,
+  },
 });
 
 export default HomePage;

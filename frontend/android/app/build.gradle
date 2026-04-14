@@ -95,9 +95,9 @@ packagingOptions {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.usman_naeem.frontend'
+    namespace 'com.anganstay.frontend'
     defaultConfig {
-        applicationId 'com.usman_naeem.frontend'
+        applicationId 'com.anganstay.frontend'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
