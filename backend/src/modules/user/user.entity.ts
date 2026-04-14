@@ -147,3 +147,10 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+UserSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 5 * 60 * 60,
+    partialFilterExpression: { isEmailVerified: false },
+  },
+);

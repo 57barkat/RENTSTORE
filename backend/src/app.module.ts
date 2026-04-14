@@ -1,5 +1,6 @@
+import { APP_GUARD } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
-import { Module, MiddlewareConsumer } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import appConfig from "./config/app.config";
@@ -8,7 +9,6 @@ import { validationSchema } from "./config/validation";
 
 import { UserModule } from "./modules/user/user.module";
 import { ServiceModule } from "./modules/sms/sms.module";
-import { SignupThrottleMiddleware } from "./middleware/signup-throttle.middleware";
 import { ScheduleModule } from "@nestjs/schedule";
 import { PropertyModule } from "./modules/property/property.module";
 import { CloudinaryModule } from "./services/Cloudinary Service/cloudinary.module";
@@ -22,6 +22,9 @@ import { ReportsModule } from "./modules/report/reports.module";
 import { EmailModule } from "./services/email/email.module";
 import { AgencyModule } from "./modules/Agency/agency.module";
 import { PaymentModule } from "./services/payment/payment.module";
+import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
+import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
+import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
 
 @Module({
   imports: [
@@ -36,14 +39,17 @@ import { PaymentModule } from "./services/payment/payment.module";
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const db = config.get<{ uri: string; dbName: string }>("database", {
-          infer: true,
-        });
+        const db = config.get<Record<string, any>>("database", { infer: true });
         if (!db) throw new Error("Database config is missing");
 
         return {
           uri: db.uri,
           dbName: db.dbName,
+          maxPoolSize: db.maxPoolSize,
+          minPoolSize: db.minPoolSize,
+          serverSelectionTimeoutMS: db.serverSelectionTimeoutMS,
+          socketTimeoutMS: db.socketTimeoutMS,
+          autoIndex: db.autoIndex,
         };
       },
     }),
@@ -62,10 +68,17 @@ import { PaymentModule } from "./services/payment/payment.module";
     EmailModule,
     AgencyModule,
     PaymentModule,
+    RequestRateLimitModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RequestRateLimitGuard,
+    },
   ],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(SignupThrottleMiddleware).forRoutes("users/signup");
-  }
-}
+export class AppModule {}

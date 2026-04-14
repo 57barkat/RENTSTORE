@@ -1,26 +1,34 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
-  StyleSheet,
   SafeAreaView,
   StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
   View,
-  Keyboard,
 } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Socket } from "socket.io-client";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
-import { tokenManager } from "@/services/tokenManager";
 import { connectSocket } from "@/services/socket";
-import { useCreateRoomMutation, useGetMessagesQuery } from "@/hooks/chat";
-import { Socket } from "socket.io-client";
+import { tokenManager } from "@/services/tokenManager";
+import {
+  useCreateRoomMutation,
+  useLazyGetMessagesQuery,
+} from "@/hooks/chat";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { MessageInput } from "@/components/chat/MessageInput";
+
+const PAGE_SIZE = 50;
 
 export default function ChatRoomScreen() {
   const {
@@ -46,14 +54,19 @@ export default function ChatRoomScreen() {
   const [roomId, setRoomId] = useState<string | undefined>(roomParam);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const flatListRef = useRef<FlatList>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [createRoom] = useCreateRoomMutation();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const flatListRef = useRef<FlatList>(null);
+  const shouldScrollToBottomRef = useRef(true);
+  const [createRoom] = useCreateRoomMutation();
+  const [fetchMessages] = useLazyGetMessagesQuery();
 
   useEffect(() => {
-    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
+    const showSub = Keyboard.addListener("keyboardDidShow", (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
     });
     const hideSub = Keyboard.addListener("keyboardDidHide", () => {
       setKeyboardHeight(0);
@@ -66,20 +79,22 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     const loadUser = async () => {
-      if (!tokenManager) return;
       await tokenManager.load();
       let id = await AsyncStorage.getItem("userId");
+
       if (!id && tokenManager.getAccessToken()) {
         const payload = JSON.parse(
           atob(tokenManager.getAccessToken()!.split(".")[1]),
         );
         id = payload.sub;
       }
+
       if (id) {
         setUserId(id);
         await AsyncStorage.setItem("userId", id);
       }
     };
+
     loadUser();
   }, []);
 
@@ -87,31 +102,72 @@ export default function ChatRoomScreen() {
     const initRoom = async () => {
       if (!roomId && userId && otherUserId) {
         try {
-          const payload = { participants: [userId, otherUserId], propertyId };
-          const room = await createRoom(payload).unwrap();
+          const room = await createRoom({
+            participants: [userId, otherUserId],
+            propertyId,
+          }).unwrap();
           setRoomId(room._id);
           router.setParams({ roomId: room._id });
-        } catch (err) {
-          // console.error("Room error", err);
+        } catch {
+          setInitialLoading(false);
         }
       }
     };
-    initRoom();
-  }, [userId, otherUserId, roomId]);
 
-  const { data: fetchedMessages } = useGetMessagesQuery(
-    { roomId: roomId ?? "" },
-    {
-      skip: !roomId || roomId === "undefined",
-      refetchOnMountOrArgChange: true,
+    initRoom();
+  }, [createRoom, otherUserId, propertyId, roomId, router, userId]);
+
+  const mergeMessages = useCallback((incoming: any[], mode: "replace" | "prepend") => {
+    setMessages((prev) => {
+      if (mode === "replace") {
+        return incoming;
+      }
+
+      const existingIds = new Set(prev.map((message) => message._id));
+      const olderMessages = incoming.filter(
+        (message) => !existingIds.has(message._id),
+      );
+      return [...olderMessages, ...prev];
+    });
+  }, []);
+
+  const loadMessagePage = useCallback(
+    async (mode: "replace" | "prepend", before?: string) => {
+      if (!roomId || roomId === "undefined") {
+        setInitialLoading(false);
+        return;
+      }
+
+      if (mode === "prepend") {
+        setLoadingOlder(true);
+      } else {
+        setInitialLoading(true);
+        shouldScrollToBottomRef.current = true;
+      }
+
+      try {
+        const response = await fetchMessages(
+          { roomId, before, limit: PAGE_SIZE },
+          true,
+        ).unwrap();
+        mergeMessages(response.data, mode);
+        setHasMoreMessages(response.hasMore);
+      } finally {
+        if (mode === "prepend") {
+          setLoadingOlder(false);
+        } else {
+          setInitialLoading(false);
+        }
+      }
     },
+    [fetchMessages, mergeMessages, roomId],
   );
 
   useEffect(() => {
-    if (Array.isArray(fetchedMessages)) setMessages(fetchedMessages);
-  }, [fetchedMessages]);
+    if (!roomId || !userId) return;
+    loadMessagePage("replace");
+  }, [loadMessagePage, roomId, userId]);
 
-  // Handle Socket & Mark as Read logic
   useEffect(() => {
     if (!roomId || !userId) return;
     let socketInstance: Socket;
@@ -120,20 +176,23 @@ export default function ChatRoomScreen() {
       socketInstance = await connectSocket();
       setSocket(socketInstance);
       socketInstance.emit("joinRoom", roomId);
-
-      // Trigger markAsRead when entering the room
       socketInstance.emit("markAsRead", { roomId });
 
-      socketInstance.on("newMessage", (msg) => {
-        if (msg.chatRoomId === roomId) {
-          setMessages((prev) =>
-            prev.find((m) => m._id === msg._id) ? prev : [...prev, msg],
-          );
+      socketInstance.on("newMessage", (message) => {
+        if (message.chatRoomId?.toString() !== roomId) {
+          return;
+        }
 
-          // Trigger markAsRead when a new message arrives while user is in room
-          if (msg.senderId._id !== userId) {
-            socketInstance.emit("markAsRead", { roomId });
+        setMessages((prev) => {
+          if (prev.some((existing) => existing._id === message._id)) {
+            return prev;
           }
+          shouldScrollToBottomRef.current = true;
+          return [...prev, message];
+        });
+
+        if (message.senderId?._id !== userId) {
+          socketInstance.emit("markAsRead", { roomId });
         }
       });
     };
@@ -141,17 +200,41 @@ export default function ChatRoomScreen() {
     setupSocket();
     return () => {
       if (socketInstance) {
-        socketInstance.emit("leaveRoom", roomId);
         socketInstance.off("newMessage");
       }
     };
   }, [roomId, userId]);
 
+  const handleLoadOlder = async () => {
+    if (loadingOlder || !hasMoreMessages || messages.length === 0) return;
+    shouldScrollToBottomRef.current = false;
+    await loadMessagePage("prepend", messages[0]?.createdAt);
+  };
+
   const handleSend = () => {
     if (!text.trim() || !roomId || !socket) return;
+    shouldScrollToBottomRef.current = true;
     socket.emit("sendMessage", { chatRoomId: roomId, text });
     setText("");
   };
+
+  useEffect(() => {
+    if (messages.length > 0 && shouldScrollToBottomRef.current) {
+      requestAnimationFrame(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+      });
+    }
+  }, [messages.length]);
+
+  if (initialLoading) {
+    return (
+      <View
+        style={[styles.center, { backgroundColor: currentTheme.background }]}
+      >
+        <ActivityIndicator size="large" color={currentTheme.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -195,10 +278,28 @@ export default function ChatRoomScreen() {
             paddingHorizontal: 16,
             paddingBottom: keyboardHeight + 70,
           }}
-          onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
+          ListHeaderComponent={
+            hasMoreMessages ? (
+              <TouchableOpacity
+                onPress={handleLoadOlder}
+                disabled={loadingOlder}
+                style={styles.loadOlderButton}
+              >
+                {loadingOlder ? (
+                  <ActivityIndicator size="small" color={currentTheme.primary} />
+                ) : (
+                  <Text
+                    style={[
+                      styles.loadOlderText,
+                      { color: currentTheme.primary },
+                    ]}
+                  >
+                    Load older messages
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ) : null
           }
-          onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
         <View
@@ -226,4 +327,14 @@ export default function ChatRoomScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadOlderButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+  },
+  loadOlderText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
 });

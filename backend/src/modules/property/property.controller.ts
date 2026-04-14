@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
+import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
@@ -39,6 +40,7 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post("create")
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
   async createProperty(
     @Body() dto: Partial<CreatePropertyDto>,
@@ -157,7 +159,7 @@ export class PropertyController {
   }
 
   @Get("nearby")
-  @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
   async getNearbyProperties(
     @Query() query: NearbyPropertyDto,
     @Req() req: any,
@@ -190,7 +192,7 @@ export class PropertyController {
     );
   }
   @Get("search")
-  @Public()
+  @RateLimit({ limit: 120, windowMs: 60_000, scope: "userOrIp" })
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {
     const userId = req.user?.userId;
     parseNumericFields(query, [
@@ -245,7 +247,7 @@ export class PropertyController {
   }
 
   @Get("address-suggestions")
-  @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
   async getAddressSuggestions(@Query("q") q: string) {
     return this.propertyService.getAddressSuggestions(q);
   }

@@ -34,31 +34,34 @@ export default function ChatListScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const { data: rooms, isLoading, refetch } = useGetRoomsQuery();
+  const [roomItems, setRoomItems] = useState<ChatRoom[]>([]);
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
   useEffect(() => {
-    refetch();
+    if (Array.isArray(rooms)) {
+      setRoomItems(rooms);
+    }
+  }, [rooms]);
+
+  useEffect(() => {
     let socketInstance: any;
     const setupSocket = async () => {
       socketInstance = await connectSocket();
-      socketInstance.on("roomsUpdated", (data: any) => {
-        // console.log("DEBUG: roomsUpdated event received from backend");
-        refetch();
+      socketInstance.on("roomUpdated", (updatedRoom: ChatRoom) => {
+        setRoomItems((prev) => {
+          const next = prev.filter((room) => room._id !== updatedRoom._id);
+          next.unshift(updatedRoom);
+          return next;
+        });
       });
     };
     setupSocket();
 
     return () => {
-      if (socketInstance) socketInstance.off("roomsUpdated");
+      if (socketInstance) socketInstance.off("roomUpdated");
     };
-  }, [refetch]);
-
-  useEffect(() => {
-    if (rooms) {
-      // console.log("DEBUG: Current Rooms Data:", JSON.stringify(rooms, null, 2));
-    }
-  }, [rooms]);
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -66,10 +69,10 @@ export default function ChatListScreen() {
     setRefreshing(false);
   }, [refetch]);
 
-  const filteredRooms = rooms?.filter((room: ChatRoom) =>
+  const filteredRooms = roomItems.filter((room: ChatRoom) =>
     room.otherUser?.name?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-  // console.log("DEBUG: Filtered Rooms after search query:", filteredRooms);
+
   if (isLoading && !refreshing) {
     return (
       <View

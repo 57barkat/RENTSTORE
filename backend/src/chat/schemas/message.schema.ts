@@ -23,3 +23,5 @@ export class Message {
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
+MessageSchema.index({ chatRoomId: 1, createdAt: 1 });
+MessageSchema.index({ chatRoomId: 1, senderId: 1, createdAt: -1 });

@@ -2,6 +2,9 @@ import { BadRequestException } from "@nestjs/common";
 import { Types } from "mongoose";
 import { UserDocument } from "src/modules/user/user.entity";
 
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const parseNumericFields = (
   query: Record<string, any>,
   numericFields: string[],
@@ -81,6 +84,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     const flexiblePattern = cleanedQuery
       .replace(/[-/\s]/g, "")
       .split("")
+      .map((char) => escapeRegex(char))
       .join("[-/\\s]?");
     const searchRegex = { $regex: flexiblePattern, $options: "i" };
 
@@ -105,7 +109,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
 
   // City
   if (city) {
-    andConditions.push({ "address.city": { $regex: city, $options: "i" } });
+    andConditions.push({
+      "address.city": { $regex: `^${escapeRegex(city)}$`, $options: "i" },
+    });
   }
 
   // Rent
@@ -129,7 +135,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
 
   // Host options
   if (hostOption) {
-    mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
+    mongoFilter.hostOption = hostOption;
   }
 
   // Hostel type mapping
@@ -139,9 +145,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
       male: ["male", "boys"],
       mixed: ["mixed", "co-ed"],
     };
-    if (mapping[hostelType]) {
-      mongoFilter.hostelType = { $in: mapping[hostelType] };
-    }
+    mongoFilter.hostelType = { $in: mapping[hostelType] };
   }
 
   // Arrays

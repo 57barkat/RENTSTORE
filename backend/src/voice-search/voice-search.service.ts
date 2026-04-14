@@ -1,11 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common";
-import * as fs from "fs";
 import fetch from "node-fetch";
-import { PropertyService } from "../modules/property/property.service";
-import { VoiceSessionService } from "./voice-session.service";
 import { InjectModel } from "@nestjs/mongoose";
-import { User, UserDocument } from "src/modules/user/user.entity";
 import { Model } from "mongoose";
+import { PropertyService } from "../modules/property/property.service";
+import { User, UserDocument } from "src/modules/user/user.entity";
+import { VoiceSessionService } from "./voice-session.service";
 
 @Injectable()
 export class VoiceSearchService {
@@ -25,105 +24,95 @@ export class VoiceSearchService {
   }
 
   async voiceSearch(file: Express.Multer.File, userId: string) {
-    if (!file?.path) throw new Error("Audio file path missing");
+    if (!file?.buffer?.length) {
+      throw new Error("Audio file buffer missing");
+    }
 
-    try {
-      const user = await this.userModel.findById(userId);
+    const user = await this.userModel.findById(userId);
 
-      if (!user) {
+    if (!user) {
+      return this.emptyResponse("User not found.");
+    }
+
+    if (user.isBlocked) {
+      return {
+        forceLogout: true,
+        message:
+          "Your account has been blocked due to repeated policy violations.",
+      };
+    }
+
+    const transcription = await this.audioToEnglishText(file.buffer);
+
+    if (!transcription.trim()) {
+      return this.emptyResponse("I couldn't hear you. Please try again.");
+    }
+
+    const aiData = await this.extractIntent(transcription);
+
+    if (aiData.isAbusive) {
+      const updatedUser = await this.userModel.findByIdAndUpdate(
+        userId,
+        { $inc: { warnings: 1 } },
+        { new: true },
+      );
+
+      if (!updatedUser) {
         return this.emptyResponse("User not found.");
       }
 
-      // 🚫 Already blocked
-      if (user.isBlocked) {
+      if (updatedUser.warnings >= 2) {
+        await this.userModel.findByIdAndUpdate(userId, {
+          isBlocked: true,
+          refreshToken: null,
+        });
+
         return {
           forceLogout: true,
           message:
-            "Your account has been blocked due to repeated policy violations.",
+            "Your account has been permanently blocked due to repeated abusive behavior.",
         };
       }
 
-      // 1️⃣ TRANSCRIPTION
-      const transcription = await this.audioToEnglishText(file.path);
-
-      if (!transcription.trim()) {
-        return this.emptyResponse("I couldn't hear you. Please try again.");
-      }
-
-      // 2️⃣ FILTER EXTRACTION + ABUSE CHECK
-      const aiData = await this.extractIntent(transcription);
-
-      // 🚨 HANDLE ABUSE
-      if (aiData.isAbusive) {
-        const updatedUser = await this.userModel.findByIdAndUpdate(
-          userId,
-          { $inc: { warnings: 1 } },
-          { new: true },
-        );
-        if (!updatedUser) {
-          return;
-        }
-        if (updatedUser.warnings >= 2) {
-          await this.userModel.findByIdAndUpdate(userId, {
-            isBlocked: true,
-            refreshToken: null,
-          });
-
-          return {
-            forceLogout: true,
-            message:
-              "Your account has been permanently blocked due to repeated abusive behavior.",
-          };
-        }
-
-        return this.emptyResponse(
-          `Warning no ${updatedUser.warnings}. After 2 warnings, your account will be blocked. Please refrain from using abusive or irrelevant language.`,
-        );
-      }
-
-      let extractedFilters = this.ensureHostOption(
-        aiData.filters,
-        transcription,
+      return this.emptyResponse(
+        `Warning no ${updatedUser.warnings}. After 2 warnings, your account will be blocked. Please refrain from using abusive or irrelevant language.`,
       );
-
-      const normalizedFilters = this.normalizeFilters(extractedFilters);
-
-      const session = await this.voiceSessionService.getSession(userId);
-
-      const currentFilters = {
-        ...(session?.currentFilters ?? {}),
-        ...normalizedFilters,
-      };
-
-      await this.voiceSessionService.updateSession(userId, currentFilters);
-
-      const result = await this.propertyService.findFiltered(
-        1,
-        10,
-        currentFilters,
-        userId,
-      );
-
-      const hasResults = result && result.data.length > 0;
-
-      if (hasResults) {
-        await this.voiceSessionService.deleteSession(userId);
-      }
-
-      return {
-        transcription,
-        filters: currentFilters,
-        result: hasResults ? result : null,
-        message: hasResults
-          ? "Showing you matching properties."
-          : "No matching properties found. Please try a different search.",
-      };
-    } finally {
-      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     }
+
+    const extractedFilters = this.ensureHostOption(aiData.filters, transcription);
+    const normalizedFilters = this.normalizeFilters(extractedFilters);
+    const session = await this.voiceSessionService.getSession(userId);
+
+    const currentFilters = {
+      ...(session?.currentFilters ?? {}),
+      ...normalizedFilters,
+    };
+
+    await this.voiceSessionService.updateSession(userId, currentFilters);
+
+    const result = await this.propertyService.findFiltered(
+      1,
+      10,
+      currentFilters,
+      userId,
+    );
+
+    const hasResults = result && result.data.length > 0;
+
+    if (hasResults) {
+      await this.voiceSessionService.deleteSession(userId);
+    }
+
+    return {
+      transcription,
+      filters: currentFilters,
+      result: hasResults ? result : null,
+      message: hasResults
+        ? "Showing you matching properties."
+        : "No matching properties found. Please try a different search.",
+    };
   }
 
-  // 🔥 NEW: Combined abuse detection + filter extraction
   private async extractIntent(
     userText: string,
   ): Promise<{ isAbusive: boolean; filters: any }> {
@@ -156,7 +145,7 @@ CITY:
 RENT:
 - 1 lakh = 100000
 - 50k = 50000
-- If only one rent value mentioned → set maxRent and minRent = 0.
+- If only one rent value mentioned -> set maxRent and minRent = 0.
 
 PROPERTY TYPE:
 - hostOption must be exactly: "home", "hostel", or "apartment".
@@ -172,11 +161,11 @@ fireplace, piano, exercise, lake_access, beach_access,
 ski_in_out, outdoor_shower, smoke_alarm, first_aid,
 fire_extinguisher, co_alarm
 
-If AC mentioned → use "ac"
-If parking mentioned → choose correct parking key
+If AC mentioned -> use "ac"
+If parking mentioned -> choose correct parking key
 
 ARRAY RULE:
-If not mentioned → return empty array [].
+If not mentioned -> return empty array [].
 
 Return STRICT JSON ONLY:
 
@@ -220,15 +209,15 @@ Return STRICT JSON ONLY:
       return JSON.parse(
         data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}",
       );
-    } catch {
+    } catch (error) {
+      this.logger.warn(`Intent extraction failed: ${String(error)}`);
       return { isAbusive: false, filters: {} };
     }
   }
 
-  private async audioToEnglishText(filePath: string): Promise<string> {
+  private async audioToEnglishText(audioBuffer: Buffer): Promise<string> {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.geminiModel}:generateContent?key=${this.geminiApiKey}`;
-
-    const audioBase64 = fs.readFileSync(filePath).toString("base64");
+    const audioBase64 = audioBuffer.toString("base64");
 
     const body = {
       contents: [
@@ -243,14 +232,19 @@ Return STRICT JSON ONLY:
       ],
     };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    const data: any = await response.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      const data: any = await response.json();
+      return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    } catch (error) {
+      this.logger.warn(`Transcription failed: ${String(error)}`);
+      return "";
+    }
   }
 
   private ensureHostOption(filters: any, userText: string): any {
@@ -270,41 +264,44 @@ Return STRICT JSON ONLY:
     const normalized: any = {};
     if (!filters) return normalized;
 
-    const toNumber = (v: any) =>
-      v !== null && v !== undefined && !isNaN(v) ? Number(v) : undefined;
+    const toNumber = (value: any) =>
+      value !== null && value !== undefined && !isNaN(value)
+        ? Number(value)
+        : undefined;
 
     if (filters.city) normalized.city = filters.city;
     if (filters.addressQuery) normalized.addressQuery = filters.addressQuery;
 
-    if (toNumber(filters.minRent) !== undefined)
+    if (toNumber(filters.minRent) !== undefined) {
       normalized.minRent = toNumber(filters.minRent);
+    }
 
-    if (toNumber(filters.maxRent) !== undefined)
+    if (toNumber(filters.maxRent) !== undefined) {
       normalized.maxRent = toNumber(filters.maxRent);
+    }
 
-    if (toNumber(filters.bedrooms) !== undefined)
+    if (toNumber(filters.bedrooms) !== undefined) {
       normalized.bedrooms = toNumber(filters.bedrooms);
+    }
 
-    if (toNumber(filters.bathrooms) !== undefined)
+    if (toNumber(filters.bathrooms) !== undefined) {
       normalized.bathrooms = toNumber(filters.bathrooms);
+    }
 
-    if (toNumber(filters.floorLevel) !== undefined)
+    if (toNumber(filters.floorLevel) !== undefined) {
       normalized.floorLevel = toNumber(filters.floorLevel);
+    }
 
     if (filters.hostOption) normalized.hostOption = filters.hostOption;
-
     if (filters.hostelType) normalized.hostelType = filters.hostelType;
 
     normalized.amenities = Array.isArray(filters.amenities)
       ? filters.amenities
       : [];
-
     normalized.bills = Array.isArray(filters.bills) ? filters.bills : [];
-
     normalized.mealPlan = Array.isArray(filters.mealPlan)
       ? filters.mealPlan
       : [];
-
     normalized.rules = Array.isArray(filters.rules) ? filters.rules : [];
 
     return normalized;

@@ -8,31 +8,20 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { diskStorage } from "multer";
-import { extname } from "path";
+import { memoryStorage } from "multer";
+import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import { VoiceSearchService } from "./voice-search.service";
-import * as fs from "fs";
 import { AuthGuard } from "@nestjs/passport";
 @UseGuards(AuthGuard("jwt"))
 @Controller("search")
 export class VoiceSearchController {
-  constructor(private readonly service: VoiceSearchService) {
-    const uploadDir = "./uploads";
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-  }
+  constructor(private readonly service: VoiceSearchService) {}
 
   @Post("voice")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "user" })
   @UseInterceptors(
     FileInterceptor("audio", {
-      storage: diskStorage({
-        destination: "./uploads",
-        filename: (_req, file, cb) => {
-          const uniqueSuffix =
-            Date.now() + "-" + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: 10 * 1024 * 1024 },
     }),
   )

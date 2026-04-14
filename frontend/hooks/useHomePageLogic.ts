@@ -10,10 +10,12 @@ import {
   useRemoveUserFavoriteMutation,
   useVoiceSearchMutation,
 } from "@/services/api";
+import { useAuth } from "@/contextStore/AuthContext";
 import { useApartments, useHomes, useRooms } from "@/hooks/useHomes";
 import { formatAndTagFavorites } from "@/utils/homeTabUtils/homeHelpers";
 
 export const useHomePageLogic = () => {
+  const { isGuest } = useAuth();
   const [search, setSearch] = useState("");
   const [selectedCity] = useState(""); // This is currently empty
   const [refreshing, setRefreshing] = useState(false);
@@ -38,8 +40,10 @@ export const useHomePageLogic = () => {
   const [addToFav] = useAddToFavMutation();
   const [removeUserFavorite] = useRemoveUserFavoriteMutation();
 
-  const { data: favData, refetch: refetchFavorites } =
-    useGetUserFavoritesQuery(null);
+  const { data: favData, refetch: refetchFavorites } = useGetUserFavoritesQuery(
+    null,
+    { skip: isGuest },
+  );
   const { data: hData, isLoading: hLoad, refetch: refetchH } = useHomes();
   const { data: aData, isLoading: aLoad, refetch: refetchA } = useApartments();
   const { data: rData, isLoading: rLoad, refetch: refetchR } = useRooms();
@@ -131,14 +135,14 @@ export const useHomePageLogic = () => {
       refetchH().catch(() => {}),
       refetchA().catch(() => {}),
       refetchR().catch(() => {}),
-      refetchFavorites().catch(() => {}),
+      (isGuest ? Promise.resolve() : refetchFavorites()).catch(() => {}),
     ]);
     setRefreshing(false);
-  }, [handleCancelVoice, refetchH, refetchA, refetchR, refetchFavorites]);
+  }, [handleCancelVoice, isGuest, refetchH, refetchA, refetchR, refetchFavorites]);
 
   const favoriteIds = useMemo(
-    () => favData?.map((f: any) => f.property?._id) || [],
-    [favData],
+    () => (isGuest ? [] : favData?.map((f: any) => f.property?._id) || []),
+    [favData, isGuest],
   );
 
   // Helper to ensure city extraction consistency on Home Page

@@ -22,15 +22,25 @@ export const chatApi = api.injectEndpoints({
       }),
     }),
 
-    /* -------------------- Get Messages (NO SKIP) -------------------- */
-    getMessages: builder.query<any[], { roomId: string }>({
-      query: ({ roomId }) => ({
+    getMessages: builder.query<
+      { data: any[]; hasMore: boolean },
+      { roomId: string; before?: string; limit?: number }
+    >({
+      query: ({ roomId, before, limit = 50 }) => ({
         url: `/api/v1/chat/messages/${roomId}`,
         method: "GET",
+        params: {
+          ...(before ? { before } : {}),
+          limit,
+        },
       }),
     }),
   }),
 });
 
-export const { useCreateRoomMutation, useGetRoomsQuery, useGetMessagesQuery } =
-  chatApi;
+export const {
+  useCreateRoomMutation,
+  useGetRoomsQuery,
+  useGetMessagesQuery,
+  useLazyGetMessagesQuery,
+} = chatApi;
