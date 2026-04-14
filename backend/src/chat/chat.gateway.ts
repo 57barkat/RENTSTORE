@@ -8,6 +8,8 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { JwtService } from "@nestjs/jwt";
+import { ChatEventService } from "./chat-event.service";
+import { ChatRealtimeService } from "./chat-realtime.service";
 import { ChatService } from "./chat.service";
 
 @WebSocketGateway({ cors: { origin: "*" } })
@@ -17,8 +19,14 @@ export class ChatGateway implements OnGatewayConnection {
 
   constructor(
     private readonly jwtService: JwtService,
+    private readonly chatEventService: ChatEventService,
+    private readonly chatRealtime: ChatRealtimeService,
     private readonly chatService: ChatService,
   ) {}
+
+  afterInit(server: Server) {
+    this.chatRealtime.bindServer(server);
+  }
 
   async handleConnection(client: Socket) {
     try {
@@ -30,7 +38,7 @@ export class ChatGateway implements OnGatewayConnection {
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || "suppersecretkey",
+        secret: process.env.JWT_SECRET,
       });
 
       client.data.userId = payload.sub;
@@ -76,6 +84,10 @@ export class ChatGateway implements OnGatewayConnection {
     );
 
     this.server.to(data.chatRoomId).emit("newMessage", populatedMessage);
+    await this.chatEventService.publishNewMessage(
+      data.chatRoomId,
+      populatedMessage.toObject(),
+    );
 
     const participantIds =
       await this.chatService.getRoomParticipantIds(data.chatRoomId);
@@ -87,6 +99,10 @@ export class ChatGateway implements OnGatewayConnection {
           participantId,
         );
         this.server.to(participantId).emit("roomUpdated", updatedRoom);
+        await this.chatEventService.publishRoomUpdated(
+          participantId,
+          updatedRoom,
+        );
       }),
     );
   }
@@ -109,6 +125,10 @@ export class ChatGateway implements OnGatewayConnection {
         client.data.userId,
       );
       this.server.to(client.data.userId).emit("roomUpdated", updatedRoom);
+      await this.chatEventService.publishRoomUpdated(
+        client.data.userId,
+        updatedRoom,
+      );
     } catch (err) {
       console.error("Mark as read error", err);
     }

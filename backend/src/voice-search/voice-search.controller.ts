@@ -9,6 +9,7 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
+import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import { VoiceSearchService } from "./voice-search.service";
 import { AuthGuard } from "@nestjs/passport";
 @UseGuards(AuthGuard("jwt"))
@@ -17,6 +18,7 @@ export class VoiceSearchController {
   constructor(private readonly service: VoiceSearchService) {}
 
   @Post("voice")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "user" })
   @UseInterceptors(
     FileInterceptor("audio", {
       storage: memoryStorage(),

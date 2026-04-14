@@ -26,8 +26,6 @@ export class UserService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
-    await this.cleanupUnverifiedUsers();
-
     const conflict = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }, { cnic: dto.cnic }],
     });
@@ -227,12 +225,6 @@ export class UserService {
   async clearRefreshToken(userId: string) {
     return this.userModel.findByIdAndUpdate(userId, {
       $unset: { refreshToken: 1 },
-    });
-  }
-  private async cleanupUnverifiedUsers() {
-    await this.userModel.deleteMany({
-      isEmailVerified: false,
-      createdAt: { $lt: new Date(Date.now() - 5 * 60 * 60 * 1000) },
     });
   }
   async updateUser(

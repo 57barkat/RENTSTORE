@@ -20,7 +20,7 @@ import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
 import { Public } from "src/common/decorators/public.decorator";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 @Controller("users")
 export class UserController {
   constructor(
@@ -29,6 +29,7 @@ export class UserController {
   ) {}
   @Public()
   @Post("signup")
+  @RateLimit({ limit: 5, windowMs: 15 * 60 * 1000, scope: "ip" })
   async signup(@Body() dto: CreateUserDto) {
     const user = await this.userService.createUser(dto);
     const tokens = await this.authService.issueTokens(user);
@@ -37,12 +38,12 @@ export class UserController {
   }
   @Public()
   @Post("login")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
   async login(@Body() body: { emailOrPhone: string; password: string }) {
     const { user, tokens } = await this.authService.loginWithPassword(
       body.emailOrPhone,
       body.password,
     );
-    console.log("Login successful. User:", user, "Role:", user.role);
 
     return {
       accessToken: tokens.accessToken,
@@ -59,12 +60,15 @@ export class UserController {
   }
   @Public()
   @Post("verify-email")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
   async verifyEmail(@Body() body: { email: string; code: string }) {
     const user = await this.userService.verifyEmail(body.email, body.code);
     return this.mapUser(user);
   }
 
+  @Public()
   @Post("google")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
   async google(@Body("access_token") token: string) {
     const user = await this.userService.googleLogin(token);
     return this.authService.issueTokens(user);
@@ -82,14 +86,13 @@ export class UserController {
   }
   @Public()
   @Post("refresh")
+  @RateLimit({ limit: 30, windowMs: 10 * 60 * 1000, scope: "ip" })
   async refresh(@Body("refreshToken") token: string) {
     return await this.authService.refresh(token);
   }
   @UseGuards(AuthGuard("jwt"))
   @Post("logout")
   async logout(@Req() req) {
-    console.log("User from JWT:", req.user);
-
     await this.userService.clearRefreshToken(req.user.userId);
     return { message: "Logged out successfully" };
   }

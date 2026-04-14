@@ -53,7 +53,6 @@ export class AuthService {
   }
 
   async refresh(token: string) {
-    console.log("Refreshing token:", token);
     try {
       const payload = this.jwtService.verify(token);
       const userId = payload.sub;

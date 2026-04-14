@@ -11,7 +11,7 @@ import { JwtRefreshStrategy } from "./jwt-refresh.strategy";
     forwardRef(() => UserModule),
     PassportModule.register({ defaultStrategy: "jwt" }), // important
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "suppersecretkey",
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || "7d" },
     }),
   ],

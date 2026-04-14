@@ -9,6 +9,7 @@ import {
   Param,
   Query,
 } from "@nestjs/common";
+import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import { ChatService } from "./chat.service";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -18,6 +19,7 @@ export class ChatController {
   constructor(private chatService: ChatService) {}
 
   @Post("rooms")
+  @RateLimit({ limit: 30, windowMs: 60_000, scope: "user" })
   async createOrGetRoom(
     @Req() req,
     @Body() body: { participants: string[]; propertyId?: string },
@@ -36,11 +38,13 @@ export class ChatController {
   }
 
   @Get("rooms")
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "user" })
   async getRooms(@Req() req) {
     return await this.chatService.getUserRooms(req.user.userId);
   }
 
   @Get("messages/:roomId")
+  @RateLimit({ limit: 120, windowMs: 60_000, scope: "user" })
   async getMessages(
     @Req() req,
     @Param("roomId") roomId: string,
