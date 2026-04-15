@@ -31,7 +31,7 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-bold tracking-tight text-foreground leading-none">
-              Anganstay
+              AnganStay
             </span>
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">
               {role || "Management"}
@@ -59,7 +59,7 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
               {user?.name || "Administrator"}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1 font-medium">
-              {user?.email || "admin@rentstore.com"}
+              {user?.email || "admin@anganstay.com"}
             </p>
           </div>
 

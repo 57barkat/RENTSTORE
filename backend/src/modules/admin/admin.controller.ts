@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, SetMetadata, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { AdminService } from "./admin.service";
 
@@ -8,6 +8,7 @@ export class AdminController {
 
   @UseGuards(AuthGuard("jwt"))
   @Get("stats")
+  @SetMetadata("roles", ["admin"])
   async getStats() {
     return await this.adminService.getDashboardStats();
   }
