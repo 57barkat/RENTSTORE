@@ -18,6 +18,7 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 
 type ImageUriArray = string[];
+const PROPERTY_PHOTO_QUALITY = 0.5;
 
 const ApartmentPhotosScreen: FC = () => {
   const router = useRouter();
@@ -56,7 +57,7 @@ const ApartmentPhotosScreen: FC = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 1,
+      quality: PROPERTY_PHOTO_QUALITY,
     });
 
     setLoading(false);

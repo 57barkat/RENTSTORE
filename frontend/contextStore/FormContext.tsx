@@ -15,6 +15,7 @@ const UPLOAD_PRESET =
   Constants.expoConfig?.extra?.UPLOAD_PRESET || process.env.UPLOAD_PRESET;
 // --- Cloudinary Config ---
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+const MAX_PARALLEL_UPLOADS = 3;
 // const UPLOAD_PRESET = "property_upload";
 
 /**
@@ -41,6 +42,26 @@ const uploadToCloudinary = async (fileUri: string): Promise<string> => {
 
   const result = await response.json();
   return result.secure_url;
+};
+
+const mapWithConcurrency = async <T, R,>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+      while (nextIndex < items.length) {
+        const currentIndex = nextIndex++;
+        results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      }
+    }),
+  );
+
+  return results;
 };
 
 export interface SubmitResult {
@@ -116,16 +137,18 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
 
       // 1. Check if we need to upload photos
       if (payload.photos && payload.photos.length > 0) {
-        console.log("Starting high-speed Cloudinary uploads...");
+        console.log(
+          `Starting Cloudinary uploads with concurrency ${MAX_PARALLEL_UPLOADS}...`,
+        );
 
-        const uploadPromises = payload.photos.map(async (uri: string) => {
-          // Only upload if it's a local file URI
-          if (uri.startsWith("http")) return uri;
-          return await uploadToCloudinary(uri);
-        });
-
-        // Fire all uploads in parallel
-        payload.photos = await Promise.all(uploadPromises);
+        payload.photos = await mapWithConcurrency(
+          payload.photos,
+          MAX_PARALLEL_UPLOADS,
+          async (uri: string) => {
+            if (uri.startsWith("http")) return uri;
+            return uploadToCloudinary(uri);
+          },
+        );
         console.log("Uploads complete. Photos ready as URLs.");
       }
 
