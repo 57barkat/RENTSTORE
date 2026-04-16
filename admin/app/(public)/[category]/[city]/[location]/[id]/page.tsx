@@ -31,6 +31,7 @@ import {
   hasAllBillsIncluded,
   normalizeCategorySegment,
 } from "@/app/lib/property-utils";
+import PropertyGallery from "@/app/components/properties/PropertyGallery";
 
 interface DetailPageProps {
   params: Promise<{
@@ -92,7 +93,10 @@ const renderAddress = (property: PublicProperty) => {
 
 const getFactRows = (property: PublicProperty) => {
   return [
-    { label: "Category", value: getCategoryLabel(getPropertyCategory(property)) },
+    {
+      label: "Category",
+      value: getCategoryLabel(getPropertyCategory(property)),
+    },
     { label: "City", value: getPropertyCity(property) },
     { label: "Location", value: getPropertyLocation(property) },
     {
@@ -151,8 +155,12 @@ export async function generateMetadata({
 }
 
 export default async function PropertyDetailPage({ params }: DetailPageProps) {
-  const { params: resolvedParams, category, property, canonicalHref } =
-    await resolveProperty(params);
+  const {
+    params: resolvedParams,
+    category,
+    property,
+    canonicalHref,
+  } = await resolveProperty(params);
 
   const currentPath = `/${resolvedParams.category}/${resolvedParams.city}/${resolvedParams.location}/${resolvedParams.id}`;
 
@@ -281,34 +289,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <section className="space-y-8">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-              <div className="grid gap-2 md:grid-cols-[1.4fr_0.6fr]">
-                <div className="aspect-[16/11] overflow-hidden bg-slate-100">
-                  <img
-                    src={galleryImages[0]}
-                    alt={title}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <div className="grid gap-2 p-2 md:grid-rows-2">
-                  {(galleryImages.slice(1, 3).length > 0
-                    ? galleryImages.slice(1, 3)
-                    : [DEFAULT_PROPERTY_IMAGE, DEFAULT_PROPERTY_IMAGE]
-                  ).map((image, index) => (
-                    <div
-                      key={`${image}-${index}`}
-                      className="aspect-[16/9] overflow-hidden rounded-[1.5rem] bg-slate-100"
-                    >
-                      <img
-                        src={image}
-                        alt={`${title} preview ${index + 2}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PropertyGallery galleryImages={galleryImages} title={title} />
 
             <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
@@ -343,10 +324,10 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 </div>
                 <div className="rounded-[1.5rem] bg-slate-50 px-4 py-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Max persons
+                    {property.size?.unit || "Size"}
                   </p>
                   <p className="mt-2 text-2xl font-semibold text-slate-950">
-                    {property.capacityState?.Persons || 0}
+                    {property.size?.value || "Ask for details"}
                   </p>
                 </div>
               </div>
@@ -359,8 +340,8 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                     Pricing options
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Compare every available rate for this property before you book
-                    or contact the host.
+                    Compare every available rate for this property before you
+                    book or contact the host.
                   </p>
                 </div>
                 <p className="text-sm font-medium text-slate-500">
@@ -379,7 +360,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                         {option.label}
                       </p>
                       <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-                        {option.amount ? formatPriceAmount(option.amount) : "Contact"}
+                        {option.amount
+                          ? formatPriceAmount(option.amount)
+                          : "Contact"}
                       </p>
                       <p className="mt-1 text-sm font-medium text-sky-700">
                         {option.suffix}
@@ -410,8 +393,8 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                   ))
                 ) : (
                   <p className="text-slate-500">
-                    Amenity information will appear here once it is available from
-                    the backend listing.
+                    Amenity information will appear here once it is available
+                    from the backend listing.
                   </p>
                 )}
               </div>
@@ -454,7 +437,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
 
                 {(property.rules || []).length > 0 && (
                   <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-950">Rules</h2>
+                    <h2 className="text-lg font-semibold text-slate-950">
+                      Rules
+                    </h2>
                     <ul className="mt-4 space-y-2 text-sm text-slate-600">
                       {property.rules?.map((item) => (
                         <li key={item}>{item}</li>
@@ -475,7 +460,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
                 {(
-                  property.safetyDetailsData?.safetyDetails || ["Verified listing"]
+                  property.safetyDetailsData?.safetyDetails || [
+                    "Verified listing",
+                  ]
                 ).map((detail) => (
                   <span
                     key={detail}
@@ -497,8 +484,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 Contact the listing host
               </h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                This property page is server-rendered for search engines and maps
-                the existing backend schema into a public, responsive detail view.
+                This property page is server-rendered for search engines and
+                maps the existing backend schema into a public, responsive
+                detail view.
               </p>
               {contactPhone ? (
                 <a
@@ -515,7 +503,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
             </div>
 
             <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-950">Listing facts</h2>
+              <h2 className="text-lg font-semibold text-slate-950">
+                Listing facts
+              </h2>
               <dl className="mt-4 space-y-4 text-sm">
                 {getFactRows(property).map((item) => (
                   <div

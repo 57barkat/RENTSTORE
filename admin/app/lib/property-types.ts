@@ -1,6 +1,7 @@
 export type PropertyCategory = "home" | "apartment" | "hostel";
 export type PropertySort = "newest" | "price_asc" | "price_desc" | "popular";
 export type HostelType = "male" | "female" | "mixed";
+export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft.";
 
 export interface PropertyAddress {
   aptSuiteUnit?: string;
@@ -27,6 +28,11 @@ export interface PropertyOwner {
   profileImage?: string;
 }
 
+export interface PropertySize {
+  value?: number;
+  unit?: SizeUnit | string;
+}
+
 export interface PublicProperty {
   _id: string;
   title?: string | { value?: string; name?: string };
@@ -38,6 +44,7 @@ export interface PublicProperty {
   parking?: boolean;
   location?: string;
   area?: string;
+  size?: PropertySize;
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
@@ -78,6 +85,9 @@ export interface PropertySearchFilters {
   location?: string;
   minRent?: number | "";
   maxRent?: number | "";
+  minSize?: number | "";
+  maxSize?: number | "";
+  sizeUnit?: SizeUnit | "";
   amenities?: string[];
   hostelType?: HostelType | "";
   sortBy?: PropertySort;
