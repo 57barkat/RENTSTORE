@@ -5,6 +5,7 @@ import type {
   PropertySearchFilters,
   PropertySort,
   PublicProperty,
+  SizeUnit,
 } from "@/app/lib/property-types";
 
 const CATEGORY_ALIASES: Record<string, PropertyCategory> = {
@@ -32,6 +33,8 @@ const SORT_VALUES: PropertySort[] = [
 
 const HOSTEL_VALUES: HostelType[] = ["male", "female", "mixed"];
 
+const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft."];
+
 export const DEFAULT_PROPERTY_IMAGE =
   "https://placehold.co/1200x800/png?text=AnganStay+Listing";
 
@@ -47,7 +50,10 @@ const toText = (value: unknown): string => {
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => toText(item)).filter(Boolean).join(", ");
+    return value
+      .map((item) => toText(item))
+      .filter(Boolean)
+      .join(", ");
   }
 
   if (typeof value === "object") {
@@ -135,6 +141,13 @@ export const parsePropertySearchParams = (
     maxRent:
       toPositiveNumber(toSingleValue(searchParams.maxRent)) ||
       toPositiveNumber(toSingleValue(searchParams.maxPrice)),
+    minSize: toPositiveNumber(toSingleValue(searchParams.minSize)),
+    maxSize: toPositiveNumber(toSingleValue(searchParams.maxSize)),
+    sizeUnit: SIZE_UNIT_VALUES.includes(
+      toSingleValue(searchParams.sizeUnit) as SizeUnit,
+    )
+      ? (toSingleValue(searchParams.sizeUnit) as SizeUnit)
+      : "",
     amenities:
       (toSingleValue(searchParams.amenities) || "")
         .split(",")
@@ -177,6 +190,18 @@ export const buildPropertySearchQuery = (
     params.set("maxRent", String(filters.maxRent));
   }
 
+  if (filters.minSize !== "" && filters.minSize !== undefined) {
+    params.set("minSize", String(filters.minSize));
+  }
+
+  if (filters.maxSize !== "" && filters.maxSize !== undefined) {
+    params.set("maxSize", String(filters.maxSize));
+  }
+
+  if (filters.sizeUnit) {
+    params.set("sizeUnit", filters.sizeUnit);
+  }
+
   if (filters.amenities?.length) {
     params.set("amenities", filters.amenities.join(","));
   }
@@ -207,6 +232,18 @@ export const buildPropertyBrowserQuery = (
 
   if (filters.maxRent !== "" && filters.maxRent !== undefined) {
     params.set("maxRent", String(filters.maxRent));
+  }
+
+  if (filters.minSize !== "" && filters.minSize !== undefined) {
+    params.set("minSize", String(filters.minSize));
+  }
+
+  if (filters.maxSize !== "" && filters.maxSize !== undefined) {
+    params.set("maxSize", String(filters.maxSize));
+  }
+
+  if (filters.sizeUnit) {
+    params.set("sizeUnit", filters.sizeUnit);
   }
 
   if (filters.amenities?.length) {
@@ -243,7 +280,9 @@ export const getPropertyAddresses = (
     return [];
   }
 
-  return Array.isArray(property.address) ? property.address : [property.address];
+  return Array.isArray(property.address)
+    ? property.address
+    : [property.address];
 };
 
 export const getPropertyCategory = (
@@ -490,9 +529,13 @@ export const buildListingDescription = (
       ? `${totalResults} ${totalResults === 1 ? "listing" : "listings"}`
       : "Verified listings";
 
-  return `${resultPrefix} for ${getCategoryKeyword(filters.category)} in ${
-    filters.city || "Islamabad"
-  } near ${filters.location || "prime locations"}. Filter by price, amenities, and locality with server-rendered SEO metadata.`;
+  const category = getCategoryKeyword(filters.category);
+  const city = filters.city || "Islamabad";
+  const location = filters.location
+    ? `in ${filters.location}`
+    : "prime locations";
+
+  return `${resultPrefix} for ${category} in ${city} ${location}. Find the perfect match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`;
 };
 
 export const buildPropertyMetadataTitle = (

@@ -63,6 +63,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     lng,
     radiusKm,
     area,
+    minSize,
+    maxSize,
+    sizeUnit,
   } = filters;
 
   const mongoFilter: any = {
@@ -131,6 +134,27 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
 
     // Push to andConditions to avoid overwriting other filters
     andConditions.push({ $or: priceConditions });
+  }
+
+  // Size
+  if (minSize !== undefined || maxSize !== undefined || sizeUnit) {
+    const sizeQuery: any = {};
+    if (minSize !== undefined) sizeQuery.$gte = Number(minSize);
+    if (maxSize !== undefined) sizeQuery.$lte = Number(maxSize);
+
+    const sizeConditions: any[] = [];
+
+    if (Object.keys(sizeQuery).length > 0) {
+      sizeConditions.push({ "size.value": sizeQuery });
+    }
+
+    if (sizeUnit) {
+      sizeConditions.push({ "size.unit": sizeUnit });
+    }
+
+    if (sizeConditions.length > 0) {
+      andConditions.push({ $and: sizeConditions });
+    }
   }
 
   // Host options

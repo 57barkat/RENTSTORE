@@ -3,7 +3,10 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import type { PropertyCategory, PropertySearchFilters } from "@/app/lib/property-types";
+import type {
+  PropertyCategory,
+  PropertySearchFilters,
+} from "@/app/lib/property-types";
 import {
   buildPropertyBrowserQuery,
   parsePropertySearchParams,

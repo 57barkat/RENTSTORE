@@ -3,7 +3,7 @@
 import { memo, useEffect, useState } from "react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";
-import type { PropertyCategory } from "@/app/lib/property-types";
+import type { PropertyCategory, SizeUnit } from "@/app/lib/property-types";
 
 interface FilterSidebarProps {
   category: PropertyCategory;
@@ -11,6 +11,7 @@ interface FilterSidebarProps {
 }
 
 const AMENITIES = ["WiFi", "AC", "Parking", "Laundry", "Gym"];
+const SIZE_UNITS = ["Marla", "Kanal", "Sq. Ft."] as const;
 
 const FilterSidebarComponent = ({
   category,
@@ -19,25 +20,26 @@ const FilterSidebarComponent = ({
   const { filters, updateFilters, resetFilters } = useProperties(category);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    if (!mobileOpen) {
-      return undefined;
-    }
+  const showSizeFilters = category === "home" || category === "apartment";
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = originalOverflow;
     };
   }, [mobileOpen]);
 
-  const commitPriceFilter = (
-    key: "minRent" | "maxRent",
-    rawValue: string,
-  ) => {
+  const commitPriceFilter = (key: "minRent" | "maxRent", rawValue: string) => {
     const trimmed = rawValue.trim();
+    updateFilters({
+      [key]: trimmed ? Number(trimmed) : "",
+    });
+  };
 
+  const commitSizeFilter = (key: "minSize" | "maxSize", rawValue: string) => {
+    const trimmed = rawValue.trim();
     updateFilters({
       [key]: trimmed ? Number(trimmed) : "",
     });
@@ -48,7 +50,9 @@ const FilterSidebarComponent = ({
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-slate-950">Filters</p>
-          <p className="text-sm text-slate-500">{totalResults} indexed results</p>
+          <p className="text-sm text-slate-500">
+            {totalResults} indexed results
+          </p>
         </div>
         <button
           type="button"
@@ -94,7 +98,9 @@ const FilterSidebarComponent = ({
               if (event.key === "Enter") {
                 event.preventDefault();
                 updateFilters({
-                  location: (event.currentTarget as HTMLInputElement).value.trim(),
+                  location: (
+                    event.currentTarget as HTMLInputElement
+                  ).value.trim(),
                 });
               }
             }}
@@ -166,6 +172,97 @@ const FilterSidebarComponent = ({
           </div>
         </div>
 
+        {showSizeFilters && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Min size
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  key={`min-size-${filters.minSize ?? "blank"}`}
+                  defaultValue={
+                    filters.minSize === "" || filters.minSize === undefined
+                      ? ""
+                      : String(filters.minSize)
+                  }
+                  onBlur={(event) =>
+                    commitSizeFilter("minSize", event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitSizeFilter(
+                        "minSize",
+                        (event.currentTarget as HTMLInputElement).value,
+                      );
+                      (event.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Max size
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  key={`max-size-${filters.maxSize ?? "blank"}`}
+                  defaultValue={
+                    filters.maxSize === "" || filters.maxSize === undefined
+                      ? ""
+                      : String(filters.maxSize)
+                  }
+                  onBlur={(event) =>
+                    commitSizeFilter("maxSize", event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      commitSizeFilter(
+                        "maxSize",
+                        (event.currentTarget as HTMLInputElement).value,
+                      );
+                      (event.currentTarget as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Size Unit Selector */}
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Size unit
+              </label>
+              <select
+                value={filters.sizeUnit || ""}
+                onChange={(event) =>
+                  updateFilters({
+                    sizeUnit: event.target.value as SizeUnit,
+                  })
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+              >
+                <option value="">All units</option>
+                {SIZE_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Sort */}
         <div>
           <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Sort

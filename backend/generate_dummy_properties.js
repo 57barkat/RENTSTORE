@@ -158,6 +158,11 @@ function generateProperties(count = 500) {
         floorLevel: randomInt(0, 5),
       },
 
+      size: {
+        value: randomInt(5, 50),
+        unit: randomChoice(["Marla", "Kanal", "Sq. Ft."]),
+      },
+
       description: { highlighted: randomSubarray(HIGHLIGHTS, 2, 4) },
       safetyDetailsData: {
         safetyDetails: randomSubarray(SAFETY_DETAILS, 2, 5),

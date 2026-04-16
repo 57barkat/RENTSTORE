@@ -31,7 +31,9 @@ interface PageProps {
 
 const getCategoryRouteContext = async (
   paramsPromise: Promise<{ category: string }>,
-  searchParamsPromise: Promise<{ [key: string]: string | string[] | undefined }>,
+  searchParamsPromise: Promise<{
+    [key: string]: string | string[] | undefined;
+  }>,
 ) => {
   const params = await paramsPromise;
   const searchParams = await searchParamsPromise;
@@ -108,9 +110,16 @@ const buildPaginationHref = (
   return `${pathname}?${query}`;
 };
 
-export default async function CategoryPage({ params, searchParams }: PageProps) {
-  const { params: resolvedParams, category, canonicalCategory, filters } =
-    await getCategoryRouteContext(params, searchParams);
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const {
+    params: resolvedParams,
+    category,
+    canonicalCategory,
+    filters,
+  } = await getCategoryRouteContext(params, searchParams);
 
   if (resolvedParams.category !== canonicalCategory) {
     const query = buildPropertyBrowserQuery(filters);
@@ -125,7 +134,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     limit: filters.limit || 12,
     totalPages: 0,
   };
-
   try {
     response = await PropertyService.searchProperties(filters);
   } catch (error) {
@@ -195,8 +203,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                 {response.total}
               </p>
               <p className="max-w-[14rem] text-right text-sm leading-6 text-slate-500">
-                Server-rendered {getCategoryLabel(category, true).toLowerCase()} with
-                dynamic SEO metadata for category, city, and location keywords.
+                Verified {getCategoryLabel(category, true).toLowerCase()}{" "}
+                available in {filters.city || "your area"} with real-time
+                availability updates.
               </p>
             </div>
           </div>
@@ -211,7 +220,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
             {fetchError && (
               <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
                 We couldn&apos;t load live listings right now. The page is still
-                available for SEO, and you can retry in a moment.
+                available, and you can retry in a moment.
               </div>
             )}
 
@@ -267,7 +276,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   <PropertyCard
                     key={property._id}
                     property={property}
-                    previewHref={buildPreviewHref(pathname, filters, property._id)}
+                    previewHref={buildPreviewHref(
+                      pathname,
+                      filters,
+                      property._id,
+                    )}
                   />
                 ))}
               </div>

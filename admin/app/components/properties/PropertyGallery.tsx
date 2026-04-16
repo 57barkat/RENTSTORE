@@ -1,0 +1,113 @@
+"use client";
+
+import { useState } from "react";
+import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface GalleryProps {
+  galleryImages: string[];
+  title: string;
+}
+
+export default function PropertyGallery({
+  galleryImages,
+  title,
+}: GalleryProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [index, setIndex] = useState(0);
+
+  const openLightbox = (i: number) => {
+    setIndex(i);
+    setIsOpen(true);
+  };
+
+  return (
+    <>
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="grid gap-2 md:grid-cols-[1.4fr_0.6fr]">
+          {/* Main Image */}
+          <div
+            className="group relative aspect-[16/11] cursor-pointer overflow-hidden bg-slate-100"
+            onClick={() => openLightbox(0)}
+          >
+            <img
+              src={galleryImages[0]}
+              alt={title}
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
+              <ZoomIn className="text-white" size={32} />
+            </div>
+          </div>
+
+          {/* Side Previews */}
+          <div className="grid gap-2 p-2 md:grid-rows-2">
+            {galleryImages.slice(1, 3).map((image, i) => (
+              <div
+                key={i}
+                className="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-[1.5rem] bg-slate-100"
+                onClick={() => openLightbox(i + 1)}
+              >
+                <img
+                  src={image}
+                  alt={`${title} preview`}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                />
+                {i === 1 && galleryImages.length > 3 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-medium">
+                    +{galleryImages.length - 3} more
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox Overlay */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl"
+          >
+            <button
+              onClick={() => setIsOpen(false)}
+              className="absolute right-8 top-8 z-[110] text-white hover:bg-white/10 p-2 rounded-full"
+            >
+              <X size={30} />
+            </button>
+
+            <button
+              onClick={() =>
+                setIndex(
+                  (index + galleryImages.length - 1) % galleryImages.length,
+                )
+              }
+              className="absolute left-8 z-[110] text-white p-4"
+            >
+              <ChevronLeft size={48} />
+            </button>
+
+            <motion.img
+              key={index}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              src={galleryImages[index]}
+              className="h-[85vh] w-[90vw] object-contain"
+            />
+
+            <button
+              onClick={() => setIndex((index + 1) % galleryImages.length)}
+              className="absolute right-8 z-[110] text-white p-4"
+            >
+              <ChevronRight size={48} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
