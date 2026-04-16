@@ -107,6 +107,18 @@ export class Property extends Document {
   @Prop({ type: Boolean }) parking?: boolean;
 
   @Prop({
+    type: {
+      value: Number,
+      unit: { type: String, enum: ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."] },
+      _id: false,
+    },
+  })
+  size?: {
+    value: number;
+    unit: string;
+  };
+
+  @Prop({
     type: String,
     enum: ["male", "female", "mixed"],
   })
@@ -222,3 +234,4 @@ PropertySchema.index({
   monthlyRent: 1,
   createdAt: -1,
 });
+PropertySchema.index({ "size.value": 1, "size.unit": 1 });

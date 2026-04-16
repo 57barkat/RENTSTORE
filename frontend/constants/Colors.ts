@@ -12,8 +12,8 @@ export const Colors = {
 
     tint: tintColorLight,
     // primary: "#da6623", // Deep Navy (Trust)
-    primary: "#10B981", // Deep Navy (Trust)
-    secondary: "#10B981", // Emerald Green (Success/Growth)
+    primary: "#000080", // Deep Navy (Trust)
+    secondary: "#000080", // Emerald Green (Success/Growth)
     accent: "#f59f0bb0", // Amber for "New" or "Featured" tags
     danger: "#E11D48",
     featured: "#fb2424be", // Amber for "Featured" properties

@@ -85,20 +85,19 @@ const FinalAddressDetailsScreen: FC = () => {
     const result = await submitData({ ...data, address: addresses });
 
     if (result.success) {
+      setLoading(false);
+      clearForm();
       Toast.show({
         type: "success",
-        text1: "Property listed successfully!",
+        text1: "Property queued successfully",
+        text2: "Uploads will continue in the background.",
       });
-      setTimeout(() => {
-        router.replace("/MyListingsScreen");
-        clearForm();
-        setLoading(false);
-      }, 1500);
+      router.replace("/MyListingsScreen");
     } else {
       setLoading(false);
       Toast.show({
         type: "error",
-        text1: "Upload failed",
+        text1: "Queueing failed",
         text2: "Please try again later.",
       });
     }
@@ -204,7 +203,7 @@ const FinalAddressDetailsScreen: FC = () => {
         >
           <ActivityIndicator size="large" color="#fff" />
           <Text style={{ color: "#fff", marginTop: 10, fontSize: 16 }}>
-            Uploading your property...
+            Queueing your property...
           </Text>
         </View>
       )}

@@ -9,9 +9,9 @@ import {
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
-import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import { VoiceSearchService } from "./voice-search.service";
 import { AuthGuard } from "@nestjs/passport";
+import { RateLimit } from "../common/decorators/rate-limit.decorator";
 @UseGuards(AuthGuard("jwt"))
 @Controller("search")
 export class VoiceSearchController {

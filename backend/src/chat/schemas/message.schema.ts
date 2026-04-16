@@ -6,20 +6,20 @@ export type MessageDocument = Message & Document;
 @Schema({ timestamps: true })
 export class Message {
   @Prop({ type: Types.ObjectId, required: true, ref: "ChatRoom" })
-  chatRoomId: string;
+  chatRoomId!: string;
 
   @Prop({ type: Types.ObjectId, required: true, ref: "User" })
-  senderId: Types.ObjectId;
+  senderId!: Types.ObjectId;
 
   @Prop({ type: String, required: true })
-  text: string;
+  text!: string;
   @Prop({ type: [{ type: Types.ObjectId, ref: "User" }], default: [] })
-  readBy: Types.ObjectId[];
+  readBy!: Types.ObjectId[];
   @Prop(() => Date)
-  createdAt: Date;
+  createdAt!: Date;
 
   @Prop(() => Date)
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

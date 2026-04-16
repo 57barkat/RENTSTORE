@@ -7,7 +7,7 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext } from "@/contextStore/FormContext";
 
-const MIN_PRICE = 10;
+const MIN_PRICE = 0;
 
 const PricingScreen: FC = () => {
   const context = useContext(FormContext);

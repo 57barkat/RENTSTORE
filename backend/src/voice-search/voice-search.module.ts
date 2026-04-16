@@ -7,7 +7,7 @@ import { VoiceSessionService } from "./voice-session.service";
 import { VoiceSession, VoiceSessionSchema } from "./voice-session.schema";
 
 import { PropertyModule } from "../modules/property/property.module";
-import { User, UserSchema } from "src/modules/user/user.entity";
+import { User, UserSchema } from "../modules/user/user.entity";
 
 @Module({
   imports: [

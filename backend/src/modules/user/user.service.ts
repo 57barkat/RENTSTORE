@@ -11,11 +11,11 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
 import * as admin from "firebase-admin";
-import { EmailService } from "src/services/email/email.service";
-import { Agency, AgencyDocument } from "../Agency/agency.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
 import { Property } from "../property/property.schema";
 import { ResetPasswordDto } from "./dto/forgot-password.dto";
+import { Agency, AgencyDocument } from "../Agency/agency.entity";
+import { EmailService } from "../../services/email/email.service";
 
 @Injectable()
 export class UserService {
@@ -30,6 +30,7 @@ export class UserService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
+    // 1. Check for existing users
     const conflict = await this.userModel.findOne({
       $or: [{ email: dto.email }, { phone: dto.phone }, { cnic: dto.cnic }],
     });
@@ -43,11 +44,12 @@ export class UserService {
         throw new BadRequestException("CNIC_EXISTS");
     }
 
-    const password = await bcrypt.hash(dto.password, 10);
+    // 2. Hash the password
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const role = dto.role;
-
-    let propertyLimit = 0;
+    // 3. Determine property limit based on role
+    const role = dto.role || UserRole.USER;
+    let propertyLimit = 1;
 
     switch (role) {
       case UserRole.USER:
@@ -61,30 +63,43 @@ export class UserService {
         break;
     }
 
+    // 4. Extract fields to avoid saving "confirmPassword" or DTO-only fields
+    // This prevents the "property should not exist" issue if you decide to send it
+    const {
+      acceptedTerms,
+      isAgencyPerson,
+      agencyName,
+      agencyLogo,
+      agencyAddress,
+      ...cleanedData
+    } = dto;
+
     const user = await this.userModel.create({
-      ...dto,
-      password,
+      ...cleanedData,
+      password: hashedPassword,
       role,
       propertyLimit,
       isEmailVerified: false,
       isPhoneVerified: false,
-      TermsAndConditionsAccepted: dto.acceptedTerms,
+      TermsAndConditionsAccepted: acceptedTerms,
     });
 
-    if (role === UserRole.AGENCY && dto.agencyName) {
+    // 5. Handle Agency Creation if applicable
+    if (role === UserRole.AGENCY && agencyName) {
       const agency = await this.agencyModel.create({
-        name: dto.agencyName,
-        logo: dto.agencyLogo,
-        address: dto.agencyAddress,
+        name: agencyName,
+        logo: agencyLogo,
+        address: agencyAddress,
         owner: user._id,
         agents: [],
       });
 
       user.agency = agency._id as any;
-      user.propertyLimit = 50;
+      // user.propertyLimit = 50; // Already set in the switch above
       await user.save();
     }
 
+    // 6. Send verification
     await this.sendEmailVerificationCode(user.email);
 
     return user;

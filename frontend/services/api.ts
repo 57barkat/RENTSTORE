@@ -126,6 +126,7 @@ export const api = createApi({
           },
         };
       },
+      invalidatesTags: ["Property", "DraftProperties"],
     }),
     findPropertyByIdAndUpdate: builder.mutation({
       query: ({ id, data }) => ({
@@ -164,6 +165,7 @@ export const api = createApi({
           city,
         },
       }),
+      providesTags: ["Property"],
     }),
 
     findPropertyById: builder.query({

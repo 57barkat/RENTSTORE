@@ -25,7 +25,6 @@ import {
 } from "@/utils/homeTabUtils/filterUtils";
 import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
 import { useGetAddressSuggestionsQuery } from "@/services/api";
-// import { Filters } from "@/utils/homeTabUtils/filterUtils";
 
 interface Props {
   visible: boolean;
@@ -240,7 +239,7 @@ export const FilterModal: React.FC<Props> = ({
                   },
                 ]}
               >
-                <Text style={styles.currencyPrefix}>$</Text>
+                <Text style={styles.currencyPrefix}>Rs</Text>
                 <TextInput
                   style={[styles.cleanInput, { color: theme.text }]}
                   keyboardType="numeric"
@@ -266,7 +265,7 @@ export const FilterModal: React.FC<Props> = ({
                   },
                 ]}
               >
-                <Text style={styles.currencyPrefix}>$</Text>
+                <Text style={styles.currencyPrefix}>Rs</Text>
                 <TextInput
                   style={[styles.cleanInput, { color: theme.text }]}
                   keyboardType="numeric"
@@ -281,6 +280,90 @@ export const FilterModal: React.FC<Props> = ({
                   }
                 />
               </View>
+            </View>
+          </View>
+
+          {/* Property Size Filter (NEW) */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionLabel}>Property Size</Text>
+            <View style={styles.row}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    flex: 1,
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.cleanInput, { color: theme.text }]}
+                  keyboardType="numeric"
+                  placeholder="Min Size"
+                  placeholderTextColor={theme.muted}
+                  value={filters.minSize?.toString() || ""}
+                  onChangeText={(txt) =>
+                    setFilters({
+                      ...filters,
+                      minSize: txt ? parseInt(txt) : undefined,
+                    })
+                  }
+                />
+              </View>
+              <View style={styles.rangeDivider} />
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    flex: 1,
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[styles.cleanInput, { color: theme.text }]}
+                  keyboardType="numeric"
+                  placeholder="Max Size"
+                  placeholderTextColor={theme.muted}
+                  value={filters.maxSize?.toString() || ""}
+                  onChangeText={(txt) =>
+                    setFilters({
+                      ...filters,
+                      maxSize: txt ? parseInt(txt) : undefined,
+                    })
+                  }
+                />
+              </View>
+            </View>
+            <View style={[styles.chipRow, { marginTop: 12 }]}>
+              {["Marla", "Sq. Ft.", "Kanal"].map((unit) => (
+                <TouchableOpacity
+                  key={unit}
+                  onPress={() => setFilters({ ...filters, sizeUnit: unit })}
+                  style={[
+                    styles.unitChip,
+                    {
+                      borderColor: theme.border,
+                      backgroundColor:
+                        filters.sizeUnit === unit
+                          ? theme.secondary
+                          : "transparent",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: filters.sizeUnit === unit ? "#fff" : theme.text,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {unit}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
@@ -332,7 +415,7 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           </View>
 
-          {/* Hostel Type - only if hostel */}
+          {/* Hostel Type */}
           {hostOption === "hostel" && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionLabel}>Hostel Type</Text>
@@ -340,10 +423,7 @@ export const FilterModal: React.FC<Props> = ({
                 options={hostelTypeOptions.map((h) => h.label)}
                 selectedOptions={filters.hostelType ? [filters.hostelType] : []}
                 onChange={(v) =>
-                  setFilters({
-                    ...filters,
-                    hostelType: v[0] as "female" | "male" | "mixed" | undefined,
-                  })
+                  setFilters({ ...filters, hostelType: v[0] as any })
                 }
                 theme={theme}
               />
@@ -361,7 +441,7 @@ export const FilterModal: React.FC<Props> = ({
             />
           </View>
 
-          {/* Bills - only if home/apartment */}
+          {/* Bills */}
           {hostOption !== "hostel" && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionLabel}>Bills</Text>
@@ -374,30 +454,28 @@ export const FilterModal: React.FC<Props> = ({
             </View>
           )}
 
-          {/* Meal Plan - only hostel */}
+          {/* Meal Plan & Rules for Hostels */}
           {hostOption === "hostel" && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionLabel}>Meal Plan</Text>
-              <MultiSelectChips
-                options={MEAL_PLAN}
-                selectedOptions={filters.mealPlan || []}
-                onChange={(v) => setFilters({ ...filters, mealPlan: v })}
-                theme={theme}
-              />
-            </View>
-          )}
-
-          {/* Rules - only hostel */}
-          {hostOption === "hostel" && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionLabel}>Rules</Text>
-              <MultiSelectChips
-                options={RULES}
-                selectedOptions={filters.rules || []}
-                onChange={(v) => setFilters({ ...filters, rules: v })}
-                theme={theme}
-              />
-            </View>
+            <>
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionLabel}>Meal Plan</Text>
+                <MultiSelectChips
+                  options={MEAL_PLAN}
+                  selectedOptions={filters.mealPlan || []}
+                  onChange={(v) => setFilters({ ...filters, mealPlan: v })}
+                  theme={theme}
+                />
+              </View>
+              <View style={styles.sectionContainer}>
+                <Text style={styles.sectionLabel}>Rules</Text>
+                <MultiSelectChips
+                  options={RULES}
+                  selectedOptions={filters.rules || []}
+                  onChange={(v) => setFilters({ ...filters, rules: v })}
+                  theme={theme}
+                />
+              </View>
+            </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -435,12 +513,12 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 20 },
   sectionContainer: { marginBottom: 25 },
   sectionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "800",
     color: "#8E8E93",
-    marginBottom: 10,
+    marginBottom: 12,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   inputWrapper: {
     flexDirection: "row",
@@ -451,16 +529,27 @@ const styles = StyleSheet.create({
     height: 50,
   },
   inputIcon: { marginRight: 8 },
-  cleanInput: { flex: 1, fontSize: 16, height: "100%" },
-  currencyPrefix: { marginRight: 4, fontSize: 16, color: "#8E8E93" },
+  cleanInput: { flex: 1, fontSize: 15, height: "100%" },
+  currencyPrefix: {
+    marginRight: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#8E8E93",
+  },
   row: { flexDirection: "row", alignItems: "center" },
   rangeDivider: {
     width: 10,
     height: 1,
-    backgroundColor: "#8E8E93",
+    backgroundColor: "#D1D1D6",
     marginHorizontal: 10,
   },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  unitChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   suggestionBox: {
     borderRadius: 12,
     borderWidth: 1,
@@ -483,11 +572,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  applyText: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  applyText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

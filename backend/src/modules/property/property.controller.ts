@@ -16,7 +16,6 @@ import {
 } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { AuthGuard } from "@nestjs/passport";
-import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
@@ -26,8 +25,9 @@ import {
   parseArrayFields,
   parseNumericFields,
 } from "./utils/property.utils";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
-import { GetUser, Public } from "src/common/decorators/public.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
+import { GetUser, Public } from "../../common/decorators/public.decorator";
 
 interface PaginationQuery {
   page?: number;
@@ -41,7 +41,7 @@ export class PropertyController {
 
   @Post("create")
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
-  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 10 }]))
+  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
   async createProperty(
     @Body() dto: Partial<CreatePropertyDto>,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
@@ -191,6 +191,7 @@ export class PropertyController {
       userId,
     );
   }
+  @Public()
   @Get("search")
   @RateLimit({ limit: 120, windowMs: 60_000, scope: "userOrIp" })
   async searchProperties(@Query() query: Record<string, any>, @Req() req: any) {

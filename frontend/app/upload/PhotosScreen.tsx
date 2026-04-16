@@ -88,7 +88,7 @@ const PhotosScreen: FC = () => {
 
   // --- Navigation & Validation ---
   const handleNext = () => {
-    if (selectedImages.length < 5) {
+    if (selectedImages.length < 2) {
       Toast.show({
         type: "error",
         text1: "Add more photos",

@@ -7,7 +7,7 @@ import { FormContext } from "@/contextStore/FormContext";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 
-const MAX_TITLE_LENGTH = 50;
+const MAX_TITLE_LENGTH = 150;
 const MIN_TITLE_LENGTH = 5;
 
 const ListingTitleScreen: FC = () => {
@@ -23,7 +23,9 @@ const ListingTitleScreen: FC = () => {
 
   const handleNext = () => {
     updateForm("title", title);
-    router.push("/upload/ListingDescriptionHighlightsScreen" as `${string}:param`);
+    router.push(
+      "/upload/ListingDescriptionHighlightsScreen" as `${string}:param`,
+    );
   };
 
   const isNextDisabled = title.length < MIN_TITLE_LENGTH;

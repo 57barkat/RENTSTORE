@@ -3,8 +3,8 @@ import fetch from "node-fetch";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { PropertyService } from "../modules/property/property.service";
-import { User, UserDocument } from "src/modules/user/user.entity";
 import { VoiceSessionService } from "./voice-session.service";
+import { User, UserDocument } from "../modules/user/user.entity";
 
 @Injectable()
 export class VoiceSearchService {
@@ -79,7 +79,10 @@ export class VoiceSearchService {
       );
     }
 
-    const extractedFilters = this.ensureHostOption(aiData.filters, transcription);
+    const extractedFilters = this.ensureHostOption(
+      aiData.filters,
+      transcription,
+    );
     const normalizedFilters = this.normalizeFilters(extractedFilters);
     const session = await this.voiceSessionService.getSession(userId);
 

@@ -6,7 +6,7 @@ export type AgencyDocument = Agency & Document;
 @Schema({ timestamps: true })
 export class Agency {
   @Prop({ required: true })
-  name: string;
+  name!: string;
 
   @Prop()
   logo?: string;
@@ -15,10 +15,10 @@ export class Agency {
   address?: string;
 
   @Prop({ type: Types.ObjectId, ref: "User", required: true })
-  owner: Types.ObjectId;
+  owner!: Types.ObjectId;
 
   @Prop({ type: [{ type: Types.ObjectId, ref: "User" }], default: [] })
-  agents: Types.ObjectId[];
+  agents!: Types.ObjectId[];
 }
 
 export const AgencySchema = SchemaFactory.createForClass(Agency);

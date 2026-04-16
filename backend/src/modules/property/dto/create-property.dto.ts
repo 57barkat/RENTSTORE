@@ -9,6 +9,7 @@ import {
   IsDateString,
   Min,
   Max,
+  IsNotEmpty,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { Property, PropertyModerationStatus } from "../property.schema";
@@ -39,7 +40,17 @@ class SafetyDetailsDataDto {
 class DescriptionDto {
   @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
 }
+class PropertySizeDto {
+  @IsNumber()
+  @IsNotEmpty()
+  value!: number;
 
+  @IsEnum(["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."], {
+    message: "Unit must be one of: Marla, Kanal, Sq. Ft., Sq. Yd.",
+  })
+  @IsNotEmpty()
+  unit!: string;
+}
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
@@ -129,7 +140,7 @@ export class CreatePropertyDto {
   @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
 
   // --- Relations ---
-  @IsString() ownerId: string;
+  @IsString() ownerId!: string;
   @IsOptional() @IsString() agency?: string;
   @IsOptional() @IsString() listedBy?: string;
 
@@ -152,6 +163,11 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsEnum(PropertyModerationStatus)
   moderationStatus?: PropertyModerationStatus;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PropertySizeDto)
+  size?: PropertySizeDto;
 
   // --- Sorting & Weights (Crucial for the new system) ---
   @Transform(({ value }) => (value !== undefined ? Number(value) : 1))
