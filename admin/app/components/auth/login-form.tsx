@@ -31,7 +31,7 @@ export default function LoginPage() {
         maxAge: 30 * 24 * 60 * 60,
       });
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error(error);
       alert("Invalid credentials. Please try again.");
@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar relative overflow-hidden">
           <div className="z-10">
             <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20">
-              <span className="text-white font-bold text-xl">R</span>
+              <span className="text-white font-bold text-xl">A</span>
             </div>
             <h2 className="text-4xl font-bold text-white leading-tight">
               Manage your <br />

@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import StatCard from "@/app/components/stat-card";
-import apiClient from "@/app/lib/api-client";
-import { Home, Users, Clock, ShieldAlert, Loader2 } from "lucide-react";
 import PropertyTrends from "@/app/components/sales-report";
 import ContentStatus from "@/app/components/cost-breakdown";
+import { Home, Users, Clock, ShieldAlert } from "lucide-react";
 
-interface DashboardData {
+export interface DashboardData {
   overview: {
     users: { total: number; trend: number; lastMonth: number };
     properties: { total: number; trend: number; lastMonth: number };
@@ -17,37 +15,19 @@ interface DashboardData {
   trends: { name: string; uploads: number }[];
 }
 
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await apiClient.get("/admin/stats");
-        setData(response.data);
-      } catch (error) {
-        console.error("Failed to fetch stats:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboardData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] w-full items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const { overview, trends } = data!;
+export default function DashboardScreen({
+  initialData,
+}: {
+  initialData: DashboardData;
+}) {
+  const { overview, trends } = initialData;
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div
+      className="mx-auto max-w-[1600px] space-y-6 animate-in fade-in duration-500"
+      style={{ width: "100%" }}
+    >
+      <div className="w-full grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Users"
           value={overview.users.total}
@@ -89,7 +69,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-6">
+      <div className="flex flex-col gap-6 xl:flex-row">
         <PropertyTrends data={trends} />
         <ContentStatus overview={overview} />
       </div>

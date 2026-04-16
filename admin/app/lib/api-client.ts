@@ -1,59 +1,92 @@
 import axios from "axios";
-import { parseCookies, setCookie, destroyCookie } from "nookies";
+import type { AxiosHeaders, InternalAxiosRequestConfig } from "axios";
+import { destroyCookie, parseCookies, setCookie } from "nookies";
+
+const API_BASE_URL = (
+  process.env.API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://banefully-jointed-freya.ngrok-free.dev/api/v1"
+).replace(/\/$/, "");
+
+const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
+
+const assertServerBaseUrl = () => {
+  if (!API_BASE_URL && typeof window === "undefined") {
+    throw new Error(
+      "Missing API_URL or NEXT_PUBLIC_API_URL for server-side requests.",
+    );
+  }
+};
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: API_BASE_URL || undefined,
 });
-apiClient.interceptors.request.use((config) => {
-  console.log("API Client Initialized with baseURL:", "aganstaysecretkey");
+
+apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  assertServerBaseUrl();
+
   const cookies = parseCookies();
   const token = cookies["admin_token"];
 
-  config.headers["x-frontend-secret"] = "aganstaysecretkey";
+  config.baseURL = config.baseURL || API_BASE_URL || undefined;
 
+  const headers = config.headers as AxiosHeaders & Record<string, string>;
+
+  // ✅ Always send frontend secret (for SSR / public validation)
+  headers["x-frontend-secret"] = FRONTEND_SECRET;
+
+  // ✅ Send JWT if available
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
+
       const cookies = parseCookies();
       const refreshToken = cookies["refresh_token"];
 
-      if (refreshToken) {
+      if (refreshToken && API_BASE_URL) {
         try {
-          const res = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/users/refresh`,
-            { refreshToken: refreshToken },
-            {
-              headers: {
-                "x-frontend-secret": "aganstaysecretkey",
-              },
-            },
-          );
+          const res = await axios.post(`${API_BASE_URL}/users/refresh`, {
+            refreshToken,
+          });
 
           const newToken = res.data.accessToken;
+
           setCookie(null, "admin_token", newToken, { path: "/" });
 
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-
-          originalRequest.headers["x-frontend-secret"] = "aganstaysecretkey";
+          originalRequest.headers = originalRequest.headers || {};
+          (
+            originalRequest.headers as AxiosHeaders & Record<string, string>
+          ).Authorization = `Bearer ${newToken}`;
 
           return apiClient(originalRequest);
         } catch (refreshError) {
           destroyCookie(null, "admin_token");
           destroyCookie(null, "refresh_token");
-          window.location.href = "/login";
+
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
         }
       }
     }
+
     return Promise.reject(error);
   },
 );

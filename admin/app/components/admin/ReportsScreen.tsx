@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
-import { ReportsService } from "@/app/services/reports.service";
+
+import { useMemo, useState } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
   CheckCircle,
@@ -10,7 +10,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-// --- Types ---
+import { ReportsService } from "@/app/services/reports.service";
+
 interface Property {
   _id: string;
   title: string;
@@ -21,7 +22,7 @@ interface Reporter {
   email: string;
 }
 
-interface Report {
+export interface Report {
   _id: string;
   propertyId: Property;
   reporterId: Reporter;
@@ -29,9 +30,13 @@ interface Report {
   status: "PENDING" | "RESOLVED" | "REJECTED";
 }
 
-export default function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ReportsScreen({
+  initialReports,
+}: {
+  initialReports: Report[];
+}) {
+  const [reports, setReports] = useState<Report[]>(initialReports);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"PENDING" | "RESOLVED">("PENDING");
 
@@ -47,41 +52,44 @@ export default function ReportsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
-
   const pendingReports = useMemo(
-    () => reports.filter((r) => r.status === "PENDING"),
+    () => reports.filter((report) => report.status === "PENDING"),
     [reports],
   );
   const resolvedReports = useMemo(
-    () => reports.filter((r) => r.status !== "PENDING"),
+    () => reports.filter((report) => report.status !== "PENDING"),
     [reports],
   );
   const displayedReports =
     activeTab === "PENDING" ? pendingReports : resolvedReports;
 
   const toggleSelect = (id: string) => {
-    const copy = new Set(selected);
-    if (copy.has(id)) copy.delete(id);
-    else copy.add(id);
-    setSelected(copy);
+    const nextSelected = new Set(selected);
+
+    if (nextSelected.has(id)) {
+      nextSelected.delete(id);
+    } else {
+      nextSelected.add(id);
+    }
+
+    setSelected(nextSelected);
   };
 
   const handleBulkAction = async (action: "approve" | "delete" | "reject") => {
     if (!selected.size) return toast.error("Select at least one report");
+
     try {
       await Promise.all(
         Array.from(selected).map((id) => {
-          const report = reports.find((r) => r._id === id);
+          const report = reports.find((item) => item._id === id);
           if (!report) return Promise.resolve();
-          if (action === "approve")
+          if (action === "approve") {
             return ReportsService.approveProperty(report.propertyId._id);
-          if (action === "delete")
+          }
+          if (action === "delete") {
             return ReportsService.deleteProperty(report.propertyId._id);
-          if (action === "reject")
-            return ReportsService.updateStatus(report._id, "REJECTED");
+          }
+          return ReportsService.updateStatus(report._id, "REJECTED");
         }),
       );
       toast.success("Action completed successfully");
@@ -92,35 +100,34 @@ export default function ReportsPage() {
     }
   };
 
-  // eslint-disable-next-line
-  const handleAction = async (promise: Promise<any>, msg: string) => {
+  const handleAction = async (promise: Promise<any>, message: string) => {
     try {
       await promise;
-      toast.success(msg);
+      toast.success(message);
       fetchReports();
     } catch {
       toast.error("Action failed");
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <div className="p-10 text-center font-medium text-gray-700">
         Loading Moderation Queue...
       </div>
     );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-6">
       <Toaster position="top-right" />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             Moderation Center
           </h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-sm text-gray-500">
             Review and manage reported properties.
           </p>
         </div>
@@ -139,17 +146,15 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-6">
+      <div className="mb-6 flex gap-4">
         {["PENDING", "RESOLVED"].map((tab) => (
           <button
             key={tab}
-            // eslint-disable-next-line
-            onClick={() => setActiveTab(tab as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            onClick={() => setActiveTab(tab as "PENDING" | "RESOLVED")}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
               activeTab === tab
                 ? "bg-[var(--primary)] text-white"
-                : "bg-[var(--card-bg)] border border-[var(--border)]"
+                : "border border-[var(--border)] bg-[var(--card-bg)]"
             }`}
           >
             {tab}
@@ -157,58 +162,56 @@ export default function ReportsPage() {
         ))}
       </div>
 
-      {/* Bulk Actions */}
       {activeTab === "PENDING" && selected.size > 0 && (
-        <div className="flex gap-3 mb-4">
+        <div className="mb-4 flex gap-3">
           <button
             onClick={() => handleBulkAction("approve")}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm"
+            className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white"
           >
             Approve Selected
           </button>
           <button
             onClick={() => handleBulkAction("delete")}
-            className="px-3 py-2 bg-red-600 text-white rounded-lg text-sm"
+            className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white"
           >
             Delete Selected
           </button>
           <button
             onClick={() => handleBulkAction("reject")}
-            className="px-3 py-2 bg-gray-600 text-white rounded-lg text-sm"
+            className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white"
           >
             Reject Selected
           </button>
         </div>
       )}
 
-      {/* Kanban / Card List */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {displayedReports.map((report) => (
           <div
             key={report._id}
-            className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-5 shadow-sm relative"
+            className="relative rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-sm"
           >
             {activeTab === "PENDING" && (
               <input
                 type="checkbox"
                 checked={selected.has(report._id)}
                 onChange={() => toggleSelect(report._id)}
-                className="absolute top-3 right-3 w-4 h-4"
+                className="absolute right-3 top-3 h-4 w-4"
               />
             )}
 
-            <h3 className="font-semibold text-[var(--foreground)] text-lg mb-1">
+            <h3 className="mb-1 text-lg font-semibold text-[var(--foreground)]">
               {report.propertyId?.title || "Deleted Property"}
             </h3>
-            <p className="text-sm text-gray-500 mb-2">
+            <p className="mb-2 text-sm text-gray-500">
               Reported by: {report.reporterId?.email || "Unknown"}
             </p>
-            <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md mb-3 inline-block">
+            <span className="mb-3 inline-block rounded-md bg-red-50 px-2 py-1 text-xs text-red-600">
               {report.reason}
             </span>
 
-            <div className="mt-2 flex gap-2 flex-wrap">
-              {activeTab === "PENDING" && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {activeTab === "PENDING" ? (
                 <>
                   <ActionButton
                     onClick={() =>
@@ -244,9 +247,8 @@ export default function ReportsPage() {
                     label="Reject"
                   />
                 </>
-              )}
-              {activeTab !== "PENDING" && (
-                <span className="text-sm text-gray-500 font-medium">
+              ) : (
+                <span className="text-sm font-medium text-gray-500">
                   Status: {report.status}
                 </span>
               )}
@@ -258,7 +260,6 @@ export default function ReportsPage() {
   );
 }
 
-// --- Subcomponents ---
 const StatCard = ({
   icon,
   label,
@@ -268,10 +269,10 @@ const StatCard = ({
   label: string;
   value: number;
 }) => (
-  <div className="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border)] shadow-sm flex items-center gap-3">
-    <div className="p-2 bg-[var(--muted)] rounded-md">{icon}</div>
+  <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 shadow-sm">
+    <div className="rounded-md bg-[var(--muted)] p-2">{icon}</div>
     <div>
-      <div className="text-xs text-gray-500 uppercase">{label}</div>
+      <div className="text-xs uppercase text-gray-500">{label}</div>
       <div className="text-xl font-bold">{value}</div>
     </div>
   </div>
@@ -288,7 +289,7 @@ const ActionButton = ({
   color: "green" | "red" | "gray";
   icon: React.ReactNode;
 }) => {
-  const bg =
+  const backgroundClass =
     color === "green"
       ? "bg-green-600 hover:bg-green-700"
       : color === "red"
@@ -298,7 +299,7 @@ const ActionButton = ({
   return (
     <button
       onClick={onClick}
-      className={`${bg} text-white px-3 py-2 rounded-lg text-sm flex items-center gap-1`}
+      className={`${backgroundClass} flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-white`}
     >
       {icon} {label}
     </button>

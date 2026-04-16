@@ -4,7 +4,6 @@ import {
   Home,
   PieChart,
   Users,
-  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -40,7 +39,6 @@ export default function Sidebar({
     { icon: <PieChart size={20} />, label: "Properties", path: "/properties" },
     { icon: <Users size={20} />, label: "Users", path: "/users" },
     { icon: <MailWarning size={20} />, label: "Reports", path: "/reports" },
-    { icon: <Settings size={20} />, label: "Settings", path: "/settings" },
   ];
 
   return (
@@ -67,7 +65,7 @@ export default function Sidebar({
               className="font-bold text-xl tracking-tight text-white cursor-pointer"
               onClick={() => router.push("/dashboard")}
             >
-              Anganstay
+              AnganStay
             </span>
           )}
 

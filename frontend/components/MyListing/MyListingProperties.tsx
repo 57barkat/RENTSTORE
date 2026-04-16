@@ -59,6 +59,44 @@ const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
 
   return `Uploading ${propertyLabel} in background.`;
 };
+import type { QueuedPropertyUpload } from "@/contextStore/FormContext";
+
+const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
+  if (!upload) {
+    return null;
+  }
+
+  const propertyLabel = upload.payload.title || "property";
+  const progress = upload.progress;
+
+  if (!progress) {
+    return `Preparing ${propertyLabel} for upload.`;
+  }
+
+  if (upload.status === "queued") {
+    return `Preparing ${propertyLabel} for upload.`;
+  }
+
+  if (progress.phase === "uploading_images") {
+    if (progress.activeImageNumbers.length > 0) {
+      return `Uploading ${propertyLabel}: image ${progress.activeImageNumbers.join(", ")} of ${progress.totalImages}.`;
+    }
+
+    if (progress.completedImages > 0) {
+      return `Uploaded ${progress.completedImages} of ${progress.totalImages} images for ${propertyLabel}.`;
+    }
+  }
+
+  if (progress.phase === "submitting") {
+    if (progress.totalImages === 0) {
+      return `Finalizing ${propertyLabel}.`;
+    }
+
+    return `Finalizing ${propertyLabel} after uploading ${progress.completedImages} of ${progress.totalImages} images.`;
+  }
+
+  return `Uploading ${propertyLabel} in background.`;
+};
 
 const MyListingProperties = () => {
   const { theme } = useTheme();
@@ -70,6 +108,13 @@ const MyListingProperties = () => {
   const [targetProperty, setTargetProperty] = useState<any>(null);
   const [promoteProperty, { isLoading: isPromoting }] =
     usePromotePropertyMutation();
+  const pendingUploadsCount = logic.formContext?.pendingUploadsCount ?? 0;
+  const failedUploadsCount = logic.formContext?.failedUploadsCount ?? 0;
+  const uploadQueue = logic.formContext?.uploadQueue ?? [];
+  const activeUpload =
+    uploadQueue.find((item) => item.status === "uploading") ||
+    uploadQueue.find((item) => item.status === "queued");
+  const uploadBannerMessage = buildUploadBannerMessage(activeUpload);
   const pendingUploadsCount = logic.formContext?.pendingUploadsCount ?? 0;
   const failedUploadsCount = logic.formContext?.failedUploadsCount ?? 0;
   const uploadQueue = logic.formContext?.uploadQueue ?? [];
@@ -187,9 +232,72 @@ const MyListingProperties = () => {
         </View>
       )}
 
+      {(pendingUploadsCount > 0 || failedUploadsCount > 0) && (
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 16,
+            borderRadius: 16,
+            padding: 14,
+            backgroundColor: failedUploadsCount > 0 ? "#fff7ed" : "#eff6ff",
+            borderWidth: 1,
+            borderColor: failedUploadsCount > 0 ? "#fdba74" : "#93c5fd",
+          }}
+        >
+          {pendingUploadsCount > 0 && (
+            <Text
+              style={{
+                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
+                fontWeight: "700",
+                marginBottom: failedUploadsCount > 0 ? 6 : 0,
+              }}
+            >
+              {uploadBannerMessage ||
+                `${pendingUploadsCount} property${pendingUploadsCount === 1 ? "" : "ies"} uploading in background.`}
+            </Text>
+          )}
+          {pendingUploadsCount > 1 && (
+            <Text
+              style={{
+                marginTop: 4,
+                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
+              }}
+            >
+              {pendingUploadsCount - 1} more queued after this one.
+            </Text>
+          )}
+          {failedUploadsCount > 0 && (
+            <>
+              <Text style={{ color: "#9a3412", fontWeight: "700" }}>
+                {failedUploadsCount} queued upload
+                {failedUploadsCount === 1 ? "" : "s"} need attention.
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  void logic.formContext?.retryFailedUploads();
+                }}
+                style={{
+                  marginTop: 8,
+                  alignSelf: "flex-start",
+                  borderRadius: 999,
+                  backgroundColor: "#c2410c",
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  Retry failed uploads
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+
       <FlatList
         data={logic.properties}
         keyExtractor={(item) => item._id}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
         onEndReached={logic.loadMore}
         refreshControl={

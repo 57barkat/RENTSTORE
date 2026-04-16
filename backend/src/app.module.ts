@@ -23,6 +23,7 @@ import { EmailModule } from "./services/email/email.module";
 import { AgencyModule } from "./modules/Agency/agency.module";
 import { PaymentModule } from "./services/payment/payment.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
+import { RolesGuard } from "./auth/guards/roles.guard";
 import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
 import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
 
@@ -78,6 +79,10 @@ import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
     {
       provide: APP_GUARD,
       useClass: RequestRateLimitGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

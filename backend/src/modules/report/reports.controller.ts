@@ -8,6 +8,7 @@ import {
   UseGuards,
   Patch,
   Param,
+  SetMetadata,
 } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { CreateReportDto } from "./dto/create-report.dto";
@@ -30,11 +31,13 @@ export class ReportsController {
   }
 
   @Get()
+  @SetMetadata("roles", ["admin"])
   async getAllReports() {
     return this.reportsService.getAllReports();
   }
 
   @Patch(":id/status")
+  @SetMetadata("roles", ["admin"])
   async updateReportStatus(
     @Param("id") reportId: string,
     @Body("status") status: string,
@@ -43,16 +46,19 @@ export class ReportsController {
   }
 
   @Patch("property/:id/approve")
+  @SetMetadata("roles", ["admin"])
   async approveProperty(@Param("id") propertyId: string) {
     return this.reportsService.approveProperty(propertyId);
   }
 
   @Patch("property/:id/delete")
+  @SetMetadata("roles", ["admin"])
   async deleteProperty(@Param("id") propertyId: string) {
     return this.reportsService.deleteProperty(propertyId);
   }
 
   @Patch("user/:id/reactivate")
+  @SetMetadata("roles", ["admin"])
   async reactivateUser(@Param("id") userId: string) {
     return this.reportsService.reactivateUser(userId);
   }
