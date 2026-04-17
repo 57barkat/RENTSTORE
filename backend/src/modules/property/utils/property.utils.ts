@@ -66,9 +66,6 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     minSize,
     maxSize,
     sizeUnit,
-    minSize,
-    maxSize,
-    sizeUnit,
   } = filters;
 
   const mongoFilter: any = {

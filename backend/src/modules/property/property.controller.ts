@@ -40,7 +40,7 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post("create")
-  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
+  // @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
   async createProperty(
     @Body() dto: Partial<CreatePropertyDto>,

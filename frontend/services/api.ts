@@ -123,19 +123,11 @@ export const api = createApi({
           body: body, // Standard JSON payload
           headers: {
             "Content-Type": "application/json",
-<<<<<<< HEAD
           },
         };
       },
       invalidatesTags: ["Property", "DraftProperties"],
     }),
-=======
-          },
-        };
-      },
-      invalidatesTags: ["Property", "DraftProperties"],
-    }),
->>>>>>> 25706bca03b192aa186956127c415e4f8f72f0f3
     findPropertyByIdAndUpdate: builder.mutation({
       query: ({ id, data }) => ({
         url: `/api/v1/properties/${id}`,
@@ -170,19 +162,11 @@ export const api = createApi({
           limit,
           sort,
           search,
-<<<<<<< HEAD
           city,
         },
       }),
       providesTags: ["Property"],
     }),
-=======
-          city,
-        },
-      }),
-      providesTags: ["Property"],
-    }),
->>>>>>> 25706bca03b192aa186956127c415e4f8f72f0f3
 
     findPropertyById: builder.query({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),

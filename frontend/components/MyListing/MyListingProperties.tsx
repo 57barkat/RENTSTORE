@@ -15,51 +15,15 @@ import { router, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { useMyPropertiesLogic } from "@/hooks/useMyPropertiesLogic";
 import { useAuth } from "@/contextStore/AuthContext";
-import { usePromotePropertyMutation } from "@/services/api";
 import { FontSize } from "@/constants/Typography";
 import { Colors } from "@/constants/Colors";
 import ListHeader from "./ListHeader";
 import PropertyCard from "./PropertyCard";
 import PromoteConfirmationModal from "./PromoteConfirmationModal";
-import type { QueuedPropertyUpload } from "@/contextStore/FormContext";
-
-const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
-  if (!upload) {
-    return null;
-  }
-
-  const propertyLabel = upload.payload.title || "property";
-  const progress = upload.progress;
-
-  if (!progress) {
-    return `Preparing ${propertyLabel} for upload.`;
-  }
-
-  if (upload.status === "queued") {
-    return `Preparing ${propertyLabel} for upload.`;
-  }
-
-  if (progress.phase === "uploading_images") {
-    if (progress.activeImageNumbers.length > 0) {
-      return `Uploading ${propertyLabel}: image ${progress.activeImageNumbers.join(", ")} of ${progress.totalImages}.`;
-    }
-
-    if (progress.completedImages > 0) {
-      return `Uploaded ${progress.completedImages} of ${progress.totalImages} images for ${propertyLabel}.`;
-    }
-  }
-
-  if (progress.phase === "submitting") {
-    if (progress.totalImages === 0) {
-      return `Finalizing ${propertyLabel}.`;
-    }
-
-    return `Finalizing ${propertyLabel} after uploading ${progress.completedImages} of ${progress.totalImages} images.`;
-  }
-
-  return `Uploading ${propertyLabel} in background.`;
-};
-import type { QueuedPropertyUpload } from "@/contextStore/FormContext";
+// eslint-disable-next-line
+import { QueuedPropertyUpload } from "@/contextStore/FormContext";
+// eslint-disable-next-line
+import { usePromotePropertyMutation } from "@/services/api";
 
 const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
   if (!upload) {
@@ -108,13 +72,6 @@ const MyListingProperties = () => {
   const [targetProperty, setTargetProperty] = useState<any>(null);
   const [promoteProperty, { isLoading: isPromoting }] =
     usePromotePropertyMutation();
-  const pendingUploadsCount = logic.formContext?.pendingUploadsCount ?? 0;
-  const failedUploadsCount = logic.formContext?.failedUploadsCount ?? 0;
-  const uploadQueue = logic.formContext?.uploadQueue ?? [];
-  const activeUpload =
-    uploadQueue.find((item) => item.status === "uploading") ||
-    uploadQueue.find((item) => item.status === "queued");
-  const uploadBannerMessage = buildUploadBannerMessage(activeUpload);
   const pendingUploadsCount = logic.formContext?.pendingUploadsCount ?? 0;
   const failedUploadsCount = logic.formContext?.failedUploadsCount ?? 0;
   const uploadQueue = logic.formContext?.uploadQueue ?? [];
@@ -297,7 +254,6 @@ const MyListingProperties = () => {
       <FlatList
         data={logic.properties}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
         onEndReached={logic.loadMore}
         refreshControl={

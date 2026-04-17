@@ -52,7 +52,7 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
         onPress={() => setVisible(false)}
         activeOpacity={0.7}
       >
-        <MaterialCommunityIcons name="close" size={26} color="white" />
+        <MaterialCommunityIcons name="close" size={26} color="black" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 20,
     marginTop: 30,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark circle for contrast
+    // backgroundColor: "rgba(0, 0, 0, 0.5)", // Dark circle for contrast
     justifyContent: "center",
     alignItems: "center",
   },

@@ -13,36 +13,64 @@ import React, {
   useRef,
   useState,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
-  createContext,
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 import { useCreatePropertyMutation } from "@/services/api";
 import { useAuth } from "./AuthContext";
 import Constants from "expo-constants";
 
 const CLOUDINARY_CLOUD_NAME =
-  process.env.CLOUDINARY_CLOUD_NAME ||
-  Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME;
+  Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME ||
+  process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+  process.env.CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET =
-  Constants.expoConfig?.extra?.UPLOAD_PRESET || process.env.UPLOAD_PRESET;
+  Constants.expoConfig?.extra?.UPLOAD_PRESET ||
+  process.env.EXPO_PUBLIC_UPLOAD_PRESET ||
+  process.env.UPLOAD_PRESET;
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 const MAX_PARALLEL_UPLOADS = 3;
 const PROPERTY_UPLOAD_QUEUE_STORAGE_KEY = "property-upload-queue";
-const PROPERTY_UPLOAD_QUEUE_STORAGE_KEY = "property-upload-queue";
+
+const getMimeTypeFromUri = (fileUri: string) => {
+  const normalizedUri = fileUri.split("?")[0].toLowerCase();
+
+  if (normalizedUri.endsWith(".png")) {
+    return "image/png";
+  }
+
+  if (normalizedUri.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  if (normalizedUri.endsWith(".heic") || normalizedUri.endsWith(".heif")) {
+    return "image/heic";
+  }
+
+  return "image/jpeg";
+};
+
+const getFileNameFromUri = (fileUri: string) => {
+  const normalizedUri = fileUri.split("?")[0];
+  const segments = normalizedUri.split("/");
+  const lastSegment = segments[segments.length - 1];
+
+  return lastSegment || `property_image_${Date.now()}.jpg`;
+};
 
 const uploadToCloudinary = async (fileUri: string): Promise<string> => {
+  if (!CLOUDINARY_CLOUD_NAME || !UPLOAD_PRESET) {
+    throw new Error(
+      "Cloudinary is not configured. Missing CLOUDINARY_CLOUD_NAME or UPLOAD_PRESET.",
+    );
+  }
+
+  if (!fileUri) {
+    throw new Error("No image file URI was provided for upload.");
+  }
+
   const formData = new FormData();
   formData.append("file", {
     uri: fileUri,
-    type: "image/jpeg",
-    name: "property_image.jpg",
+    type: getMimeTypeFromUri(fileUri),
+    name: getFileNameFromUri(fileUri),
   } as any);
   formData.append("upload_preset", UPLOAD_PRESET);
 
@@ -52,16 +80,34 @@ const uploadToCloudinary = async (fileUri: string): Promise<string> => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || "Cloudinary upload failed");
-    throw new Error(errorData.error?.message || "Cloudinary upload failed");
+    const rawError = await response.text();
+    let errorMessage = "Cloudinary upload failed";
+
+    try {
+      const errorData = JSON.parse(rawError);
+      errorMessage = errorData.error?.message || errorMessage;
+    } catch {
+      if (rawError) {
+        errorMessage = rawError;
+      }
+    }
+
+    throw new Error(
+      `Cloudinary upload failed (${response.status}): ${errorMessage}`,
+    );
   }
 
   const result = await response.json();
+
+  if (!result.secure_url) {
+    throw new Error(
+      "Cloudinary upload succeeded but no secure_url was returned.",
+    );
+  }
+
   return result.secure_url;
 };
 
-const mapWithConcurrency = async <T, R>(
 const mapWithConcurrency = async <T, R>(
   items: T[],
   concurrency: number,
@@ -80,33 +126,6 @@ const mapWithConcurrency = async <T, R>(
   );
 
   return results;
-};
-
-const cloneFormPayload = (value: FormData): FormData => {
-  return JSON.parse(JSON.stringify(value)) as FormData;
-};
-
-const createQueueId = () => {
-  return `property-upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-};
-
-const normalizeErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (
-    error &&
-    typeof error === "object" &&
-    "data" in error &&
-    error.data &&
-    typeof error.data === "object" &&
-    "message" in error.data
-  ) {
-    return String(error.data.message);
-  }
-
-  return "Unable to upload this property right now.";
 };
 
 const cloneFormPayload = (value: FormData): FormData => {
@@ -170,10 +189,6 @@ export interface FormData {
   hostelType?: "male" | "female" | "mixed";
   mealPlan?: string[];
   rules?: string[];
-  size?: {
-    value: number;
-    unit: "Marla" | "Kanal" | "Sq. Ft." | "Sq. Yd.";
-  };
 }
 
 export interface QueuedPropertyUpload {
@@ -202,10 +217,6 @@ export interface FormContextType {
   pendingUploadsCount: number;
   failedUploadsCount: number;
   retryFailedUploads: () => Promise<void>;
-  uploadQueue: QueuedPropertyUpload[];
-  pendingUploadsCount: number;
-  failedUploadsCount: number;
-  retryFailedUploads: () => Promise<void>;
 }
 
 export const FormContext = createContext<FormContextType | undefined>(
@@ -214,8 +225,6 @@ export const FormContext = createContext<FormContextType | undefined>(
 
 export const FormProvider = ({ children }: { children: ReactNode }) => {
   const [data, setData] = useState<FormData>({});
-  const [uploadQueue, setUploadQueue] = useState<QueuedPropertyUpload[]>([]);
-  const [queueHydrated, setQueueHydrated] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<QueuedPropertyUpload[]>([]);
   const [queueHydrated, setQueueHydrated] = useState(false);
   const [createProperty] = useCreatePropertyMutation();
@@ -429,9 +438,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
           if (response.user) {
             await updateUser(response.user);
           }
-          if (response.user) {
-            await updateUser(response.user);
-          }
 
           setUploadQueueAndPersist((current) =>
             current.filter((item) => item.queueId !== nextItem.queueId),
@@ -515,7 +521,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       return await enqueueSubmission(sourceData);
     } catch (error) {
       console.error("Queueing failed:", error);
-      console.error("Queueing failed:", error);
       return { success: false, error };
     }
   };
@@ -524,14 +529,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     overrideData,
   ) => {
     try {
-      const payload = cloneFormPayload(overrideData ?? data);
-      const response = await createProperty(payload).unwrap();
-
-      if (response.user) {
-        await updateUser(response.user);
-      }
-
-      return { success: true, data: response };
       const payload = cloneFormPayload(overrideData ?? data);
       const response = await createProperty(payload).unwrap();
 
@@ -581,16 +578,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     return uploadQueue.filter((item) => item.status === "failed").length;
   }, [uploadQueue]);
 
-  const pendingUploadsCount = useMemo(() => {
-    return uploadQueue.filter(
-      (item) => item.status === "queued" || item.status === "uploading",
-    ).length;
-  }, [uploadQueue]);
-
-  const failedUploadsCount = useMemo(() => {
-    return uploadQueue.filter((item) => item.status === "failed").length;
-  }, [uploadQueue]);
-
   return (
     <FormContext.Provider
       value={{
@@ -600,10 +587,6 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
         submitData,
         submitDraftData,
         clearForm,
-        uploadQueue,
-        pendingUploadsCount,
-        failedUploadsCount,
-        retryFailedUploads,
         uploadQueue,
         pendingUploadsCount,
         failedUploadsCount,
