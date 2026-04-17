@@ -1,22 +1,19 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 
 export default function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="px-4 py-1.5 rounded-md border border-border bg-background hover:bg-accent transition-colors text-xs font-medium"
-      suppressHydrationWarning
+      type="button"
+      onClick={() => setTheme(nextTheme)}
+      className="admin-button-secondary rounded-full px-4 py-2 text-xs font-semibold"
     >
-      {typeof window === "undefined"
-        ? "Theme"
-        : theme === "dark"
-          ? "🌙 Dark"
-          : "☀️ Light"}
+      Theme
     </button>
   );
 }

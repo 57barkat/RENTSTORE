@@ -100,7 +100,7 @@ export default function ReportsScreen({
     }
   };
 
-  const handleAction = async (promise: Promise<any>, message: string) => {
+  const handleAction = async (promise: Promise<unknown>, message: string) => {
     try {
       await promise;
       toast.success(message);
@@ -112,7 +112,7 @@ export default function ReportsScreen({
 
   if (loading) {
     return (
-      <div className="p-10 text-center font-medium text-gray-700">
+      <div className="p-10 text-center font-medium text-[var(--admin-muted)]">
         Loading Moderation Queue...
       </div>
     );
@@ -127,19 +127,19 @@ export default function ReportsScreen({
           <h1 className="text-2xl font-bold text-[var(--foreground)]">
             Moderation Center
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--admin-muted)]">
             Review and manage reported properties.
           </p>
         </div>
 
         <div className="flex gap-4">
           <StatCard
-            icon={<AlertTriangle className="text-yellow-500" />}
+            icon={<AlertTriangle className="text-[var(--admin-warning)]" />}
             label="Pending"
             value={pendingReports.length}
           />
           <StatCard
-            icon={<ShieldCheck className="text-green-500" />}
+            icon={<ShieldCheck className="text-[var(--admin-success)]" />}
             label="Resolved"
             value={resolvedReports.length}
           />
@@ -153,8 +153,8 @@ export default function ReportsScreen({
             onClick={() => setActiveTab(tab as "PENDING" | "RESOLVED")}
             className={`rounded-lg px-4 py-2 text-sm font-medium ${
               activeTab === tab
-                ? "bg-[var(--primary)] text-white"
-                : "border border-[var(--border)] bg-[var(--card-bg)]"
+                ? "bg-[var(--admin-primary)] text-[var(--admin-background)]"
+                : "border border-[var(--admin-border)] bg-[var(--admin-card)] text-[var(--admin-text)]"
             }`}
           >
             {tab}
@@ -166,19 +166,19 @@ export default function ReportsScreen({
         <div className="mb-4 flex gap-3">
           <button
             onClick={() => handleBulkAction("approve")}
-            className="rounded-lg bg-green-600 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-[var(--admin-success)] px-3 py-2 text-sm text-[var(--admin-background)]"
           >
             Approve Selected
           </button>
           <button
             onClick={() => handleBulkAction("delete")}
-            className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-[var(--admin-error)] px-3 py-2 text-sm text-[var(--admin-background)]"
           >
             Delete Selected
           </button>
           <button
             onClick={() => handleBulkAction("reject")}
-            className="rounded-lg bg-gray-600 px-3 py-2 text-sm text-white"
+            className="rounded-lg bg-[var(--admin-muted)] px-3 py-2 text-sm text-[var(--admin-background)]"
           >
             Reject Selected
           </button>
@@ -189,7 +189,7 @@ export default function ReportsScreen({
         {displayedReports.map((report) => (
           <div
             key={report._id}
-            className="relative rounded-xl border border-[var(--border)] bg-[var(--card-bg)] p-5 shadow-sm"
+            className="relative rounded-xl border border-[var(--admin-border)] bg-[var(--admin-card)] p-5 shadow-sm"
           >
             {activeTab === "PENDING" && (
               <input
@@ -203,10 +203,10 @@ export default function ReportsScreen({
             <h3 className="mb-1 text-lg font-semibold text-[var(--foreground)]">
               {report.propertyId?.title || "Deleted Property"}
             </h3>
-            <p className="mb-2 text-sm text-gray-500">
+            <p className="mb-2 text-sm text-[var(--admin-muted)]">
               Reported by: {report.reporterId?.email || "Unknown"}
             </p>
-            <span className="mb-3 inline-block rounded-md bg-red-50 px-2 py-1 text-xs text-red-600">
+            <span className="mb-3 inline-block rounded-md bg-[var(--admin-error-soft)] px-2 py-1 text-xs text-[var(--admin-error)]">
               {report.reason}
             </span>
 
@@ -248,7 +248,7 @@ export default function ReportsScreen({
                   />
                 </>
               ) : (
-                <span className="text-sm font-medium text-gray-500">
+                <span className="text-sm font-medium text-[var(--admin-muted)]">
                   Status: {report.status}
                 </span>
               )}
@@ -269,11 +269,11 @@ const StatCard = ({
   label: string;
   value: number;
 }) => (
-  <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--card-bg)] p-4 shadow-sm">
-    <div className="rounded-md bg-[var(--muted)] p-2">{icon}</div>
+  <div className="flex items-center gap-3 rounded-lg border border-[var(--admin-border)] bg-[var(--admin-card)] p-4 shadow-sm">
+    <div className="rounded-md bg-[var(--admin-surface)] p-2">{icon}</div>
     <div>
-      <div className="text-xs uppercase text-gray-500">{label}</div>
-      <div className="text-xl font-bold">{value}</div>
+      <div className="text-xs uppercase text-[var(--admin-muted)]">{label}</div>
+      <div className="text-xl font-bold text-[var(--admin-text)]">{value}</div>
     </div>
   </div>
 );
@@ -291,15 +291,15 @@ const ActionButton = ({
 }) => {
   const backgroundClass =
     color === "green"
-      ? "bg-green-600 hover:bg-green-700"
+      ? "bg-[var(--admin-success)]"
       : color === "red"
-        ? "bg-red-600 hover:bg-red-700"
-        : "bg-gray-600 hover:bg-gray-700";
+        ? "bg-[var(--admin-error)]"
+        : "bg-[var(--admin-muted)]";
 
   return (
     <button
       onClick={onClick}
-      className={`${backgroundClass} flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-white`}
+      className={`${backgroundClass} flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-[var(--admin-background)]`}
     >
       {icon} {label}
     </button>

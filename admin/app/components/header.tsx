@@ -14,26 +14,26 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
   const { user, role } = useSelector((state: RootState) => state.auth);
 
   return (
-    <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border/50 flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] px-6 backdrop-blur-md">
       <div className="flex items-center gap-6">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 hover:bg-accent rounded-full transition-colors"
+          className="rounded-full p-2 transition-colors hover:bg-[var(--admin-surface)] lg:hidden"
         >
-          <Menu size={20} className="text-foreground" />
+          <Menu size={20} className="text-[var(--admin-text)]" />
         </button>
 
         <div className="hidden md:flex items-center gap-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-black text-xs">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] shadow-[0_18px_40px_-24px_rgba(0,0,128,0.35)]">
+            <span className="text-xs font-black text-[var(--admin-background)]">
               RS
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-foreground leading-none">
+            <span className="text-sm font-bold leading-none tracking-tight text-[var(--admin-text)]">
               AnganStay
             </span>
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mt-0.5">
+            <span className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--admin-muted)]">
               {role || "Management"}
             </span>
           </div>
@@ -43,22 +43,22 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
       <div className="flex items-center gap-2">
         <ThemeToggle />
 
-        <button className="p-2 hover:bg-accent rounded-full relative transition-all active:scale-95">
+        <button className="relative rounded-full p-2 transition-all active:scale-95 hover:bg-[var(--admin-surface)]">
           <Bell
             size={18}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-[var(--admin-icon)] hover:text-[var(--admin-primary)]"
           />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full border-2 border-background animate-pulse"></span>
+          <span className="absolute right-2 top-2 h-2 w-2 animate-pulse rounded-full border-2 border-[var(--admin-background)] bg-[var(--admin-danger)]"></span>
         </button>
 
-        <div className="h-6 w-[1px] bg-border/60 mx-2" />
+        <div className="mx-2 h-6 w-[1px] bg-[var(--admin-border)]" />
 
         <div className="flex items-center gap-3 pl-1 group cursor-pointer">
           <div className="flex flex-col items-end hidden sm:flex">
-            <p className="text-sm font-semibold text-foreground leading-none">
+            <p className="text-sm font-semibold leading-none text-[var(--admin-text)]">
               {user?.name || "Administrator"}
             </p>
-            <p className="text-[11px] text-muted-foreground mt-1 font-medium">
+            <p className="mt-1 text-[11px] font-medium text-[var(--admin-muted)]">
               {user?.email || "admin@anganstay.com"}
             </p>
           </div>
@@ -68,14 +68,14 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
               <img
                 src={user.profileImage}
                 alt="avatar"
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-border group-hover:ring-primary/50 transition-all"
+                className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--admin-border)] transition-all group-hover:ring-[var(--admin-primary-strong)]"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--admin-primary),var(--admin-info))] text-sm font-bold text-[var(--admin-background)] shadow-sm">
                 {user?.name?.charAt(0) || "A"}
               </div>
             )}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-background rounded-full"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--admin-background)] bg-[var(--admin-success)]"></div>
           </div>
         </div>
       </div>

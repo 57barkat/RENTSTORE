@@ -35,9 +35,9 @@ export default function PendingPropertyCard({
     <BasePropertyCard
       image={property.photos?.[0] || "https://placehold.co/600x400?text=No+Image"}
       title={property.title}
-      className="border-border hover:shadow-xl"
+      className="border-[var(--admin-border)] hover:shadow-[0_24px_46px_-32px_var(--admin-shadow)]"
       badges={
-        <span className="rounded bg-primary px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
+        <span className="rounded bg-[var(--admin-primary)] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[var(--admin-background)] shadow-lg shadow-[rgba(0,0,128,0.18)]">
           New Submission
         </span>
       }
@@ -45,7 +45,7 @@ export default function PendingPropertyCard({
         <button
           type="button"
           onClick={() => onReview(property._id)}
-          className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-sky-50 hover:text-sky-700"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-[rgba(255,255,255,0.96)] px-4 py-2 text-xs font-bold text-[var(--admin-text)] shadow-lg backdrop-blur transition hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
         >
           <Eye className="h-4 w-4" /> Review
         </button>
@@ -89,14 +89,14 @@ export default function PendingPropertyCard({
           <button
             type="button"
             onClick={() => onDelete(property._id)}
-            className="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500 hover:text-white"
+            className="flex items-center justify-center gap-2 rounded-lg border border-[rgba(220,38,38,0.18)] bg-[var(--admin-error-soft)] px-3 py-2 text-xs font-bold text-[var(--admin-error)] transition-all hover:bg-[var(--admin-error)] hover:text-[var(--admin-background)]"
           >
             <Trash2 className="h-3.5 w-3.5" /> Reject
           </button>
           <button
             type="button"
             onClick={() => onApprove(property._id)}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90"
+            className="admin-button-primary flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-bold"
           >
             <CheckCircle className="h-3.5 w-3.5" /> Approve
           </button>

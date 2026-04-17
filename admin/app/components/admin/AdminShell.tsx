@@ -14,7 +14,7 @@ export default function AdminShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-50/50 text-foreground transition-colors duration-300">
+    <div className="flex min-h-screen bg-[var(--admin-background)] text-[var(--admin-text)]">
       <Sidebar
         collapsed={collapsed}
         setCollapsed={setCollapsed}
@@ -41,7 +41,7 @@ export default function AdminShell({
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.22)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}

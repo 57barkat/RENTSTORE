@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -226,17 +225,17 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
   };
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,_#eff6ff_0%,_#f8fafc_28%,_#ffffff_100%)]">
+    <main className="min-h-screen bg-[linear-gradient(180deg,_var(--admin-surface)_0%,_var(--admin-card)_28%,_var(--admin-background)_100%)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+        <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-[var(--admin-muted)]">
           <Link
             href={`/${getCanonicalCategorySegment(category)}`}
-            className="font-medium text-sky-700 hover:text-sky-900"
+            className="font-medium text-[var(--admin-primary)] hover:text-[var(--admin-text)]"
           >
             Back to listings
           </Link>
@@ -246,39 +245,39 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
 
         <div className="mb-8 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="space-y-4">
-            <span className="inline-flex rounded-full border border-sky-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
+            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[rgba(255,255,255,0.9)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
               {getCategoryLabel(category)} in {getPropertyCity(property)} •{" "}
               {getPropertyLocation(property)}
             </span>
             <div className="space-y-3">
-              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-5xl">
                 {title}
               </h1>
-              <p className="max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
+              <p className="max-w-3xl text-base leading-7 text-[var(--admin-muted)] sm:text-lg">
                 {summary}
               </p>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-lg shadow-slate-200/60">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)]">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               {priceInfo.label}
             </p>
-            <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
+            <p className="mt-2 text-4xl font-semibold tracking-tight text-[var(--admin-text)]">
               {getPropertyPriceDisplay(property)}
             </p>
-            <div className="mt-5 grid gap-3 text-sm text-slate-600">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="font-medium text-slate-900">Area:</span>{" "}
+            <div className="mt-5 grid gap-3 text-sm text-[var(--admin-muted)]">
+              <div className="rounded-2xl bg-[var(--admin-card)] px-4 py-3">
+                <span className="font-medium text-[var(--admin-text)]">Area:</span>{" "}
                 {getPropertyLocation(property)}
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="font-medium text-slate-900">Address:</span>{" "}
+              <div className="rounded-2xl bg-[var(--admin-card)] px-4 py-3">
+                <span className="font-medium text-[var(--admin-text)]">Address:</span>{" "}
                 {addressLine ||
                   `${getPropertyLocation(property)}, ${getPropertyCity(property)}`}
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <span className="font-medium text-slate-900">
+              <div className="rounded-2xl bg-[var(--admin-card)] px-4 py-3">
+                <span className="font-medium text-[var(--admin-text)]">
                   Security deposit:
                 </span>{" "}
                 {formatCurrency(property.SecuritybasePrice || 0)}
@@ -291,60 +290,60 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
           <section className="space-y-8">
             <PropertyGallery galleryImages={galleryImages} title={title} />
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <section className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                 Listing overview
               </h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="rounded-[1.5rem] bg-[var(--admin-card)] px-4 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                     Bedrooms
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                  <p className="mt-2 text-2xl font-semibold text-[var(--admin-text)]">
                     {property.capacityState?.bedrooms ||
                       property.capacityState?.beds ||
                       0}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="rounded-[1.5rem] bg-[var(--admin-card)] px-4 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                     Bathrooms
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                  <p className="mt-2 text-2xl font-semibold text-[var(--admin-text)]">
                     {property.capacityState?.bathrooms || 0}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="rounded-[1.5rem] bg-[var(--admin-card)] px-4 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                     Floor level
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                  <p className="mt-2 text-2xl font-semibold text-[var(--admin-text)]">
                     {property.capacityState?.floorLevel || 0}
                   </p>
                 </div>
-                <div className="rounded-[1.5rem] bg-slate-50 px-4 py-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <div className="rounded-[1.5rem] bg-[var(--admin-card)] px-4 py-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                     {property.size?.unit || "Size"}
                   </p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-950">
+                  <p className="mt-2 text-2xl font-semibold text-[var(--admin-text)]">
                     {property.size?.value || "Ask for details"}
                   </p>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+                  <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                     Pricing options
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
                     Compare every available rate for this property before you
                     book or contact the host.
                   </p>
                 </div>
-                <p className="text-sm font-medium text-slate-500">
+                <p className="text-sm font-medium text-[var(--admin-muted)]">
                   Primary price: {getPropertyPriceDisplay(property)}
                 </p>
               </div>
@@ -354,31 +353,31 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                   {pricingOptions.map((option) => (
                     <div
                       key={option.frequency}
-                      className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-5 py-5"
+                      className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-card)] px-5 py-5"
                     >
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                         {option.label}
                       </p>
-                      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+                      <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--admin-text)]">
                         {option.amount
                           ? formatPriceAmount(option.amount)
                           : "Contact"}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-sky-700">
+                      <p className="mt-1 text-sm font-medium text-[var(--admin-primary)]">
                         {option.suffix}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="mt-6 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-sm text-slate-500">
+                <div className="mt-6 rounded-[1.5rem] border border-dashed border-[var(--admin-border)] bg-[var(--admin-card)] px-5 py-6 text-sm text-[var(--admin-muted)]">
                   Pricing is available on request for this property.
                 </div>
               )}
             </section>
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <section className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                 What this property offers
               </h2>
               <div className="mt-5 flex flex-wrap gap-3">
@@ -386,13 +385,13 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                   property.amenities?.map((amenity) => (
                     <span
                       key={amenity}
-                      className="rounded-full bg-slate-950 px-4 py-2 text-sm font-medium text-white"
+                      className="rounded-full bg-[var(--admin-primary)] px-4 py-2 text-sm font-medium text-[var(--admin-background)]"
                     >
                       {amenity}
                     </span>
                   ))
                 ) : (
-                  <p className="text-slate-500">
+                  <p className="text-[var(--admin-muted)]">
                     Amenity information will appear here once it is available
                     from the backend listing.
                   </p>
@@ -405,15 +404,15 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
               (property.rules || []).length > 0) && (
               <section className="grid gap-6 xl:grid-cols-3">
                 {highlights.length > 0 && (
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-950">
+                  <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-[var(--admin-text)]">
                       Highlights
                     </h2>
                     <div className="mt-4 flex flex-wrap gap-2">
                       {highlights.map((highlight) => (
                         <span
                           key={highlight}
-                          className="rounded-full bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800"
+                          className="rounded-full bg-[var(--admin-primary-soft)] px-3 py-2 text-sm font-medium text-[var(--admin-primary)]"
                         >
                           {highlight}
                         </span>
@@ -423,11 +422,11 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 )}
 
                 {(property.mealPlan || []).length > 0 && (
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-950">
+                  <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-[var(--admin-text)]">
                       Meal plan
                     </h2>
-                    <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                    <ul className="mt-4 space-y-2 text-sm text-[var(--admin-muted)]">
                       {property.mealPlan?.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
@@ -436,11 +435,11 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 )}
 
                 {(property.rules || []).length > 0 && (
-                  <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-lg font-semibold text-slate-950">
+                  <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+                    <h2 className="text-lg font-semibold text-[var(--admin-text)]">
                       Rules
                     </h2>
-                    <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                    <ul className="mt-4 space-y-2 text-sm text-[var(--admin-muted)]">
                       {property.rules?.map((item) => (
                         <li key={item}>{item}</li>
                       ))}
@@ -450,11 +449,11 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
               </section>
             )}
 
-            <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <section className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+              <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                 Safety and verification
               </h2>
-              <p className="mt-4 text-slate-600">
+              <p className="mt-4 text-[var(--admin-muted)]">
                 {property.safetyDetailsData?.cameraDescription ||
                   "This listing includes backend-provided verification and safety information."}
               </p>
@@ -466,7 +465,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 ).map((detail) => (
                   <span
                     key={detail}
-                    className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800"
+                    className="rounded-full border border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] px-4 py-2 text-sm font-medium text-[var(--admin-success)]"
                   >
                     {detail}
                   </span>
@@ -476,14 +475,14 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
           </section>
 
           <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
-            <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl shadow-slate-300/30">
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-300">
+            <div className="rounded-[2rem] border border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] p-6 text-[var(--admin-background)] shadow-xl shadow-[rgba(0,0,128,0.2)]">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-[rgba(255,255,255,0.72)]">
                 Ready to enquire?
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight">
                 Contact the listing host
               </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
+              <p className="mt-3 text-sm leading-6 text-[rgba(255,255,255,0.76)]">
                 This property page is server-rendered for search engines and
                 maps the existing backend schema into a public, responsive
                 detail view.
@@ -491,19 +490,19 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
               {contactPhone ? (
                 <a
                   href={`tel:${contactPhone}`}
-                  className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-sky-100"
+                  className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-[var(--admin-background)] px-5 py-3 text-sm font-medium text-[var(--admin-primary)] transition hover:bg-[var(--admin-card)]"
                 >
                   Contact host
                 </a>
               ) : (
-                <div className="mt-6 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-center text-sm text-slate-300">
+                <div className="mt-6 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] px-5 py-3 text-center text-sm text-[rgba(255,255,255,0.76)]">
                   Contact details available on request
                 </div>
               )}
             </div>
 
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-950">
+            <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-[var(--admin-text)]">
                 Listing facts
               </h2>
               <dl className="mt-4 space-y-4 text-sm">
@@ -512,15 +511,15 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                     key={item.label}
                     className="flex items-start justify-between gap-3"
                   >
-                    <dt className="text-slate-500">{item.label}</dt>
-                    <dd className="text-right font-medium text-slate-900">
+                    <dt className="text-[var(--admin-muted)]">{item.label}</dt>
+                    <dd className="text-right font-medium text-[var(--admin-text)]">
                       {item.value}
                     </dd>
                   </div>
                 ))}
                 <div className="flex items-start justify-between gap-3">
-                  <dt className="text-slate-500">Views</dt>
-                  <dd className="text-right font-medium text-slate-900">
+                  <dt className="text-[var(--admin-muted)]">Views</dt>
+                  <dd className="text-right font-medium text-[var(--admin-text)]">
                     {property.views || 0}
                   </dd>
                 </div>
@@ -532,10 +531,10 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
         {relatedProperties.length > 0 && (
           <section className="mt-16 space-y-6">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.18em] text-sky-700">
+              <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-primary)]">
                 Related listings
               </p>
-              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--admin-text)]">
                 More places in {getPropertyCity(property)}
               </h2>
             </div>

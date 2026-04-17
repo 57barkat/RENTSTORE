@@ -1,9 +1,11 @@
 "use client";
+
 import { useState } from "react";
 import { setCookie } from "nookies";
 import { useRouter } from "next/navigation";
-import apiClient from "@/app/lib/api-client";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
+
+import apiClient from "@/app/lib/api-client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -15,10 +17,11 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
       const response = await apiClient.post("/users/login", {
         emailOrPhone: email,
-        password: password,
+        password,
       });
       const { accessToken, refreshToken } = response.data;
 
@@ -41,61 +44,61 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6 relative overflow-hidden transition-colors duration-300">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
+      <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-[var(--admin-primary-soft)] blur-[120px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-[var(--admin-primary-soft)] blur-[120px]" />
 
-      <div className="w-full max-w-[1100px] grid lg:grid-cols-2 bg-card rounded-[2.5rem] shadow-2xl border border-border overflow-hidden z-10 transition-colors duration-300">
-        <div className="hidden lg:flex flex-col justify-between p-12 bg-sidebar relative overflow-hidden">
+      <div className="z-10 grid w-full max-w-[1100px] overflow-hidden rounded-[2.5rem] border border-border bg-card shadow-2xl lg:grid-cols-2">
+        <div className="relative hidden flex-col justify-between bg-sidebar p-12 lg:flex">
           <div className="z-10">
-            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20">
-              <span className="text-white font-bold text-xl">A</span>
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--admin-background)] shadow-lg shadow-[rgba(0,0,0,0.16)]">
+              <span className="text-xl font-bold text-[var(--admin-primary)]">A</span>
             </div>
-            <h2 className="text-4xl font-bold text-white leading-tight">
+            <h2 className="text-4xl font-bold leading-tight text-[var(--admin-background)]">
               Manage your <br />
-              <span className="text-primary">Rental Empire</span> <br />
+              <span className="text-[var(--admin-accent)]">Rental Empire</span> <br />
               from here.
             </h2>
-            <p className="text-slate-400 mt-4 max-w-sm text-lg">
+            <p className="mt-4 max-w-sm text-lg text-[rgba(255,255,255,0.72)]">
               The world&#39;s most powerful dashboard for property managers and
               owners.
             </p>
           </div>
 
-          <div className="z-10 bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl">
-            <p className="text-white font-medium italic">
+          <div className="z-10 rounded-3xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] p-6 backdrop-blur-md">
+            <p className="font-medium italic text-[var(--admin-background)]">
               This platform has transformed how we handle our 500+ properties
             </p>
-            <p className="text-slate-400 text-sm mt-2">
-              — Ammar Baig, Operations Director
+            <p className="mt-2 text-sm text-[rgba(255,255,255,0.7)]">
+              - Ammar Baig, Operations Director
             </p>
           </div>
 
-          <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(var(--color-primary)_1px,transparent_1px)] [background-size:20px_20px]" />
+          <div className="pointer-events-none absolute inset-0 opacity-10 bg-[radial-gradient(var(--color-primary)_1px,transparent_1px)] [background-size:20px_20px]" />
         </div>
 
-        <div className="p-8 lg:p-16 flex flex-col justify-center">
+        <div className="flex flex-col justify-center p-8 lg:p-16">
           <div className="mb-10 text-center lg:text-left">
             <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">
+            <p className="mt-2 text-[var(--admin-muted)]">
               Enter your details to access your account
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground/80 ml-1">
+              <label className="ml-1 text-sm font-semibold text-foreground/80">
                 Email Address
               </label>
-              <div className="relative group">
+              <div className="group relative">
                 <Mail
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--admin-placeholder)] transition-colors group-focus-within:text-[var(--admin-primary)]"
                   size={20}
                 />
                 <input
                   type="email"
                   placeholder="name@company.com"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-foreground"
+                  className="admin-input w-full rounded-2xl py-4 pl-12 pr-4 text-[var(--admin-text)]"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -104,26 +107,26 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
+              <div className="flex items-center justify-between px-1">
                 <label className="text-sm font-semibold text-foreground/80">
                   Password
                 </label>
                 <button
                   type="button"
-                  className="text-xs font-bold text-primary hover:underline"
+                  className="text-xs font-bold text-[var(--admin-primary)] hover:underline"
                 >
                   Forgot password?
                 </button>
               </div>
-              <div className="relative group">
+              <div className="group relative">
                 <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--admin-placeholder)] transition-colors group-focus-within:text-[var(--admin-primary)]"
                   size={20}
                 />
                 <input
                   type="password"
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 rounded-2xl bg-background border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all text-foreground"
+                  placeholder="Password"
+                  className="admin-input w-full rounded-2xl py-4 pl-12 pr-4 text-[var(--admin-text)]"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -134,7 +137,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary hover:opacity-90 disabled:opacity-50 text-white py-4 rounded-2xl font-bold shadow-lg shadow-primary/25 flex items-center justify-center gap-2 group transition-all"
+              className="admin-button-primary group flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold disabled:opacity-50"
             >
               {isLoading ? (
                 <Loader2 className="animate-spin" size={20} />
@@ -143,16 +146,16 @@ export default function LoginPage() {
                   Sign In to Dashboard
                   <ArrowRight
                     size={20}
-                    className="group-hover:translate-x-1 transition-transform"
+                    className="transition-transform group-hover:translate-x-1"
                   />
                 </>
               )}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-slate-500">
+          <p className="mt-8 text-center text-sm text-[var(--admin-muted)]">
             Don&#39;t have an account?{" "}
-            <span className="text-primary font-bold cursor-pointer hover:underline">
+            <span className="cursor-pointer font-bold text-[var(--admin-primary)] hover:underline">
               Contact Admin
             </span>
           </p>

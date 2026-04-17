@@ -82,17 +82,17 @@ const PropertyModalComponent = ({
         type="button"
         aria-label="Close property preview"
         onClick={closeModal}
-        className="absolute inset-0 bg-slate-950/65 backdrop-blur-sm"
+        className="absolute inset-0 bg-[rgba(15,23,42,0.64)] backdrop-blur-sm"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="property-preview-title"
-        className="relative z-10 w-full max-w-3xl overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl"
+        className="relative z-10 w-full max-w-3xl overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] shadow-2xl"
       >
         <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
-          <div className="aspect-[4/3] bg-slate-100 md:aspect-auto">
+          <div className="aspect-[4/3] bg-[var(--admin-card)] md:aspect-auto">
             <img
               src={selectedProperty.photos?.[0] || DEFAULT_PROPERTY_IMAGE}
               alt={getPropertyTitle(selectedProperty)}
@@ -105,30 +105,30 @@ const PropertyModalComponent = ({
               <button
                 type="button"
                 onClick={closeModal}
-                className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
+                className="admin-button-secondary rounded-full px-4 py-2 text-sm font-medium"
               >
                 Close
               </button>
             </div>
 
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
               {getPropertyLocation(selectedProperty)}
             </p>
             <h2
               id="property-preview-title"
-              className="mt-3 text-3xl font-semibold tracking-tight text-slate-950"
+              className="mt-3 text-3xl font-semibold tracking-tight text-[var(--admin-text)]"
             >
               {getPropertyTitle(selectedProperty)}
             </h2>
-            <p className="mt-4 text-sm leading-7 text-slate-600">
+            <p className="mt-4 text-sm leading-7 text-[var(--admin-muted)]">
               {getPropertyDescriptionText(selectedProperty, 220)}
             </p>
 
-            <div className="mt-6 rounded-[1.5rem] bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <div className="mt-6 rounded-[1.5rem] bg-[var(--admin-card)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                 {priceInfo.label}
               </p>
-              <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">
+              <p className="mt-2 text-4xl font-semibold tracking-tight text-[var(--admin-text)]">
                 {getPropertyPriceDisplay(selectedProperty)}
               </p>
             </div>
@@ -137,7 +137,7 @@ const PropertyModalComponent = ({
               {(selectedProperty.amenities || []).slice(0, 6).map((amenity) => (
                 <span
                   key={amenity}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700"
+                  className="rounded-full bg-[var(--admin-surface)] px-3 py-1 text-sm font-medium text-[var(--admin-muted)]"
                 >
                   {amenity}
                 </span>
@@ -147,14 +147,14 @@ const PropertyModalComponent = ({
             <div className="mt-8 flex gap-3">
               <Link
                 href={buildPropertyHref(selectedProperty)}
-                className="inline-flex flex-1 items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white transition hover:bg-sky-700"
+                className="admin-button-primary inline-flex flex-1 items-center justify-center rounded-full px-5 py-3 text-sm font-medium"
               >
                 Open property page
               </Link>
               <button
                 type="button"
                 onClick={closeModal}
-                className="inline-flex items-center justify-center rounded-full border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
+                className="admin-button-secondary inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-medium"
               >
                 Dismiss
               </button>

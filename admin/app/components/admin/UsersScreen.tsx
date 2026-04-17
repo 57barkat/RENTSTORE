@@ -225,8 +225,8 @@ export default function UsersScreen({
                         onClick={() => handleToggleBlock(user._id, user.isBlocked)}
                         className={`rounded-full border px-3 py-1 text-[10px] font-bold ${
                           user.isBlocked
-                            ? "border-red-500/20 bg-red-500/10 text-red-600"
-                            : "border-green-500/20 bg-green-500/10 text-green-600"
+                            ? "border-[rgba(220,38,38,0.18)] bg-[var(--admin-error-soft)] text-[var(--admin-error)]"
+                            : "border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
                         }`}
                       >
                         {user.isBlocked ? "BLOCKED" : "ACTIVE"}
@@ -241,7 +241,7 @@ export default function UsersScreen({
                       </button>
                       <button
                         onClick={() => handleDelete(user._id)}
-                        className="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10"
+                        className="rounded-lg p-2 text-[var(--admin-error)] transition-all hover:bg-[var(--admin-error-soft)]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -281,7 +281,7 @@ export default function UsersScreen({
       )}
 
       {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-end bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[60] flex items-center justify-end bg-[rgba(15,23,42,0.4)] backdrop-blur-sm animate-in fade-in duration-300">
           <div className="flex h-full w-full max-w-md animate-in flex-col border-l border-border bg-card p-6 shadow-2xl slide-in-from-right duration-300">
             <div className="mb-8 flex items-center justify-between">
               <h2 className="text-xl font-black italic">EDIT USER</h2>
@@ -362,7 +362,7 @@ export default function UsersScreen({
               <button
                 disabled={updateLoading}
                 onClick={handleUpdateUser}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="admin-button-primary flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-black disabled:opacity-50"
               >
                 {updateLoading ? (
                   "Saving..."

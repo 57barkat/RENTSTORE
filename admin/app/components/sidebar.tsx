@@ -45,7 +45,7 @@ export default function Sidebar({
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -55,14 +55,13 @@ export default function Sidebar({
           fixed inset-y-0 left-0 z-50 h-screen
           ${collapsed ? "w-20" : "w-64"} 
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-          bg-sidebar text-white transition-all duration-300 ease-in-out flex flex-col
-          border-r border-white/5
+          flex flex-col border-r border-[rgba(255,255,255,0.08)] bg-sidebar text-[var(--admin-background)] transition-all duration-300 ease-in-out
         `}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-white/10 shrink-0">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[rgba(255,255,255,0.12)] px-6">
           {(!collapsed || mobileOpen) && (
             <span
-              className="font-bold text-xl tracking-tight text-white cursor-pointer"
+              className="cursor-pointer text-xl font-bold tracking-tight text-[var(--admin-background)]"
               onClick={() => router.push("/dashboard")}
             >
               AnganStay
@@ -73,13 +72,13 @@ export default function Sidebar({
             onClick={() =>
               mobileOpen ? setMobileOpen(false) : setCollapsed(!collapsed)
             }
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+            className="rounded-lg bg-[rgba(255,255,255,0.08)] p-1.5 transition-colors hover:bg-[rgba(255,255,255,0.14)]"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
+        <nav className="mt-4 flex-1 space-y-2 overflow-y-auto p-4 custom-scrollbar">
           {menuItems.map((item, i) => {
             const isActive =
               pathname === item.path || pathname.startsWith(item.path + "/");
@@ -95,8 +94,8 @@ export default function Sidebar({
                   flex items-center gap-4 px-3 py-3 rounded-xl cursor-pointer transition-all
                   ${
                     isActive
-                      ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "hover:bg-white/5 text-gray-400 hover:text-white"
+                      ? "bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.28)]"
+                      : "text-[rgba(255,255,255,0.72)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--admin-background)]"
                   }
                 `}
               >
@@ -109,12 +108,12 @@ export default function Sidebar({
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10 shrink-0">
+        <div className="shrink-0 border-t border-[rgba(255,255,255,0.12)] p-4">
           <button
             onClick={handleLogout}
             className={`
-              flex items-center gap-4 text-red-400 hover:text-red-300 hover:bg-red-500/10 
-              w-full p-3 rounded-xl transition-all
+              flex w-full items-center gap-4 rounded-xl p-3 text-[rgba(255,255,255,0.78)] transition-all
+              hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--admin-background)]
               ${collapsed && !mobileOpen ? "justify-center" : ""}
             `}
           >
