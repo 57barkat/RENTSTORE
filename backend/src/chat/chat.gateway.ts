@@ -15,7 +15,7 @@ import { ChatService } from "./chat.service";
 @WebSocketGateway({ cors: { origin: "*" } })
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly jwtService: JwtService,
@@ -89,8 +89,9 @@ export class ChatGateway implements OnGatewayConnection {
       populatedMessage.toObject(),
     );
 
-    const participantIds =
-      await this.chatService.getRoomParticipantIds(data.chatRoomId);
+    const participantIds = await this.chatService.getRoomParticipantIds(
+      data.chatRoomId,
+    );
 
     await Promise.all(
       participantIds.map(async (participantId) => {

@@ -15,13 +15,15 @@ import { router, useFocusEffect } from "expo-router";
 import Toast from "react-native-toast-message";
 import { useMyPropertiesLogic } from "@/hooks/useMyPropertiesLogic";
 import { useAuth } from "@/contextStore/AuthContext";
-import { usePromotePropertyMutation } from "@/services/api";
 import { FontSize } from "@/constants/Typography";
 import { Colors } from "@/constants/Colors";
 import ListHeader from "./ListHeader";
 import PropertyCard from "./PropertyCard";
 import PromoteConfirmationModal from "./PromoteConfirmationModal";
-import type { QueuedPropertyUpload } from "@/contextStore/FormContext";
+// eslint-disable-next-line
+import { QueuedPropertyUpload } from "@/contextStore/FormContext";
+// eslint-disable-next-line
+import { usePromotePropertyMutation } from "@/services/api";
 
 const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
   if (!upload) {
@@ -125,6 +127,68 @@ const MyListingProperties = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
+      {(pendingUploadsCount > 0 || failedUploadsCount > 0) && (
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 16,
+            borderRadius: 16,
+            padding: 14,
+            backgroundColor: failedUploadsCount > 0 ? "#fff7ed" : "#eff6ff",
+            borderWidth: 1,
+            borderColor: failedUploadsCount > 0 ? "#fdba74" : "#93c5fd",
+          }}
+        >
+          {pendingUploadsCount > 0 && (
+            <Text
+              style={{
+                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
+                fontWeight: "700",
+                marginBottom: failedUploadsCount > 0 ? 6 : 0,
+              }}
+            >
+              {uploadBannerMessage ||
+                `${pendingUploadsCount} property${pendingUploadsCount === 1 ? "" : "ies"} uploading in background.`}
+            </Text>
+          )}
+          {pendingUploadsCount > 1 && (
+            <Text
+              style={{
+                marginTop: 4,
+                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
+              }}
+            >
+              {pendingUploadsCount - 1} more queued after this one.
+            </Text>
+          )}
+          {failedUploadsCount > 0 && (
+            <>
+              <Text style={{ color: "#9a3412", fontWeight: "700" }}>
+                {failedUploadsCount} queued upload
+                {failedUploadsCount === 1 ? "" : "s"} need attention.
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  void logic.formContext?.retryFailedUploads();
+                }}
+                style={{
+                  marginTop: 8,
+                  alignSelf: "flex-start",
+                  borderRadius: 999,
+                  backgroundColor: "#c2410c",
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  Retry failed uploads
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+
       {(pendingUploadsCount > 0 || failedUploadsCount > 0) && (
         <View
           style={{

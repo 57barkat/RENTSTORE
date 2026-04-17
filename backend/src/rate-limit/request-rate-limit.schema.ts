@@ -6,13 +6,13 @@ export type RequestRateLimitDocument = RequestRateLimit & Document;
 @Schema({ timestamps: true })
 export class RequestRateLimit {
   @Prop({ required: true, unique: true })
-  key: string;
+  key!: string;
 
   @Prop({ required: true, default: 0 })
-  count: number;
+  count!: number;
 
   @Prop({ required: true })
-  expiresAt: Date;
+  expiresAt!: Date;
 }
 
 export const RequestRateLimitSchema =

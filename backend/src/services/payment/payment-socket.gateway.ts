@@ -10,7 +10,7 @@ import { Logger } from "@nestjs/common";
 @WebSocketGateway({ cors: { origin: "*" } })
 export class PaymentSocketGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private readonly logger = new Logger(PaymentSocketGateway.name);
 

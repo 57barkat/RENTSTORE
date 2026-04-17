@@ -20,14 +20,14 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
-import { Public } from "src/common/decorators/public.decorator";
-import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import {
   ForgotPasswordDto,
   ResetPasswordDto,
   VerifyResetCodeDto,
 } from "./dto/forgot-password.dto";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { Public } from "../../common/decorators/public.decorator";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 @Controller("users")
 export class UserController {
   constructor(

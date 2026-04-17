@@ -2,23 +2,23 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from "class-validator";
 
 export class ForgotPasswordDto {
   @IsEmail()
-  email: string;
+  email!: string;
 }
 
 export class VerifyResetCodeDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @IsNotEmpty()
-  code: string;
+  code!: string;
 }
 
 export class ResetPasswordDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6)
-  newPassword: string;
+  newPassword!: string;
 }

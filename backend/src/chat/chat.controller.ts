@@ -9,9 +9,9 @@ import {
   Param,
   Query,
 } from "@nestjs/common";
-import { RateLimit } from "src/common/decorators/rate-limit.decorator";
 import { ChatService } from "./chat.service";
 import { AuthGuard } from "@nestjs/passport";
+import { RateLimit } from "../common/decorators/rate-limit.decorator";
 
 @Controller("chat")
 @UseGuards(AuthGuard("jwt"))

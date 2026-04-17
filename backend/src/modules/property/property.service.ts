@@ -354,15 +354,17 @@ export class PropertyService {
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
     if (userId) mongoFilter.ownerId = { $ne: userId };
-
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const adjustedLimit = Number(limit);
+    // 3. Pagination Math
+    const currentPage = Math.max(1, Number(page));
+    const adjustedLimit = Math.max(1, Number(limit));
+    const skip = (currentPage - 1) * adjustedLimit;
     const maxNeeded = skip + adjustedLimit;
 
+    // 4. Sorting Logic
     let secondarySort: any = { createdAt: -1 };
     if (filters.sortBy === "price_asc") secondarySort = { monthlyRent: 1 };
     else if (filters.sortBy === "price_desc")
@@ -371,13 +373,14 @@ export class PropertyService {
     else if (filters.sortBy === "popular") secondarySort = { views: -1 };
 
     const finalSort = { ...secondarySort, _id: -1 };
-    const featuredIds: string[] = [];
+    const featuredIds: string[] = []; // Placeholder for any specific exclusions
 
     const mainFilter = {
       ...mongoFilter,
       _id: { $nin: featuredIds },
     };
 
+    // 5. Aggregate with Facets for Interleaving
     const results = await this.propertyModel.aggregate([
       { $match: mainFilter },
       {
@@ -385,7 +388,7 @@ export class PropertyService {
           weight3: [
             { $match: { sortWeight: 3 } },
             { $sort: finalSort },
-            { $limit: maxNeeded * 2 }, // Optimization: Fetch only what's realistically needed for interleaving
+            { $limit: maxNeeded * 2 },
           ],
           weight2: [
             { $match: { sortWeight: 2 } },
@@ -402,22 +405,23 @@ export class PropertyService {
       },
     ]);
 
+    // Extract data from facets
     const w3Data = results[0].weight3 || [];
     const w2Data = results[0].weight2 || [];
     const w1Data = results[0].weight1 || [];
     const total = results[0].totalCount[0]?.count || 0;
 
+    // 6. Pointer-Based Interleaving (O(N))
     const interleavedData: any[] = [];
     let w3Idx = 0,
       w2Idx = 0,
       w1Idx = 0;
 
-    // Faster O(1) Interleaving using pointers instead of .shift()
     while (
       interleavedData.length < maxNeeded &&
       (w3Idx < w3Data.length || w2Idx < w2Data.length || w1Idx < w1Data.length)
     ) {
-      // 1. Weight 3 (Up to 4)
+      // Step A: Weight 3 (Premium) - Up to 4 slots
       for (
         let i = 0;
         i < 4 && interleavedData.length < maxNeeded && w3Idx < w3Data.length;
@@ -425,7 +429,7 @@ export class PropertyService {
       ) {
         interleavedData.push(w3Data[w3Idx++]);
       }
-      // 2. Weight 2 (Up to 3)
+      // Step B: Weight 2 (Enhanced) - Up to 3 slots
       for (
         let i = 0;
         i < 3 && interleavedData.length < maxNeeded && w2Idx < w2Data.length;
@@ -433,7 +437,7 @@ export class PropertyService {
       ) {
         interleavedData.push(w2Data[w2Idx++]);
       }
-      // 3. Weight 1 (Up to 3)
+      // Step C: Weight 1 (Standard) - Up to 3 slots
       for (
         let i = 0;
         i < 3 && interleavedData.length < maxNeeded && w1Idx < w1Data.length;
@@ -443,15 +447,17 @@ export class PropertyService {
       }
     }
 
+    // 7. Final Slice for the specific page
     const paginatedData = interleavedData.slice(skip, skip + adjustedLimit);
 
+    // 8. Populate Owner Data
     const populatedMainData = await this.propertyModel.populate(paginatedData, {
       path: "ownerId",
       select: "name email phone profileImage subscription",
     });
 
+    // 9. Track Impressions (Non-blocking)
     const propertyIds = populatedMainData.map((p) => p._id);
-
     if (propertyIds.length > 0) {
       this.propertyModel
         .updateMany({ _id: { $in: propertyIds } }, { $inc: { impressions: 1 } })
@@ -459,10 +465,11 @@ export class PropertyService {
         .catch((err) => console.error("Impression update failed", err));
     }
 
+    // 10. Return formatted response
     return {
       data: populatedMainData,
       total,
-      page: Number(page),
+      page: currentPage,
       limit: adjustedLimit,
       totalPages: Math.ceil(total / adjustedLimit),
       message:

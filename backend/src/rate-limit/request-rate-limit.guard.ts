@@ -6,8 +6,11 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { RATE_LIMIT_METADATA, RateLimitPolicy } from "src/common/decorators/rate-limit.decorator";
 import { RequestRateLimitService } from "./request-rate-limit.service";
+import {
+  RATE_LIMIT_METADATA,
+  RateLimitPolicy,
+} from "../common/decorators/rate-limit.decorator";
 
 const DEFAULT_POLICY: RateLimitPolicy = {
   limit: 300,
@@ -52,7 +55,10 @@ export class RequestRateLimitGuard implements CanActivate {
       windowBucket,
     ].join(":");
 
-    const record = await this.requestRateLimitService.consume(key, policy.windowMs);
+    const record = await this.requestRateLimitService.consume(
+      key,
+      policy.windowMs,
+    );
 
     if ((record?.count ?? 0) > policy.limit) {
       throw new HttpException(

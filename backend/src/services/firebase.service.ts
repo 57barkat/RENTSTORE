@@ -18,23 +18,6 @@ export class FirebaseService {
     });
   }
 
-  async verifyIdToken(idToken: string) {
-    try {
-      return await this.defaultApp.auth().verifyIdToken(idToken);
-    } catch (error) {
-      throw new Error("Invalid token");
-    }
-  }
-
-  async createUser(email: string, password: string, phoneNumber?: string) {
-    return this.defaultApp.auth().createUser({
-      email,
-      emailVerified: false,
-      password,
-      phoneNumber,
-    });
-  }
-
   async sendEmailVerificationLink(email: string) {
     try {
       const link = await this.defaultApp

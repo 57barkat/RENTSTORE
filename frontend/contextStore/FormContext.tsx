@@ -18,20 +18,59 @@ import { useAuth } from "./AuthContext";
 import Constants from "expo-constants";
 
 const CLOUDINARY_CLOUD_NAME =
-  process.env.CLOUDINARY_CLOUD_NAME ||
-  Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME;
+  Constants.expoConfig?.extra?.CLOUDINARY_CLOUD_NAME ||
+  process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+  process.env.CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET =
-  Constants.expoConfig?.extra?.UPLOAD_PRESET || process.env.UPLOAD_PRESET;
+  Constants.expoConfig?.extra?.UPLOAD_PRESET ||
+  process.env.EXPO_PUBLIC_UPLOAD_PRESET ||
+  process.env.UPLOAD_PRESET;
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 const MAX_PARALLEL_UPLOADS = 3;
 const PROPERTY_UPLOAD_QUEUE_STORAGE_KEY = "property-upload-queue";
 
+const getMimeTypeFromUri = (fileUri: string) => {
+  const normalizedUri = fileUri.split("?")[0].toLowerCase();
+
+  if (normalizedUri.endsWith(".png")) {
+    return "image/png";
+  }
+
+  if (normalizedUri.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  if (normalizedUri.endsWith(".heic") || normalizedUri.endsWith(".heif")) {
+    return "image/heic";
+  }
+
+  return "image/jpeg";
+};
+
+const getFileNameFromUri = (fileUri: string) => {
+  const normalizedUri = fileUri.split("?")[0];
+  const segments = normalizedUri.split("/");
+  const lastSegment = segments[segments.length - 1];
+
+  return lastSegment || `property_image_${Date.now()}.jpg`;
+};
+
 const uploadToCloudinary = async (fileUri: string): Promise<string> => {
+  if (!CLOUDINARY_CLOUD_NAME || !UPLOAD_PRESET) {
+    throw new Error(
+      "Cloudinary is not configured. Missing CLOUDINARY_CLOUD_NAME or UPLOAD_PRESET.",
+    );
+  }
+
+  if (!fileUri) {
+    throw new Error("No image file URI was provided for upload.");
+  }
+
   const formData = new FormData();
   formData.append("file", {
     uri: fileUri,
-    type: "image/jpeg",
-    name: "property_image.jpg",
+    type: getMimeTypeFromUri(fileUri),
+    name: getFileNameFromUri(fileUri),
   } as any);
   formData.append("upload_preset", UPLOAD_PRESET);
 
@@ -41,11 +80,31 @@ const uploadToCloudinary = async (fileUri: string): Promise<string> => {
   });
 
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error?.message || "Cloudinary upload failed");
+    const rawError = await response.text();
+    let errorMessage = "Cloudinary upload failed";
+
+    try {
+      const errorData = JSON.parse(rawError);
+      errorMessage = errorData.error?.message || errorMessage;
+    } catch {
+      if (rawError) {
+        errorMessage = rawError;
+      }
+    }
+
+    throw new Error(
+      `Cloudinary upload failed (${response.status}): ${errorMessage}`,
+    );
   }
 
   const result = await response.json();
+
+  if (!result.secure_url) {
+    throw new Error(
+      "Cloudinary upload succeeded but no secure_url was returned.",
+    );
+  }
+
   return result.secure_url;
 };
 
@@ -193,9 +252,11 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       setUploadQueue((current) => {
         const next =
           typeof updater === "function"
-            ? (updater as (value: QueuedPropertyUpload[]) => QueuedPropertyUpload[])(
-                current,
-              )
+            ? (
+                updater as (
+                  value: QueuedPropertyUpload[],
+                ) => QueuedPropertyUpload[]
+              )(current)
             : updater;
 
         uploadQueueRef.current = next;
@@ -212,7 +273,9 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       updater: (item: QueuedPropertyUpload) => QueuedPropertyUpload,
     ) => {
       setUploadQueueAndPersist((current) =>
-        current.map((item) => (item.queueId === queueId ? updater(item) : item)),
+        current.map((item) =>
+          item.queueId === queueId ? updater(item) : item,
+        ),
       );
     },
     [setUploadQueueAndPersist],
@@ -336,8 +399,12 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
                       uploadTargets.length,
                       (item.progress?.completedImages || 0) + 1,
                     ),
-                    activeImageNumbers: (item.progress?.activeImageNumbers || [])
-                      .filter((imageNumber) => imageNumber !== target.imageNumber)
+                    activeImageNumbers: (
+                      item.progress?.activeImageNumbers || []
+                    )
+                      .filter(
+                        (imageNumber) => imageNumber !== target.imageNumber,
+                      )
                       .sort((left, right) => left - right),
                   },
                 }));
@@ -395,7 +462,13 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       isProcessingQueueRef.current = false;
     }
-  }, [createProperty, queueHydrated, setUploadQueueAndPersist, updateQueuedUpload, updateUser]);
+  }, [
+    createProperty,
+    queueHydrated,
+    setUploadQueueAndPersist,
+    updateQueuedUpload,
+    updateUser,
+  ]);
 
   useEffect(() => {
     if (!queueHydrated) {
@@ -421,8 +494,9 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
         status: "queued",
         progress: {
           phase: "queued",
-          totalImages: (payload.photos || []).filter((uri) => !uri.startsWith("http"))
-            .length,
+          totalImages: (payload.photos || []).filter(
+            (uri) => !uri.startsWith("http"),
+          ).length,
           completedImages: 0,
           activeImageNumbers: [],
         },
@@ -480,10 +554,9 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
               updatedAt: Date.now(),
               progress: {
                 phase: "queued",
-                totalImages:
-                  (item.payload.photos || []).filter(
-                    (uri) => !uri.startsWith("http"),
-                  ).length,
+                totalImages: (item.payload.photos || []).filter(
+                  (uri) => !uri.startsWith("http"),
+                ).length,
                 completedImages: 0,
                 activeImageNumbers: [],
               },

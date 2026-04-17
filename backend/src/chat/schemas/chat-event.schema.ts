@@ -11,10 +11,10 @@ export enum ChatEventType {
 @Schema({ timestamps: { createdAt: true, updatedAt: false } })
 export class ChatEvent {
   @Prop({ required: true, enum: ChatEventType })
-  type: ChatEventType;
+  type!: ChatEventType;
 
   @Prop({ required: true })
-  originInstanceId: string;
+  originInstanceId!: string;
 
   @Prop()
   targetRoomId?: string;
@@ -23,10 +23,10 @@ export class ChatEvent {
   targetUserId?: string;
 
   @Prop({ type: Object, required: true })
-  payload: Record<string, any>;
+  payload!: Record<string, any>;
 
   @Prop()
-  createdAt: Date;
+  createdAt!: Date;
 }
 
 export const ChatEventSchema = SchemaFactory.createForClass(ChatEvent);

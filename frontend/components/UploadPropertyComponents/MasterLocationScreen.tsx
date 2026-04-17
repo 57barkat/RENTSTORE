@@ -242,18 +242,24 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
   const handleSearch = (text: string) => {
     setAddress(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
     debounceRef.current = setTimeout(async () => {
       if (text.length > 2) {
         try {
-          const results = await searchPlaces(text);
+          // Pass the latitude and longitude from your state here
+          const results = await searchPlaces(
+            text,
+            coords?.latitude,
+            coords?.longitude,
+          );
           setSuggestions(results);
         } catch (err) {
-          // console.error(err);
+          // error handling
         }
       } else {
         setSuggestions([]);
       }
-    }, DEBOUNCE_DELAY);
+    }, 400); // 400ms is much better for user experience than 800ms
   };
 
   const selectSuggestion = async (item: any) => {

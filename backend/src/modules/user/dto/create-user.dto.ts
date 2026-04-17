@@ -11,30 +11,32 @@ import {
   IsNumber,
   IsDateString,
 } from "class-validator";
+import { Type, Transform } from "class-transformer";
 import { UserRole, SubscriptionType } from "../user.entity";
 
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 
   @IsString()
   @IsNotEmpty()
-  phone: string;
+  phone!: string;
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[0-9]{5}-[0-9]{7}-[0-9]{1}$/, {
-    message: "CNIC must be 00000-0000000-0",
+  // Updated Regex to make dashes optional so 1234567890987 passes
+  @Matches(/^[0-9]{5}-?[0-9]{7}-?[0-9]{1}$/, {
+    message: "CNIC must be 00000-0000000-0 or 13 digits",
   })
-  cnic: string;
+  cnic!: string;
 
   @IsEnum(UserRole)
   @IsOptional()
@@ -42,7 +44,8 @@ export class CreateUserDto {
 
   @IsBoolean()
   @IsNotEmpty()
-  acceptedTerms: boolean;
+  @Type(() => Boolean)
+  acceptedTerms!: boolean;
 
   @IsOptional()
   @IsEnum(SubscriptionType)
@@ -58,10 +61,12 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsBoolean()
+  @Type(() => Boolean)
   subscriptionAutoRenew?: boolean;
 
   @IsOptional()
   @IsBoolean()
+  @Type(() => Boolean)
   subscriptionTrialUsed?: boolean;
 
   @IsOptional()
@@ -83,9 +88,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsNumber()
   prioritySlotCredits?: number;
-
+ 
+  @IsOptional()
   @IsBoolean()
-  isAgencyPerson: boolean;
+  @Type(() => Boolean)
+  @Transform(({ value }) => value === "true" || value === true)
+  isAgencyPerson: boolean = false;
 
   @ValidateIf((o) => o.isAgencyPerson === true)
   @IsString()
@@ -97,7 +105,7 @@ export class CreateUserDto {
   @IsString()
   agencyLogo?: string;
 
-  @ValidateIf((o) => o.isAgencyPerson)
+  @ValidateIf((o) => o.isAgencyPerson === true)
   @IsOptional()
   @IsString()
   agencyAddress?: string;

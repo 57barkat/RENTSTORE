@@ -4,9 +4,9 @@ import { User, UserSchema } from "./user.entity";
 import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
 import { AuthModule } from "../../services/auth.module";
-import { EmailModule } from "src/services/email/email.module";
 import { Agency, AgencySchema } from "../Agency/agency.entity";
 import { Property, PropertySchema } from "../property/property.schema";
+import { EmailModule } from "../../services/email/email.module";
 
 @Module({
   imports: [

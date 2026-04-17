@@ -88,18 +88,18 @@ const PhotosScreen: FC = () => {
 
   // --- Navigation & Validation ---
   const handleNext = () => {
-    if (selectedImages.length < 5) {
+    if (selectedImages.length < 2) {
       Toast.show({
         type: "error",
         text1: "Add more photos",
-        text2: "You need at least 5 photos to continue.",
+        text2: "You need at least 3 photos to continue.",
       });
       return;
     }
     router.push("/upload/ListingTitleScreen");
   };
 
-  const MIN_PHOTOS_REQUIRED = 5;
+  const MIN_PHOTOS_REQUIRED = 3;
   const isNextDisabled = selectedImages.length < MIN_PHOTOS_REQUIRED;
   const photosCount = selectedImages.length;
 

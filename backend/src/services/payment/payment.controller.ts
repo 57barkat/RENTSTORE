@@ -1,4 +1,3 @@
-import { PaymentSocketGateway } from "src/services/payment/payment-socket.gateway";
 import {
   Controller,
   Post,
@@ -12,10 +11,11 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import * as crypto from "crypto";
-import { UserService } from "src/modules/user/user.service";
 import { PaymentService } from "./payment.service";
-import { Public } from "src/common/decorators/public.decorator";
-import { JwtAuthGuard } from "src/auth/guards/jwt-auth.guard";
+import { UserService } from "../../modules/user/user.service";
+import { PaymentSocketGateway } from "./payment-socket.gateway";
+import { Public } from "../../common/decorators/public.decorator";
+import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 
 @Controller("payments")
 export class PaymentController {
@@ -115,7 +115,7 @@ export class PaymentController {
 
       return { status: "success" };
     } catch (err) {
-      console.error("🔥 Webhook processing error:", err.message);
+      console.error("🔥 Webhook processing error:", err);
       return { status: "error" };
     }
   }
