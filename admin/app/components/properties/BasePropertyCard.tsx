@@ -34,7 +34,7 @@ export default function BasePropertyCard({
           alt={title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(15,23,42,0.4)] via-transparent to-[rgba(15,23,42,0.08)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[color:color-mix(in_srgb,var(--admin-text)_38%,transparent)] via-transparent to-[color:color-mix(in_srgb,var(--admin-text)_8%,transparent)]" />
         {badges && <div className="absolute left-3 top-3 flex flex-wrap gap-2">{badges}</div>}
         {overlay && <div className="absolute right-3 top-3">{overlay}</div>}
       </div>

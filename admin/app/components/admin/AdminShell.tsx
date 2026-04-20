@@ -41,7 +41,7 @@ export default function AdminShell({
 
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.22)] backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--admin-shadow)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}

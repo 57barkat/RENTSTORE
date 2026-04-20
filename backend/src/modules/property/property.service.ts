@@ -728,6 +728,175 @@ export class PropertyService {
     return property;
   }
 
+  async getPropertyUploaderSummary(propertyId: string) {
+    console.log("[PropertyService] getPropertyUploaderSummary:start", {
+      propertyId,
+    });
+
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
+    const property = await this.propertyModel
+      .findById(propertyId)
+      .select("ownerId")
+      .lean();
+
+    if (!property?.ownerId) {
+      console.warn("[PropertyService] uploader summary property missing", {
+        propertyId,
+      });
+      throw new NotFoundException("Property not found");
+    }
+
+    const ownerObjectId =
+      property.ownerId instanceof Types.ObjectId
+        ? property.ownerId
+        : new Types.ObjectId(property.ownerId);
+    const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
+
+    const [owner, groupedCounts] = await Promise.all([
+      this.userModel
+        .findById(ownerObjectId)
+        .select(
+          "_id name phone profileImage subscription role isPhoneVerified isEmailVerified",
+        )
+        .lean(),
+      this.propertyModel.aggregate([
+        {
+          $match: {
+            ownerId: { $in: ownerIdCandidates },
+            moderationStatus: { $ne: "DELETED" },
+          },
+        },
+        {
+          $group: {
+            _id: "$hostOption",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    if (!owner) {
+      console.warn("[PropertyService] uploader summary owner missing", {
+        propertyId,
+        ownerObjectId: ownerObjectId.toString(),
+      });
+      throw new NotFoundException("Uploader not found");
+    }
+
+    const stats = {
+      totalProperties: 0,
+      homes: 0,
+      apartments: 0,
+      hostels: 0,
+      shops: 0,
+      offices: 0,
+    };
+
+    for (const entry of groupedCounts) {
+      stats.totalProperties += entry.count;
+
+      if (entry._id === "home") stats.homes = entry.count;
+      if (entry._id === "apartment") stats.apartments = entry.count;
+      if (entry._id === "hostel") stats.hostels = entry.count;
+      if (entry._id === "shop") stats.shops = entry.count;
+      if (entry._id === "office") stats.offices = entry.count;
+    }
+
+    const subscription = owner.subscription || "free";
+    const planLabel =
+      subscription === "pro"
+        ? "Pro Member"
+        : subscription === "standard"
+          ? "Standard Member"
+          : "Free Member";
+
+    const payload = {
+      uploader: {
+        _id: owner._id,
+        name: owner.name,
+        phone: owner.phone,
+        profileImage: owner.profileImage,
+        subscription,
+        planLabel,
+        role: owner.role,
+        isPhoneVerified: owner.isPhoneVerified ?? false,
+        isEmailVerified: owner.isEmailVerified ?? false,
+      },
+      stats,
+    };
+
+    console.log("[PropertyService] getPropertyUploaderSummary:done", {
+      propertyId,
+      ownerId: ownerObjectId.toString(),
+      stats,
+    });
+
+    return payload;
+  }
+
+  async getPropertyUploaderProfile(propertyId: string) {
+    console.log("[PropertyService] getPropertyUploaderProfile:start", {
+      propertyId,
+    });
+
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
+    const property = await this.propertyModel
+      .findById(propertyId)
+      .select("ownerId")
+      .lean();
+
+    if (!property?.ownerId) {
+      console.warn("[PropertyService] uploader profile property missing", {
+        propertyId,
+      });
+      throw new NotFoundException("Property not found");
+    }
+
+    const ownerObjectId =
+      property.ownerId instanceof Types.ObjectId
+        ? property.ownerId
+        : new Types.ObjectId(property.ownerId);
+    const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
+
+    const [summary, listings] = await Promise.all([
+      this.getPropertyUploaderSummary(propertyId),
+      this.propertyModel
+        .find({
+          ownerId: { $in: ownerIdCandidates },
+          isApproved: true,
+          status: true,
+          $or: [
+            { moderationStatus: "ACTIVE" },
+            { moderationStatus: { $exists: false } },
+            { moderationStatus: null },
+          ],
+        })
+        .sort({ featured: -1, sortWeight: -1, createdAt: -1 })
+        .limit(20)
+        .lean(),
+    ]);
+
+    const payload = {
+      ...summary,
+      listings,
+    };
+
+    console.log("[PropertyService] getPropertyUploaderProfile:done", {
+      propertyId,
+      ownerId: ownerObjectId.toString(),
+      listingsCount: listings.length,
+      uploaderId: summary?.uploader?._id?.toString?.() ?? summary?.uploader?._id,
+    });
+
+    return payload;
+  }
+
   async getFeaturedProperties(userId?: string) {
     const data = (await this.propertyModel
       .find({ status: true, isApproved: true })

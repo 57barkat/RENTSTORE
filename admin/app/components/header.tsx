@@ -14,7 +14,7 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
   const { user, role } = useSelector((state: RootState) => state.auth);
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_88%,transparent)] px-6 backdrop-blur-md">
       <div className="flex items-center gap-6">
         <button
           onClick={onMenuClick}
@@ -24,7 +24,7 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
         </button>
 
         <div className="hidden md:flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] shadow-[0_18px_40px_-24px_rgba(0,0,128,0.35)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--admin-primary)] shadow-[0_18px_40px_-24px_var(--admin-primary-strong)]">
             <span className="text-xs font-black text-[var(--admin-background)]">
               RS
             </span>
@@ -71,7 +71,7 @@ export default function Header({ onMenuClick, isCollapsed }: HeaderProps) {
                 className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--admin-border)] transition-all group-hover:ring-[var(--admin-primary-strong)]"
               />
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--admin-primary),var(--admin-info))] text-sm font-bold text-[var(--admin-background)] shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--admin-primary),var(--admin-secondary))] text-sm font-bold text-[var(--admin-background)] shadow-sm">
                 {user?.name?.charAt(0) || "A"}
               </div>
             )}

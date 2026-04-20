@@ -177,6 +177,18 @@ export const api = createApi({
     findPropertyById: builder.query({
       query: (id) => ({ url: `/api/v1/properties/${id}`, method: "GET" }),
     }),
+    getPropertyUploaderSummary: builder.query({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/uploader-summary`,
+        method: "GET",
+      }),
+    }),
+    getPropertyUploaderProfile: builder.query({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/uploader-profile`,
+        method: "GET",
+      }),
+    }),
     getAllProperties: builder.query({
       query: (
         params: { page?: number; limit?: number; hostOption?: string } = {},
@@ -402,6 +414,8 @@ export const {
   useFindMyPropertiesQuery,
   useUpdatePropertyVisibilityMutation,
   useFindPropertyByIdQuery,
+  useGetPropertyUploaderProfileQuery,
+  useGetPropertyUploaderSummaryQuery,
   useFindPropertyByIdAndUpdateMutation,
   useFindPropertyByIdAndDeleteMutation,
   useFindDraftPropertyByIdAndDeleteMutation,

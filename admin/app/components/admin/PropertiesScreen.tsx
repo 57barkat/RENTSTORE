@@ -149,6 +149,7 @@ export default function PropertiesScreen({
     fetchProperties,
     initialResponse.data,
     initialResponse.page,
+    initialResponse.total,
     initialResponse.totalPages,
     listingStatus,
     searchQuery,
@@ -238,7 +239,7 @@ export default function PropertiesScreen({
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Pending on page
             </p>
-            <p className="mt-1 text-2xl font-black text-amber-600">
+            <p className="mt-1 text-2xl font-black text-[var(--admin-warning)]">
               {activeSummary.pendingCount}
             </p>
           </div>
@@ -296,8 +297,8 @@ export default function PropertiesScreen({
                 onClick={() => setApprovalStatus(filter.value)}
                 className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                   active
-                    ? "border-amber-500 bg-amber-500 text-white"
-                    : "border-border bg-card text-muted-foreground hover:border-amber-500/40 hover:text-foreground"
+                    ? "border-[var(--admin-warning)] bg-[var(--admin-warning)] text-white"
+                    : "border-border bg-card text-muted-foreground hover:border-[var(--admin-warning)] hover:text-foreground"
                 }`}
               >
                 {filter.label}
@@ -317,8 +318,8 @@ export default function PropertiesScreen({
                 onClick={() => setListingStatus(filter.value)}
                 className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                   active
-                    ? "border-slate-700 bg-slate-700 text-white"
-                    : "border-border bg-card text-muted-foreground hover:border-slate-500/40 hover:text-foreground"
+                    ? "border-[var(--admin-secondary)] bg-[var(--admin-secondary)] text-white"
+                    : "border-border bg-card text-muted-foreground hover:border-[var(--admin-secondary)] hover:text-foreground"
                 }`}
               >
                 {filter.label}

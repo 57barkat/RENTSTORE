@@ -7,10 +7,15 @@ import { isProtectedRoute } from "@/app/lib/route-constants";
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
   const { pathname } = request.nextUrl;
+  const reauthRequested = request.nextUrl.searchParams.get("reauth") === "1";
   const session = await verifyAuthToken(token, process.env.MY_APP_SECRET);
   const isAdmin = session?.role === "admin";
 
   if (pathname === "/login") {
+    if (reauthRequested) {
+      return NextResponse.next();
+    }
+
     if (isAdmin) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }

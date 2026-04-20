@@ -187,6 +187,9 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
   const addressLine = renderAddress(property);
   const highlights = getPropertyHighlights(property);
   const contactPhone = getPropertyContactPhone(property);
+  const uploaderProfile = await PropertyService.getPropertyUploaderProfileByProperty(
+    property._id,
+  );
   const priceInfo = getPropertyPriceInfo(property);
   const pricingOptions = getPropertyPricingOptions(property);
   const schemaOffers = pricingOptions.map((option) => ({
@@ -248,7 +251,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
 
         <div className="mb-8 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
           <div className="space-y-4">
-            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[rgba(255,255,255,0.9)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
+            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[color:color-mix(in_srgb,var(--admin-background)_90%,transparent)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--admin-primary)]">
               {getCategoryLabel(category)} in {getPropertyCity(property)} •{" "}
               {getPropertyLocation(property)}
             </span>
@@ -262,7 +265,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)]">
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_92%,transparent)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)]">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               {priceInfo.label}
             </p>
@@ -468,7 +471,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                 ).map((detail) => (
                   <span
                     key={detail}
-                    className="rounded-full border border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] px-4 py-2 text-sm font-medium text-[var(--admin-success)]"
+                    className="rounded-full border border-[var(--admin-secondary-strong)] bg-[var(--admin-secondary-soft)] px-4 py-2 text-sm font-medium text-[var(--admin-secondary)]"
                   >
                     {detail}
                   </span>
@@ -478,7 +481,7 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
           </section>
 
           <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
-            <div className="rounded-[2rem] border border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] p-6 text-[var(--admin-background)] shadow-xl shadow-[rgba(0,0,128,0.2)]">
+            <div className="rounded-[2rem] border border-[var(--admin-primary-strong)] bg-[var(--admin-primary)] p-6 text-[var(--admin-background)] shadow-xl shadow-[var(--admin-primary-strong)]">
               <p className="text-sm font-medium uppercase tracking-[0.18em] text-[rgba(255,255,255,0.72)]">
                 Ready to enquire?
               </p>
@@ -502,7 +505,66 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
                   Contact details available on request
                 </div>
               )}
+
+              <Link
+                href={`/uploader/${property._id}`}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.08)] px-5 py-3 text-sm font-medium text-[var(--admin-background)] transition hover:bg-[rgba(255,255,255,0.16)]"
+              >
+                View uploader profile
+              </Link>
             </div>
+
+            {uploaderProfile?.uploader && (
+              <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
+                <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                  Uploader
+                </p>
+                <div className="mt-4 flex items-center gap-4">
+                  <img
+                    src={
+                      uploaderProfile.uploader.profileImage ||
+                      DEFAULT_PROPERTY_IMAGE
+                    }
+                    alt={uploaderProfile.uploader.name || "Uploader"}
+                    className="h-14 w-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <p className="text-lg font-semibold text-[var(--admin-text)]">
+                      {uploaderProfile.uploader.name}
+                    </p>
+                    <p className="text-sm text-[var(--admin-primary)]">
+                      {uploaderProfile.uploader.planLabel}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3">
+                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                      Total
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
+                      {uploaderProfile.stats.totalProperties}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                      Houses
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
+                      {uploaderProfile.stats.homes}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                      Shops
+                    </p>
+                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
+                      {uploaderProfile.stats.shops}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-[var(--admin-text)]">

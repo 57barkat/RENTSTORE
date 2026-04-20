@@ -9,21 +9,48 @@ import {
   CheckCircle,
   Trash2,
   User,
-  Mail,
+  Phone,
   Info,
   ShieldCheck,
   Home,
   Calendar,
   ExternalLink,
+  BadgeCheck,
+  Building2,
+  Store,
 } from "lucide-react";
 
 import { getAvatarPlaceholder } from "@/app/lib/avatar";
 
 interface PropertyReviewOwner {
+  _id?: string;
   name?: string;
-  email?: string;
   phone?: string;
   profileImage?: string;
+  subscription?: string;
+  role?: string;
+}
+
+interface PropertyUploaderSummary {
+  uploader?: {
+    _id?: string;
+    name?: string;
+    phone?: string;
+    profileImage?: string;
+    subscription?: string;
+    planLabel?: string;
+    role?: string;
+    isPhoneVerified?: boolean;
+    isEmailVerified?: boolean;
+  };
+  stats?: {
+    totalProperties?: number;
+    homes?: number;
+    apartments?: number;
+    hostels?: number;
+    shops?: number;
+    offices?: number;
+  };
 }
 
 interface PropertyReviewData {
@@ -51,6 +78,7 @@ interface PropertyReviewData {
     stateTerritory?: string;
   }>;
   owner?: PropertyReviewOwner;
+  uploaderSummary?: PropertyUploaderSummary;
   safetyDetailsData?: {
     safetyDetails?: string[];
     cameraDescription?: string;
@@ -91,6 +119,9 @@ export default function PropertyReviewDrawer({
     : "Property";
   const approvalLabel = property.isApproved ? "Approved" : "Pending Approval";
   const listingLabel = property.status ? "Active" : "Inactive";
+  const uploader = property.uploaderSummary?.uploader ?? property.owner;
+  const uploaderStats = property.uploaderSummary?.stats;
+  const uploaderPlan = property.uploaderSummary?.uploader?.planLabel || "Free Member";
 
   if (loading) {
     return (
@@ -103,7 +134,7 @@ export default function PropertyReviewDrawer({
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
       <div
-        className="absolute inset-0 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       <div className="relative h-full w-full max-w-2xl animate-in overflow-y-auto border-l border-border bg-card shadow-2xl slide-in-from-right duration-300">
@@ -127,9 +158,7 @@ export default function PropertyReviewDrawer({
                 {createdAtLabel}
               </span>
             </div>
-            <h2 className="text-xl font-black tracking-tight">
-              Review Property
-            </h2>
+            <h2 className="text-xl font-black tracking-tight">Review Property</h2>
           </div>
           <button
             onClick={onClose}
@@ -187,9 +216,7 @@ export default function PropertyReviewDrawer({
                   Type
                 </p>
                 <p className="text-lg font-black text-foreground">
-                  {property.apartmentType ||
-                    property.hostelType ||
-                    categoryLabel}
+                  {property.apartmentType || property.hostelType || categoryLabel}
                 </p>
               </div>
             </div>
@@ -222,63 +249,114 @@ export default function PropertyReviewDrawer({
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-3">
               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                Owner Contact
+                Uploader Details
               </h4>
               <div className="space-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img
                       src={
-                        property.owner?.profileImage ||
-                        getAvatarPlaceholder(property.owner?.name || "Owner")
+                        uploader?.profileImage ||
+                        getAvatarPlaceholder(uploader?.name || "Uploader")
                       }
                       className="h-12 w-12 rounded-full border-2 border-primary/20 object-cover"
-                      alt="Owner"
+                      alt="Uploader"
                     />
-                    <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-card bg-[var(--admin-success)]" />
+                    <div className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-card bg-green-500">
+                      <BadgeCheck className="h-2.5 w-2.5 text-white" />
+                    </div>
                   </div>
-                  <div className="truncate">
+                  <div className="min-w-0 flex-1">
                     <p className="truncate font-black text-foreground">
-                      {property.owner?.name}
+                      {uploader?.name || "Unknown uploader"}
                     </p>
-                    <p className="flex items-center gap-1 truncate text-[11px] text-muted-foreground">
-                      <Mail className="h-3 w-3" /> {property.owner?.email}
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-1 text-[10px] font-black uppercase text-primary">
+                        {uploaderPlan}
+                      </span>
+                      <span className="rounded-full border border-border bg-accent px-2 py-1 text-[10px] font-black uppercase text-muted-foreground">
+                        {uploader?.role || "user"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Total
+                    </p>
+                    <p className="mt-1 text-lg font-black text-foreground">
+                      {uploaderStats?.totalProperties ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">
+                      <Building2 className="h-3 w-3" />
+                      Houses
+                    </p>
+                    <p className="mt-1 text-lg font-black text-foreground">
+                      {uploaderStats?.homes ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-3">
+                    <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">
+                      <Store className="h-3 w-3" />
+                      Shops
+                    </p>
+                    <p className="mt-1 text-lg font-black text-foreground">
+                      {uploaderStats?.shops ?? 0}
                     </p>
                   </div>
                 </div>
 
                 <div className="border-t border-border/50 pt-3">
                   <a
-                    href={`tel:${property.owner?.phone}`}
-                    className="group flex items-center justify-between rounded-xl border border-[var(--admin-primary-strong)] bg-[var(--admin-primary-soft)] p-2.5 transition-colors hover:bg-[rgba(0,0,128,0.12)]"
+                    href={`tel:${uploader?.phone}`}
+                    className="group flex items-center justify-between rounded-xl border border-primary/10 bg-primary/5 p-2.5 transition-colors hover:bg-primary/10"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-[var(--admin-primary)] p-2 text-[var(--admin-background)]">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                        </svg>
+                      <div className="rounded-lg bg-primary p-2 text-white">
+                        <Phone className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="mb-1 text-[10px] font-bold uppercase leading-none text-muted-foreground">
                           Phone Number
                         </p>
                         <p className="text-sm font-black text-foreground">
-                          {property.owner?.phone || "No Phone Provided"}
+                          {uploader?.phone || "No Phone Provided"}
                         </p>
                       </div>
                     </div>
                     <ExternalLink className="h-4 w-4 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
                   </a>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 border-t border-border/50 pt-3">
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Apartments
+                    </p>
+                    <p className="mt-1 text-sm font-black text-foreground">
+                      {uploaderStats?.apartments ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Hostels
+                    </p>
+                    <p className="mt-1 text-sm font-black text-foreground">
+                      {uploaderStats?.hostels ?? 0}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-background p-3">
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                      Offices
+                    </p>
+                    <p className="mt-1 text-sm font-black text-foreground">
+                      {uploaderStats?.offices ?? 0}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,7 +370,7 @@ export default function PropertyReviewDrawer({
                   safetyDetails.map((detail: string) => (
                     <span
                       key={detail}
-                      className="flex items-center gap-1 rounded-md border border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] px-2 py-1 text-[10px] font-bold capitalize text-[var(--admin-success)]"
+                      className="flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-[10px] font-bold capitalize text-green-600"
                     >
                       <ShieldCheck className="h-3 w-3" />
                       {detail.replace(/_/g, " ")}
@@ -342,9 +420,7 @@ export default function PropertyReviewDrawer({
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-4 font-black text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 className="h-5 w-5" />
-              {isSubmitting && activeAction === "delete"
-                ? "REJECTING..."
-                : "REJECT"}
+              {isSubmitting && activeAction === "delete" ? "REJECTING..." : "REJECT"}
             </button>
             {property.isApproved ? (
               <div className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-accent py-4 font-black text-muted-foreground">
@@ -359,9 +435,7 @@ export default function PropertyReviewDrawer({
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <CheckCircle className="h-5 w-5" />
-                {isSubmitting && activeAction === "approve"
-                  ? "APPROVING..."
-                  : "APPROVE"}
+                {isSubmitting && activeAction === "approve" ? "APPROVING..." : "APPROVE"}
               </button>
             )}
           </div>

@@ -337,6 +337,19 @@ export class PropertyController {
     return this.propertyService.deleteDraftById(id, userId);
   }
 
+  @Get(":id/uploader-summary")
+  @Public()
+  async getUploaderSummary(@Param("id") id: string) {
+    return this.propertyService.getPropertyUploaderSummary(id);
+  }
+
+  @Get(":id/uploader-profile")
+  @Public()
+  async getUploaderProfile(@Param("id") id: string) {
+    console.log("[PropertyController] uploader-profile request", { id });
+    return this.propertyService.getPropertyUploaderProfile(id);
+  }
+
   @Get(":id")
   @Public()
   async findById(@Param("id") id: string, @Req() req: any) {
