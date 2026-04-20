@@ -4,8 +4,8 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { FilterQuery, Model, Types } from "mongoose";
+import { InjectConnection, InjectModel } from "@nestjs/mongoose";
+import { ClientSession, Connection, FilterQuery, Model, Types } from "mongoose";
 
 import { CreatePropertyDto, PropertyWithFav } from "./dto/create-property.dto";
 import { CloudinaryService } from "../../services/Cloudinary Service/cloudinary.service";
@@ -21,17 +21,20 @@ import {
 } from "./utils/property.utils";
 import { validatePropertyPayload } from "./property.validation";
 import { User, UserDocument } from "../user/user.entity";
+import { PropertyImpressionTrackerService } from "./property-impression-tracker.service";
 import { PropertyViewTrackerService } from "./property-view-tracker.service";
 
 @Injectable()
 export class PropertyService {
   constructor(
+    @InjectConnection() private readonly connection: Connection,
     @InjectModel(Property.name) private propertyModel: Model<Property>,
     @InjectModel("PropertyDraft") private propertyDraftModel: Model<any>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService,
     private readonly deletedImagesService: DeletedImagesService,
+    private readonly propertyImpressionTracker: PropertyImpressionTrackerService,
     private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
 
@@ -73,159 +76,198 @@ export class PropertyService {
     userId: string,
   ): Promise<{ property: Property; user: any }> {
     const propertyId = dto._id;
+    const session = await this.connection.startSession();
+    let response: { property: Property; user: any } | null = null;
+    let photosToDeleteAfterCommit: string[] = [];
 
-    // 1. Fetch User
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException("User not found");
+    try {
+      await session.withTransaction(async () => {
+        // 1. Fetch User
+        const user = await this.userModel.findById(userId).session(session);
+        if (!user) throw new NotFoundException("User not found");
 
-    // 2. Data Pre-processing (Type Safe)
-    const cleanedPhotos = processPhotos(dto.photos);
-    dto.photos = cleanedPhotos; // Update DTO so it carries the clean array
+        // 2. Data Pre-processing (Type Safe)
+        const cleanedPhotos = processPhotos(dto.photos);
+        dto.photos = cleanedPhotos;
 
-    const locationGeo = formatLocationGeo(dto.lat, dto.lng);
-    if (locationGeo) dto.locationGeo = locationGeo;
+        const locationGeo = formatLocationGeo(dto.lat, dto.lng);
+        if (locationGeo) dto.locationGeo = locationGeo;
 
-    // Internal helper to handle the credit save logic
-    const handleCredits = async (isNew: boolean, isFeatured: boolean) => {
-      const needsSave = validateAndDeductCredits(user, isNew, isFeatured);
-      if (needsSave) await user.save();
-    };
+        const handleCredits = async (isNew: boolean, isFeatured: boolean) => {
+          const needsSave = validateAndDeductCredits(user, isNew, isFeatured);
+          if (needsSave) {
+            await user.save({ session });
+          }
+        };
 
-    // ========================= CASE A: UPDATE EXISTING =========================
-    if (propertyId) {
-      const existingProperty = await this.propertyModel.findById(propertyId);
+        if (propertyId) {
+          const existingProperty = await this.propertyModel
+            .findById(propertyId)
+            .session(session);
 
-      if (existingProperty) {
-        if (existingProperty.ownerId.toString() !== userId.toString())
-          throw new UnauthorizedException("Not allowed to edit this property");
+          if (existingProperty) {
+            if (existingProperty.ownerId.toString() !== userId.toString()) {
+              throw new UnauthorizedException("Not allowed to edit this property");
+            }
 
-        // Check if newly marking as featured
-        if (dto.featured === true && existingProperty.featured !== true) {
-          await handleCredits(false, true);
+            if (dto.featured === true && existingProperty.featured !== true) {
+              await handleCredits(false, true);
+            }
+
+            photosToDeleteAfterCommit = (existingProperty.photos || []).filter(
+              (url) => !cleanedPhotos.includes(url),
+            );
+
+            Object.assign(existingProperty, dto);
+            const savedProperty = await existingProperty.save({ session });
+            response = { property: savedProperty, user };
+            return;
+          }
+
+          const draft = await this.propertyDraftModel.findById(propertyId).session(session);
+          if (draft) {
+            if (draft.ownerId.toString() !== userId.toString()) {
+              throw new UnauthorizedException("Not allowed to promote draft");
+            }
+
+            const wantsFeatured = dto.featured === true || draft.featured === true;
+            await handleCredits(true, wantsFeatured);
+
+            const { _id, ...draftData } = draft.toObject();
+            const combinedPhotos = processPhotos([
+              ...(dto.photos ?? []),
+              ...(draftData.photos ?? []),
+            ]);
+
+            const property = new this.propertyModel({
+              ...draftData,
+              ...dto,
+              photos: combinedPhotos,
+              ownerId: userId,
+              status: true,
+              isApproved: false,
+            });
+
+            const savedProperty = await property.save({ session });
+            await this.propertyDraftModel.findByIdAndDelete(propertyId).session(session);
+
+            user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
+            const updatedUser = await user.save({ session });
+            response = { property: savedProperty, user: updatedUser };
+            return;
+          }
+
+          throw new NotFoundException("Property or Draft not found");
         }
 
-        // Safe photo deletion check
-        const photosToDelete = (existingProperty.photos || []).filter(
-          (url) => !cleanedPhotos.includes(url),
-        );
-        if (photosToDelete.length > 0) {
-          await this.deletedImagesService.addDeletedImages(
-            photosToDelete,
-            userId,
-            "property",
-          );
-        }
-
-        Object.assign(existingProperty, dto);
-        return { property: await existingProperty.save(), user };
-      }
-
-      // ========================= CASE B: PROMOTE DRAFT =========================
-      const draft = await this.propertyDraftModel.findById(propertyId);
-      if (draft) {
-        if (draft.ownerId.toString() !== userId.toString())
-          throw new UnauthorizedException("Not allowed to promote draft");
-
-        const wantsFeatured = dto.featured === true || draft.featured === true;
-        await handleCredits(true, wantsFeatured);
-
-        const { _id, ...draftData } = draft.toObject();
-        const combinedPhotos = processPhotos([
-          ...(dto.photos ?? []),
-          ...(draftData.photos ?? []),
-        ]);
+        await handleCredits(true, dto.featured === true);
 
         const property = new this.propertyModel({
-          ...draftData,
           ...dto,
-          photos: combinedPhotos,
+          photos: cleanedPhotos,
           ownerId: userId,
           status: true,
-          isApproved: false,
         });
 
-        const savedProperty = await property.save();
-        await this.propertyDraftModel.findByIdAndDelete(propertyId);
-
+        const savedProperty = await property.save({ session });
         user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
-        return { property: savedProperty, user: await user.save() };
-      }
+        const updatedUser = await user.save({ session });
 
-      throw new NotFoundException("Property or Draft not found");
+        response = { property: savedProperty, user: updatedUser };
+      });
+    } finally {
+      await session.endSession();
     }
 
-    // ========================= CASE C: NEW CREATE =========================
-    await handleCredits(true, dto.featured === true);
+    if (photosToDeleteAfterCommit.length > 0) {
+      await this.deletedImagesService.addDeletedImages(
+        photosToDeleteAfterCommit,
+        userId,
+        "property",
+      );
+    }
 
-    const property = new this.propertyModel({
-      ...dto,
-      photos: cleanedPhotos,
-      ownerId: userId,
-      status: true,
-    });
+    if (!response) {
+      throw new NotFoundException("Property could not be saved");
+    }
 
-    const savedProperty = await property.save();
-    user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
-
-    return { property: savedProperty, user: await user.save() };
+    return response;
   }
 
   async promoteListing(
     propertyId: string,
     userId: string,
-    type: "boost" | "featured",
+  type: "boost" | "featured",
   ): Promise<{ property: Property; user: any }> {
-    // 1. Basic Validations
-    const property = await this.propertyModel.findById(propertyId);
-    if (!property) throw new NotFoundException("Property not found");
+    const session = await this.connection.startSession();
+    let response: { property: Property; user: any } | null = null;
 
-    if (property.ownerId.toString() !== userId) {
-      throw new UnauthorizedException("You do not own this property");
+    try {
+      await session.withTransaction(async () => {
+        const property = await this.propertyModel.findById(propertyId).session(session);
+        if (!property) throw new NotFoundException("Property not found");
+
+        if (property.ownerId.toString() !== userId) {
+          throw new UnauthorizedException("You do not own this property");
+        }
+
+        if (!property.isApproved) {
+          throw new BadRequestException(
+            "Property must be approved before promotion.",
+          );
+        }
+
+        const user = await this.userModel.findById(userId).session(session);
+        if (!user) throw new NotFoundException("User not found.");
+
+        const expirationDate = new Date();
+        expirationDate.setDate(expirationDate.getDate() + 15);
+
+        if (type === "featured") {
+          const credits = Number(user.paidFeaturedCredits) || 0;
+          if (credits <= 0) {
+            throw new BadRequestException("No Featured Credits remaining.");
+          }
+
+          property.featured = true;
+          property.featuredUntil = expirationDate;
+          property.sortWeight = 3;
+          user.paidFeaturedCredits = credits - 1;
+        } else if (type === "boost") {
+          const slots = Number(user.prioritySlotCredits) || 0;
+          if (slots <= 0) {
+            throw new BadRequestException("No Boost Slots remaining.");
+          }
+
+          property.isBoosted = true;
+          property.sortWeight = 2;
+          user.prioritySlotCredits = slots - 1;
+        }
+
+        if (Array.isArray(property.address) && property.address.length === 0) {
+          property.address = undefined;
+        }
+
+        const updatedUser = await user.save({ session });
+        const savedProperty = await property.save({
+          session,
+          validateBeforeSave: false,
+        });
+
+        response = {
+          property: savedProperty,
+          user: updatedUser,
+        };
+      });
+    } finally {
+      await session.endSession();
     }
 
-    if (!property.isApproved) {
-      throw new BadRequestException(
-        "Property must be approved before promotion.",
-      );
+    if (!response) {
+      throw new NotFoundException("Property promotion failed");
     }
 
-    const user = await this.userModel.findById(userId);
-    if (!user) throw new NotFoundException("User not found.");
-
-    const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 15);
-
-    if (type === "featured") {
-      const credits = Number(user.paidFeaturedCredits) || 0;
-      if (credits <= 0)
-        throw new BadRequestException("No Featured Credits remaining.");
-
-      property.featured = true;
-      property.featuredUntil = expirationDate;
-      property.sortWeight = 3;
-      user.paidFeaturedCredits = credits - 1;
-    } else if (type === "boost") {
-      const slots = Number(user.prioritySlotCredits) || 0;
-      if (slots <= 0)
-        throw new BadRequestException("No Boost Slots remaining.");
-
-      property.isBoosted = true;
-
-      property.sortWeight = 2;
-      user.prioritySlotCredits = slots - 1;
-    }
-
-    if (Array.isArray(property.address) && property.address.length === 0) {
-      property.address = undefined;
-    }
-
-    const updatedUser = await user.save();
-    const savedProperty = await property.save({ validateBeforeSave: false });
-
-    return {
-      property: savedProperty,
-      user: updatedUser,
-    };
+    return response;
   }
 
   async findNearbyProperties(
@@ -354,14 +396,13 @@ export class PropertyService {
     userId?: string,
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
-    if (userId) mongoFilter.ownerId = { $ne: userId };
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
 
-    // 3. Pagination Math
-    const currentPage = Math.max(1, Number(page));
-    const adjustedLimit = Math.max(1, Number(limit));
+    // Guard against deep pagination and oversized pages on the hot search path.
+    const currentPage = Math.min(Math.max(1, Number(page)), 100);
+    const adjustedLimit = Math.min(Math.max(1, Number(limit)), 24);
     const skip = (currentPage - 1) * adjustedLimit;
     const maxNeeded = skip + adjustedLimit;
 
@@ -374,7 +415,7 @@ export class PropertyService {
     else if (filters.sortBy === "popular") secondarySort = { views: -1 };
 
     const finalSort = { ...secondarySort, _id: -1 };
-    const featuredIds: string[] = []; // Placeholder for any specific exclusions
+    const featuredIds: string[] = [];
 
     const mainFilter = {
       ...mongoFilter,
@@ -458,12 +499,9 @@ export class PropertyService {
     });
 
     // 9. Track Impressions (Non-blocking)
-    const propertyIds = populatedMainData.map((p) => p._id);
+    const propertyIds = populatedMainData.map((p: any) => p._id.toString());
     if (propertyIds.length > 0) {
-      this.propertyModel
-        .updateMany({ _id: { $in: propertyIds } }, { $inc: { impressions: 1 } })
-        .exec()
-        .catch((err) => console.error("Impression update failed", err));
+      this.propertyImpressionTracker.queueImpressions(propertyIds);
     }
 
     // 10. Return formatted response

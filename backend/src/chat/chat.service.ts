@@ -23,14 +23,18 @@ export class ChatService {
     participants: string[],
     propertyId?: string,
   ) {
-    const participantIds = [...new Set([userId, ...participants])]
-      .map((id) => new Types.ObjectId(id))
-      .sort((a, b) => a.toString().localeCompare(b.toString()));
+    const sortedParticipantIds = [...new Set([userId, ...participants])].sort();
+    const participantIds = sortedParticipantIds.map((id) => new Types.ObjectId(id));
+    const roomKey = `${sortedParticipantIds.join(":")}:${propertyId || "general"}`;
 
-    let room = await this.roomModel.findOne({
-      participants: { $all: participantIds, $size: participantIds.length },
-      propertyId: propertyId || null,
-    });
+    let room = await this.roomModel.findOne({ roomKey });
+
+    if (!room) {
+      room = await this.roomModel.findOne({
+        participants: { $all: participantIds, $size: participantIds.length },
+        propertyId: propertyId || null,
+      });
+    }
 
     if (!room && propertyId) {
       room = await this.roomModel.findOne({
@@ -44,12 +48,28 @@ export class ChatService {
         participants: participantIds,
         isGroup: participantIds.length > 2,
         propertyId: propertyId || null,
+        roomKey,
         lastMessage: "",
         lastMessageAt: new Date(),
       });
+    } else if (!room.roomKey) {
+      room.roomKey = roomKey;
+      await room.save();
     }
 
     return room;
+  }
+
+  async getUserRoomIds(userId: string): Promise<string[]> {
+    if (!userId) return [];
+
+    const userObjectId = new Types.ObjectId(userId);
+    const rooms = await this.roomModel
+      .find({ participants: userObjectId })
+      .select("_id")
+      .lean();
+
+    return rooms.map((room) => room._id.toString());
   }
 
   async saveMessage(senderId: string, chatRoomId: string, text: string) {
@@ -162,6 +182,52 @@ export class ChatService {
     }
 
     return room.participants.map((participant) => participant.toString());
+  }
+
+  async getRoomSummariesForParticipants(roomId: string, participantIds: string[]) {
+    if (!Types.ObjectId.isValid(roomId)) {
+      throw new BadRequestException("Invalid Room ID format");
+    }
+
+    const room = await this.roomModel
+      .findById(roomId)
+      .populate("participants", "name profileImage email")
+      .lean();
+
+    if (!room) {
+      throw new NotFoundException("Room not found");
+    }
+
+    const unreadFacet = participantIds.reduce<Record<string, any[]>>(
+      (accumulator, participantId) => {
+        accumulator[participantId] = [
+          {
+            $match: {
+              chatRoomId: new Types.ObjectId(roomId),
+              senderId: { $ne: new Types.ObjectId(participantId) },
+              readBy: { $nin: [new Types.ObjectId(participantId)] },
+            },
+          },
+          { $count: "count" },
+        ];
+        return accumulator;
+      },
+      {},
+    );
+
+    const [unreadCountsAgg] = await this.messageModel.aggregate([
+      { $facet: unreadFacet },
+    ]);
+
+    return participantIds.map((participantId) =>
+      this.toRoomSummary(
+        room,
+        participantId,
+        new Map([
+          [room._id.toString(), unreadCountsAgg?.[participantId]?.[0]?.count || 0],
+        ]),
+      ),
+    );
   }
 
   async getMessages(

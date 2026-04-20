@@ -46,9 +46,9 @@ export class ChatGateway implements OnGatewayConnection {
 
       client.join(payload.sub.toString());
 
-      const rooms = await this.chatService.getUserRooms(client.data.userId);
-      rooms.forEach((room) => {
-        if (room?._id) client.join(room._id.toString());
+      const roomIds = await this.chatService.getUserRoomIds(client.data.userId);
+      roomIds.forEach((roomId) => {
+        if (roomId) client.join(roomId);
       });
     } catch (err) {
       client.disconnect();
@@ -94,17 +94,16 @@ export class ChatGateway implements OnGatewayConnection {
       data.chatRoomId,
     );
 
+    const updatedRooms = await this.chatService.getRoomSummariesForParticipants(
+      data.chatRoomId,
+      participantIds,
+    );
+
     await Promise.all(
-      participantIds.map(async (participantId) => {
-        const updatedRoom = await this.chatService.getRoomSummary(
-          data.chatRoomId,
-          participantId,
-        );
+      updatedRooms.map(async (updatedRoom, index) => {
+        const participantId = participantIds[index];
         this.server.to(participantId).emit("roomUpdated", updatedRoom);
-        await this.chatEventService.publishRoomUpdated(
-          participantId,
-          updatedRoom,
-        );
+        await this.chatEventService.publishRoomUpdated(participantId, updatedRoom);
       }),
     );
   }

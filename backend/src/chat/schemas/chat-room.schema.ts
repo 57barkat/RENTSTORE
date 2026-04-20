@@ -14,6 +14,9 @@ export class ChatRoom {
   @Prop({ type: String, default: null })
   propertyId!: string | null;
 
+  @Prop({ type: String, default: null })
+  roomKey!: string | null;
+
   @Prop({ type: String, default: "" })
   lastMessage!: string;
 
@@ -24,3 +27,4 @@ export class ChatRoom {
 export const ChatRoomSchema = SchemaFactory.createForClass(ChatRoom);
 ChatRoomSchema.index({ participants: 1, lastMessageAt: -1 });
 ChatRoomSchema.index({ participants: 1, propertyId: 1 });
+ChatRoomSchema.index({ roomKey: 1 }, { unique: true, sparse: true });

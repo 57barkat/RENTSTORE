@@ -1,4 +1,9 @@
 frontend/.env 
+admin/.env
+backend/.env
+**/.env.local
+**/.env.development.local
+**/.env.production.local
 backend/insert_properties.js
 backend/src/services/firebase-service.json
 backend/dummy_properties.json

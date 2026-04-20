@@ -251,8 +251,8 @@ export class PropertyController {
       query.hostelType = mapped;
     }
 
-    const page = query.page || 1;
-    const limit = query.limit || 10;
+    const page = Math.min(Math.max(Number(query.page || 1), 1), 100);
+    const limit = Math.min(Math.max(Number(query.limit || 10), 1), 24);
 
     const filters = { ...query };
     delete filters.page;
