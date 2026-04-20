@@ -26,15 +26,15 @@ export default function BasePropertyCard({
 }: BasePropertyCardProps) {
   return (
     <article
-      className={`group overflow-hidden rounded-[1.75rem] border bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl ${className || "border-slate-200 hover:shadow-slate-200/80"}`}
+      className={`group overflow-hidden rounded-[1.75rem] border bg-[var(--admin-background)] shadow-[0_18px_40px_-30px_var(--admin-shadow)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_26px_54px_-34px_var(--admin-shadow)] ${className || "border-[var(--admin-border)]"}`}
     >
-      <div className="relative aspect-[16/11] overflow-hidden bg-slate-100">
+      <div className="relative aspect-[16/11] overflow-hidden bg-[var(--admin-card)]">
         <img
           src={image}
           alt={title}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-slate-950/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(15,23,42,0.4)] via-transparent to-[rgba(15,23,42,0.08)]" />
         {badges && <div className="absolute left-3 top-3 flex flex-wrap gap-2">{badges}</div>}
         {overlay && <div className="absolute right-3 top-3">{overlay}</div>}
       </div>
@@ -42,7 +42,7 @@ export default function BasePropertyCard({
       <div className="space-y-3 p-4">
         <div className="space-y-1.5">
           {titleHref || (
-            <h2 className="line-clamp-1 text-lg font-semibold tracking-tight text-slate-950">
+            <h2 className="line-clamp-1 text-lg font-semibold tracking-tight text-[var(--admin-text)]">
               {title}
             </h2>
           )}

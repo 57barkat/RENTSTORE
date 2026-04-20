@@ -175,7 +175,7 @@ export default async function CategoryPage({
     .sort((left, right) => left - right);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_35%),linear-gradient(180deg,_#f8fafc_0%,_#eff6ff_52%,_#ffffff_100%)]">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -184,28 +184,28 @@ export default async function CategoryPage({
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-10 grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
           <div className="space-y-5">
-            <span className="inline-flex rounded-full border border-sky-200 bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700">
+            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[rgba(255,255,255,0.88)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-primary)]">
               Public property discovery
             </span>
             <div className="space-y-4">
-              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+              <h1 className="max-w-4xl text-4xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-5xl">
                 {title}
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+              <p className="max-w-2xl text-base leading-7 text-[var(--admin-muted)] sm:text-lg">
                 {description}
               </p>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-slate-200 bg-white/90 p-6 shadow-lg shadow-slate-200/60 backdrop-blur">
-            <p className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)] backdrop-blur">
+            <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               Live inventory
             </p>
             <div className="mt-3 flex items-end justify-between gap-4">
-              <p className="text-4xl font-semibold tracking-tight text-slate-950">
+              <p className="text-4xl font-semibold tracking-tight text-[var(--admin-text)]">
                 {response.total}
               </p>
-              <p className="max-w-[14rem] text-right text-sm leading-6 text-slate-500">
+              <p className="max-w-[14rem] text-right text-sm leading-6 text-[var(--admin-muted)]">
                 Verified {getCategoryLabel(category, true).toLowerCase()}{" "}
                 available in {filters.city || "your area"} with real-time
                 availability updates.
@@ -221,36 +221,36 @@ export default async function CategoryPage({
 
           <section className="space-y-6">
             {fetchError && (
-              <div className="rounded-[2rem] border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 shadow-sm">
+              <div className="rounded-[2rem] border border-[rgba(217,119,6,0.18)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
                 We couldn&apos;t load live listings right now. The page is still
                 available, and you can retry in a moment.
               </div>
             )}
 
-            <div className="flex flex-col gap-3 rounded-[2rem] border border-slate-200 bg-white/85 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.88)] p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-[var(--admin-text)]">
                   {response.data.length} listings on this page
                 </p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-[var(--admin-muted)]">
                   Page {currentPage} of {Math.max(totalPages, 1)}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+              <div className="flex flex-wrap gap-2 text-xs font-medium text-[var(--admin-muted)]">
                 {(filters.city || filters.location || filters.hostelType) && (
                   <>
                     {filters.city && (
-                      <span className="rounded-full bg-slate-100 px-3 py-2">
+                      <span className="rounded-full bg-[var(--admin-surface)] px-3 py-2">
                         City: {filters.city}
                       </span>
                     )}
                     {filters.location && (
-                      <span className="rounded-full bg-slate-100 px-3 py-2">
+                      <span className="rounded-full bg-[var(--admin-surface)] px-3 py-2">
                         Location: {filters.location}
                       </span>
                     )}
                     {filters.hostelType && (
-                      <span className="rounded-full bg-slate-100 px-3 py-2">
+                      <span className="rounded-full bg-[var(--admin-surface)] px-3 py-2">
                         Hostel type: {filters.hostelType}
                       </span>
                     )}
@@ -260,14 +260,14 @@ export default async function CategoryPage({
             </div>
 
             {response.data.length === 0 ? (
-              <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-6 py-16 text-center shadow-inner">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
-                  <Search className="text-slate-400" size={32} />
+              <div className="rounded-[2rem] border border-dashed border-[var(--admin-border)] bg-[rgba(255,255,255,0.72)] px-6 py-16 text-center shadow-inner">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--admin-surface)]">
+                  <Search className="text-[var(--admin-placeholder)]" size={32} />
                 </div>
-                <h2 className="text-2xl font-semibold text-slate-950">
+                <h2 className="text-2xl font-semibold text-[var(--admin-text)]">
                   No properties matched these filters
                 </h2>
-                <p className="mx-auto mt-3 max-w-xl text-slate-500">
+                <p className="mx-auto mt-3 max-w-xl text-[var(--admin-muted)]">
                   {fetchError
                     ? `We couldn't reach the property service. Please try again in a moment for ${filters.city || "Islamabad"} listings.`
                     : `Try widening the price range or changing the locality filter to surface more results in ${filters.city || "Islamabad"}.`}
@@ -303,8 +303,8 @@ export default async function CategoryPage({
                   aria-disabled={currentPage === 1}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                     currentPage === 1
-                      ? "pointer-events-none border-slate-200 bg-white text-slate-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                      ? "pointer-events-none border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-placeholder)]"
+                      : "border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   Previous
@@ -316,8 +316,8 @@ export default async function CategoryPage({
                     href={buildPaginationHref(pathname, filters, page)}
                     className={`h-11 min-w-11 rounded-full px-4 text-center text-sm font-medium leading-[2.75rem] transition ${
                       page === currentPage
-                        ? "bg-slate-950 text-white"
-                        : "border border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                        ? "bg-[var(--admin-primary)] text-[var(--admin-background)]"
+                        : "border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                     }`}
                   >
                     {page}
@@ -333,8 +333,8 @@ export default async function CategoryPage({
                   aria-disabled={currentPage === totalPages}
                   className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                     currentPage === totalPages
-                      ? "pointer-events-none border-slate-200 bg-white text-slate-300"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                      ? "pointer-events-none border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-placeholder)]"
+                      : "border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   Next

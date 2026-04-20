@@ -50,11 +50,13 @@ const FilterSidebarComponent = ({
   };
 
   const sidebarContent = (
-    <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="admin-surface rounded-[2rem] p-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-slate-950">Filters</p>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm font-semibold text-[var(--admin-text)]">
+            Filters
+          </p>
+          <p className="text-sm text-[var(--admin-muted)]">
             {totalResults} indexed results
           </p>
         </div>
@@ -64,7 +66,7 @@ const FilterSidebarComponent = ({
             resetFilters();
             setMobileOpen(false);
           }}
-          className="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:text-sky-700"
+          className="admin-button-secondary rounded-full px-4 py-2 text-sm font-medium"
         >
           Reset
         </button>
@@ -101,7 +103,7 @@ const FilterSidebarComponent = ({
           <select
             value={filters.city || ""}
             onChange={(event) => updateFilters({ city: event.target.value })}
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
           >
             <option value="">All cities</option>
             <option value="Islamabad">Islamabad</option>
@@ -112,7 +114,7 @@ const FilterSidebarComponent = ({
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
             Location
           </label>
           <input
@@ -132,13 +134,13 @@ const FilterSidebarComponent = ({
               }
             }}
             placeholder="DHA 2, Bahria, F-11..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
           />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               Min rent
             </label>
             <input
@@ -164,11 +166,11 @@ const FilterSidebarComponent = ({
                   (event.currentTarget as HTMLInputElement).blur();
                 }
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               Max rent
             </label>
             <input
@@ -194,7 +196,7 @@ const FilterSidebarComponent = ({
                   (event.currentTarget as HTMLInputElement).blur();
                 }
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
             />
           </div>
         </div>
@@ -203,7 +205,7 @@ const FilterSidebarComponent = ({
           <>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                   Min size
                 </label>
                 <input
@@ -229,11 +231,11 @@ const FilterSidebarComponent = ({
                       (event.currentTarget as HTMLInputElement).blur();
                     }
                   }}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+                  className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                   Max size
                 </label>
                 <input
@@ -259,14 +261,14 @@ const FilterSidebarComponent = ({
                       (event.currentTarget as HTMLInputElement).blur();
                     }
                   }}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+                  className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 />
               </div>
             </div>
 
             {/* Size Unit Selector */}
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                 Size unit
               </label>
               <select
@@ -276,7 +278,7 @@ const FilterSidebarComponent = ({
                     sizeUnit: event.target.value as SizeUnit,
                   })
                 }
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+                className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
               >
                 <option value="">All units</option>
                 {SIZE_UNITS.map((unit) => (
@@ -291,7 +293,7 @@ const FilterSidebarComponent = ({
 
         {/* Sort */}
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
             Sort
           </label>
           <select
@@ -301,7 +303,7 @@ const FilterSidebarComponent = ({
                 sortBy: event.target.value as typeof filters.sortBy,
               })
             }
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
           >
             <option value="newest">Latest listings</option>
             <option value="popular">Most popular</option>
@@ -312,7 +314,7 @@ const FilterSidebarComponent = ({
 
         {category === "hostel" && (
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               Hostel type
             </label>
             <select
@@ -322,7 +324,7 @@ const FilterSidebarComponent = ({
                   hostelType: event.target.value as typeof filters.hostelType,
                 })
               }
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
             >
               <option value="">All types</option>
               <option value="male">Male</option>
@@ -333,7 +335,7 @@ const FilterSidebarComponent = ({
         )}
 
         <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
             Amenities
           </label>
           <div className="flex flex-wrap gap-2">
@@ -351,8 +353,8 @@ const FilterSidebarComponent = ({
                   onClick={() => updateFilters({ amenities: nextAmenities })}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     selected
-                      ? "bg-slate-950 text-white"
-                      : "border border-slate-200 bg-slate-50 text-slate-700 hover:border-sky-200 hover:text-sky-700"
+                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)]"
+                      : "border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   {amenity}
@@ -370,7 +372,7 @@ const FilterSidebarComponent = ({
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="mb-4 inline-flex w-full items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-medium text-white shadow-lg shadow-slate-300/40 lg:hidden"
+        className="admin-button-primary mb-4 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-medium lg:hidden"
       >
         Open filters
       </button>
@@ -383,14 +385,14 @@ const FilterSidebarComponent = ({
             type="button"
             aria-label="Close filters"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-[rgba(15,23,42,0.48)] backdrop-blur-sm"
           />
-          <div className="absolute inset-y-0 right-0 w-full max-w-md overflow-y-auto bg-slate-50 p-5">
+          <div className="absolute inset-y-0 right-0 w-full max-w-md overflow-y-auto bg-[var(--admin-background)] p-5">
             <div className="mb-4 flex justify-end">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                className="admin-button-secondary rounded-full px-4 py-2 text-sm font-medium"
               >
                 Close
               </button>

@@ -103,31 +103,33 @@ export default function PropertyReviewDrawer({
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-[rgba(15,23,42,0.6)] backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
       <div className="relative h-full w-full max-w-2xl animate-in overflow-y-auto border-l border-border bg-card shadow-2xl slide-in-from-right duration-300">
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 p-5 backdrop-blur-md">
           <div>
-              <div className="mb-1 flex items-center gap-2">
-                <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600">
-                  {approvalLabel}
-                </span>
-                <span className="rounded border border-border bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-foreground">
-                  {categoryLabel}
-                </span>
-                <span className="rounded border border-border bg-card px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">
-                  {listingLabel}
-                </span>
-                <span
-                  suppressHydrationWarning
+            <div className="mb-1 flex items-center gap-2">
+              <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600">
+                {approvalLabel}
+              </span>
+              <span className="rounded border border-border bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-foreground">
+                {categoryLabel}
+              </span>
+              <span className="rounded border border-border bg-card px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">
+                {listingLabel}
+              </span>
+              <span
+                suppressHydrationWarning
                 className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground"
               >
                 <Calendar className="h-3 w-3" />
                 {createdAtLabel}
               </span>
             </div>
-            <h2 className="text-xl font-black tracking-tight">Review Property</h2>
+            <h2 className="text-xl font-black tracking-tight">
+              Review Property
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -185,7 +187,9 @@ export default function PropertyReviewDrawer({
                   Type
                 </p>
                 <p className="text-lg font-black text-foreground">
-                  {property.apartmentType || property.hostelType || categoryLabel}
+                  {property.apartmentType ||
+                    property.hostelType ||
+                    categoryLabel}
                 </p>
               </div>
             </div>
@@ -231,7 +235,7 @@ export default function PropertyReviewDrawer({
                       className="h-12 w-12 rounded-full border-2 border-primary/20 object-cover"
                       alt="Owner"
                     />
-                    <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-card bg-green-500" />
+                    <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-card bg-[var(--admin-success)]" />
                   </div>
                   <div className="truncate">
                     <p className="truncate font-black text-foreground">
@@ -246,10 +250,10 @@ export default function PropertyReviewDrawer({
                 <div className="border-t border-border/50 pt-3">
                   <a
                     href={`tel:${property.owner?.phone}`}
-                    className="group flex items-center justify-between rounded-xl border border-primary/10 bg-primary/5 p-2.5 transition-colors hover:bg-primary/10"
+                    className="group flex items-center justify-between rounded-xl border border-[var(--admin-primary-strong)] bg-[var(--admin-primary-soft)] p-2.5 transition-colors hover:bg-[rgba(0,0,128,0.12)]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="rounded-lg bg-primary p-2 text-white">
+                      <div className="rounded-lg bg-[var(--admin-primary)] p-2 text-[var(--admin-background)]">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="16"
@@ -288,7 +292,7 @@ export default function PropertyReviewDrawer({
                   safetyDetails.map((detail: string) => (
                     <span
                       key={detail}
-                      className="flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-[10px] font-bold capitalize text-green-600"
+                      className="flex items-center gap-1 rounded-md border border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] px-2 py-1 text-[10px] font-bold capitalize text-[var(--admin-success)]"
                     >
                       <ShieldCheck className="h-3 w-3" />
                       {detail.replace(/_/g, " ")}
@@ -338,7 +342,9 @@ export default function PropertyReviewDrawer({
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-4 font-black text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Trash2 className="h-5 w-5" />
-              {isSubmitting && activeAction === "delete" ? "REJECTING..." : "REJECT"}
+              {isSubmitting && activeAction === "delete"
+                ? "REJECTING..."
+                : "REJECT"}
             </button>
             {property.isApproved ? (
               <div className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-accent py-4 font-black text-muted-foreground">
@@ -353,7 +359,9 @@ export default function PropertyReviewDrawer({
                 className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <CheckCircle className="h-5 w-5" />
-                {isSubmitting && activeAction === "approve" ? "APPROVING..." : "APPROVE"}
+                {isSubmitting && activeAction === "approve"
+                  ? "APPROVING..."
+                  : "APPROVE"}
               </button>
             )}
           </div>

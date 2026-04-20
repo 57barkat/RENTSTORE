@@ -283,16 +283,21 @@ export default function UsersScreen({
   const [totalPages, setTotalPages] = useState(initialTotalPages);
   const [limit] = useState(10);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<EditableAdminUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<EditableAdminUser | null>(
+    null,
+  );
   const [updateLoading, setUpdateLoading] = useState(false);
 
   const fetchUsers = useCallback(
     async (currentSearch: string, currentPage: number) => {
       setLoading(true);
       try {
-        const { data } = await apiClient.get<UsersResponse>("/users/admin/all", {
-          params: { search: currentSearch, page: currentPage, limit },
-        });
+        const { data } = await apiClient.get<UsersResponse>(
+          "/users/admin/all",
+          {
+            params: { search: currentSearch, page: currentPage, limit },
+          },
+        );
         setUsers(data.data);
         setTotalPages(data.totalPages);
       } catch {
@@ -333,7 +338,9 @@ export default function UsersScreen({
     key: K,
     value: EditableAdminUser[K],
   ) => {
-    setSelectedUser((current) => (current ? { ...current, [key]: value } : current));
+    setSelectedUser((current) =>
+      current ? { ...current, [key]: value } : current,
+    );
   };
 
   const openEditModal = (user: AdminUser) => {
@@ -364,7 +371,9 @@ export default function UsersScreen({
       isResetCodeVerified: selectedUser.isResetCodeVerified,
       agency: toNullableString(selectedUser.agency),
       subscription: selectedUser.subscription,
-      subscriptionStartDate: toIsoStringOrNull(selectedUser.subscriptionStartDate),
+      subscriptionStartDate: toIsoStringOrNull(
+        selectedUser.subscriptionStartDate,
+      ),
       subscriptionEndDate: toIsoStringOrNull(selectedUser.subscriptionEndDate),
       subscriptionAutoRenew: selectedUser.subscriptionAutoRenew,
       subscriptionTrialUsed: selectedUser.subscriptionTrialUsed,
@@ -383,7 +392,9 @@ export default function UsersScreen({
       favorites: selectedUser.favorites,
       refreshToken: toNullableString(selectedUser.refreshToken),
       profileImage: toNullableString(selectedUser.profileImage),
-      emailVerificationCode: toNullableString(selectedUser.emailVerificationCode),
+      emailVerificationCode: toNullableString(
+        selectedUser.emailVerificationCode,
+      ),
       warnings: toNumberValue(selectedUser.warnings),
       isBlocked: selectedUser.isBlocked,
       emailVerificationCodeExpires: toIsoStringOrNull(
@@ -431,8 +442,7 @@ export default function UsersScreen({
                 preferences: payload.preferences ?? undefined,
                 isPhoneVerified: payload.isPhoneVerified,
                 isEmailVerified: payload.isEmailVerified,
-                TermsAndConditionsAccepted:
-                  payload.TermsAndConditionsAccepted,
+                TermsAndConditionsAccepted: payload.TermsAndConditionsAccepted,
                 fcmToken: payload.fcmToken ?? undefined,
                 subscriptions: payload.subscriptions,
                 favorites: payload.favorites,
@@ -488,7 +498,9 @@ export default function UsersScreen({
     <div className="relative space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">User Management</h1>
+          <h1 className="text-2xl font-black tracking-tight">
+            User Management
+          </h1>
           <p className="text-sm text-muted-foreground">
             Review and manage platform members
           </p>
@@ -528,75 +540,76 @@ export default function UsersScreen({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {loading ? (
-                Array.from({ length: 6 }).map((_, index) => (
-                  <tr key={index}>
-                    <td className="p-4" colSpan={5}>
-                      <div className="h-12 animate-pulse rounded-xl bg-muted/50" />
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                users.map((user) => (
-                  <tr
-                    key={user._id}
-                    className="transition-colors hover:bg-muted/30"
-                  >
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={
-                            user.profileImage || getAvatarPlaceholder(user.name)
-                          }
-                          className="h-10 w-10 rounded-full"
-                          alt=""
-                        />
-                        <div>
-                          <p className="text-sm font-bold">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {user.accountStatus || "ACTIVE"}
-                          </p>
+              {loading
+                ? Array.from({ length: 6 }).map((_, index) => (
+                    <tr key={index}>
+                      <td className="p-4" colSpan={5}>
+                        <div className="h-12 animate-pulse rounded-xl bg-muted/50" />
+                      </td>
+                    </tr>
+                  ))
+                : users.map((user) => (
+                    <tr
+                      key={user._id}
+                      className="transition-colors hover:bg-muted/30"
+                    >
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={
+                              user.profileImage ||
+                              getAvatarPlaceholder(user.name)
+                            }
+                            className="h-10 w-10 rounded-full"
+                            alt=""
+                          />
+                          <div>
+                            <p className="text-sm font-bold">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {user.accountStatus || "ACTIVE"}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4 text-xs text-muted-foreground">
-                      <div className="flex flex-col">
-                        <span>{user.email}</span>
-                        <span>{user.phone}</span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-xs font-bold uppercase italic text-primary">
-                      {user.role}
-                    </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => handleToggleBlock(user._id, user.isBlocked)}
-                        className={`rounded-full border px-3 py-1 text-[10px] font-bold ${
-                          user.isBlocked
-                            ? "border-red-500/20 bg-red-500/10 text-red-600"
-                            : "border-green-500/20 bg-green-500/10 text-green-600"
-                        }`}
-                      >
-                        {user.isBlocked ? "BLOCKED" : "ACTIVE"}
-                      </button>
-                    </td>
-                    <td className="flex justify-end gap-2 p-4 text-right">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="rounded-lg p-2 text-primary transition-all hover:bg-primary/10"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user._id)}
-                        className="rounded-lg p-2 text-red-500 transition-all hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
+                      </td>
+                      <td className="p-4 text-xs text-muted-foreground">
+                        <div className="flex flex-col">
+                          <span>{user.email}</span>
+                          <span>{user.phone}</span>
+                        </div>
+                      </td>
+                      <td className="p-4 text-xs font-bold uppercase italic text-primary">
+                        {user.role}
+                      </td>
+                      <td className="p-4">
+                        <button
+                          onClick={() =>
+                            handleToggleBlock(user._id, user.isBlocked)
+                          }
+                          className={`rounded-full border px-3 py-1 text-[10px] font-bold ${
+                            user.isBlocked
+                              ? "border-[rgba(220,38,38,0.18)] bg-[var(--admin-error-soft)] text-[var(--admin-error)]"
+                              : "border-[rgba(5,150,105,0.18)] bg-[var(--admin-success-soft)] text-[var(--admin-success)]"
+                          }`}
+                        >
+                          {user.isBlocked ? "BLOCKED" : "ACTIVE"}
+                        </button>
+                      </td>
+                      <td className="flex justify-end gap-2 p-4 text-right">
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="rounded-lg p-2 text-primary transition-all hover:bg-primary/10"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user._id)}
+                          className="rounded-lg p-2 text-[var(--admin-error)] transition-all hover:bg-[var(--admin-error-soft)]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
         </div>
@@ -818,7 +831,9 @@ export default function UsersScreen({
                 <CheckboxField
                   label="Blocked"
                   checked={selectedUser.isBlocked}
-                  onChange={(checked) => updateSelectedUser("isBlocked", checked)}
+                  onChange={(checked) =>
+                    updateSelectedUser("isBlocked", checked)
+                  }
                 />
               </Section>
 
@@ -862,7 +877,10 @@ export default function UsersScreen({
                     className={inputClassName}
                     value={selectedUser.subscriptionEndDate}
                     onChange={(event) =>
-                      updateSelectedUser("subscriptionEndDate", event.target.value)
+                      updateSelectedUser(
+                        "subscriptionEndDate",
+                        event.target.value,
+                      )
                     }
                   />
                 </FieldShell>
@@ -898,7 +916,10 @@ export default function UsersScreen({
                     className={inputClassName}
                     value={selectedUser.usedPropertyCount}
                     onChange={(event) =>
-                      updateSelectedUser("usedPropertyCount", event.target.value)
+                      updateSelectedUser(
+                        "usedPropertyCount",
+                        event.target.value,
+                      )
                     }
                   />
                 </FieldShell>
@@ -958,7 +979,10 @@ export default function UsersScreen({
                     className={inputClassName}
                     value={selectedUser.resetPasswordCode}
                     onChange={(event) =>
-                      updateSelectedUser("resetPasswordCode", event.target.value)
+                      updateSelectedUser(
+                        "resetPasswordCode",
+                        event.target.value,
+                      )
                     }
                   />
                 </FieldShell>

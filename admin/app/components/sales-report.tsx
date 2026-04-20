@@ -22,24 +22,24 @@ export default function PropertyTrends({ data }: PropertyTrendsProps) {
   );
 
   return (
-    <div className="bg-card p-6 rounded-[2.5rem] shadow-sm flex-1 border border-border transition-all duration-300 hover:shadow-md">
+    <div className="admin-surface flex-1 rounded-[2.5rem] p-6 transition-all duration-300 hover:shadow-md">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h3 className="font-bold text-xl text-foreground">
+            <h3 className="text-xl font-bold text-[var(--admin-text)]">
               Property Uploads
             </h3>
-            <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+            <span className="rounded-full bg-[var(--admin-primary-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--admin-primary)]">
               +{totalUploads} Total
             </span>
           </div>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="mt-1 text-sm text-[var(--admin-muted)]">
             Daily activity overview
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <select className="text-xs font-bold border border-border rounded-xl px-4 py-2 outline-none bg-background text-foreground hover:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer appearance-none">
+          <select className="admin-input appearance-none rounded-xl px-4 py-2 text-xs font-bold">
             <option>Last 7 Days</option>
             <option>Last 30 Days</option>
           </select>

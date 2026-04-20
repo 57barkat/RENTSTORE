@@ -12,12 +12,12 @@ export default function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-[var(--admin-border)] bg-[var(--admin-background)]/95 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link
             href="/houses"
-            className="text-lg font-semibold tracking-tight text-slate-950 transition hover:text-sky-700"
+            className="text-lg font-semibold tracking-tight text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
           >
             AnganStay
           </Link>
@@ -33,8 +33,8 @@ export default function PublicHeader() {
                   href={item.href}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     isActive
-                      ? "bg-slate-950 text-white shadow-lg shadow-slate-300/30"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)] shadow-[0_18px_40px_-24px_rgba(0,0,128,0.35)]"
+                      : "text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   {item.label}
@@ -47,7 +47,7 @@ export default function PublicHeader() {
         <button
           type="button"
           onClick={() => setMobileOpen((current) => !current)}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:border-sky-200 hover:text-sky-700 lg:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-icon)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:hidden"
           aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -55,7 +55,7 @@ export default function PublicHeader() {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 shadow-lg shadow-slate-200/60 lg:hidden">
+        <div className="border-t border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 shadow-[0_20px_40px_-30px_var(--admin-shadow)] lg:hidden">
           <nav className="flex flex-col gap-2">
             {PUBLIC_CATEGORY_LINKS.map((item) => {
               const isActive =
@@ -68,8 +68,8 @@ export default function PublicHeader() {
                   onClick={() => setMobileOpen(false)}
                   className={`rounded-2xl px-4 py-3 text-sm font-medium transition ${
                     isActive
-                      ? "bg-slate-950 text-white"
-                      : "bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)]"
+                      : "bg-[var(--admin-card)] text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   {item.label}

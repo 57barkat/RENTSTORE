@@ -24,11 +24,11 @@ export default function PropertyGallery({
 
   return (
     <>
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-[var(--admin-background)] shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
         <div className="grid gap-2 md:grid-cols-[1.4fr_0.6fr]">
           {/* Main Image */}
           <div
-            className="group relative aspect-[16/11] cursor-pointer overflow-hidden bg-slate-100"
+            className="group relative aspect-[16/11] cursor-pointer overflow-hidden bg-[var(--admin-card)]"
             onClick={() => openLightbox(0)}
           >
             <img
@@ -36,8 +36,8 @@ export default function PropertyGallery({
               alt={title}
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
-              <ZoomIn className="text-white" size={32} />
+            <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
+              <ZoomIn className="text-[var(--admin-background)]" size={32} />
             </div>
           </div>
 
@@ -46,7 +46,7 @@ export default function PropertyGallery({
             {galleryImages.slice(1, 3).map((image, i) => (
               <div
                 key={i}
-                className="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-[1.5rem] bg-slate-100"
+                className="group relative aspect-[16/9] cursor-pointer overflow-hidden rounded-[1.5rem] bg-[var(--admin-card)]"
                 onClick={() => openLightbox(i + 1)}
               >
                 <img
@@ -55,7 +55,7 @@ export default function PropertyGallery({
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
                 {i === 1 && galleryImages.length > 3 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white font-medium">
+                  <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.4)] font-medium text-[var(--admin-background)]">
                     +{galleryImages.length - 3} more
                   </div>
                 )}
@@ -72,11 +72,11 @@ export default function PropertyGallery({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.96)] backdrop-blur-xl"
           >
             <button
               onClick={() => setIsOpen(false)}
-              className="absolute right-8 top-8 z-[110] text-white hover:bg-white/10 p-2 rounded-full"
+              className="absolute right-8 top-8 z-[110] rounded-full p-2 text-[var(--admin-background)] hover:bg-[rgba(255,255,255,0.1)]"
             >
               <X size={30} />
             </button>
@@ -87,7 +87,7 @@ export default function PropertyGallery({
                   (index + galleryImages.length - 1) % galleryImages.length,
                 )
               }
-              className="absolute left-8 z-[110] text-white p-4"
+              className="absolute left-8 z-[110] p-4 text-[var(--admin-background)]"
             >
               <ChevronLeft size={48} />
             </button>
@@ -102,7 +102,7 @@ export default function PropertyGallery({
 
             <button
               onClick={() => setIndex((index + 1) % galleryImages.length)}
-              className="absolute right-8 z-[110] text-white p-4"
+              className="absolute right-8 z-[110] p-4 text-[var(--admin-background)]"
             >
               <ChevronRight size={48} />
             </button>
