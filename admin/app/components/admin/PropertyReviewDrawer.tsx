@@ -17,6 +17,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+import { getAvatarPlaceholder } from "@/app/lib/avatar";
+
 interface PropertyReviewOwner {
   name?: string;
   email?: string;
@@ -29,9 +31,13 @@ interface PropertyReviewData {
   title?: string;
   createdAt?: string;
   photos?: string[];
+  hostOption?: string;
+  status?: boolean;
+  isApproved?: boolean;
   monthlyRent?: number;
   SecuritybasePrice?: number;
   apartmentType?: string;
+  hostelType?: string;
   capacityState?: {
     bedrooms?: number;
     beds?: number;
@@ -80,6 +86,11 @@ export default function PropertyReviewDrawer({
     ? new Date(property.createdAt).toLocaleDateString()
     : "Unknown";
   const safetyDetails = property.safetyDetailsData?.safetyDetails ?? [];
+  const categoryLabel = property.hostOption
+    ? property.hostOption.charAt(0).toUpperCase() + property.hostOption.slice(1)
+    : "Property";
+  const approvalLabel = property.isApproved ? "Approved" : "Pending Approval";
+  const listingLabel = property.status ? "Active" : "Inactive";
 
   if (loading) {
     return (
@@ -98,12 +109,18 @@ export default function PropertyReviewDrawer({
       <div className="relative h-full w-full max-w-2xl animate-in overflow-y-auto border-l border-border bg-card shadow-2xl slide-in-from-right duration-300">
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/90 p-5 backdrop-blur-md">
           <div>
-            <div className="mb-1 flex items-center gap-2">
-              <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600">
-                Pending Approval
-              </span>
-              <span
-                suppressHydrationWarning
+              <div className="mb-1 flex items-center gap-2">
+                <span className="rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600">
+                  {approvalLabel}
+                </span>
+                <span className="rounded border border-border bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-foreground">
+                  {categoryLabel}
+                </span>
+                <span className="rounded border border-border bg-card px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">
+                  {listingLabel}
+                </span>
+                <span
+                  suppressHydrationWarning
                 className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground"
               >
                 <Calendar className="h-3 w-3" />
@@ -168,7 +185,7 @@ export default function PropertyReviewDrawer({
                   Type
                 </p>
                 <p className="text-lg font-black text-foreground">
-                  {property.apartmentType}
+                  {property.apartmentType || property.hostelType || categoryLabel}
                 </p>
               </div>
             </div>
@@ -207,7 +224,10 @@ export default function PropertyReviewDrawer({
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <img
-                      src={property.owner?.profileImage || "https://placehold.co/100"}
+                      src={
+                        property.owner?.profileImage ||
+                        getAvatarPlaceholder(property.owner?.name || "Owner")
+                      }
                       className="h-12 w-12 rounded-full border-2 border-primary/20 object-cover"
                       alt="Owner"
                     />
@@ -320,16 +340,22 @@ export default function PropertyReviewDrawer({
               <Trash2 className="h-5 w-5" />
               {isSubmitting && activeAction === "delete" ? "REJECTING..." : "REJECT"}
             </button>
-            <button
-              disabled={isSubmitting}
-              onClick={async () => {
-                await onApprove(property._id);
-              }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <CheckCircle className="h-5 w-5" />
-              {isSubmitting && activeAction === "approve" ? "APPROVING..." : "APPROVE"}
-            </button>
+            {property.isApproved ? (
+              <div className="flex flex-1 items-center justify-center rounded-2xl border border-border bg-accent py-4 font-black text-muted-foreground">
+                Already Approved
+              </div>
+            ) : (
+              <button
+                disabled={isSubmitting}
+                onClick={async () => {
+                  await onApprove(property._id);
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <CheckCircle className="h-5 w-5" />
+                {isSubmitting && activeAction === "approve" ? "APPROVING..." : "APPROVE"}
+              </button>
+            )}
           </div>
         </div>
       </div>

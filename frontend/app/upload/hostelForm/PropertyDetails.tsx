@@ -8,6 +8,10 @@ import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCoun
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext } from "@/contextStore/FormContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const HostelPropertyDetails: FC = () => {
   const context = useContext(FormContext);
@@ -22,9 +26,12 @@ const HostelPropertyDetails: FC = () => {
   const { data, updateForm } = context;
 
   // Hostel capacity
-  const [capacity, setCapacity] = useState<CapacityState>(
-    data.capacityState || { Persons: 1, bedrooms: 0, beds: 1, bathrooms: 1 },
-  );
+  const [capacity, setCapacity] = useState<CapacityState>({
+    Persons: data.capacityState?.Persons ?? 1,
+    bedrooms: data.capacityState?.bedrooms ?? 0,
+    beds: data.capacityState?.beds ?? 1,
+    bathrooms: data.capacityState?.bathrooms ?? 1,
+  });
 
   // Hostel type
   const [hostelType, setHostelType] = useState<"male" | "female" | "mixed">(
@@ -48,8 +55,16 @@ const HostelPropertyDetails: FC = () => {
     router.push("/upload/hostelForm/AmenitiesScreen");
   };
 
-  const isNextDisabled =
-    capacity.Persons < 1 || capacity.beds < 1 || !hostelType;
+  const totalGuests = capacity.Persons ?? 0;
+  const bedCount = capacity.beds ?? 0;
+  const isNextDisabled = totalGuests < 1 || bedCount < 1 || !hostelType;
+  const nextDisabledReason = buildDisabledReason([
+    !hostelType ? "Choose the hostel type to continue." : undefined,
+    totalGuests < 1
+      ? "Add capacity for at least one guest to continue."
+      : undefined,
+    bedCount < 1 ? "Add at least one bed to continue." : undefined,
+  ]);
 
   return (
     <StepContainer
@@ -57,6 +72,9 @@ const HostelPropertyDetails: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={25}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={3}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         You&apos;ll add more details later, like bed types and shared
@@ -100,7 +118,7 @@ const HostelPropertyDetails: FC = () => {
       <View style={styles.listContainer}>
         <CounterInput
           label="Total Guests"
-          value={capacity.Persons}
+          value={totalGuests}
           minValue={1}
           onIncrement={() => updateCapacity("Persons", "increment")}
           onDecrement={() => updateCapacity("Persons", "decrement")}
@@ -118,7 +136,7 @@ const HostelPropertyDetails: FC = () => {
         />
         <CounterInput
           label="Beds (per room)"
-          value={capacity.beds}
+          value={bedCount}
           minValue={1}
           onIncrement={() => updateCapacity("beds", "increment")}
           onDecrement={() => updateCapacity("beds", "decrement")}

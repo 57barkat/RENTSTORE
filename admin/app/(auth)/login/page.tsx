@@ -1,5 +1,14 @@
-"use client";
+import type { Metadata } from "next";
 import LoginForm from "@/app/components/auth/login-form";
+
+export const metadata: Metadata = {
+  title: "Admin login | AnganStay",
+  description: "Sign in to the AnganStay administration dashboard.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function LoginPage() {
   return (

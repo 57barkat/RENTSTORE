@@ -4,23 +4,20 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useRouter } from "expo-router";
-import Constants from "expo-constants";
 import { tokenManager } from "@/services/tokenManager";
 import { API_URL } from "@/services/api";
 
 export const usePayment = () => {
   const [loading, setLoading] = useState(false);
-  const { user, updateUser, refreshAuthState } = useAuth();
+  const { updateUser, refreshAuthState } = useAuth();
   const router = useRouter();
-
-  const getSecret = () =>
-    Constants?.expoConfig?.extra?.myAppSecret || "aganstaysecretkey";
 
   const verifyPaymentOnBackend = async (tracker: string) => {
     setLoading(true);
     try {
       await tokenManager.load();
       const token = tokenManager.getAccessToken();
+      if (!token) throw new Error("Authentication required");
 
       const res = await fetch(
         `${API_URL}/api/v1/payments/verify?tracker=${tracker}`,
@@ -28,7 +25,6 @@ export const usePayment = () => {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "x-frontend-secret": getSecret(),
             Authorization: `Bearer ${token}`,
           },
         },
@@ -55,15 +51,15 @@ export const usePayment = () => {
     try {
       await tokenManager.load();
       const token = tokenManager.getAccessToken();
+      if (!token) throw new Error("Authentication required");
 
       const res = await fetch(`${API_URL}/api/v1/payments/create-checkout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-frontend-secret": getSecret(),
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId: user?.id, packageId }),
+        body: JSON.stringify({ packageId }),
       });
 
       const data = await res.json();

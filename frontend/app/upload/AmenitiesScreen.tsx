@@ -13,6 +13,11 @@ import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 const AmenitiesScreen: FC = () => {
   const router = useRouter();
@@ -27,6 +32,7 @@ const AmenitiesScreen: FC = () => {
   }
 
   const { data, updateForm } = context;
+  const propertyLabel = getPropertyTypeLabel(data.hostOption).toLowerCase();
 
   // --- State Initialization ---
   // Initialize state using data from the context, or an empty Set if no data exists
@@ -58,10 +64,17 @@ const AmenitiesScreen: FC = () => {
 
   return (
     <StepContainer
-      title="Tell Persons what your place has to offer"
+      title={`Tell renters what your ${propertyLabel} has to offer`}
       onNext={handleNext}
       isNextDisabled={isNextDisabled(selectedAmenities)}
       progress={33}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled(selectedAmenities)
+          ? "Select at least one amenity so renters know what is included."
+          : undefined,
+      ])}
+      stepNumber={4}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -70,6 +83,17 @@ const AmenitiesScreen: FC = () => {
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           You can add more amenities after you publish your listing.
         </Text>
+        {isNextDisabled(selectedAmenities) ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 16,
+              fontWeight: "600",
+            }}
+          >
+            Pick at least one amenity to continue.
+          </Text>
+        ) : null}
 
         {AMENITIES_DATA.map((section, index) => (
           <View key={index} style={styles.section}>

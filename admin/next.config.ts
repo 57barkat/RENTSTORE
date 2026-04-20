@@ -1,4 +1,12 @@
-/** @type {import('next').NextConfig} */
+import type { NextConfig } from "next";
+
+const isProduction = process.env.NODE_ENV === "production";
+const apiProxyTarget = (
+  process.env.API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3000/api/v1"
+).replace(/\/$/, "");
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -7,9 +15,13 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
   "connect-src 'self' http: https: ws: wss:",
-].join("; ");
+  "object-src 'none'",
+  isProduction ? "upgrade-insecure-requests" : "",
+]
+  .filter(Boolean)
+  .join("; ");
 
 const securityHeaders = [
   {
@@ -28,9 +40,35 @@ const securityHeaders = [
     key: "Referrer-Policy",
     value: "strict-origin-when-cross-origin",
   },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  {
+    key: "Cross-Origin-Opener-Policy",
+    value: "same-origin",
+  },
+  {
+    key: "Cross-Origin-Resource-Policy",
+    value: "same-site",
+  },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
 ];
 
-const nextConfig = {
+const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  productionBrowserSourceMaps: true,
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${apiProxyTarget}/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -41,4 +79,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

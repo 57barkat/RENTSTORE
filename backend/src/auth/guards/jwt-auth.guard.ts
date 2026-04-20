@@ -18,37 +18,25 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
       context.getClass(),
     ]);
 
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-    const frontendSecret = request.headers["x-frontend-secret"];
+    if (context.getType() !== "http") {
+      return super.canActivate(context) as Promise<boolean>;
+    }
 
-    // 1. Logic for PUBLIC routes
     if (isPublic) {
-      let hasValidUser = false;
+      const request = context.switchToHttp().getRequest();
+      const authHeader = request.headers.authorization;
 
-      // Try to validate the Bearer Token if it exists
-      if (authHeader) {
-        try {
-          const result = await super.canActivate(context);
-          if (result) hasValidUser = true;
-        } catch (e) {
-          // Token was invalid/expired, but we don't crash yet because it's public
-        }
-      }
-
-      // Check the Frontend Secret
-      const hasValidSecret = frontendSecret === process.env.MY_APP_SECRET;
-
-      // PASS if they have a valid token OR a valid secret
-      if (hasValidUser || hasValidSecret) {
+      if (!authHeader) {
         return true;
       }
 
-      // FAIL if they have neither
-      throw new UnauthorizedException("Invalid Secret or Token required");
+      try {
+        return (await super.canActivate(context)) as boolean;
+      } catch {
+        return true;
+      }
     }
 
-    // 2. Logic for PRIVATE routes
     return super.canActivate(context) as Promise<boolean>;
   }
 

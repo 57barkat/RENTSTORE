@@ -52,6 +52,15 @@ export const FilterModal: React.FC<Props> = ({
     filters.addressQuery || "",
   );
   const [debouncedAddress, setDebouncedAddress] = React.useState("");
+  const showRoomFilters = hostOption !== "hostel";
+  const showSizeFilters = hostOption !== "hostel";
+  const showFloorFilter = hostOption !== "hostel";
+  const roomLabel =
+    hostOption === "shop"
+      ? "Rooms / sections"
+      : hostOption === "office"
+        ? "Private rooms"
+        : "Bedrooms";
 
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedAddress(addressInput), 400);
@@ -114,6 +123,30 @@ export const FilterModal: React.FC<Props> = ({
           </View>
 
           {/* Location */}
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionLabel}>Title</Text>
+            <View
+              style={[
+                styles.inputWrapper,
+                { backgroundColor: theme.card, borderColor: theme.border },
+              ]}
+            >
+              <Ionicons
+                name="home-outline"
+                size={20}
+                color={theme.muted}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[styles.cleanInput, { color: theme.text }]}
+                placeholder="Search by listing title..."
+                placeholderTextColor={theme.muted}
+                value={filters.title || ""}
+                onChangeText={(txt) => setFilters({ ...filters, title: txt })}
+              />
+            </View>
+          </View>
+
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Location</Text>
             <View
@@ -284,7 +317,8 @@ export const FilterModal: React.FC<Props> = ({
           </View>
 
           {/* Property Size Filter (NEW) */}
-          <View style={styles.sectionContainer}>
+          {showSizeFilters && (
+            <View style={styles.sectionContainer}>
             <Text style={styles.sectionLabel}>Property Size</Text>
             <View style={styles.row}>
               <View
@@ -366,54 +400,61 @@ export const FilterModal: React.FC<Props> = ({
               ))}
             </View>
           </View>
+          )}
 
-          {/* Bedrooms */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionLabel}>Bedrooms</Text>
-            <View style={styles.chipRow}>
-              {[0, 1, 2, 3, 4].map((num) => (
-                <NumberChip
-                  key={num}
-                  value={num}
-                  selected={filters.bedrooms === num}
-                  onPress={() => setFilters({ ...filters, bedrooms: num })}
-                  theme={theme}
-                />
-              ))}
+          {/* Bedrooms / rooms */}
+          {showRoomFilters && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>{roomLabel}</Text>
+              <View style={styles.chipRow}>
+                {[0, 1, 2, 3, 4].map((num) => (
+                  <NumberChip
+                    key={num}
+                    value={num}
+                    selected={filters.bedrooms === num}
+                    onPress={() => setFilters({ ...filters, bedrooms: num })}
+                    theme={theme}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Floor Level */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionLabel}>Floor Level</Text>
-            <View style={styles.chipRow}>
-              {[0, 1, 2, 3, 4, 5].map((num) => (
-                <NumberChip
-                  key={num}
-                  value={num}
-                  selected={filters.floorLevel === num}
-                  onPress={() => setFilters({ ...filters, floorLevel: num })}
-                  theme={theme}
-                />
-              ))}
+          {showFloorFilter && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Floor Level</Text>
+              <View style={styles.chipRow}>
+                {[0, 1, 2, 3, 4, 5].map((num) => (
+                  <NumberChip
+                    key={num}
+                    value={num}
+                    selected={filters.floorLevel === num}
+                    onPress={() => setFilters({ ...filters, floorLevel: num })}
+                    theme={theme}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Bathrooms */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionLabel}>Bathrooms</Text>
-            <View style={styles.chipRow}>
-              {[0, 1, 2, 3, 4].map((num) => (
-                <NumberChip
-                  key={num}
-                  value={num}
-                  selected={filters.bathrooms === num}
-                  onPress={() => setFilters({ ...filters, bathrooms: num })}
-                  theme={theme}
-                />
-              ))}
+          {showRoomFilters && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>Bathrooms</Text>
+              <View style={styles.chipRow}>
+                {[0, 1, 2, 3, 4].map((num) => (
+                  <NumberChip
+                    key={num}
+                    value={num}
+                    selected={filters.bathrooms === num}
+                    onPress={() => setFilters({ ...filters, bathrooms: num })}
+                    theme={theme}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
           {/* Hostel Type */}
           {hostOption === "hostel" && (

@@ -6,6 +6,7 @@ export default function ApartmentLocation() {
       propertyTypeLabel="Apartment"
       nextPath="/upload/apartmentForm/PropertyDetails"
       progress={20}
+      stepNumber={2}
     />
   );
 }

@@ -6,7 +6,6 @@ export interface AuthTokenPayload {
   iat?: number;
 }
 
-const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 const decodeBase64Url = (value: string): Uint8Array => {
@@ -27,24 +26,25 @@ const parseJsonSegment = <T>(segment: string): T | null => {
 
 export const verifyAuthToken = async (
   token: string | undefined,
-  secret: string | undefined, // Kept for signature compatibility later
+  secret: string | undefined,
 ): Promise<AuthTokenPayload | null> => {
-  if (!token) return null;
+  void secret;
 
-  const segments = token.split(".");
-  if (segments.length !== 3) return null;
-
-  // Explicitly tell TS this is our payload type
-  const payload = parseJsonSegment<AuthTokenPayload>(segments[1]);
-
-  if (!payload) {
-    console.warn("VerifyAuthToken: Failed to parse payload");
+  if (!token) {
     return null;
   }
 
-  // Optional: Keep the expiry check even without signature check
+  const segments = token.split(".");
+  if (segments.length !== 3) {
+    return null;
+  }
+
+  const payload = parseJsonSegment<AuthTokenPayload>(segments[1]);
+  if (!payload) {
+    return null;
+  }
+
   if (payload.exp && payload.exp * 1000 <= Date.now()) {
-    console.warn("VerifyAuthToken: Token expired");
     return null;
   }
 

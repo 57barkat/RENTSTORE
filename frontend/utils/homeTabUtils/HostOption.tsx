@@ -22,6 +22,18 @@ const baseHostOptions = [
     Icon: FontAwesome,
     iconName: "home",
   },
+  {
+    id: "shop",
+    label: "Shop",
+    Icon: MaterialCommunityIcons,
+    iconName: "storefront",
+  },
+  {
+    id: "office",
+    label: "Office",
+    Icon: MaterialCommunityIcons,
+    iconName: "briefcase",
+  },
 ] as const;
 
 export const withThemeHostOptions = <T extends typeof baseHostOptions>(

@@ -25,10 +25,16 @@ export class PaymentController {
     private readonly paymentGateway: PaymentSocketGateway,
   ) {}
 
-  @Public()
+  @UseGuards(JwtAuthGuard)
   @Post("create-checkout")
-  async createCheckout(@Body() body: { userId: string; packageId: string }) {
-    return this.paymentService.createCheckout(body.userId, body.packageId);
+  async createCheckout(@Req() req: any, @Body() body: { packageId: string }) {
+    const userId = req.user?.userId || req.user?.id || req.user?.sub;
+
+    if (!userId) {
+      throw new BadRequestException("User ID not found in token payload");
+    }
+
+    return this.paymentService.createCheckout(userId, body.packageId);
   }
   @Public()
   @Get("payment-success")
@@ -119,6 +125,66 @@ export class PaymentController {
       return { status: "error" };
     }
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("verify")
+  async verifyPayment(@Req() req: any, @Query("tracker") tracker: string) {
+    const userId = req.user?.userId || req.user?.id || req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException("User ID not found in token payload");
+    }
+
+    if (!tracker) {
+      throw new BadRequestException("Tracker is required");
+    }
+
+    const localPayment =
+      await this.paymentService.getInternalPaymentByTracker(tracker);
+
+    if (!localPayment || localPayment.userId?.toString() !== userId.toString()) {
+      throw new BadRequestException("Payment not found");
+    }
+
+    if (localPayment.status === "completed") {
+      const user = await this.userService.findById(userId);
+      return {
+        success: true,
+        state: "TRACKER_COMPLETED",
+        user: user ? this.mapUserForClient(user) : null,
+      };
+    }
+
+    const verification = await this.paymentService.verifyPayment(tracker);
+    const verificationState = this.resolvePaymentState(verification);
+    const isCompleted =
+      verificationState === "PAID" || verificationState === "TRACKER_COMPLETED";
+
+    if (isCompleted && localPayment.status === "pending") {
+      await this.userService.handleSuccessfulPayment(
+        userId.toString(),
+        localPayment.packageId,
+      );
+      await this.paymentService.markInternalPaymentAsCompleted(
+        tracker,
+        verification,
+      );
+      this.paymentGateway.emitSubscriptionMessage(
+        userId.toString(),
+        `Your payment for ${localPayment.packageId} was successful!`,
+      );
+    }
+
+    const updatedUser = isCompleted
+      ? await this.userService.findById(userId)
+      : null;
+
+    return {
+      success: isCompleted,
+      state: verificationState,
+      user: updatedUser ? this.mapUserForClient(updatedUser) : null,
+    };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get("history")
   async getHistory(@Req() req: any) {
@@ -143,5 +209,41 @@ export class PaymentController {
       method: tx.paymentMethod || "Processing",
       date: tx.createdAt,
     }));
+  }
+
+  private resolvePaymentState(verification: any) {
+    const candidates = [
+      verification?.state,
+      verification?.status,
+      verification?.data?.state,
+      verification?.data?.status,
+      verification?.data?.tracker?.state,
+      verification?.data?.order?.state,
+      verification?.order?.state,
+    ];
+
+    const state = candidates.find((value) => typeof value === "string");
+    return state ? state.toUpperCase() : "PENDING";
+  }
+
+  private mapUserForClient(user: any) {
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+      isphoneverified: user.isPhoneVerified,
+      propertyLimit: user.propertyLimit,
+      usedPropertyCount: user.usedPropertyCount,
+      paidPropertyCredits: user.paidPropertyCredits,
+      paidFeaturedCredits: user.paidFeaturedCredits,
+      subscription: user.subscription,
+      subscriptionStartDate: user.subscriptionStartDate,
+      subscriptionEndDate: user.subscriptionEndDate,
+      subscriptionAutoRenew: user.subscriptionAutoRenew,
+      subscriptionTrialUsed: user.subscriptionTrialUsed,
+      prioritySlotCredits: user.prioritySlotCredits,
+    };
   }
 }

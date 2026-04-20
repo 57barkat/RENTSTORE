@@ -100,7 +100,7 @@ export default function ReportsScreen({
     }
   };
 
-  const handleAction = async (promise: Promise<any>, message: string) => {
+  const handleAction = async (promise: Promise<unknown>, message: string) => {
     try {
       await promise;
       toast.success(message);

@@ -1,4 +1,9 @@
-export type PropertyCategory = "home" | "apartment" | "hostel";
+export type PropertyCategory =
+  | "home"
+  | "apartment"
+  | "hostel"
+  | "shop"
+  | "office";
 export type PropertySort = "newest" | "price_asc" | "price_desc" | "popular";
 export type HostelType = "male" | "female" | "mixed";
 export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft.";
@@ -81,6 +86,7 @@ export interface PublicProperty {
 
 export interface PropertySearchFilters {
   category: PropertyCategory;
+  title?: string;
   city?: string;
   location?: string;
   minRent?: number | "";

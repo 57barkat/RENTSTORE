@@ -1,6 +1,6 @@
 import { APP_GUARD } from "@nestjs/core";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import appConfig from "./config/app.config";
@@ -26,6 +26,7 @@ import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
 import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
+import { RequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
 
 @Module({
   imports: [
@@ -86,4 +87,8 @@ import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggingMiddleware).forRoutes("*");
+  }
+}

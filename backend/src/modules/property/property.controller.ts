@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   Body,
@@ -20,11 +21,13 @@ import { AuthGuard } from "@nestjs/passport";
 import { PropertyService } from "./property.service";
 import { CreatePropertyDto } from "./dto/create-property.dto";
 import { NearbyPropertyDto } from "./dto/nearby-property.dto";
+import { PROPERTY_HOST_OPTIONS } from "./property.constants";
 import {
   mapHostelType,
   parseArrayFields,
   parseNumericFields,
 } from "./utils/property.utils";
+import { validatePropertyPayload } from "./property.validation";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 import { GetUser, Public } from "../../common/decorators/public.decorator";
@@ -95,7 +98,7 @@ export class PropertyController {
         })
         .filter((a) => Object.keys(a).length > 0);
     }
-    parsedDto.address = parsedAddress[0] || {};
+    parsedDto.address = parsedAddress;
 
     if (files?.photos?.length) {
       parsedDto.photos = await this.propertyService.uploadFilesToCloudinary(
@@ -130,10 +133,28 @@ export class PropertyController {
       "address",
       "safetyDetailsData",
     ];
-    const isComplete = requiredFields.every((f) => isFilled(parsedDto[f]));
-    parsedDto.status = isComplete;
+    const rawStatus = dto.status as boolean | string | undefined;
+    const publishRequested = rawStatus === true || rawStatus === "true";
+    const draftRequested = rawStatus === false || rawStatus === "false";
+    const validation = validatePropertyPayload(parsedDto);
+    const isComplete =
+      requiredFields.every((f) => isFilled(parsedDto[f])) && validation.valid;
+    parsedDto.status = publishRequested || isComplete;
 
-    if (!isComplete) {
+    if (draftRequested) {
+      parsedDto.status = false;
+      return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
+    }
+
+    if (publishRequested && !validation.valid) {
+      throw new BadRequestException({
+        message: "Property submission is incomplete.",
+        error: "VALIDATION_FAILED",
+        fieldErrors: validation.fieldErrors,
+      });
+    }
+
+    if (!publishRequested && !isComplete) {
       return this.propertyService.saveDraft(parsedDto, files?.photos, userId);
     }
 
@@ -182,6 +203,11 @@ export class PropertyController {
     @GetUser("userId") userId?: string,
   ) {
     console.log("Filtering by hostOption:", userId);
+    if (!PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
+      throw new BadRequestException(
+        `Invalid hostOption. Expected one of: ${PROPERTY_HOST_OPTIONS.join(", ")}`,
+      );
+    }
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     return this.propertyService.findFiltered(
@@ -210,6 +236,15 @@ export class PropertyController {
     ]);
     parseArrayFields(query, ["amenities", "bills", "mealPlan", "rules"]);
 
+    if (
+      query.hostOption &&
+      !PROPERTY_HOST_OPTIONS.includes(query.hostOption as any)
+    ) {
+      throw new BadRequestException(
+        `Invalid hostOption. Expected one of: ${PROPERTY_HOST_OPTIONS.join(", ")}`,
+      );
+    }
+
     if (query.hostelType) {
       const mapped = mapHostelType(query.hostelType);
       if (!mapped) return { status: 400, message: "Invalid hostelType" };
@@ -234,6 +269,12 @@ export class PropertyController {
     @Query("sort") sort = "newest",
     @Query("search") search?: string,
     @Query("city") city?: string,
+    @Query("hostOption") hostOption?: string,
+    @Query("status") status?: "active" | "inactive",
+    @Query("approvalStatus") approvalStatus?: "approved" | "pending",
+    @Query("addressQuery") addressQuery?: string,
+    @Query("minRent") minRent?: string,
+    @Query("maxRent") maxRent?: string,
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
@@ -244,6 +285,20 @@ export class PropertyController {
       sort,
       search,
       city,
+      {
+        hostOption,
+        status,
+        approvalStatus,
+        addressQuery,
+        minRent:
+          minRent !== undefined && minRent !== ""
+            ? Number(minRent)
+            : undefined,
+        maxRent:
+          maxRent !== undefined && maxRent !== ""
+            ? Number(maxRent)
+            : undefined,
+      },
     );
   }
 
@@ -299,6 +354,31 @@ export class PropertyController {
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.updateProperty(id, dto, userId);
   }
+
+  @Patch(":id/visibility")
+  async updatePropertyVisibility(
+    @Param("id") id: string,
+    @Body("status") status: boolean | string,
+    @Req() req: any,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+
+    const nextStatus =
+      status === true || status === "true"
+        ? true
+        : status === false || status === "false"
+          ? false
+          : null;
+
+    if (nextStatus === null) {
+      throw new BadRequestException(
+        "A boolean status is required to update property visibility.",
+      );
+    }
+
+    return this.propertyService.updatePropertyVisibility(id, userId, nextStatus);
+  }
   @Post(":id/view")
   @Public()
   async incrementViews(@Param("id") id: string) {
@@ -317,11 +397,44 @@ export class PropertyController {
   async getUnapproved(
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "10",
+    @Query("hostOption") hostOption?: string,
   ) {
+    if (hostOption && !PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
+      throw new BadRequestException(
+        `Invalid hostOption. Expected one of: ${PROPERTY_HOST_OPTIONS.join(", ")}`,
+      );
+    }
     return this.propertyService.findUnapprovedProperties(
       Number(page),
       Number(limit),
+      hostOption,
     );
+  }
+
+  @Get("admin/list")
+  @SetMetadata("roles", ["admin"])
+  async getAdminProperties(
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "10",
+    @Query("hostOption") hostOption?: string,
+    @Query("q") q?: string,
+    @Query("approvalStatus")
+    approvalStatus: "all" | "approved" | "pending" = "all",
+    @Query("listingStatus")
+    listingStatus: "all" | "active" | "inactive" = "all",
+  ) {
+    if (hostOption && !PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
+      throw new BadRequestException(
+        `Invalid hostOption. Expected one of: ${PROPERTY_HOST_OPTIONS.join(", ")}`,
+      );
+    }
+
+    return this.propertyService.findAdminProperties(Number(page), Number(limit), {
+      hostOption,
+      q,
+      approvalStatus,
+      listingStatus,
+    });
   }
 
   @Patch("admin/approve/:id")

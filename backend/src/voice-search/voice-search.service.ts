@@ -150,8 +150,8 @@ RENT:
 - 50k = 50000
 - If only one rent value mentioned -> set maxRent and minRent = 0.
 
-PROPERTY TYPE:
-- hostOption must be exactly: "home", "hostel", or "apartment".
+ PROPERTY TYPE:
+- hostOption must be exactly: "home", "hostel", "apartment", "shop", or "office".
 
 HOSTEL TYPE:
 - Must be exactly: "male", "female", or "mixed".
@@ -182,7 +182,7 @@ Return STRICT JSON ONLY:
     "bedrooms": number | null,
     "bathrooms": number | null,
     "floorLevel": number | null,
-    "hostOption": "home" | "hostel" | "apartment" | null,
+    "hostOption": "home" | "hostel" | "apartment" | "shop" | "office" | null,
     "hostelType": "female" | "male" | "mixed" | null,
     "amenities": string[],
     "bills": string[],
@@ -258,6 +258,9 @@ Return STRICT JSON ONLY:
       else if (/apartment|flat/i.test(lowerText))
         filters.hostOption = "apartment";
       else if (/hostel/i.test(lowerText)) filters.hostOption = "hostel";
+      else if (/shop|store|showroom/i.test(lowerText)) filters.hostOption = "shop";
+      else if (/office|workspace|commercial/i.test(lowerText))
+        filters.hostOption = "office";
     }
 
     return filters;

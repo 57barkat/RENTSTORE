@@ -4,12 +4,17 @@
 import { CheckCircle, Eye, MapPin, Trash2 } from "lucide-react";
 
 import BasePropertyCard from "@/app/components/properties/BasePropertyCard";
+import { getAvatarPlaceholder } from "@/app/lib/avatar";
+import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 
 interface PendingProperty {
   _id: string;
   title: string;
   location: string;
   monthlyRent: number;
+  hostOption?: string;
+  status?: boolean;
+  isApproved?: boolean;
   ownerId: {
     name: string;
     email: string;
@@ -35,15 +40,37 @@ export default function PendingPropertyCard({
   isProcessing = false,
   activeAction = null,
 }: PendingPropertyCardProps) {
+  const categoryLabel = property.hostOption
+    ? property.hostOption.charAt(0).toUpperCase() + property.hostOption.slice(1)
+    : "Property";
+
   return (
     <BasePropertyCard
-      image={property.photos?.[0] || "https://placehold.co/600x400?text=No+Image"}
+      image={property.photos?.[0] || DEFAULT_PROPERTY_IMAGE}
       title={property.title}
       className="border-border hover:shadow-xl"
       badges={
-        <span className="rounded bg-primary px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
-          New Submission
-        </span>
+        <div className="flex gap-2">
+          <span
+            className={`rounded px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg ${
+              property.isApproved ? "bg-emerald-600" : "bg-primary"
+            }`}
+          >
+            {property.isApproved ? "Approved" : "Pending Approval"}
+          </span>
+          <span className="rounded border border-border bg-card px-2 py-1 text-[9px] font-black uppercase tracking-widest text-foreground shadow-lg">
+            {categoryLabel}
+          </span>
+          <span
+            className={`rounded border px-2 py-1 text-[9px] font-black uppercase tracking-widest shadow-lg ${
+              property.status
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+                : "border-slate-300 bg-slate-100 text-slate-700"
+            }`}
+          >
+            {property.status ? "Active" : "Inactive"}
+          </span>
+        </div>
       }
       overlay={
         <button
@@ -70,7 +97,13 @@ export default function PendingPropertyCard({
                   alt={property.ownerId.name}
                   className="h-full w-full object-cover"
                 />
-              ) : null}
+              ) : (
+                <img
+                  src={getAvatarPlaceholder(property.ownerId?.name || "Owner")}
+                  alt={property.ownerId?.name || "Owner"}
+                  className="h-full w-full object-cover"
+                />
+              )}
             </div>
             <div>
               <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">
@@ -100,15 +133,21 @@ export default function PendingPropertyCard({
             <Trash2 className="h-3.5 w-3.5" />
             {isProcessing && activeAction === "delete" ? "Rejecting..." : "Reject"}
           </button>
-          <button
-            type="button"
-            onClick={() => onApprove(property._id)}
-            disabled={isProcessing}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <CheckCircle className="h-3.5 w-3.5" />
-            {isProcessing && activeAction === "approve" ? "Approving..." : "Approve"}
-          </button>
+          {property.isApproved ? (
+            <div className="flex items-center justify-center rounded-lg border border-border bg-accent px-3 py-2 text-xs font-bold text-muted-foreground">
+              Approved
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onApprove(property._id)}
+              disabled={isProcessing}
+              className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <CheckCircle className="h-3.5 w-3.5" />
+              {isProcessing && activeAction === "approve" ? "Approving..." : "Approve"}
+            </button>
+          )}
         </div>
       }
     />

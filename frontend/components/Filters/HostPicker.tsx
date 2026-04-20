@@ -16,7 +16,7 @@ export const HostPicker: React.FC<Props> = ({ value, onChange, theme }) => {
         {title}
       </Text> */}
 
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>
         {hostOptions.map((opt) => {
           const isSelected = value === opt.value;
           return (

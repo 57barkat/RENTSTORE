@@ -6,6 +6,7 @@ interface PropertyItem {
   photos?: string[];
   featured?: boolean;
   isFav?: boolean;
+  views?: number;
 }
 
 interface PropertyCardProps {

@@ -23,6 +23,7 @@ import {
   normalizeCategorySegment,
   parsePropertySearchParams,
 } from "@/app/lib/property-utils";
+import { toAbsoluteUrl } from "@/app/lib/site-config";
 
 interface PageProps {
   params: Promise<{ category: string }>;
@@ -66,18 +67,19 @@ export async function generateMetadata({
   const description = buildListingDescription(filters);
   const query = buildPropertyBrowserQuery(filters);
   const canonicalPath = `/${canonicalCategory}${query ? `?${query}` : ""}`;
+  const canonicalUrl = toAbsoluteUrl(canonicalPath);
 
   return {
     title: `${title} | ${BRAND_NAME}`,
     description,
     alternates: {
-      canonical: canonicalPath,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${title} | ${BRAND_NAME}`,
       description,
       type: "website",
-      url: canonicalPath,
+      url: canonicalUrl,
     },
     twitter: {
       card: "summary_large_image",
@@ -146,12 +148,13 @@ export default async function CategoryPage({
   const pathname = `/${canonicalCategory}`;
   const title = buildListingTitle(filters);
   const description = buildListingDescription(filters, response.total);
+  const pageUrl = toAbsoluteUrl(pathname);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name: title,
     description,
-    url: pathname,
+    url: pageUrl,
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: response.total,
@@ -159,7 +162,7 @@ export default async function CategoryPage({
         "@type": "ListItem",
         position: index + 1,
         name: getPropertyTitle(property),
-        url: buildPropertyHref(property),
+        url: toAbsoluteUrl(buildPropertyHref(property)),
       })),
     },
   };

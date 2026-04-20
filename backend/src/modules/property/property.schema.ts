@@ -1,5 +1,12 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
+import {
+  APARTMENT_TYPES,
+  FURNISHING_TYPES,
+  HOSTEL_TYPES,
+  PROPERTY_HOST_OPTIONS,
+  PROPERTY_SIZE_UNITS,
+} from "./property.constants";
 
 export type PropertyDocument = Property & Document;
 
@@ -13,7 +20,7 @@ export enum PropertyModerationStatus {
 @Schema({ timestamps: true })
 export class Property extends Document {
   @Prop({ type: String }) title?: string;
-  @Prop({ type: String }) hostOption?: string;
+  @Prop({ type: String, enum: PROPERTY_HOST_OPTIONS }) hostOption?: string;
   @Prop({ type: String }) location?: string;
   @Prop({ type: String }) area?: string;
 
@@ -94,13 +101,13 @@ export class Property extends Document {
 
   @Prop({
     type: String,
-    enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"],
+    enum: APARTMENT_TYPES,
   })
   apartmentType?: string;
 
   @Prop({
     type: String,
-    enum: ["furnished", "semi-furnished", "unfurnished"],
+    enum: FURNISHING_TYPES,
   })
   furnishing?: string;
 
@@ -109,7 +116,7 @@ export class Property extends Document {
   @Prop({
     type: {
       value: Number,
-      unit: { type: String, enum: ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."] },
+      unit: { type: String, enum: PROPERTY_SIZE_UNITS },
       _id: false,
     },
   })
@@ -120,7 +127,7 @@ export class Property extends Document {
 
   @Prop({
     type: String,
-    enum: ["male", "female", "mixed"],
+    enum: HOSTEL_TYPES,
   })
   hostelType?: string;
 

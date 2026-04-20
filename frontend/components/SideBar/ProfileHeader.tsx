@@ -148,33 +148,40 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           )}
         </View>
 
-        {isPro && (
-          <View style={[styles.proBadge, { backgroundColor: GOLD }]}>
-            <Text style={styles.proBadgeText}>PRO MEMBER</Text>
-          </View>
-        )}
+        {(isPro || isStandard) && (
+          <View style={styles.membershipRow}>
+            {isPro && (
+              <View style={[styles.proBadge, { backgroundColor: GOLD }]}>
+                <Text style={styles.proBadgeText}>PRO MEMBER</Text>
+              </View>
+            )}
 
-        {isStandard && (
-          <View
-            style={[
-              styles.standardBadge,
-              { backgroundColor: colors.primary + "20" },
-            ]}
-          >
-            <Text style={[styles.standardBadgeText, { color: colors.primary }]}>
-              STANDARD MEMBER
-            </Text>
+            {isStandard && (
+              <View
+                style={[
+                  styles.standardBadge,
+                  { backgroundColor: colors.primary + "20" },
+                ]}
+              >
+                <Text
+                  style={[styles.standardBadgeText, { color: colors.primary }]}
+                >
+                  STANDARD MEMBER
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
         <View style={styles.phoneRow}>
-          {phone && (
+          {phone ? (
             <Text
               style={[styles.phoneText, { color: colors.secondary + "99" }]}
+              numberOfLines={1}
             >
               {phone}
             </Text>
-          )}
+          ) : null}
           <MaterialIcons
             name="verified"
             size={14}
@@ -232,7 +239,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { alignItems: "center", paddingTop: 40, paddingHorizontal: 20 },
+  container: {
+    alignItems: "center",
+    paddingTop: 34,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
   imageContainer: { position: "relative", marginBottom: 12 },
   imageWrapper: { padding: 4, borderRadius: 100 },
   image: {
@@ -249,12 +261,37 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "white",
   },
-  infoContainer: { alignItems: "center", marginBottom: 25 },
-  nameRow: { flexDirection: "row", alignItems: "center" },
-  name: { fontWeight: "900", fontSize: 24, letterSpacing: -0.5 },
-  badgeIcon: { marginLeft: 8 },
-  proBadge: {
+  infoContainer: {
+    marginBottom: 22,
+    width: "100%",
+    alignItems: "center",
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  name: {
+    fontWeight: "900",
+    fontSize: 24,
+    letterSpacing: -0.5,
+    textAlign: "center",
+    maxWidth: "85%",
+  },
+  badgeIcon: {
+    marginTop: 1,
+  },
+  membershipRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 8,
     marginTop: 8,
+  },
+  proBadge: {
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: 20,
@@ -271,7 +308,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
   standardBadge: {
-    marginTop: 8,
     paddingHorizontal: 12,
     paddingVertical: 3,
     borderRadius: 20,
@@ -283,8 +319,18 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 1,
   },
-  phoneRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
-  phoneText: { fontSize: 14, fontWeight: "500" },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+    maxWidth: "92%",
+  },
+  phoneText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "#00000080",

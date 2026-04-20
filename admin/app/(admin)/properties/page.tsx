@@ -7,7 +7,7 @@ import { serverApiRequest } from "@/app/lib/server-api";
 export default async function PropertiesPage() {
   const session = await requireAdminSession();
   const response = await serverApiRequest<PropertyAdminResponse>(
-    "/properties/admin/unapproved",
+    "/properties/admin/list",
     {
       token: session.token,
       searchParams: {

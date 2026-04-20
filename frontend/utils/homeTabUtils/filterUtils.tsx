@@ -9,6 +9,7 @@ import {
 import { AMENITIES_DATA, getAmenityLabel } from "../Aminities";
 
 export interface Filters {
+  title?: string;
   city?: string;
   addressQuery?: string;
   minRent?: number;

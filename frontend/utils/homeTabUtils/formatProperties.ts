@@ -37,5 +37,6 @@ export const formatProperties = (
     onFavPress,
     loadingFav: loadingFavId === item._id,
     highlightCity,
+    views: item.views ?? 0,
   }));
 };

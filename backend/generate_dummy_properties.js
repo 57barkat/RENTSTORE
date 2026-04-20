@@ -7,7 +7,7 @@ const CITY = "Islamabad";
 const SECTORS = ["I-10/1", "I-10/2", "I-10/3", "I-10/4", "F-6", "F-7", "G-11"];
 const CITY_COORDS = { lat: [33.6, 33.75], lng: [72.9, 73.1] };
 
-const HOST_OPTIONS = ["home", "apartment", "hostel"];
+const HOST_OPTIONS = ["home", "apartment", "hostel", "shop", "office"];
 const AMENITIES = [
   "wifi",
   "tv",

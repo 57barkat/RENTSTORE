@@ -13,6 +13,13 @@ import {
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { Property, PropertyModerationStatus } from "../property.schema";
+import {
+  APARTMENT_TYPES,
+  FURNISHING_TYPES,
+  HOSTEL_TYPES,
+  PROPERTY_HOST_OPTIONS,
+  PROPERTY_SIZE_UNITS,
+} from "../property.constants";
 
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
@@ -45,7 +52,7 @@ class PropertySizeDto {
   @IsNotEmpty()
   value!: number;
 
-  @IsEnum(["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."], {
+  @IsEnum(PROPERTY_SIZE_UNITS, {
     message: "Unit must be one of: Marla, Kanal, Sq. Ft., Sq. Yd.",
   })
   @IsNotEmpty()
@@ -54,7 +61,7 @@ class PropertySizeDto {
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsString() hostOption?: string;
+  @IsOptional() @IsEnum(PROPERTY_HOST_OPTIONS) hostOption?: string;
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() area?: string;
 
@@ -120,11 +127,11 @@ export class CreatePropertyDto {
   safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
   @IsOptional()
-  @IsEnum(["studio", "1BHK", "2BHK", "3BHK", "penthouse"])
+  @IsEnum(APARTMENT_TYPES)
   apartmentType?: string;
 
   @IsOptional()
-  @IsEnum(["furnished", "semi-furnished", "unfurnished"])
+  @IsEnum(FURNISHING_TYPES)
   furnishing?: string;
 
   @Transform(({ value }) => value === "true" || value === true)
@@ -133,7 +140,7 @@ export class CreatePropertyDto {
   parking?: boolean;
 
   @IsOptional()
-  @IsEnum(["male", "female", "mixed"])
+  @IsEnum(HOSTEL_TYPES)
   hostelType?: string;
 
   @IsOptional() @IsArray() @IsString({ each: true }) mealPlan: string[] = [];

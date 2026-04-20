@@ -11,7 +11,7 @@ export const useAdminPropertyDetails = () => {
       setLoadingDetails(true);
       const { data } = await apiClient.get(`/properties/admin/view/${id}`);
       setSelectedProperty(data);
-    } catch (error) {
+    } catch {
       alert("Could not load property details.");
     } finally {
       setLoadingDetails(false);

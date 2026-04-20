@@ -59,8 +59,6 @@ export const usePropertiesPage = (
     const formatted = formatProperties(
       data.data,
       filters.city || "",
-      filters.addressQuery || "",
-      () => {},
     ).map((p, index) => {
       const rawItem = data.data[index];
 

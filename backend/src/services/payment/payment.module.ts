@@ -5,9 +5,11 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { Payment, PaymentSchema } from "./payment.schema";
 import { PaymentSocketGateway } from "./payment-socket.gateway";
 import { UserModule } from "../../modules/user/user.module";
+import { AuthModule } from "../auth.module";
 @Global()
 @Module({
   imports: [
+    AuthModule,
     UserModule,
     MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
   ],

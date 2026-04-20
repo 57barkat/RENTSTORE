@@ -13,6 +13,10 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import { CounterInput } from "@/components/UploadPropertyComponents/PropertyCounterInput";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const ApartmentPropertyDetails: FC = () => {
   const context = useContext(FormContext);
@@ -64,6 +68,15 @@ const ApartmentPropertyDetails: FC = () => {
 
   const isNextDisabled =
     !apartmentType || capacityState.bedrooms < 1 || capacityState.bathrooms < 1;
+  const nextDisabledReason = buildDisabledReason([
+    !apartmentType ? "Choose the apartment type to continue." : undefined,
+    capacityState.bedrooms < 1
+      ? "Add at least one bedroom to continue."
+      : undefined,
+    capacityState.bathrooms < 1
+      ? "Add at least one bathroom to continue."
+      : undefined,
+  ]);
 
   return (
     <StepContainer
@@ -71,6 +84,9 @@ const ApartmentPropertyDetails: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={25}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={3}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}

@@ -1,12 +1,14 @@
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
+import { createCorsOptions } from "./common/utils/cors.util";
 
 async function bootstrap() {
+  const logger = new Logger("Bootstrap");
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const appConfig = configService.get<Record<string, any>>("app", {
@@ -42,16 +44,14 @@ async function bootstrap() {
   app.setGlobalPrefix(
     appConfig?.apiPrefix ?? process.env.API_PREFIX ?? "api/v1",
   );
-  app.enableCors({
-    origin: appConfig?.corsOrigins?.length > 0 ? appConfig.corsOrigins : true,
-    credentials: true,
-  });
+  app.enableCors(createCorsOptions(appConfig?.corsOrigins ?? []));
 
   await app.listen(port, "0.0.0.0");
 
-  console.log(`Server running on port ${port}`);
+  logger.log(`Server running on port ${port}`);
 }
 
 bootstrap().catch((err) => {
-  console.error("Error during bootstrap:", err);
+  const logger = new Logger("Bootstrap");
+  logger.error("Error during bootstrap", err);
 });

@@ -13,6 +13,11 @@ import StepContainer from "@/app/upload/Welcome";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 type RentType = "daily" | "weekly" | "monthly";
 export type BillType = "electricity" | "water" | "gas";
@@ -28,6 +33,7 @@ const WeekendPricingScreen: FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
+  const propertyLabel = getPropertyTypeLabel(data.hostOption).toLowerCase();
 
   const [rents, setRents] = useState<Record<RentType, number>>({
     daily: data.dailyRent ?? 0,
@@ -90,13 +96,30 @@ const WeekendPricingScreen: FC = () => {
     (offer.daily && rents.daily < MIN_RENT) ||
     (offer.weekly && rents.weekly < MIN_RENT) ||
     (offer.monthly && rents.monthly < MIN_RENT);
+  const nextDisabledReason = buildDisabledReason([
+    !Object.values(offer).some(Boolean)
+      ? "Enable at least one rent option to continue."
+      : undefined,
+    offer.daily && rents.daily < MIN_RENT
+      ? `Daily rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+    offer.weekly && rents.weekly < MIN_RENT
+      ? `Weekly rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+    offer.monthly && rents.monthly < MIN_RENT
+      ? `Monthly rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+  ]);
 
   return (
     <StepContainer
-      title="Set House Rent"
+      title={`Set ${propertyLabel} rent`}
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={88}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={9}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <View style={{ marginTop: 20 }}>
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
@@ -119,7 +142,10 @@ const WeekendPricingScreen: FC = () => {
                   styles.centerInput,
                   {
                     color: currentTheme.text,
-                    borderColor: currentTheme.primary,
+                    borderColor:
+                      offer[type] && rents[type] < MIN_RENT
+                        ? currentTheme.error
+                        : currentTheme.primary,
                   },
                 ]}
                 placeholder="0"
@@ -140,6 +166,17 @@ const WeekendPricingScreen: FC = () => {
             />
           </View>
         ))}
+        {nextDisabledReason ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginTop: 6,
+              fontWeight: "600",
+            }}
+          >
+            {nextDisabledReason}
+          </Text>
+        ) : null}
       </View>
 
       {/* Bills Included Section */}

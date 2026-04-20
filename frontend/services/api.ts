@@ -18,26 +18,12 @@ export const API_URL = configuredApiUrl.replace(/\/api\/v1\/?$/, "");
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: async (headers) => {
-    // 1. Ensure tokens are loaded from storage
     await tokenManager.load();
     const token = tokenManager.getAccessToken();
 
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
     }
-
-    const expoExtra = Constants?.expoConfig?.extra;
-
-    if (!expoExtra || !expoExtra.myAppSecret) {
-      console.warn(
-        "MY_APP_SECRET is. missing from app.json/app.config.js! Using fallback.",
-      );
-    }
-
-    // 3. Set the secret with a fallback
-    const secret = expoExtra?.myAppSecret;
-
-    headers.set("x-frontend-secret", secret);
 
     return headers;
   },
@@ -154,6 +140,12 @@ export const api = createApi({
         sort = "newest",
         search = "",
         city = "",
+        hostOption = "",
+        status = "",
+        approvalStatus = "",
+        addressQuery = "",
+        minRent = "",
+        maxRent = "",
       }) => ({
         url: "/api/v1/properties/my-listings",
         method: "GET",
@@ -163,9 +155,23 @@ export const api = createApi({
           sort,
           search,
           city,
+          hostOption,
+          status,
+          approvalStatus,
+          addressQuery,
+          minRent,
+          maxRent,
         },
       }),
       providesTags: ["Property"],
+    }),
+    updatePropertyVisibility: builder.mutation({
+      query: ({ id, status }) => ({
+        url: `/api/v1/properties/${id}/visibility`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Property"],
     }),
 
     findPropertyById: builder.query({
@@ -394,6 +400,7 @@ export const {
   useLazyGetMeQuery,
   useCreatePropertyMutation,
   useFindMyPropertiesQuery,
+  useUpdatePropertyVisibilityMutation,
   useFindPropertyByIdQuery,
   useFindPropertyByIdAndUpdateMutation,
   useFindPropertyByIdAndDeleteMutation,

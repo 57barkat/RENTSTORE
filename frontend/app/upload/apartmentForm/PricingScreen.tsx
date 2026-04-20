@@ -6,6 +6,10 @@ import StepContainer from "@/app/upload/Welcome";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext } from "@/contextStore/FormContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const MIN_PRICE = 0;
 
@@ -44,6 +48,14 @@ const HostelSecurityDepositScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={70}
+      nextDisabledReason={buildDisabledReason([
+        deposit === "" ? "Enter the security deposit amount to continue." : undefined,
+        Number(deposit) < MIN_PRICE
+          ? `Security deposit must be ${MIN_PRICE} PKR or more.`
+          : undefined,
+      ])}
+      stepNumber={8}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <View style={styles.container}>
         <Text style={[styles.label, { color: currentTheme.muted }]}>
@@ -55,7 +67,9 @@ const HostelSecurityDepositScreen: FC = () => {
             styles.inputWrapper,
             {
               backgroundColor: currentTheme.card,
-              borderColor: currentTheme.border,
+              borderColor: isNextDisabled
+                ? currentTheme.error
+                : currentTheme.border,
               shadowColor: currentTheme.shadow,
             },
           ]}
@@ -88,6 +102,18 @@ const HostelSecurityDepositScreen: FC = () => {
             color={currentTheme.icon}
           />
         </View>
+        {isNextDisabled ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginTop: 10,
+              textAlign: "center",
+              fontWeight: "600",
+            }}
+          >
+            Enter a valid deposit amount to continue.
+          </Text>
+        ) : null}
       </View>
     </StepContainer>
   );

@@ -7,18 +7,15 @@ import {
   getCanonicalCategorySegment,
   getPropertyCity,
 } from "@/app/lib/property-utils";
+import { toAbsoluteUrl } from "@/app/lib/site-config";
 
-const SITE_URL = (
-  process.env.SITE_URL ||
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  "http://localhost:3000"
-).replace(/\/$/, "");
-
-const CATEGORIES: PropertyCategory[] = ["hostel", "apartment", "home"];
-
-const withBaseUrl = (path: string): string => {
-  return `${SITE_URL}${path}`;
-};
+const CATEGORIES: PropertyCategory[] = [
+  "hostel",
+  "apartment",
+  "home",
+  "shop",
+  "office",
+];
 
 const getCategoryProperties = async (
   category: PropertyCategory,
@@ -46,7 +43,7 @@ const getCategoryProperties = async (
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     {
-      url: withBaseUrl("/"),
+      url: toAbsoluteUrl("/"),
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1,
@@ -57,14 +54,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   for (const category of CATEGORIES) {
     const categoryPath = `/${getCanonicalCategorySegment(category)}`;
-    if (!seenUrls.has(withBaseUrl(categoryPath))) {
+    const categoryUrl = toAbsoluteUrl(categoryPath);
+
+    if (!seenUrls.has(categoryUrl)) {
       entries.push({
-        url: withBaseUrl(categoryPath),
+        url: categoryUrl,
         lastModified: new Date(),
         changeFrequency: "daily",
         priority: 0.9,
       });
-      seenUrls.add(withBaseUrl(categoryPath));
+      seenUrls.add(categoryUrl);
     }
 
     const properties = await getCategoryProperties(category);
@@ -75,7 +74,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const cityKey = city.toLowerCase();
 
       if (!seenCities.has(cityKey)) {
-        const cityUrl = withBaseUrl(
+        const cityUrl = toAbsoluteUrl(
           `${categoryPath}?city=${encodeURIComponent(city)}`,
         );
         entries.push({
@@ -88,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
 
       const propertyPath = buildPropertyHref(property);
-      const propertyUrl = withBaseUrl(propertyPath);
+      const propertyUrl = toAbsoluteUrl(propertyPath);
       if (!seenUrls.has(propertyUrl)) {
         entries.push({
           url: propertyUrl,

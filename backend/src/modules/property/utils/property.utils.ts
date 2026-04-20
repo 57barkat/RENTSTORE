@@ -46,6 +46,8 @@ export const mapHostelType = (
 
 export const buildMongoFilter = (filters: any, userId?: string) => {
   const {
+    title,
+    location,
     city,
     addressQuery,
     minRent,
@@ -81,7 +83,13 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   const andConditions: any[] = [];
 
   // 1. SMART SEARCH (Logic for addressQuery or area)
-  const searchInput = addressQuery || area;
+  if (title) {
+    andConditions.push({
+      title: { $regex: escapeRegex(title.trim()), $options: "i" },
+    });
+  }
+
+  const searchInput = addressQuery || location || area;
   if (searchInput) {
     const cleanedQuery = searchInput.trim();
     const flexiblePattern = cleanedQuery

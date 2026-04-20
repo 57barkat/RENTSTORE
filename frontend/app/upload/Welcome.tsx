@@ -22,6 +22,9 @@ const StepContainer: React.FC<StepContainerProps> = ({
   onNext,
   isNextDisabled = false,
   progress = 0,
+  nextDisabledReason,
+  stepNumber,
+  totalSteps,
 }) => {
   const router = useRouter();
   const formContext = useContext(FormContext);
@@ -102,7 +105,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
     }
   };
 
-  const nextButtonText = progress >= 100 ? "Finish" : "Next";
+  const nextButtonText = progress >= 100 ? "Submit for Approval" : "Next";
 
   return (
     <SafeAreaView
@@ -122,7 +125,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
                 <ActivityIndicator color={currentTheme.primary} />
               ) : (
                 <Text style={[styles.headerText, { color: currentTheme.text }]}>
-                  Save & Exit
+                  Save Draft & Exit
                 </Text>
               )}
             </TouchableOpacity>
@@ -134,6 +137,15 @@ const StepContainer: React.FC<StepContainerProps> = ({
       </View>
 
       <View style={styles.content}>
+        {stepNumber && totalSteps ? (
+          <View style={styles.stepMeta}>
+            <Text
+              style={[styles.stepMetaText, { color: currentTheme.primary }]}
+            >
+              Step {stepNumber} of {totalSteps}
+            </Text>
+          </View>
+        ) : null}
         {title && (
           <Text style={[styles.title, { color: currentTheme.text }]}>
             {title}
@@ -143,6 +155,27 @@ const StepContainer: React.FC<StepContainerProps> = ({
       </View>
 
       <View style={styles.footer}>
+        {isNextDisabled && nextDisabledReason ? (
+          <View
+            style={[
+              styles.disabledReasonBox,
+              {
+                backgroundColor: `${currentTheme.error}12`,
+                borderColor: `${currentTheme.error}33`,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.disabledReasonText,
+                { color: currentTheme.error },
+              ]}
+            >
+              {nextDisabledReason}
+            </Text>
+          </View>
+        ) : null}
+
         <View
           style={[
             styles.progressBarContainer,

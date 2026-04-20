@@ -4,6 +4,7 @@ import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
 import { CapacityState } from "@/types/PropertyDetails.types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { PropertyHostOption } from "@/utils/propertyTypes";
 import React, {
   createContext,
   ReactNode,
@@ -163,11 +164,11 @@ export interface SubmitResult {
 
 export interface FormData {
   _id?: string;
-  propertyType?: "apartment" | "hostel" | "home";
+  propertyType?: PropertyHostOption;
   title?: string;
   description?: Description;
   address?: Address[];
-  hostOption?: string;
+  hostOption?: PropertyHostOption;
   location?: string;
   lat?: number;
   lng?: number;
@@ -183,6 +184,10 @@ export interface FormData {
   safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
   SecuritybasePrice?: number;
+  size?: {
+    value?: number;
+    unit?: "Marla" | "Kanal" | "Sq. Ft." | "Sq. Yd.";
+  };
   apartmentType?: "studio" | "1BHK" | "2BHK" | "3BHK" | "penthouse";
   furnishing?: "furnished" | "semi-furnished" | "unfurnished";
   parking?: boolean;
@@ -530,6 +535,7 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     try {
       const payload = cloneFormPayload(overrideData ?? data);
+      payload.status = false;
       const response = await createProperty(payload).unwrap();
 
       if (response.user) {

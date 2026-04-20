@@ -5,7 +5,7 @@ export const stepsData: StepItemProps[] = [
     stepNumber: 1,
     title: "1. What would you like to host?",
     description:
-      "Select the type of property you want to list: apartment, home, or hostel.",
+      "Select the type of property you want to list: home, apartment, hostel, shop, or office.",
     iconName: "home-account",
   },
   {

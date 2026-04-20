@@ -2,16 +2,22 @@ export const PUBLIC_CATEGORY_LINKS = [
   { href: "/hostels", label: "Hostel" },
   { href: "/apartments", label: "Apartment" },
   { href: "/houses", label: "House" },
+  { href: "/shops", label: "Shop" },
+  { href: "/offices", label: "Office" },
 ] as const;
 
 export const PUBLIC_CATEGORY_SEGMENTS = [
   "houses",
   "apartments",
   "hostels",
+  "shops",
+  "offices",
   "home",
   "house",
   "apartment",
   "hostel",
+  "shop",
+  "office",
 ] as const;
 
 export const PROTECTED_ROUTE_PREFIXES = [

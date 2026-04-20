@@ -17,6 +17,10 @@ import { FormContext, FormData } from "@/contextStore/FormContext";
 import Toast from "react-native-toast-message";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 type ImageUriArray = string[];
 const PROPERTY_PHOTO_QUALITY = 0.5;
@@ -120,6 +124,13 @@ const HostelPhotosScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={40}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled
+          ? `Add at least ${MIN_PHOTOS_REQUIRED} photos before continuing.`
+          : undefined,
+      ])}
+      stepNumber={5}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         You&apos;ll need {MIN_PHOTOS_REQUIRED} photos to get started. You can
@@ -146,6 +157,19 @@ const HostelPhotosScreen: FC = () => {
           {photosCount} / {MIN_PHOTOS_REQUIRED} photos added
         </Text>
       )}
+      {isNextDisabled ? (
+        <Text
+          style={{
+            color: currentTheme.error,
+            marginBottom: 12,
+            fontWeight: "600",
+          }}
+        >
+          {MIN_PHOTOS_REQUIRED - photosCount} more photo
+          {MIN_PHOTOS_REQUIRED - photosCount === 1 ? "" : "s"} needed to
+          continue.
+        </Text>
+      ) : null}
 
       {loading && (
         <View

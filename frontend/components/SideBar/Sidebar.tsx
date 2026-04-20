@@ -21,7 +21,7 @@ import {
   useLogoutMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
-import { useRouter, useSegments } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { useAuth } from "@/contextStore/AuthContext";
 import { useLength } from "@/contextStore/LengthContext";
 import { useUserStats } from "@/contextStore/UserStatsContext";
@@ -33,9 +33,9 @@ const Sidebar: React.FC = () => {
   const themeColors = Colors[theme];
   const { logout, user } = useAuth();
   const router = useRouter();
-  const segments = useSegments();
+  const pathname = usePathname();
   const { fav, upload, setUpload, unread } = useLength();
-  const [activeScreen, setActiveScreen] = useState<string>("homePage");
+  const scrollViewRef = useRef<ScrollView | null>(null);
 
   const { stats, refetch } = useUserStats();
 
@@ -55,6 +55,42 @@ const Sidebar: React.FC = () => {
   useEffect(() => {
     slideAnimation(slideAnim, isOpen, SIDEBAR_WIDTH);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    });
+  }, [isOpen]);
+
+  const normalizeScreenPath = (screen?: string) => {
+    if (!screen) {
+      return "";
+    }
+
+    if (screen === "homePage") {
+      return "/homePage";
+    }
+
+    return screen.startsWith("/") ? screen : `/${screen}`;
+  };
+
+  const isItemActive = (screen?: string) => {
+    const normalized = normalizeScreenPath(screen);
+
+    if (!normalized) {
+      return false;
+    }
+
+    if (normalized === "/upload") {
+      return pathname === "/upload" || pathname.startsWith("/upload/");
+    }
+
+    return pathname === normalized;
+  };
 
   const handleUpload = async (formData: FormData) => {
     try {
@@ -88,14 +124,14 @@ const Sidebar: React.FC = () => {
     } else if (item.screen === "DeleteAccount") {
       // handleDeleteAccount();
     } else if (item.screen) {
-      let path = item.screen;
+      const path = normalizeScreenPath(item.screen);
 
-      if (item.screen !== "homePage" && !item.screen.startsWith("/")) {
-        path = `/${item.screen}`;
+      if (path === pathname) {
+        close();
+        return;
       }
 
-      setActiveScreen(item.screen);
-      router.push(path);
+      router.replace(path);
       close();
     }
   };
@@ -111,11 +147,6 @@ const Sidebar: React.FC = () => {
       router.replace("/signin");
     }
   };
-
-  useEffect(() => {
-    const current = segments[segments.length - 1];
-    if (current) setActiveScreen(current);
-  }, [segments]);
 
   const mainMenuItems = sidebarMenuItems.filter((i) => !i.isLogout);
   const logoutItem = sidebarMenuItems.find((i) => i.isLogout);
@@ -135,6 +166,7 @@ const Sidebar: React.FC = () => {
         ]}
       >
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
@@ -165,7 +197,7 @@ const Sidebar: React.FC = () => {
                 theme={theme}
                 color={themeColors.secondary}
                 onPress={() => handleNavigate(item)}
-                isActive={activeScreen === item.screen}
+                isActive={isItemActive(item.screen)}
                 badgeCount={
                   item.screen === "favorites"
                     ? fav

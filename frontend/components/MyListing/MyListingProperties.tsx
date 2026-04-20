@@ -23,7 +23,10 @@ import PromoteConfirmationModal from "./PromoteConfirmationModal";
 // eslint-disable-next-line
 import { QueuedPropertyUpload } from "@/contextStore/FormContext";
 // eslint-disable-next-line
-import { usePromotePropertyMutation } from "@/services/api";
+import {
+  usePromotePropertyMutation,
+  useUpdatePropertyVisibilityMutation,
+} from "@/services/api";
 
 const buildUploadBannerMessage = (upload: QueuedPropertyUpload | undefined) => {
   if (!upload) {
@@ -72,6 +75,8 @@ const MyListingProperties = () => {
   const [targetProperty, setTargetProperty] = useState<any>(null);
   const [promoteProperty, { isLoading: isPromoting }] =
     usePromotePropertyMutation();
+  const [updatePropertyVisibility, { isLoading: isUpdatingVisibility }] =
+    useUpdatePropertyVisibilityMutation();
   const pendingUploadsCount = logic.formContext?.pendingUploadsCount ?? 0;
   const failedUploadsCount = logic.formContext?.failedUploadsCount ?? 0;
   const uploadQueue = logic.formContext?.uploadQueue ?? [];
@@ -115,6 +120,32 @@ const MyListingProperties = () => {
     setPromoteModalVisible(false);
   };
 
+  const handleToggleVisibility = async (property: any) => {
+    const nextStatus = !property.status;
+
+    try {
+      await updatePropertyVisibility({
+        id: property._id,
+        status: nextStatus,
+      }).unwrap();
+
+      Toast.show({
+        type: "success",
+        text1: nextStatus ? "Listing activated" : "Listing deactivated",
+        text2: nextStatus
+          ? "Your approved property is visible to renters again."
+          : "Your property has been hidden from renter search results.",
+      });
+      logic.onRefresh();
+    } catch (err: any) {
+      Toast.show({
+        type: "error",
+        text1: "Status update failed",
+        text2: err?.data?.message || "Please try again in a moment.",
+      });
+    }
+  };
+
   if (logic.isLoading && logic.page === 1) {
     return (
       <View
@@ -127,68 +158,6 @@ const MyListingProperties = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
-      {(pendingUploadsCount > 0 || failedUploadsCount > 0) && (
-        <View
-          style={{
-            marginHorizontal: 20,
-            marginTop: 16,
-            borderRadius: 16,
-            padding: 14,
-            backgroundColor: failedUploadsCount > 0 ? "#fff7ed" : "#eff6ff",
-            borderWidth: 1,
-            borderColor: failedUploadsCount > 0 ? "#fdba74" : "#93c5fd",
-          }}
-        >
-          {pendingUploadsCount > 0 && (
-            <Text
-              style={{
-                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
-                fontWeight: "700",
-                marginBottom: failedUploadsCount > 0 ? 6 : 0,
-              }}
-            >
-              {uploadBannerMessage ||
-                `${pendingUploadsCount} property${pendingUploadsCount === 1 ? "" : "ies"} uploading in background.`}
-            </Text>
-          )}
-          {pendingUploadsCount > 1 && (
-            <Text
-              style={{
-                marginTop: 4,
-                color: failedUploadsCount > 0 ? "#9a3412" : "#1d4ed8",
-              }}
-            >
-              {pendingUploadsCount - 1} more queued after this one.
-            </Text>
-          )}
-          {failedUploadsCount > 0 && (
-            <>
-              <Text style={{ color: "#9a3412", fontWeight: "700" }}>
-                {failedUploadsCount} queued upload
-                {failedUploadsCount === 1 ? "" : "s"} need attention.
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  void logic.formContext?.retryFailedUploads();
-                }}
-                style={{
-                  marginTop: 8,
-                  alignSelf: "flex-start",
-                  borderRadius: 999,
-                  backgroundColor: "#c2410c",
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                }}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
-                  Retry failed uploads
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
-
       {(pendingUploadsCount > 0 || failedUploadsCount > 0) && (
         <View
           style={{
@@ -270,6 +239,8 @@ const MyListingProperties = () => {
             setSearch={logic.setSearch}
             sort={logic.sort}
             setSort={logic.setSort}
+            filters={logic.filters}
+            setFilters={logic.setFilters}
             user={user}
           />
         }
@@ -280,6 +251,8 @@ const MyListingProperties = () => {
               home: "/upload/PropertyDetails",
               apartment: "/upload/apartmentForm/PropertyDetails",
               hostel: "/upload/hostelForm/PropertyDetails",
+              shop: "/upload/PropertyDetails",
+              office: "/upload/PropertyDetails",
             };
             const targetRoute =
               routes[item.hostOption] || "/upload/PropertyDetails";
@@ -299,6 +272,8 @@ const MyListingProperties = () => {
                 logic.setDeleteModalVisible(true);
               }}
               onPromote={() => handleOpenPromoteModal(item)}
+              onToggleStatus={() => handleToggleVisibility(item)}
+              isUpdatingVisibility={isUpdatingVisibility}
             />
           );
         }}

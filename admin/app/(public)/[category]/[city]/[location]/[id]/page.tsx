@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -32,6 +31,7 @@ import {
   normalizeCategorySegment,
 } from "@/app/lib/property-utils";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
+import { toAbsoluteUrl } from "@/app/lib/site-config";
 
 interface DetailPageProps {
   params: Promise<{
@@ -131,25 +131,27 @@ export async function generateMetadata({
   const title = buildPropertyMetadataTitle(category, property);
   const description = buildPropertyMetadataDescription(category, property);
   const image = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
+  const canonicalUrl = toAbsoluteUrl(canonicalHref);
+  const imageUrl = toAbsoluteUrl(image);
 
   return {
     title: `${title} | ${BRAND_NAME}`,
     description,
     alternates: {
-      canonical: canonicalHref,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title: `${title} | ${BRAND_NAME}`,
       description,
       type: "article",
-      url: canonicalHref,
-      images: [{ url: image }],
+      url: canonicalUrl,
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${title} | ${BRAND_NAME}`,
       description,
-      images: [image],
+      images: [imageUrl],
     },
   };
 }
@@ -205,8 +207,8 @@ export default async function PropertyDetailPage({ params }: DetailPageProps) {
     "@type": "RealEstateListing",
     name: title,
     description: buildPropertyMetadataDescription(category, property),
-    url: canonicalHref,
-    image: galleryImages,
+    url: toAbsoluteUrl(canonicalHref),
+    image: galleryImages.map((image) => toAbsoluteUrl(image)),
     datePosted: property.createdAt,
     ...(schemaOffers.length > 0 ? { offers: schemaOffers } : {}),
     itemOffered: {

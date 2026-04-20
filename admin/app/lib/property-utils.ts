@@ -16,12 +16,18 @@ const CATEGORY_ALIASES: Record<string, PropertyCategory> = {
   apartments: "apartment",
   hostel: "hostel",
   hostels: "hostel",
+  shop: "shop",
+  shops: "shop",
+  office: "office",
+  offices: "office",
 };
 
 const CATEGORY_SEGMENTS: Record<PropertyCategory, string> = {
   home: "houses",
   apartment: "apartments",
   hostel: "hostels",
+  shop: "shops",
+  office: "offices",
 };
 
 const SORT_VALUES: PropertySort[] = [
@@ -35,8 +41,7 @@ const HOSTEL_VALUES: HostelType[] = ["male", "female", "mixed"];
 
 const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft."];
 
-export const DEFAULT_PROPERTY_IMAGE =
-  "https://placehold.co/1200x800/png?text=AnganStay+Listing";
+export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.svg";
 
 export const BRAND_NAME = "AnganStay";
 
@@ -112,6 +117,10 @@ export const getCategoryLabel = (
       return plural ? "Apartments" : "Apartment";
     case "hostel":
       return plural ? "Hostels" : "Hostel";
+    case "shop":
+      return plural ? "Shops" : "Shop";
+    case "office":
+      return plural ? "Offices" : "Office";
     default:
       return plural ? "Properties" : "Property";
   }
@@ -130,6 +139,7 @@ export const parsePropertySearchParams = (
 
   return {
     category,
+    title: toSingleValue(searchParams.title) || "",
     city: toSingleValue(searchParams.city) || "",
     location:
       toSingleValue(searchParams.location) ||
@@ -178,6 +188,10 @@ export const buildPropertySearchQuery = (
     params.set("city", filters.city);
   }
 
+  if (filters.title) {
+    params.set("title", filters.title);
+  }
+
   if (filters.location) {
     params.set("addressQuery", filters.location);
   }
@@ -220,6 +234,10 @@ export const buildPropertyBrowserQuery = (
 
   if (filters.city) {
     params.set("city", filters.city);
+  }
+
+  if (filters.title) {
+    params.set("title", filters.title);
   }
 
   if (filters.location) {
@@ -517,7 +535,7 @@ export const buildListingTitle = (filters: PropertySearchFilters): string => {
   const city = filters.city || "Islamabad";
   const location = filters.location || "prime locations";
 
-  return `${categoryLabel} in ${city} near ${location}`;
+  return `${categoryLabel} for rent in ${city}  ${location}`;
 };
 
 export const buildListingDescription = (

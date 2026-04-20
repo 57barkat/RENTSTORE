@@ -11,8 +11,10 @@ import { JwtService } from "@nestjs/jwt";
 import { ChatEventService } from "./chat-event.service";
 import { ChatRealtimeService } from "./chat-realtime.service";
 import { ChatService } from "./chat.service";
+import { createSocketGatewayOptions } from "../common/utils/cors.util";
+import { extractSocketToken } from "../common/utils/socket-auth.util";
 
-@WebSocketGateway({ cors: { origin: "*" } })
+@WebSocketGateway(createSocketGatewayOptions())
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
@@ -30,8 +32,7 @@ export class ChatGateway implements OnGatewayConnection {
 
   async handleConnection(client: Socket) {
     try {
-      const token =
-        client.handshake.auth?.token || client.handshake.headers?.token;
+      const token = extractSocketToken(client);
       if (!token) {
         client.disconnect();
         return;

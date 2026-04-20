@@ -9,6 +9,11 @@ import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { Dropdown } from "react-native-element-dropdown";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyLayoutLabels,
+} from "@/utils/propertyTypes";
 
 const PropertyDetails: FC = () => {
   const context = useContext(FormContext);
@@ -21,6 +26,8 @@ const PropertyDetails: FC = () => {
 
   const { data, updateForm } = context;
   const router = useRouter();
+  const hostOption = data.hostOption;
+  const layoutCopy = getPropertyLayoutLabels(hostOption);
 
   const defaultCapacity: CapacityState = {
     floorLevel: 0,
@@ -73,20 +80,36 @@ const PropertyDetails: FC = () => {
 
   const isNextDisabled =
     capacity.bedrooms < 1 || capacity.bathrooms < 1 || !sizeValue;
+  const sizeError =
+    !sizeValue.trim() || Number(sizeValue) <= 0
+      ? `Enter a valid ${layoutCopy.sizeLabel.toLowerCase()} to continue.`
+      : undefined;
+  const nextDisabledReason = buildDisabledReason([
+    sizeError,
+    capacity.bedrooms < 1
+      ? `Add at least one ${layoutCopy.roomLabel.toLowerCase()} to continue.`
+      : undefined,
+    capacity.bathrooms < 1
+      ? "Add at least one bathroom to continue."
+      : undefined,
+  ]);
 
   return (
     <StepContainer
-      title="Share the basic layout of your house"
+      title={layoutCopy.title}
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={25}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={3}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-          Just the structural details for now. No furniture needed.
+          {layoutCopy.subtitle}
         </Text>
 
         <View style={styles.listContainer}>
@@ -116,7 +139,7 @@ const PropertyDetails: FC = () => {
           </View>
 
           <CounterInput
-            label="Bedrooms"
+            label={layoutCopy.roomLabel}
             value={capacity.bedrooms}
             minValue={1}
             onIncrement={() => updateCapacity("bedrooms", "increment")}
@@ -143,8 +166,8 @@ const PropertyDetails: FC = () => {
                 fontWeight: "600",
                 marginBottom: 10,
               }}
-            >
-              Property Size
+              >
+              {layoutCopy.sizeLabel}
             </Text>
             <View style={localStyles.sizeRow}>
               <TextInput
@@ -152,7 +175,9 @@ const PropertyDetails: FC = () => {
                   localStyles.input,
                   {
                     color: currentTheme.text,
-                    borderColor: currentTheme.border,
+                    borderColor: sizeError
+                      ? currentTheme.error
+                      : currentTheme.border,
                     backgroundColor: currentTheme.background,
                   },
                 ]}
@@ -185,6 +210,18 @@ const PropertyDetails: FC = () => {
                 onChange={(item) => setSizeUnit(item.value)}
               />
             </View>
+            {sizeError ? (
+              <Text
+                style={{
+                  color: currentTheme.error,
+                  fontSize: 12,
+                  marginTop: 8,
+                  fontWeight: "600",
+                }}
+              >
+                {sizeError}
+              </Text>
+            ) : null}
           </View>
         </View>
       </ScrollView>

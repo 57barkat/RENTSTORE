@@ -9,6 +9,11 @@ import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 const MAX_SELECTIONS = 2;
 
@@ -21,6 +26,7 @@ const ListingDescriptionHighlightsScreen: FC = () => {
   if (!context) throw new Error("FormContext is missing!");
 
   const { data, updateForm } = context;
+  const propertyLabel = getPropertyTypeLabel(data.hostOption).toLowerCase();
 
   const initialHighlights = useMemo(() => {
     return new Set(data?.description?.highlighted ?? []);
@@ -55,15 +61,33 @@ const ListingDescriptionHighlightsScreen: FC = () => {
 
   return (
     <StepContainer
-      title="Next, let's describe your house"
+      title={`Next, let's describe your ${propertyLabel}`}
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={56}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled
+          ? "Choose at least one highlight so renters see what stands out."
+          : undefined,
+      ])}
+      stepNumber={7}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
         Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get
         your description started.
       </Text>
+      {isNextDisabled ? (
+        <Text
+          style={{
+            color: currentTheme.error,
+            marginBottom: 16,
+            fontWeight: "600",
+          }}
+        >
+          Pick at least one highlight to continue.
+        </Text>
+      ) : null}
 
       <View style={styles.chipsContainer}>
         {HIGHLIGHTS_DATA.map((highlight) => (

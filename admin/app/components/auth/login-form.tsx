@@ -32,8 +32,7 @@ export default function LoginPage() {
       });
 
       router.push("/dashboard");
-    } catch (error) {
-      console.error(error);
+    } catch {
       alert("Invalid credentials. Please try again.");
     } finally {
       setIsLoading(false);

@@ -20,7 +20,11 @@ const FilterSidebarComponent = ({
   const { filters, updateFilters, resetFilters } = useProperties(category);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const showSizeFilters = category === "home" || category === "apartment";
+  const showSizeFilters =
+    category === "home" ||
+    category === "apartment" ||
+    category === "shop" ||
+    category === "office";
 
   useEffect(() => {
     if (!mobileOpen) return undefined;
@@ -67,6 +71,29 @@ const FilterSidebarComponent = ({
       </div>
 
       <div className="space-y-5">
+        <div>
+          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Title
+          </label>
+          <input
+            key={filters.title || "blank-title"}
+            defaultValue={filters.title || ""}
+            onBlur={(event) =>
+              updateFilters({ title: event.currentTarget.value.trim() })
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                updateFilters({
+                  title: (event.currentTarget as HTMLInputElement).value.trim(),
+                });
+              }
+            }}
+            placeholder="Family home, executive office..."
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+          />
+        </div>
+
         <div>
           <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             City

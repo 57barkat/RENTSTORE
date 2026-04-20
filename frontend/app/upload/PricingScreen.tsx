@@ -6,6 +6,11 @@ import StepContainer from "@/app/upload/Welcome";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { FormContext } from "@/contextStore/FormContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 const MIN_PRICE = 0;
 
@@ -22,6 +27,7 @@ const PricingScreen: FC = () => {
   const [price, setPrice] = useState<string>(
     data.SecuritybasePrice !== undefined ? String(data.SecuritybasePrice) : "",
   );
+  const propertyLabel = getPropertyTypeLabel(data.hostOption);
 
   const handlePriceChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, "");
@@ -38,14 +44,22 @@ const PricingScreen: FC = () => {
 
   return (
     <StepContainer
-      title="Now, set a House Security price"
+      title={`Now, set a ${propertyLabel} security deposit`}
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={80}
+      nextDisabledReason={buildDisabledReason([
+        price === "" ? "Enter the security deposit amount to continue." : undefined,
+        Number(price) < MIN_PRICE
+          ? `Security deposit must be ${MIN_PRICE} PKR or more.`
+          : undefined,
+      ])}
+      stepNumber={8}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <View style={styles.container}>
         <Text style={[styles.label, { color: currentTheme.muted }]}>
-          Enter base price for house security. Minimum {MIN_PRICE} PKR.
+          Enter the base security amount for this listing. Minimum {MIN_PRICE} PKR.
         </Text>
 
         <View
@@ -53,7 +67,9 @@ const PricingScreen: FC = () => {
             styles.inputWrapper,
             {
               backgroundColor: currentTheme.card,
-              borderColor: currentTheme.border,
+              borderColor: isNextDisabled
+                ? currentTheme.error
+                : currentTheme.border,
               shadowColor: currentTheme.shadow,
             },
           ]}
@@ -81,6 +97,18 @@ const PricingScreen: FC = () => {
             color={currentTheme.icon}
           />
         </View>
+        {isNextDisabled ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginTop: 10,
+              textAlign: "center",
+              fontWeight: "600",
+            }}
+          >
+            Enter a valid deposit amount to continue.
+          </Text>
+        ) : null}
       </View>
     </StepContainer>
   );

@@ -14,6 +14,7 @@ import {
 import { debounce } from "lodash";
 
 import apiClient from "@/app/lib/api-client";
+import { getAvatarPlaceholder } from "@/app/lib/avatar";
 
 const ROLE_OPTIONS = ["user", "agency", "renter", "admin", "agent"] as const;
 const SUBSCRIPTION_OPTIONS = ["free", "standard", "pro"] as const;
@@ -294,8 +295,7 @@ export default function UsersScreen({
         });
         setUsers(data.data);
         setTotalPages(data.totalPages);
-      } catch (error) {
-        console.error("Failed to fetch users", error);
+      } catch {
       } finally {
         setLoading(false);
       }
@@ -452,8 +452,7 @@ export default function UsersScreen({
         ),
       );
       closeEditModal();
-    } catch (error) {
-      console.error("Failed to update user", error);
+    } catch {
       alert("Failed to update user details");
     } finally {
       setUpdateLoading(false);
@@ -470,8 +469,7 @@ export default function UsersScreen({
           user._id === userId ? { ...user, isBlocked: !currentStatus } : user,
         ),
       );
-    } catch (error) {
-      console.error("Status update failed", error);
+    } catch {
       alert("Status update failed");
     }
   };
@@ -481,8 +479,7 @@ export default function UsersScreen({
     try {
       await apiClient.delete(`/users/admin/delete/${userId}`);
       setUsers((previous) => previous.filter((user) => user._id !== userId));
-    } catch (error) {
-      console.error("Delete failed", error);
+    } catch {
       alert("Delete failed");
     }
   };
@@ -549,8 +546,7 @@ export default function UsersScreen({
                       <div className="flex items-center gap-3">
                         <img
                           src={
-                            user.profileImage ||
-                            `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}`
+                            user.profileImage || getAvatarPlaceholder(user.name)
                           }
                           className="h-10 w-10 rounded-full"
                           alt=""
