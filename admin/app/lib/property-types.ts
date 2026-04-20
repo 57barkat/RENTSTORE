@@ -109,3 +109,26 @@ export interface PropertySearchResponse {
   totalPages: number;
   message?: string;
 }
+
+export interface UploaderProfileResponse {
+  uploader: {
+    _id?: string;
+    name?: string;
+    phone?: string;
+    profileImage?: string;
+    subscription?: string;
+    planLabel?: string;
+    role?: string;
+    isPhoneVerified?: boolean;
+    isEmailVerified?: boolean;
+  };
+  stats: {
+    totalProperties: number;
+    homes: number;
+    apartments: number;
+    hostels: number;
+    shops: number;
+    offices: number;
+  };
+  listings: PublicProperty[];
+}

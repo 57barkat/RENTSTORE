@@ -6,6 +6,7 @@ import type {
   PropertySearchFilters,
   PropertySearchResponse,
   PublicProperty,
+  UploaderProfileResponse,
 } from "@/app/lib/property-types";
 import {
   buildPropertySearchQuery,
@@ -14,8 +15,8 @@ import {
   getPropertyCity,
 } from "@/app/lib/property-utils";
 
-const API_BASE_URL = (
-  process.env.API_URL ||
+const API_BASE_URL = (process.env.API_URL || "").replace(/\/$/, "");
+const NEXT_PUBLIC_API_URL = (
   process.env.NEXT_PUBLIC_API_URL ||
   ""
 ).replace(/\/$/, "");
@@ -29,15 +30,16 @@ const LEGACY_TUNNEL_API_BASE_URL =
   "https://banefully-jointed-freya.ngrok-free.dev/api/v1";
 
 const getCandidateBaseUrls = (): string[] => {
-  const candidates = [
-    API_BASE_URL,
-    DEFAULT_LOCAL_API_BASE_URL,
-    DEFAULT_LOCALHOST_ALIAS_API_BASE_URL,
-  ];
-
-  if (process.env.NODE_ENV !== "production") {
-    candidates.push(LEGACY_TUNNEL_API_BASE_URL);
-  }
+  const candidates =
+    process.env.NODE_ENV === "production"
+      ? [API_BASE_URL, NEXT_PUBLIC_API_URL]
+      : [
+          DEFAULT_LOCAL_API_BASE_URL,
+          DEFAULT_LOCALHOST_ALIAS_API_BASE_URL,
+          API_BASE_URL,
+          NEXT_PUBLIC_API_URL,
+          LEGACY_TUNNEL_API_BASE_URL,
+        ];
 
   return Array.from(
     new Set(candidates.map((value) => value.replace(/\/$/, "")).filter(Boolean)),
@@ -54,9 +56,18 @@ const requestJson = async <T>(path: string): Promise<T> => {
   }
 
   let lastError: Error | null = null;
+  const failedAttempts: Array<{
+    baseUrl: string;
+    reason: string;
+  }> = [];
 
   for (const baseUrl of candidateBaseUrls) {
     try {
+      console.log("[Admin PropertyService] Requesting", {
+        path,
+        baseUrl,
+      });
+
       const response = await fetch(`${baseUrl}${path}`, {
         headers: {
           "Content-Type": "application/json",
@@ -67,25 +78,59 @@ const requestJson = async <T>(path: string): Promise<T> => {
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
+        console.warn("[Admin PropertyService] Non-OK response, trying next base URL", {
+          path,
+          baseUrl,
+          status: response.status,
+          body: body.slice(0, 300),
+        });
         lastError = new Error(
           `Property request failed with status ${response.status} from ${baseUrl}${body ? `: ${body.slice(0, 160)}` : ""}`,
         );
+        failedAttempts.push({
+          baseUrl,
+          reason: `status ${response.status}`,
+        });
 
         if (![502, 503, 504].includes(response.status)) {
-          throw lastError;
+          continue;
         }
 
         continue;
       }
 
-      return (await response.json()) as T;
+      const json = (await response.json()) as T;
+      console.log("[Admin PropertyService] Response received", {
+        path,
+        baseUrl,
+        keys:
+          json && typeof json === "object"
+            ? Object.keys(json as Record<string, unknown>)
+            : [],
+      });
+
+      return json;
     } catch (error) {
+      console.warn("[Admin PropertyService] Request attempt failed", {
+        path,
+        baseUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
       lastError =
         error instanceof Error
           ? error
           : new Error("Property request failed unexpectedly.");
+      failedAttempts.push({
+        baseUrl,
+        reason: lastError.message,
+      });
     }
   }
+
+  console.error("[Admin PropertyService] All base URLs failed", {
+    path,
+    attempts: failedAttempts,
+  });
 
   throw (
     lastError ||
@@ -112,6 +157,14 @@ const getPropertyByIdInternal = async (
   }
 
   return payload as PublicProperty;
+};
+
+const getPropertyUploaderProfileInternal = async (
+  propertyId: string,
+): Promise<UploaderProfileResponse> => {
+  return requestJson<UploaderProfileResponse>(
+    `/properties/${propertyId}/uploader-profile`,
+  );
 };
 
 const searchPropertiesCached = cache(async (serializedFilters: string) => {
@@ -159,5 +212,32 @@ export const PropertyService = {
     return response.data
       .filter((item) => item._id !== property._id)
       .slice(0, 3);
+  },
+
+  async getPropertyUploaderProfileByProperty(
+    propertyId: string,
+  ): Promise<UploaderProfileResponse | null> {
+    if (!propertyId) {
+      console.warn(
+        "[Admin PropertyService] Missing property id for uploader profile",
+      );
+      return null;
+    }
+
+    try {
+      const profile = await getPropertyUploaderProfileInternal(propertyId);
+      console.log("[Admin PropertyService] Uploader profile resolved", {
+        propertyId,
+        uploaderId: profile?.uploader?._id,
+        listingsCount: profile?.listings?.length ?? 0,
+      });
+      return profile;
+    } catch (error) {
+      console.error("[Admin PropertyService] Failed uploader profile lookup", {
+        propertyId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
   },
 };

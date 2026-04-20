@@ -87,7 +87,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
       title={getPropertyTitle(property)}
       className={`${
         isFeatured
-          ? "border-[var(--admin-accent)] shadow-[0_0_0_1px_rgba(245,159,11,0.18),0_18px_38px_rgba(245,159,11,0.16)] hover:shadow-[0_0_0_1px_rgba(245,159,11,0.28),0_24px_46px_rgba(245,159,11,0.2)]"
+          ? "border-[var(--admin-accent)] shadow-[0_0_0_1px_var(--admin-accent-soft),0_18px_38px_var(--admin-accent-soft)] hover:shadow-[0_0_0_1px_var(--admin-accent),0_24px_46px_var(--admin-accent-soft)]"
           : "border-[var(--admin-border)]"
       }`}
       badges={
@@ -98,7 +98,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
             </span>
           )}
           {isBoosted && (
-            <span className="admin-badge-info rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg shadow-[rgba(37,99,235,0.18)]">
+            <span className="admin-badge-info rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg shadow-[var(--admin-info-soft)]">
               Boosted
             </span>
           )}

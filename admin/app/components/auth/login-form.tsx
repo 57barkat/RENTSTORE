@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { setCookie } from "nookies";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { destroyCookie, setCookie } from "nookies";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
 import apiClient from "@/app/lib/api-client";
@@ -13,6 +13,16 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get("reauth") !== "1") {
+      return;
+    }
+
+    destroyCookie(null, "admin_token", { path: "/" });
+    destroyCookie(null, "refresh_token", { path: "/" });
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +60,7 @@ export default function LoginPage() {
       <div className="z-10 grid w-full max-w-[1100px] overflow-hidden rounded-[2.5rem] border border-border bg-card shadow-2xl lg:grid-cols-2">
         <div className="relative hidden flex-col justify-between bg-sidebar p-12 lg:flex">
           <div className="z-10">
-            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--admin-background)] shadow-lg shadow-[rgba(0,0,0,0.16)]">
+            <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--admin-background)] shadow-lg shadow-[var(--admin-shadow)]">
               <span className="text-xl font-bold text-[var(--admin-primary)]">A</span>
             </div>
             <h2 className="text-4xl font-bold leading-tight text-[var(--admin-background)]">
@@ -58,7 +68,7 @@ export default function LoginPage() {
               <span className="text-[var(--admin-accent)]">Rental Empire</span> <br />
               from here.
             </h2>
-            <p className="mt-4 max-w-sm text-lg text-[rgba(255,255,255,0.72)]">
+            <p className="mt-4 max-w-sm text-lg text-[rgba(255,255,255,0.78)]">
               The world&#39;s most powerful dashboard for property managers and
               owners.
             </p>
@@ -73,7 +83,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="pointer-events-none absolute inset-0 opacity-10 bg-[radial-gradient(var(--color-primary)_1px,transparent_1px)] [background-size:20px_20px]" />
+          <div className="pointer-events-none absolute inset-0 opacity-10 bg-[radial-gradient(var(--admin-secondary)_1px,transparent_1px)] [background-size:20px_20px]" />
         </div>
 
         <div className="flex flex-col justify-center p-8 lg:p-16">

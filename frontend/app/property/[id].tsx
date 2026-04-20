@@ -165,7 +165,7 @@ export default function PropertyDetails() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 250 }}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -236,6 +236,7 @@ export default function PropertyDetails() {
       />
 
       <OwnerSection
+        propertyId={propertyId}
         owner={property.owner}
         theme={currentTheme}
         onChat={onPressChat}

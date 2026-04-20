@@ -33,7 +33,7 @@ export default function PublicHeader() {
                   href={item.href}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     isActive
-                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)] shadow-[0_18px_40px_-24px_rgba(0,0,128,0.35)]"
+                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)] shadow-[0_18px_40px_-24px_var(--admin-primary-strong)]"
                       : "text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
                   }`}
                 >

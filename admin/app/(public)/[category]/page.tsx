@@ -184,7 +184,7 @@ export default async function CategoryPage({
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-10 grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
           <div className="space-y-5">
-            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[rgba(255,255,255,0.88)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-primary)]">
+            <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[color:color-mix(in_srgb,var(--admin-background)_88%,transparent)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-primary)]">
               Public property discovery
             </span>
             <div className="space-y-4">
@@ -197,7 +197,7 @@ export default async function CategoryPage({
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.92)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)] backdrop-blur">
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_92%,transparent)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)] backdrop-blur">
             <p className="text-sm font-medium uppercase tracking-[0.18em] text-[var(--admin-muted)]">
               Live inventory
             </p>
@@ -221,13 +221,13 @@ export default async function CategoryPage({
 
           <section className="space-y-6">
             {fetchError && (
-              <div className="rounded-[2rem] border border-[rgba(217,119,6,0.18)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
+              <div className="rounded-[2rem] border border-[var(--admin-warning-soft)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
                 We couldn&apos;t load live listings right now. The page is still
                 available, and you can retry in a moment.
               </div>
             )}
 
-            <div className="flex flex-col gap-3 rounded-[2rem] border border-[var(--admin-border)] bg-[rgba(255,255,255,0.88)] p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 rounded-[2rem] border border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_88%,transparent)] p-5 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-[var(--admin-text)]">
                   {response.data.length} listings on this page
@@ -260,7 +260,7 @@ export default async function CategoryPage({
             </div>
 
             {response.data.length === 0 ? (
-              <div className="rounded-[2rem] border border-dashed border-[var(--admin-border)] bg-[rgba(255,255,255,0.72)] px-6 py-16 text-center shadow-inner">
+              <div className="rounded-[2rem] border border-dashed border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_76%,transparent)] px-6 py-16 text-center shadow-inner">
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--admin-surface)]">
                   <Search className="text-[var(--admin-placeholder)]" size={32} />
                 </div>

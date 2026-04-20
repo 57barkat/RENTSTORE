@@ -20,7 +20,7 @@ export default function StatCard({
   color,
 }: StatCardProps) {
   const colorMap: Record<string, string> = {
-    green: "bg-[var(--admin-success-soft)] text-[var(--admin-success)]",
+    green: "bg-[var(--admin-secondary-soft)] text-[var(--admin-secondary)]",
     blue: "bg-[var(--admin-info-soft)] text-[var(--admin-info)]",
     orange: "bg-[var(--admin-warning-soft)] text-[var(--admin-warning)]",
     red: "bg-[var(--admin-error-soft)] text-[var(--admin-error)]",

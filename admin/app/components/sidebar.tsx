@@ -45,7 +45,7 @@ export default function Sidebar({
     <>
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.5)] backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[var(--admin-shadow)] backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -55,10 +55,10 @@ export default function Sidebar({
           fixed inset-y-0 left-0 z-50 h-screen
           ${collapsed ? "w-20" : "w-64"} 
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-          flex flex-col border-r border-[rgba(255,255,255,0.08)] bg-sidebar text-[var(--admin-background)] transition-all duration-300 ease-in-out
+          flex flex-col border-r border-[var(--admin-primary-strong)] bg-sidebar text-[var(--admin-background)] transition-all duration-300 ease-in-out
         `}
       >
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[rgba(255,255,255,0.12)] px-6">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--admin-primary-strong)] px-6">
           {(!collapsed || mobileOpen) && (
             <span
               className="cursor-pointer text-xl font-bold tracking-tight text-[var(--admin-background)]"
@@ -72,7 +72,7 @@ export default function Sidebar({
             onClick={() =>
               mobileOpen ? setMobileOpen(false) : setCollapsed(!collapsed)
             }
-            className="rounded-lg bg-[rgba(255,255,255,0.08)] p-1.5 transition-colors hover:bg-[rgba(255,255,255,0.14)]"
+            className="rounded-lg bg-[var(--admin-primary-strong)] p-1.5 transition-colors hover:bg-[var(--admin-secondary-strong)]"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -94,8 +94,8 @@ export default function Sidebar({
                   flex items-center gap-4 px-3 py-3 rounded-xl cursor-pointer transition-all
                   ${
                     isActive
-                      ? "bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-[0_18px_40px_-28px_rgba(0,0,0,0.28)]"
-                      : "text-[rgba(255,255,255,0.72)] hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--admin-background)]"
+                      ? "bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-[0_18px_40px_-28px_var(--admin-shadow)]"
+                      : "text-[rgba(255,255,255,0.78)] hover:bg-[var(--admin-primary-strong)] hover:text-[var(--admin-background)]"
                   }
                 `}
               >
@@ -108,12 +108,12 @@ export default function Sidebar({
           })}
         </nav>
 
-        <div className="shrink-0 border-t border-[rgba(255,255,255,0.12)] p-4">
+        <div className="shrink-0 border-t border-[var(--admin-primary-strong)] p-4">
           <button
             onClick={handleLogout}
             className={`
               flex w-full items-center gap-4 rounded-xl p-3 text-[rgba(255,255,255,0.78)] transition-all
-              hover:bg-[rgba(255,255,255,0.08)] hover:text-[var(--admin-background)]
+              hover:bg-[var(--admin-danger-soft)] hover:text-[var(--admin-background)]
               ${collapsed && !mobileOpen ? "justify-center" : ""}
             `}
           >

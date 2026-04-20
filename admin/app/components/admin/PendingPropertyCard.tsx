@@ -53,7 +53,7 @@ export default function PendingPropertyCard({
         <div className="flex gap-2">
           <span
             className={`rounded px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg ${
-              property.isApproved ? "bg-emerald-600" : "bg-primary"
+              property.isApproved ? "bg-[var(--admin-secondary)]" : "bg-primary"
             }`}
           >
             {property.isApproved ? "Approved" : "Pending Approval"}
@@ -64,8 +64,8 @@ export default function PendingPropertyCard({
           <span
             className={`rounded border px-2 py-1 text-[9px] font-black uppercase tracking-widest shadow-lg ${
               property.status
-                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
-                : "border-slate-300 bg-slate-100 text-slate-700"
+                ? "border-[var(--admin-secondary-strong)] bg-[var(--admin-secondary-soft)] text-[var(--admin-secondary)]"
+                : "border-[var(--admin-border)] bg-[var(--admin-surface)] text-[var(--admin-muted)]"
             }`}
           >
             {property.status ? "Active" : "Inactive"}
@@ -77,7 +77,7 @@ export default function PendingPropertyCard({
           type="button"
           onClick={() => onReview(property._id)}
           disabled={isProcessing}
-          className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-sky-50 hover:text-sky-700"
+          className="inline-flex items-center gap-2 rounded-full bg-[color:color-mix(in_srgb,var(--admin-background)_94%,transparent)] px-4 py-2 text-xs font-bold text-[var(--admin-text)] shadow-lg backdrop-blur transition hover:bg-[var(--admin-info-soft)] hover:text-[var(--admin-info)]"
         >
           <Eye className="h-4 w-4" /> Review
         </button>
@@ -131,7 +131,7 @@ export default function PendingPropertyCard({
             type="button"
             onClick={() => onDelete(property._id)}
             disabled={isProcessing}
-            className="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex items-center justify-center gap-2 rounded-lg border border-[rgba(220,38,38,0.2)] bg-[var(--admin-error-soft)] px-3 py-2 text-xs font-bold text-[var(--admin-error)] transition-all hover:bg-[var(--admin-error)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {isProcessing && activeAction === "delete"
