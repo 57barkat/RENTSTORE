@@ -66,8 +66,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     ...config.extra,
-    myAppSecret: process.env.MY_APP_SECRET,
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
+    shareBaseUrl: process.env.EXPO_PUBLIC_SHARE_BASE_URL,
     GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
     UPLOAD_PRESET: process.env.UPLOAD_PRESET,

@@ -9,8 +9,14 @@ import { FormContext, FormData } from "@/contextStore/FormContext";
 import Toast from "react-native-toast-message";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 type ImageUriArray = string[];
+const PROPERTY_PHOTO_QUALITY = 0.5;
 
 const PhotosScreen: FC = () => {
   const router = useRouter();
@@ -22,6 +28,7 @@ const PhotosScreen: FC = () => {
     throw new Error("PhotosScreen must be used within a FormProvider");
   }
   const { data, updateForm } = context;
+  const propertyLabel = getPropertyTypeLabel(data.hostOption).toLowerCase();
 
   // --- State Initialization ---
   const [selectedImages, setSelectedImages] = useState<ImageUriArray>(
@@ -46,7 +53,7 @@ const PhotosScreen: FC = () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
-      quality: 1,
+      quality: PROPERTY_PHOTO_QUALITY,
     });
 
     setLoading(false);
@@ -87,18 +94,18 @@ const PhotosScreen: FC = () => {
 
   // --- Navigation & Validation ---
   const handleNext = () => {
-    if (selectedImages.length < 5) {
+    if (selectedImages.length < 2) {
       Toast.show({
         type: "error",
         text1: "Add more photos",
-        text2: "You need at least 5 photos to continue.",
+        text2: "You need at least 3 photos to continue.",
       });
       return;
     }
     router.push("/upload/ListingTitleScreen");
   };
 
-  const MIN_PHOTOS_REQUIRED = 5;
+  const MIN_PHOTOS_REQUIRED = 3;
   const isNextDisabled = selectedImages.length < MIN_PHOTOS_REQUIRED;
   const photosCount = selectedImages.length;
 
@@ -119,10 +126,17 @@ const PhotosScreen: FC = () => {
   return (
     <>
       <StepContainer
-        title="Add some photos of your house"
+        title={`Add some photos of your ${propertyLabel}`}
         onNext={handleNext}
         isNextDisabled={isNextDisabled}
         progress={40}
+        nextDisabledReason={buildDisabledReason([
+          isNextDisabled
+            ? `Add at least ${MIN_PHOTOS_REQUIRED} photos so renters can clearly preview the space.`
+            : undefined,
+        ])}
+        stepNumber={5}
+        totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
       >
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           You&apos;ll need {MIN_PHOTOS_REQUIRED} photos to get started. You can
@@ -151,6 +165,19 @@ const PhotosScreen: FC = () => {
             {photosCount} / {MIN_PHOTOS_REQUIRED} photos added
           </Text>
         )}
+        {isNextDisabled ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 12,
+              fontWeight: "600",
+            }}
+          >
+            {MIN_PHOTOS_REQUIRED - photosCount} more photo
+            {MIN_PHOTOS_REQUIRED - photosCount === 1 ? "" : "s"} needed to
+            continue.
+          </Text>
+        ) : null}
 
         {/* Image Grid */}
         <FlatList

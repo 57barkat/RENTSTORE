@@ -8,12 +8,13 @@ import {
   ActivityIndicator,
   useWindowDimensions,
   Platform,
-  Linking,
+  Linking as NativeLinking,
   Share,
   Alert,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import * as ExpoLinking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
@@ -36,6 +37,11 @@ export const options = { headerShown: false };
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const propertyId = Array.isArray(id) ? id[0] : id;
+  const shareBaseUrl = process.env.EXPO_PUBLIC_SHARE_BASE_URL?.replace(
+    /\/$/,
+    "",
+  );
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
   const isDark = theme === "dark";
@@ -46,11 +52,20 @@ export default function PropertyDetails() {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [selectedReason, setSelectedReason] = useState("");
   const [reportDescription, setReportDescription] = useState("");
-  useTrackView(id);
-  const { property, isLoading, refetch, isFetching } = usePropertyById(id);
+
+  useTrackView(propertyId);
+  const { property, isLoading, refetch, isFetching } =
+    usePropertyById(propertyId);
   const isOwner = user?.id === property?.ownerId;
 
-  const shareUrl = `https://exp+rent-store?id=${id}`;
+  const propertyPath = propertyId ? `/property/${propertyId}` : "";
+  const shareUrl = propertyPath
+    ? shareBaseUrl
+      ? `${shareBaseUrl}${propertyPath}`
+      : ExpoLinking.createURL(propertyPath, {
+          scheme: "anganstay",
+        })
+    : "";
 
   const { handleChatOwner, isCreating } = useChatRoom(
     property?.ownerId,
@@ -91,12 +106,15 @@ export default function PropertyDetails() {
     }
 
     const phone = formatPhoneForWhatsApp(property.owner.phone);
-
-    const message = `Hi, I'm interested in your property:\n\n*${property.title}*\n📍 ${property.location || "No address provided"}\n\nLink: ${shareUrl}`;
-
+    const locationText = property.location || "No address provided";
+    const message =
+      `Hi, I'm interested in your property:\n\n` +
+      `*${property.title}*\n` +
+      `Location: ${locationText}\n\n` +
+      `Link: ${shareUrl}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-    Linking.openURL(url).catch(() => {
+    NativeLinking.openURL(url).catch(() => {
       Alert.alert("Error", "Unable to open WhatsApp.");
     });
   };
@@ -107,7 +125,10 @@ export default function PropertyDetails() {
         ios: `maps:0,0?q=${property.title}@${property.lat},${property.lng}`,
         android: `geo:0,0?q=${property.lat},${property.lng}(${property.title})`,
       });
-      if (url) Linking.openURL(url);
+
+      if (url) {
+        NativeLinking.openURL(url);
+      }
     }
   };
 
@@ -144,7 +165,7 @@ export default function PropertyDetails() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 250 }}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -215,6 +236,7 @@ export default function PropertyDetails() {
       />
 
       <OwnerSection
+        propertyId={propertyId}
         owner={property.owner}
         theme={currentTheme}
         onChat={onPressChat}

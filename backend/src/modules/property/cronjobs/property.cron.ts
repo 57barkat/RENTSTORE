@@ -2,13 +2,9 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
-import {
-  SubscriptionType,
-  User,
-  UserDocument,
-} from "src/modules/user/user.entity";
 import { Property, PropertyDocument } from "../property.schema";
-import { PaymentSocketGateway } from "src/services/payment/payment-socket.gateway";
+import { SubscriptionType, User, UserDocument } from "../../user/user.entity";
+import { PaymentSocketGateway } from "../../../services/payment/payment-socket.gateway";
 
 @Injectable()
 export class SubscriptionCleanupService {
@@ -104,7 +100,7 @@ export class SubscriptionCleanupService {
 
       this.logger.log("Recalculated all property sortWeights.");
     } catch (error) {
-      this.logger.error("Error during cleanup cron job", error.stack);
+      this.logger.error("Error during cleanup cron job", error);
     }
   }
 }

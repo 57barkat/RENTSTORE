@@ -9,6 +9,10 @@ import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
 import { FormContext, FormContextType } from "@/contextStore/FormContext";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 export interface SafetyDetailsData {
   safetyDetails: string[];
@@ -97,11 +101,29 @@ const SafetyDetailsScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={96}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled
+          ? "Select at least one safety detail before continuing."
+          : undefined,
+      ])}
+      stepNumber={10}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           Does your place have any of these?
         </Text>
+        {isNextDisabled ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 14,
+              fontWeight: "600",
+            }}
+          >
+            Pick at least one safety detail to continue.
+          </Text>
+        ) : null}
 
         {SAFETY_DETAILS.map((detail) => (
           <CheckboxItem

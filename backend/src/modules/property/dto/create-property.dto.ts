@@ -9,9 +9,17 @@ import {
   IsDateString,
   Min,
   Max,
+  IsNotEmpty,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 import { Property, PropertyModerationStatus } from "../property.schema";
+import {
+  APARTMENT_TYPES,
+  FURNISHING_TYPES,
+  HOSTEL_TYPES,
+  PROPERTY_HOST_OPTIONS,
+  PROPERTY_SIZE_UNITS,
+} from "../property.constants";
 
 class AddressDto {
   @IsOptional() @IsString() aptSuiteUnit?: string;
@@ -39,11 +47,21 @@ class SafetyDetailsDataDto {
 class DescriptionDto {
   @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
 }
+class PropertySizeDto {
+  @IsNumber()
+  @IsNotEmpty()
+  value!: number;
 
+  @IsEnum(PROPERTY_SIZE_UNITS, {
+    message: "Unit must be one of: Marla, Kanal, Sq. Ft., Sq. Yd.",
+  })
+  @IsNotEmpty()
+  unit!: string;
+}
 export class CreatePropertyDto {
   @IsOptional() @IsString() _id?: string;
   @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsString() hostOption?: string;
+  @IsOptional() @IsEnum(PROPERTY_HOST_OPTIONS) hostOption?: string;
   @IsOptional() @IsString() location?: string;
   @IsOptional() @IsString() area?: string;
 
@@ -109,11 +127,11 @@ export class CreatePropertyDto {
   safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
   @IsOptional()
-  @IsEnum(["studio", "1BHK", "2BHK", "3BHK", "penthouse"])
+  @IsEnum(APARTMENT_TYPES)
   apartmentType?: string;
 
   @IsOptional()
-  @IsEnum(["furnished", "semi-furnished", "unfurnished"])
+  @IsEnum(FURNISHING_TYPES)
   furnishing?: string;
 
   @Transform(({ value }) => value === "true" || value === true)
@@ -122,14 +140,14 @@ export class CreatePropertyDto {
   parking?: boolean;
 
   @IsOptional()
-  @IsEnum(["male", "female", "mixed"])
+  @IsEnum(HOSTEL_TYPES)
   hostelType?: string;
 
   @IsOptional() @IsArray() @IsString({ each: true }) mealPlan: string[] = [];
   @IsOptional() @IsArray() @IsString({ each: true }) rules: string[] = [];
 
   // --- Relations ---
-  @IsString() ownerId: string;
+  @IsString() ownerId!: string;
   @IsOptional() @IsString() agency?: string;
   @IsOptional() @IsString() listedBy?: string;
 
@@ -152,6 +170,11 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsEnum(PropertyModerationStatus)
   moderationStatus?: PropertyModerationStatus;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PropertySizeDto)
+  size?: PropertySizeDto;
 
   // --- Sorting & Weights (Crucial for the new system) ---
   @Transform(({ value }) => (value !== undefined ? Number(value) : 1))

@@ -13,29 +13,36 @@ if (!GOOGLE_API_KEY) {
 /**
  * Address autocomplete (typing suggestions)
  */
-export const searchPlaces = async (input: string) => {
+export const searchPlaces = async (
+  input: string,
+  lat?: number,
+  lng?: number,
+) => {
   if (!input || input.length < 2) return [];
 
-  const url =
+  // 1. We use (regions) instead of address.
+  // This includes sectors, markaz, and sub-localities.
+  let url =
     "https://maps.googleapis.com/maps/api/place/autocomplete/json" +
     `?input=${encodeURIComponent(input)}` +
-    `&types=address` +
+    `&types=(regions)` +
     `&components=country:pk` +
     `&language=en` +
     `&key=${GOOGLE_API_KEY}`;
+
+  // 2. BIASING: This tells Google "If you find E-11 in Islamabad AND E-11 in Karachi,
+  // show the Islamabad one first because the user is standing there."
+  if (lat && lng) {
+    url += `&location=${lat},${lng}&radius=10000`; // 10km radius
+  }
 
   try {
     const res = await fetch(url);
     const json = await res.json();
 
-    if (json.status !== "OK") {
-      // console.warn("Autocomplete error:", json.status, json.error_message);
-      return [];
-    }
-
+    if (json.status !== "OK") return [];
     return json.predictions;
   } catch (error) {
-    // console.error("Autocomplete fetch failed:", error);
     return [];
   }
 };

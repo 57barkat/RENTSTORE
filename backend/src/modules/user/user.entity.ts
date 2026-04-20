@@ -25,10 +25,10 @@ export enum SubscriptionType {
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
-  name: string;
+  name!: string;
 
   @Prop({ required: true })
-  password: string;
+  password!: string;
 
   @Prop()
   resetPasswordCode?: string;
@@ -37,52 +37,52 @@ export class User {
   resetPasswordCodeExpires?: Date;
 
   @Prop({ default: false })
-  isResetCodeVerified: boolean;
+  isResetCodeVerified!: boolean;
 
   @Prop({ required: true, enum: UserRole })
-  role: UserRole;
+  role!: UserRole;
 
   @Prop({ required: true, unique: true })
-  email: string;
+  email!: string;
 
   @Prop({ required: true, unique: true })
-  phone: string;
+  phone!: string;
 
   @Prop({ type: Types.ObjectId, ref: "Agency" })
   agency?: Types.ObjectId;
 
   @Prop({ default: SubscriptionType.FREE })
-  subscription: SubscriptionType;
+  subscription!: SubscriptionType;
 
   @Prop({ default: Date.now })
-  subscriptionStartDate: Date;
+  subscriptionStartDate!: Date;
 
   @Prop({ default: Date.now })
-  subscriptionEndDate: Date;
+  subscriptionEndDate!: Date;
 
   @Prop({ default: false })
-  subscriptionAutoRenew: boolean;
+  subscriptionAutoRenew!: boolean;
 
   @Prop({ default: false })
-  subscriptionTrialUsed: boolean;
+  subscriptionTrialUsed!: boolean;
 
   @Prop({ default: 1 })
-  propertyLimit: number;
+  propertyLimit!: number;
 
   @Prop({ default: 0 })
-  paidPropertyCredits: number;
+  paidPropertyCredits!: number;
 
   @Prop({ default: 0 })
-  usedPropertyCount: number;
+  usedPropertyCount!: number;
 
   @Prop({ default: 0 })
-  prioritySlotCredits: number;
+  prioritySlotCredits!: number;
 
   @Prop({ default: 0 })
-  paidFeaturedCredits: number;
+  paidFeaturedCredits!: number;
 
   @Prop({ required: true, unique: true })
-  cnic: string;
+  cnic!: string;
 
   @Prop()
   agencyLicense?: string;
@@ -91,13 +91,13 @@ export class User {
   preferences?: string;
 
   @Prop({ default: false })
-  isPhoneVerified: boolean;
+  isPhoneVerified!: boolean;
 
   @Prop({ default: false })
-  isEmailVerified: boolean;
+  isEmailVerified!: boolean;
 
   @Prop()
-  TermsAndConditionsAccepted: boolean;
+  TermsAndConditionsAccepted!: boolean;
 
   @Prop({ type: String })
   fcmToken?: string;
@@ -106,7 +106,7 @@ export class User {
   subscriptions?: string[];
 
   @Prop({ type: [{ type: Types.ObjectId, ref: "Property" }], default: [] })
-  favorites: Types.ObjectId[];
+  favorites!: Types.ObjectId[];
 
   @Prop({ type: String })
   refreshToken?: string;
@@ -118,10 +118,10 @@ export class User {
   emailVerificationCode?: string;
 
   @Prop({ default: 0 })
-  warnings: number;
+  warnings!: number;
 
   @Prop({ default: false })
-  isBlocked: boolean;
+  isBlocked!: boolean;
 
   @Prop()
   emailVerificationCodeExpires?: Date;
@@ -131,10 +131,10 @@ export class User {
     enum: UserAccountStatus,
     default: UserAccountStatus.ACTIVE,
   })
-  accountStatus: UserAccountStatus;
+  accountStatus!: UserAccountStatus;
 
   @Prop({ default: 0 })
-  strikeCount: number;
+  strikeCount!: number;
 
   @Prop()
   suspendedAt?: Date;

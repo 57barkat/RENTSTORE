@@ -13,6 +13,10 @@ import { FormContext, FormData } from "@/contextStore/FormContext";
 
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const HostelAmenitiesScreen: FC = () => {
   const router = useRouter();
@@ -58,6 +62,13 @@ const HostelAmenitiesScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled(selectedAmenities)}
       progress={33} // Adjust if needed for hostel flow
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled(selectedAmenities)
+          ? "Select at least one amenity before continuing."
+          : undefined,
+      ])}
+      stepNumber={4}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -66,6 +77,17 @@ const HostelAmenitiesScreen: FC = () => {
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           You can add more amenities after you publish your hostel listing.
         </Text>
+        {isNextDisabled(selectedAmenities) ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 16,
+              fontWeight: "600",
+            }}
+          >
+            Pick at least one amenity to continue.
+          </Text>
+        ) : null}
 
         {AMENITIES_DATA.map((section, index) => (
           <View key={index} style={styles.section}>

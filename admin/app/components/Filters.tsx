@@ -1,7 +1,7 @@
 /* eslint-disable */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import {
   Search,
@@ -17,29 +17,23 @@ const AMENITIES = ["WiFi", "AC", "Laundry", "Parking", "Gym"];
 export default function Filters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const params = useParams(); // Use this to get the current [category]
+  const params = useParams();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [addressInput, setAddressInput] = useState(
     searchParams.get("addressQuery") || "",
   );
 
-  // The category from the URL folder, e.g., /hostel -> category = "hostel"
   const currentCategory = (params.category as string) || "home";
 
   const updateFilter = (key: string, value: any) => {
     const newSearchParams = new URLSearchParams(searchParams.toString());
 
-    // 1. Handle Path Changes (for Category)
     if (key === "hostOption") {
-      // If user clicks a category, we change the ACTUAL URL PATH
-      // Example: from /home?city=Islamabad to /hostel?city=Islamabad
-      const newPath = `/${value}`;
-      router.push(`${newPath}?${newSearchParams.toString()}`);
+      router.push(`/${value}?${newSearchParams.toString()}`);
       return;
     }
 
-    // 2. Handle Search Parameter Changes (Standard filters)
     if (value && value.length > 0) {
       if (Array.isArray(value)) {
         newSearchParams.set(key, value.join(","));
@@ -59,6 +53,7 @@ export default function Filters() {
     const updated = current.includes(item)
       ? current.filter((i) => i !== item)
       : [...current, item];
+
     updateFilter(key, updated.length > 0 ? updated : null);
   };
 
@@ -68,6 +63,7 @@ export default function Filters() {
         updateFilter("addressQuery", addressInput);
       }
     }, 500);
+
     return () => clearTimeout(timer);
   }, [addressInput]);
 
@@ -75,7 +71,7 @@ export default function Filters() {
     <div className="w-full lg:w-80">
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden w-full flex items-center justify-between bg-blue-600 text-white p-4 rounded-xl mb-4 font-bold shadow-lg"
+        className="admin-button-primary mb-4 flex w-full items-center justify-between rounded-xl p-4 font-bold lg:hidden"
       >
         <span className="flex items-center gap-2">
           <FilterIcon size={18} /> Filters
@@ -84,24 +80,23 @@ export default function Filters() {
       </button>
 
       <div
-        className={`${isMobileOpen ? "block" : "hidden"} lg:block space-y-8 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit sticky top-24`}
+        className={`${isMobileOpen ? "block" : "hidden"} admin-surface sticky top-24 h-fit space-y-8 rounded-2xl p-6 lg:block`}
       >
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-lg text-gray-800">Filters</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-[var(--admin-text)]">Filters</h3>
           <button
             onClick={() => {
-              router.push(`/${currentCategory}`); // Reset to base category path
+              router.push(`/${currentCategory}`);
               setAddressInput("");
             }}
-            className="text-xs font-semibold text-blue-600 hover:underline"
+            className="text-xs font-semibold text-[var(--admin-primary)] hover:underline"
           >
             Reset All
           </button>
         </div>
 
-        {/* 3-Way Path Toggle */}
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+          <label className="text-[10px] font-black uppercase tracking-wider text-[var(--admin-placeholder)]">
             Category
           </label>
           <div className="grid grid-cols-3 gap-1.5">
@@ -109,10 +104,10 @@ export default function Filters() {
               <button
                 key={opt}
                 onClick={() => updateFilter("hostOption", opt)}
-                className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all ${
+                className={`rounded-xl py-3 text-[10px] font-black uppercase transition-all ${
                   currentCategory === opt
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-100"
-                    : "bg-gray-50 text-gray-500 border border-transparent"
+                    ? "bg-[var(--admin-primary)] text-[var(--admin-background)] shadow-md shadow-[rgba(0,0,128,0.16)]"
+                    : "border border-transparent bg-[var(--admin-card)] text-[var(--admin-muted)]"
                 }`}
               >
                 {opt}
@@ -121,15 +116,14 @@ export default function Filters() {
           </div>
         </div>
 
-        {/* City & Address */}
         <div className="space-y-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-2">
+            <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[var(--admin-placeholder)]">
               <MapPin size={12} /> City
             </label>
             <select
               onChange={(e) => updateFilter("city", e.target.value)}
-              className="w-full p-4 rounded-xl border-none outline-none text-sm bg-gray-50 font-semibold"
+              className="admin-input w-full rounded-xl p-4 text-sm font-semibold"
               value={searchParams.get("city") || ""}
             >
               <option value="">Select City</option>
@@ -139,20 +133,22 @@ export default function Filters() {
           </div>
 
           <div className="relative">
-            <Search className="absolute left-4 top-4 text-gray-400" size={16} />
+            <Search
+              className="absolute left-4 top-4 text-[var(--admin-placeholder)]"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Search area..."
               value={addressInput}
               onChange={(e) => setAddressInput(e.target.value)}
-              className="w-full pl-11 pr-4 py-4 rounded-xl border-none outline-none text-sm bg-gray-50 font-semibold"
+              className="admin-input w-full rounded-xl py-4 pl-11 pr-4 text-sm font-semibold"
             />
           </div>
         </div>
 
-        {/* Price Range */}
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider flex items-center gap-2">
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[var(--admin-placeholder)]">
             <CreditCard size={12} /> Rent Range
           </label>
           <div className="flex gap-2">
@@ -161,21 +157,20 @@ export default function Filters() {
               placeholder="Min"
               onChange={(e) => updateFilter("minRent", e.target.value)}
               value={searchParams.get("minRent") || ""}
-              className="w-1/2 p-3 rounded-xl bg-gray-50 text-sm font-semibold outline-none"
+              className="admin-input w-1/2 rounded-xl p-3 text-sm font-semibold"
             />
             <input
               type="number"
               placeholder="Max"
               onChange={(e) => updateFilter("maxPrice", e.target.value)}
               value={searchParams.get("maxPrice") || ""}
-              className="w-1/2 p-3 rounded-xl bg-gray-50 text-sm font-semibold outline-none"
+              className="admin-input w-1/2 rounded-xl p-3 text-sm font-semibold"
             />
           </div>
         </div>
 
-        {/* Amenities */}
-        <div className="space-y-3 pt-4 border-t border-gray-100">
-          <label className="text-[10px] font-black text-gray-400 uppercase flex items-center gap-2">
+        <div className="space-y-3 border-t border-[var(--admin-border)] pt-4">
+          <label className="flex items-center gap-2 text-[10px] font-black uppercase text-[var(--admin-placeholder)]">
             <Wind size={12} /> Amenities
           </label>
           <div className="flex flex-wrap gap-2">
@@ -183,10 +178,10 @@ export default function Filters() {
               <button
                 key={item}
                 onClick={() => toggleMultiSelect("amenities", item)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+                className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase transition-all ${
                   searchParams.get("amenities")?.includes(item)
-                    ? "bg-blue-100 text-blue-700 border-blue-200"
-                    : "bg-gray-50 text-gray-400"
+                    ? "border border-[var(--admin-primary-strong)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]"
+                    : "bg-[var(--admin-card)] text-[var(--admin-placeholder)]"
                 }`}
               >
                 {item}

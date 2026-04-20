@@ -13,6 +13,17 @@ export const useMyPropertiesLogic = () => {
   const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filters, setFilters] = useState<{
+    hostOption: string;
+    lifecycle: "all" | "active" | "inactive" | "pending" | "approved";
+    minRent: string;
+    maxRent: string;
+  }>({
+    hostOption: "all",
+    lifecycle: "all",
+    minRent: "",
+    maxRent: "",
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
@@ -35,7 +46,26 @@ export const useMyPropertiesLogic = () => {
       limit: 10,
       sort,
       search: debouncedSearch,
+      hostOption: filters.hostOption === "all" ? "" : filters.hostOption,
+      status:
+        filters.lifecycle === "active"
+          ? "active"
+          : filters.lifecycle === "inactive"
+            ? "inactive"
+            : "",
+      approvalStatus:
+        filters.lifecycle === "pending"
+          ? "pending"
+          : filters.lifecycle === "approved"
+            ? "approved"
+            : "",
+      minRent: filters.minRent,
+      maxRent: filters.maxRent,
     });
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, sort]);
 
   useEffect(() => {
     if (data?.data) {
@@ -96,6 +126,8 @@ export const useMyPropertiesLogic = () => {
     },
     search,
     setSearch,
+    filters,
+    setFilters,
     deleteModalVisible,
     setDeleteModalVisible,
     setSelectedPropertyId,

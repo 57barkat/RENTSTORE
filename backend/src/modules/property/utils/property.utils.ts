@@ -1,6 +1,9 @@
 import { BadRequestException } from "@nestjs/common";
 import { Types } from "mongoose";
-import { UserDocument } from "src/modules/user/user.entity";
+import { UserDocument } from "../../user/user.entity";
+
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export const parseNumericFields = (
   query: Record<string, any>,
@@ -43,6 +46,8 @@ export const mapHostelType = (
 
 export const buildMongoFilter = (filters: any, userId?: string) => {
   const {
+    title,
+    location,
     city,
     addressQuery,
     minRent,
@@ -60,6 +65,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     lng,
     radiusKm,
     area,
+    minSize,
+    maxSize,
+    sizeUnit,
   } = filters;
 
   const mongoFilter: any = {
@@ -74,13 +82,20 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
 
   const andConditions: any[] = [];
 
-  // SMART SEARCH
-  const searchInput = addressQuery || area;
+  // 1. SMART SEARCH (Logic for addressQuery or area)
+  if (title) {
+    andConditions.push({
+      title: { $regex: escapeRegex(title.trim()), $options: "i" },
+    });
+  }
+
+  const searchInput = addressQuery || location || area;
   if (searchInput) {
     const cleanedQuery = searchInput.trim();
     const flexiblePattern = cleanedQuery
       .replace(/[-/\s]/g, "")
       .split("")
+      .map((char) => escapeRegex(char))
       .join("[-/\\s]?");
     const searchRegex = { $regex: flexiblePattern, $options: "i" };
 
@@ -103,67 +118,72 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     });
   }
 
-  // City
+  // 2. City
   if (city) {
-    andConditions.push({ "address.city": { $regex: city, $options: "i" } });
+    andConditions.push({
+      "address.city": { $regex: `^${escapeRegex(city)}$`, $options: "i" },
+    });
   }
 
-  // Rent
-  // Rent (Multi-field support for Daily, Weekly, and Monthly)
+  // 3. Rent Range (Multi-field support)
   if (minRent !== undefined || maxRent !== undefined) {
     const priceQuery: any = {};
     if (minRent !== undefined) priceQuery.$gte = Number(minRent);
     if (maxRent !== undefined) priceQuery.$lte = Number(maxRent);
 
-    // This ensures that if ANY of the price fields match the range,
-    // the property is shown.
-    const priceConditions = [
-      { monthlyRent: priceQuery },
-      { dailyRent: priceQuery },
-      { weeklyRent: priceQuery },
-    ];
-
-    // Push to andConditions to avoid overwriting other filters
-    andConditions.push({ $or: priceConditions });
+    andConditions.push({
+      $or: [
+        { monthlyRent: priceQuery },
+        { dailyRent: priceQuery },
+        { weeklyRent: priceQuery },
+      ],
+    });
   }
 
-  // Host options
+  // 4. PROPERTY SIZE (NEW)
+  if (minSize !== undefined || maxSize !== undefined) {
+    const sizeValueQuery: any = {};
+    if (minSize !== undefined) sizeValueQuery.$gte = Number(minSize);
+    if (maxSize !== undefined) sizeValueQuery.$lte = Number(maxSize);
+
+    // Target the nested size object: size { value, unit }
+    andConditions.push({ "size.value": sizeValueQuery });
+  }
+
+  if (sizeUnit) {
+    andConditions.push({ "size.unit": sizeUnit });
+  }
+
+  // 5. Host options
   if (hostOption) {
-    mongoFilter.hostOption = { $regex: hostOption, $options: "i" };
+    mongoFilter.hostOption = hostOption;
   }
 
-  // Hostel type mapping
+  // 6. Hostel type mapping
   if (hostelType) {
     const mapping: Record<string, string[]> = {
       female: ["female", "girls"],
       male: ["male", "boys"],
       mixed: ["mixed", "co-ed"],
     };
-    if (mapping[hostelType]) {
-      mongoFilter.hostelType = { $in: mapping[hostelType] };
-    }
+    mongoFilter.hostelType = { $in: mapping[hostelType] };
   }
 
-  // Arrays
+  // 7. Arrays (Amenities, Bills, etc.)
   if (amenities?.length) mongoFilter.amenities = { $all: amenities };
   if (bills?.length) mongoFilter.ALL_BILLS = { $all: bills };
   if (mealPlan?.length) mongoFilter.mealPlan = { $all: mealPlan };
   if (rules?.length) mongoFilter.rules = { $all: rules };
 
-  // Capacity
-  if (bedrooms !== undefined)
+  // 8. Capacity
+  if (bedrooms !== undefined && bedrooms !== 0)
     mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
-  if (bathrooms !== undefined)
+  if (bathrooms !== undefined && bathrooms !== 0)
     mongoFilter["capacityState.bathrooms"] = Number(bathrooms);
   if (floorLevel !== undefined)
     mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
 
-  // Apply AND conditions
-  if (andConditions.length > 0) {
-    mongoFilter.$and = andConditions;
-  }
-
-  // Geospatial (Note: $near requires a 2dsphere index)
+  // 9. Geospatial
   if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
     mongoFilter.locationGeo = {
       $near: {
@@ -171,6 +191,11 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
         $maxDistance: Number(radiusKm) * 1000,
       },
     };
+  }
+
+  // Apply all AND conditions collected
+  if (andConditions.length > 0) {
+    mongoFilter.$and = andConditions;
   }
 
   return mongoFilter;

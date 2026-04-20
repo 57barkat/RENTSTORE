@@ -50,6 +50,7 @@ export default function PropertiesPage() {
   const {
     property,
     type,
+    title,
     city,
     addressQuery,
     minRent,
@@ -73,6 +74,7 @@ export default function PropertiesPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [isSwitching, setIsSwitching] = useState(false);
   const initialFilters = {
+    title: title || undefined,
     city: city || undefined,
     addressQuery: addressQuery || undefined,
     minRent: minRent ? parseInt(minRent) : undefined,
@@ -91,6 +93,8 @@ export default function PropertiesPage() {
       home: type === "home" || !type ? { ...initialFilters } : {},
       hostel: type === "hostel" ? { ...initialFilters } : {},
       apartment: type === "apartment" ? { ...initialFilters } : {},
+      shop: type === "shop" ? { ...initialFilters } : {},
+      office: type === "office" ? { ...initialFilters } : {},
     },
   );
   const {

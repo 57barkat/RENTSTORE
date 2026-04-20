@@ -23,6 +23,11 @@ import { Colors } from "@/constants/Colors";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { searchPlaces, placeDetails } from "@/services/googlePlaces";
 import StepContainer from "@/app/upload/Welcome";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+  getPropertyTypeLabel,
+} from "@/utils/propertyTypes";
 
 const MAPBOX_TOKEN: string =
   (Constants.expoConfig && Constants.expoConfig.extra?.MAPBOX_PUBLIC_TOKEN) ||
@@ -38,15 +43,17 @@ const INITIAL_ZOOM = 15;
 const DEBOUNCE_DELAY = 800;
 
 interface MasterLocationProps {
-  propertyTypeLabel: string;
+  propertyTypeLabel?: string;
   nextPath: any;
   progress: number;
+  stepNumber?: number;
 }
 
 const MasterLocationScreen: React.FC<MasterLocationProps> = ({
   propertyTypeLabel,
   nextPath,
   progress,
+  stepNumber = 2,
 }) => {
   const formContext = React.useContext(FormContext);
   const { theme } = useTheme();
@@ -242,18 +249,24 @@ const MasterLocationScreen: React.FC<MasterLocationProps> = ({
   const handleSearch = (text: string) => {
     setAddress(text);
     if (debounceRef.current) clearTimeout(debounceRef.current);
+
     debounceRef.current = setTimeout(async () => {
       if (text.length > 2) {
         try {
-          const results = await searchPlaces(text);
+          // Pass the latitude and longitude from your state here
+          const results = await searchPlaces(
+            text,
+            coords?.latitude,
+            coords?.longitude,
+          );
           setSuggestions(results);
         } catch (err) {
-          // console.error(err);
+          // error handling
         }
       } else {
         setSuggestions([]);
       }
-    }, DEBOUNCE_DELAY);
+    }, 400); // 400ms is much better for user experience than 800ms
   };
 
   const selectSuggestion = async (item: any) => {

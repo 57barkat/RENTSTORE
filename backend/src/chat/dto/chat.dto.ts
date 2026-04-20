@@ -1,5 +1,5 @@
 export class CreateRoomDto {
-  participants: string[];
+  participants!: string[];
   propertyId?: string;
 }
 
@@ -13,6 +13,6 @@ export interface ChatRoomType {
 }
 
 export class SendMessageDto {
-  chatRoomId: string;
-  text: string;
+  chatRoomId!: string;
+  text!: string;
 }

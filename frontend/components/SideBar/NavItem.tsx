@@ -32,12 +32,26 @@ const NavItem: React.FC<NavItemProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.navItem, { borderBottomColor: themeColors.card + "50" }]}
+      style={[
+        styles.navItem,
+        {
+          borderBottomColor: themeColors.card + "50",
+          backgroundColor: isActive ? baseColor + "0D" : "transparent",
+          borderColor: isActive ? baseColor + "30" : "transparent",
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.contentContainer}>
-        <View style={[styles.iconWrapper, { backgroundColor: iconBgColor }]}>
+        <View
+          style={[
+            styles.iconWrapper,
+            {
+              backgroundColor: isActive ? baseColor + "20" : iconBgColor,
+            },
+          ]}
+        >
           <IconComponent
             name={item.iconName as any}
             size={20}
@@ -48,7 +62,10 @@ const NavItem: React.FC<NavItemProps> = ({
         <Text
           style={[
             styles.navText,
-            { color: isLogout ? themeColors.danger : themeColors.secondary },
+            {
+              color: isLogout ? themeColors.danger : themeColors.secondary,
+              fontWeight: isActive ? "700" : "500",
+            },
           ]}
         >
           {item.label}
@@ -81,7 +98,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
+    borderWidth: 1,
+    borderRadius: 16,
+    marginBottom: 8,
   },
   contentContainer: {
     flexDirection: "row",

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { v2 as cloudinary, UploadApiOptions } from "cloudinary";
+import { readFile } from "fs/promises";
 import * as streamifier from "streamifier";
 import sharp from "sharp";
 
@@ -45,7 +46,7 @@ export class CloudinaryService {
         if (file.buffer) {
           fileBuffer = file.buffer;
         } else if (file.path) {
-          fileBuffer = require("fs").readFileSync(file.path);
+          fileBuffer = await readFile(file.path);
         } else {
           throw new Error("File must contain buffer or path");
         }

@@ -9,9 +9,15 @@ export const useAdminPropertyDetails = () => {
   const handleViewDetails = async (id: string) => {
     try {
       setLoadingDetails(true);
-      const { data } = await apiClient.get(`/properties/admin/view/${id}`);
-      setSelectedProperty(data);
-    } catch (error) {
+      const [propertyResponse, uploaderSummaryResponse] = await Promise.all([
+        apiClient.get(`/properties/admin/view/${id}`),
+        apiClient.get(`/properties/${id}/uploader-summary`),
+      ]);
+      setSelectedProperty({
+        ...propertyResponse.data,
+        uploaderSummary: uploaderSummaryResponse.data,
+      });
+    } catch {
       alert("Could not load property details.");
     } finally {
       setLoadingDetails(false);

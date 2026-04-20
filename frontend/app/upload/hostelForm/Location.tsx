@@ -6,6 +6,7 @@ export default function HostelLocation() {
       propertyTypeLabel="Hostel"
       nextPath="upload/hostelForm/PropertyDetails"
       progress={20}
+      stepNumber={2}
     />
   );
 }

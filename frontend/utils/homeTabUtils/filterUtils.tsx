@@ -1,8 +1,15 @@
 import React from "react";
-import { TouchableOpacity, Text, View, StyleSheet } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  View,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 import { AMENITIES_DATA, getAmenityLabel } from "../Aminities";
 
 export interface Filters {
+  title?: string;
   city?: string;
   addressQuery?: string;
   minRent?: number;
@@ -10,7 +17,10 @@ export interface Filters {
   bedrooms?: number;
   bathrooms?: number;
   floorLevel?: number;
-  hostelType?: "female" | "male" | "mixed";
+  hostelType?: "female" | "male" | "mixed"; 
+  minSize?: number 
+  maxSize?: number;  
+  sizeUnit?: string;  
   amenities?: string[];
   bills?: string[];
   mealPlan?: string[];
@@ -46,8 +56,6 @@ export const NumberChip = ({
     </Text>
   </TouchableOpacity>
 );
-
-import { ScrollView } from "react-native";
 
 export const MultiSelectChips = ({
   options,

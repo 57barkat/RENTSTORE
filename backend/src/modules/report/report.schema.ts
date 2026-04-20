@@ -12,23 +12,23 @@ export enum ReportReason {
 @Schema({ timestamps: true })
 export class PropertyReport extends Document {
   @Prop({ type: Types.ObjectId, ref: "User", required: true })
-  reporterId: Types.ObjectId;
+  reporterId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: "Property", required: true })
-  propertyId: Types.ObjectId;
+  propertyId!: Types.ObjectId;
 
   @Prop({ type: String, enum: ReportReason, required: true })
-  reason: ReportReason;
+  reason!: ReportReason;
 
   @Prop({ type: String })
-  description: string;
+  description!: string;
 
   @Prop({
     type: String,
     enum: ["PENDING", "RESOLVED", "REJECTED"],
     default: "PENDING",
   })
-  status: string;
+  status!: string;
 }
 
 export const ReportSchema = SchemaFactory.createForClass(PropertyReport);

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,27 @@ import {
   StyleSheet,
   Modal,
   Pressable,
+  ScrollView,
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
+import { hostOptions } from "@/utils/homeTabUtils/hostOptions";
+
+const SORT_OPTIONS = [
+  { label: "Newest first", value: "newest" },
+  { label: "Oldest first", value: "oldest" },
+  { label: "Price: Low to high", value: "priceLow" },
+  { label: "Price: High to low", value: "priceHigh" },
+  { label: "Pending approval", value: "pending" },
+];
+
+const LIFECYCLE_OPTIONS = [
+  { label: "All listings", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Inactive", value: "inactive" },
+  { label: "Pending", value: "pending" },
+  { label: "Approved", value: "approved" },
+];
 
 const ListHeader = ({
   currentTheme,
@@ -18,23 +36,37 @@ const ListHeader = ({
   setSearch,
   sort,
   setSort,
+  filters,
+  setFilters,
 }: any): React.ReactNode => {
   const [infoModal, setInfoModal] = useState<{
     visible: boolean;
     type: "boost" | "featured" | null;
   }>({ visible: false, type: null });
-
-  const getSortLabel = (key: string) => {
-    const labels: Record<string, string> = {
-      priceLow: "Price: Low",
-      priceHigh: "Price: High",
-      pending: "Pending Approval",
-    };
-    return labels[key] || key.charAt(0).toUpperCase() + key.slice(1);
-  };
+  const [filtersModalVisible, setFiltersModalVisible] = useState(false);
 
   const showInfo = (type: "boost" | "featured") => {
     setInfoModal({ visible: true, type });
+  };
+
+  const appliedFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.hostOption && filters.hostOption !== "all") count += 1;
+    if (filters.lifecycle && filters.lifecycle !== "all") count += 1;
+    if (filters.minRent) count += 1;
+    if (filters.maxRent) count += 1;
+    if (sort && sort !== "newest") count += 1;
+    return count;
+  }, [filters.hostOption, filters.lifecycle, filters.maxRent, filters.minRent, sort]);
+
+  const resetFilters = () => {
+    setFilters({
+      hostOption: "all",
+      lifecycle: "all",
+      minRent: "",
+      maxRent: "",
+    });
+    setSort("newest");
   };
 
   return (
@@ -104,7 +136,7 @@ const ListHeader = ({
       >
         <Feather name="search" size={18} color={currentTheme.muted} />
         <TextInput
-          placeholder="Search by title..."
+          placeholder="Search by title or address..."
           placeholderTextColor={currentTheme.muted}
           value={search}
           onChangeText={setSearch}
@@ -112,47 +144,325 @@ const ListHeader = ({
         />
       </View>
 
-      <View style={styles.sortRow}>
-        {["newest", "oldest", "priceLow", "priceHigh", "pending"].map(
-          (item) => (
-            <TouchableOpacity
-              key={item}
-              onPress={() => setSort(item)}
+      <View style={styles.toolbarRow}>
+        <TouchableOpacity
+          onPress={() => setFiltersModalVisible(true)}
+          style={[
+            styles.toolbarButton,
+            {
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+            },
+          ]}
+        >
+          <MaterialCommunityIcons
+            name="tune-variant"
+            size={18}
+            color={currentTheme.text}
+          />
+          <Text style={[styles.toolbarButtonText, { color: currentTheme.text }]}>
+            Filter & Sort
+          </Text>
+          {appliedFiltersCount > 0 ? (
+            <View
               style={[
-                styles.sortButton,
-                {
-                  backgroundColor:
-                    sort === item ? currentTheme.secondary : currentTheme.card,
-                  borderColor:
-                    sort === item
-                      ? currentTheme.secondary
-                      : currentTheme.border,
-                  borderWidth: 1,
-                },
+                styles.countBadge,
+                { backgroundColor: currentTheme.secondary },
               ]}
             >
-              <Text
-                style={{
-                  color: sort === item ? "#fff" : currentTheme.text,
-                  fontSize: 11,
-                  fontWeight: "700",
-                }}
-              >
-                {getSortLabel(item)}
-              </Text>
-            </TouchableOpacity>
-          ),
-        )}
+              <Text style={styles.countBadgeText}>{appliedFiltersCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={resetFilters}
+          style={[
+            styles.toolbarButton,
+            {
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+            },
+          ]}
+        >
+          <Feather name="rotate-ccw" size={16} color={currentTheme.text} />
+          <Text style={[styles.toolbarButtonText, { color: currentTheme.text }]}>
+            Reset
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal visible={filtersModalVisible} transparent animationType="fade">
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setFiltersModalVisible(false)}
+        >
+          <Pressable
+            style={[styles.filtersBox, { backgroundColor: currentTheme.card }]}
+            onPress={() => {}}
+          >
+            <View style={styles.filtersHeader}>
+              <Text style={[styles.filtersTitle, { color: currentTheme.text }]}>
+                Filter Listings
+              </Text>
+              <TouchableOpacity onPress={() => setFiltersModalVisible(false)}>
+                <Feather name="x" size={22} color={currentTheme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.filtersContent}
+            >
+              <View>
+                <Text style={[styles.sectionLabel, { color: currentTheme.muted }]}>
+                  Property Type
+                </Text>
+                <View style={styles.optionWrap}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setFilters((prev: any) => ({ ...prev, hostOption: "all" }))
+                    }
+                    style={[
+                      styles.optionChip,
+                      {
+                        backgroundColor:
+                          filters.hostOption === "all"
+                            ? currentTheme.secondary
+                            : currentTheme.background,
+                        borderColor:
+                          filters.hostOption === "all"
+                            ? currentTheme.secondary
+                            : currentTheme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color:
+                          filters.hostOption === "all" ? "#fff" : currentTheme.text,
+                        fontWeight: "700",
+                      }}
+                    >
+                      All Types
+                    </Text>
+                  </TouchableOpacity>
+
+                  {hostOptions.map((option) => {
+                    const selected = filters.hostOption === option.value;
+
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() =>
+                          setFilters((prev: any) => ({
+                            ...prev,
+                            hostOption: option.value,
+                          }))
+                        }
+                        style={[
+                          styles.optionChip,
+                          {
+                            backgroundColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.background,
+                            borderColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: selected ? "#fff" : currentTheme.text,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.sectionLabel, { color: currentTheme.muted }]}>
+                  Listing Status
+                </Text>
+                <View style={styles.optionWrap}>
+                  {LIFECYCLE_OPTIONS.map((option) => {
+                    const selected = filters.lifecycle === option.value;
+
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() =>
+                          setFilters((prev: any) => ({
+                            ...prev,
+                            lifecycle: option.value,
+                          }))
+                        }
+                        style={[
+                          styles.optionChip,
+                          {
+                            backgroundColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.background,
+                            borderColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: selected ? "#fff" : currentTheme.text,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.sectionLabel, { color: currentTheme.muted }]}>
+                  Price Range
+                </Text>
+                <View style={styles.rentRow}>
+                  <View
+                    style={[
+                      styles.rentInputWrap,
+                      {
+                        backgroundColor: currentTheme.background,
+                        borderColor: currentTheme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.rentPrefix, { color: currentTheme.muted }]}
+                    >
+                      Min Rs
+                    </Text>
+                    <TextInput
+                      value={filters.minRent}
+                      onChangeText={(value) =>
+                        setFilters((prev: any) => ({ ...prev, minRent: value }))
+                      }
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={currentTheme.muted}
+                      style={[styles.rentInput, { color: currentTheme.text }]}
+                    />
+                  </View>
+                  <View
+                    style={[
+                      styles.rentInputWrap,
+                      {
+                        backgroundColor: currentTheme.background,
+                        borderColor: currentTheme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.rentPrefix, { color: currentTheme.muted }]}
+                    >
+                      Max Rs
+                    </Text>
+                    <TextInput
+                      value={filters.maxRent}
+                      onChangeText={(value) =>
+                        setFilters((prev: any) => ({ ...prev, maxRent: value }))
+                      }
+                      keyboardType="numeric"
+                      placeholder="Any"
+                      placeholderTextColor={currentTheme.muted}
+                      style={[styles.rentInput, { color: currentTheme.text }]}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              <View>
+                <Text style={[styles.sectionLabel, { color: currentTheme.muted }]}>
+                  Sort By
+                </Text>
+                <View style={styles.optionWrap}>
+                  {SORT_OPTIONS.map((option) => {
+                    const selected = sort === option.value;
+
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() => setSort(option.value)}
+                        style={[
+                          styles.optionChip,
+                          {
+                            backgroundColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.background,
+                            borderColor: selected
+                              ? currentTheme.secondary
+                              : currentTheme.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: selected ? "#fff" : currentTheme.text,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                onPress={resetFilters}
+                style={[
+                  styles.secondaryButton,
+                  {
+                    backgroundColor: currentTheme.background,
+                    borderColor: currentTheme.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.secondaryButtonText, { color: currentTheme.text }]}
+                >
+                  Reset
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFiltersModalVisible(false)}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: currentTheme.secondary },
+                ]}
+              >
+                <Text style={styles.primaryButtonText}>Apply</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal visible={infoModal.visible} transparent animationType="fade">
         <Pressable
           style={styles.modalOverlay}
           onPress={() => setInfoModal({ visible: false, type: null })}
         >
-          <View
-            style={[styles.infoBox, { backgroundColor: currentTheme.card }]}
-          >
+          <View style={[styles.infoBox, { backgroundColor: currentTheme.card }]}>
             <MaterialCommunityIcons
               name={infoModal.type === "boost" ? "rocket-launch" : "crown"}
               size={50}
@@ -228,14 +538,133 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: FontSize.sm,
   },
-  sortRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
-  sortButton: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20 },
+  toolbarRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 8,
+  },
+  toolbarButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  toolbarButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  countBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  countBadgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "800",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  filtersBox: {
+    width: "100%",
+    maxHeight: "82%",
+    borderRadius: 24,
+    padding: 22,
+  },
+  filtersHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+  filtersTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  filtersContent: {
+    gap: 18,
+    paddingBottom: 8,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  optionWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  optionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderRadius: 20,
+  },
+  rentRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  rentInputWrap: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  rentPrefix: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  rentInput: {
+    fontSize: 14,
+    fontWeight: "600",
+    paddingVertical: 0,
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 18,
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 50,
+    borderWidth: 1,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  primaryButton: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
   },
   infoBox: {
     width: "100%",

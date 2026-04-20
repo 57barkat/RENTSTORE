@@ -12,6 +12,10 @@ import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { FormContext, FormData } from "@/contextStore/FormContext";
 import { Colors } from "@/constants/Colors";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const ApartmentAmenitiesScreen: FC = () => {
   const router = useRouter();
@@ -45,6 +49,13 @@ const ApartmentAmenitiesScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled(selectedAmenities)}
       progress={50}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled(selectedAmenities)
+          ? "Select at least one amenity before continuing."
+          : undefined,
+      ])}
+      stepNumber={4}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -53,6 +64,17 @@ const ApartmentAmenitiesScreen: FC = () => {
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           You can add more amenities after publishing your apartment listing.
         </Text>
+        {isNextDisabled(selectedAmenities) ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 16,
+              fontWeight: "600",
+            }}
+          >
+            Pick at least one amenity to continue.
+          </Text>
+        ) : null}
 
         {AMENITIES_DATA.map((section, index) => (
           <View key={index} style={styles.section}>

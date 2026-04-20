@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <rect width="1600" height="900" fill="#E2E8F0"/>
+  <rect x="112" y="112" width="1376" height="676" rx="36" fill="#F8FAFC"/>
+  <path d="M448 575L650 393C664 380 685 380 699 394L858 553C872 567 893 567 907 554L1037 433C1051 420 1072 420 1086 433L1232 575V681H448V575Z" fill="#BFDBFE"/>
+  <circle cx="1042" cy="318" r="74" fill="#7DD3FC"/>
+  <path d="M654 325L802 220L947 325V486C947 495 940 502 931 502H842V408H757V502H670C661 502 654 495 654 486V325Z" fill="#0F172A"/>
+  <path d="M730 297L801 241L872 297" stroke="#38BDF8" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="800" y="770" fill="#334155" font-family="Arial, sans-serif" font-size="52" font-weight="700" text-anchor="middle">
+    AnganStay Property
+  </text>
+</svg>

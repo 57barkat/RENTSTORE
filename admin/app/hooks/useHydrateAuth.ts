@@ -26,7 +26,7 @@ export function useHydrateAuth() {
             totalFavorites: data.totalFavorites,
           }),
         );
-      } catch (err) {
+      } catch {
         dispatch(clearCredentials());
       }
     };

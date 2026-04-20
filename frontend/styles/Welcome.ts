@@ -37,11 +37,32 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     //  marginBottom: 30
   },
+  stepMeta: {
+    marginBottom: 10,
+  },
+  stepMetaText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
   footer: {
     borderTopWidth: 1,
     borderTopColor: "#eee",
     paddingHorizontal: 20,
     paddingBottom: 10,
+  },
+  disabledReasonBox: {
+    marginTop: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+  },
+  disabledReasonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    lineHeight: 18,
   },
   progressBarContainer: {
     height: 5,

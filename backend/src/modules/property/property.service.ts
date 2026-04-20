@@ -13,13 +13,16 @@ import { Property } from "./property.schema";
 import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
 import { PropertyFilters } from "./utils/property-filter.util";
-import { buildMongoFilter } from "./utils/property.utils";
-import { User, UserDocument } from "../user/user.entity";
 import {
-  processPhotos,
+  buildMongoFilter,
   formatLocationGeo,
+  processPhotos,
   validateAndDeductCredits,
 } from "./utils/property.utils";
+import { validatePropertyPayload } from "./property.validation";
+import { User, UserDocument } from "../user/user.entity";
+import { PropertyViewTrackerService } from "./property-view-tracker.service";
+
 @Injectable()
 export class PropertyService {
   constructor(
@@ -29,19 +32,40 @@ export class PropertyService {
     public readonly cloudinary: CloudinaryService,
     private readonly favService: AddToFavService,
     private readonly deletedImagesService: DeletedImagesService,
+    private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
 
   async uploadFilesToCloudinary(
     files: Express.Multer.File[],
   ): Promise<string[]> {
     if (!files || files.length === 0) return [];
-    const urls = await Promise.all(
-      files.map(async (file) => {
-        const uploaded = await this.cloudinary.uploadFile(file);
-        return uploaded.secure_url;
+    return this.mapWithConcurrency(files, 2, async (file) => {
+      const uploaded = await this.cloudinary.uploadFile(file);
+      return uploaded.secure_url;
+    });
+  }
+
+  private async mapWithConcurrency<T, R>(
+    items: T[],
+    concurrency: number,
+    mapper: (item: T, index: number) => Promise<R>,
+  ): Promise<R[]> {
+    const results = new Array<R>(items.length);
+    let nextIndex = 0;
+
+    await Promise.all(
+      Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+        while (nextIndex < items.length) {
+          const currentIndex = nextIndex++;
+          results[currentIndex] = await mapper(
+            items[currentIndex],
+            currentIndex,
+          );
+        }
       }),
     );
-    return urls;
+
+    return results;
   }
 
   async createOrUpdate(
@@ -331,15 +355,17 @@ export class PropertyService {
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
     if (userId) mongoFilter.ownerId = { $ne: userId };
-
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const adjustedLimit = Number(limit);
+    // 3. Pagination Math
+    const currentPage = Math.max(1, Number(page));
+    const adjustedLimit = Math.max(1, Number(limit));
+    const skip = (currentPage - 1) * adjustedLimit;
     const maxNeeded = skip + adjustedLimit;
 
+    // 4. Sorting Logic
     let secondarySort: any = { createdAt: -1 };
     if (filters.sortBy === "price_asc") secondarySort = { monthlyRent: 1 };
     else if (filters.sortBy === "price_desc")
@@ -348,13 +374,14 @@ export class PropertyService {
     else if (filters.sortBy === "popular") secondarySort = { views: -1 };
 
     const finalSort = { ...secondarySort, _id: -1 };
-    const featuredIds: string[] = [];
+    const featuredIds: string[] = []; // Placeholder for any specific exclusions
 
     const mainFilter = {
       ...mongoFilter,
       _id: { $nin: featuredIds },
     };
 
+    // 5. Aggregate with Facets for Interleaving
     const results = await this.propertyModel.aggregate([
       { $match: mainFilter },
       {
@@ -362,7 +389,7 @@ export class PropertyService {
           weight3: [
             { $match: { sortWeight: 3 } },
             { $sort: finalSort },
-            { $limit: maxNeeded * 2 }, // Optimization: Fetch only what's realistically needed for interleaving
+            { $limit: maxNeeded * 2 },
           ],
           weight2: [
             { $match: { sortWeight: 2 } },
@@ -379,22 +406,23 @@ export class PropertyService {
       },
     ]);
 
+    // Extract data from facets
     const w3Data = results[0].weight3 || [];
     const w2Data = results[0].weight2 || [];
     const w1Data = results[0].weight1 || [];
     const total = results[0].totalCount[0]?.count || 0;
 
+    // 6. Pointer-Based Interleaving (O(N))
     const interleavedData: any[] = [];
     let w3Idx = 0,
       w2Idx = 0,
       w1Idx = 0;
 
-    // Faster O(1) Interleaving using pointers instead of .shift()
     while (
       interleavedData.length < maxNeeded &&
       (w3Idx < w3Data.length || w2Idx < w2Data.length || w1Idx < w1Data.length)
     ) {
-      // 1. Weight 3 (Up to 4)
+      // Step A: Weight 3 (Premium) - Up to 4 slots
       for (
         let i = 0;
         i < 4 && interleavedData.length < maxNeeded && w3Idx < w3Data.length;
@@ -402,7 +430,7 @@ export class PropertyService {
       ) {
         interleavedData.push(w3Data[w3Idx++]);
       }
-      // 2. Weight 2 (Up to 3)
+      // Step B: Weight 2 (Enhanced) - Up to 3 slots
       for (
         let i = 0;
         i < 3 && interleavedData.length < maxNeeded && w2Idx < w2Data.length;
@@ -410,7 +438,7 @@ export class PropertyService {
       ) {
         interleavedData.push(w2Data[w2Idx++]);
       }
-      // 3. Weight 1 (Up to 3)
+      // Step C: Weight 1 (Standard) - Up to 3 slots
       for (
         let i = 0;
         i < 3 && interleavedData.length < maxNeeded && w1Idx < w1Data.length;
@@ -420,15 +448,17 @@ export class PropertyService {
       }
     }
 
+    // 7. Final Slice for the specific page
     const paginatedData = interleavedData.slice(skip, skip + adjustedLimit);
 
+    // 8. Populate Owner Data
     const populatedMainData = await this.propertyModel.populate(paginatedData, {
       path: "ownerId",
       select: "name email phone profileImage subscription",
     });
 
+    // 9. Track Impressions (Non-blocking)
     const propertyIds = populatedMainData.map((p) => p._id);
-
     if (propertyIds.length > 0) {
       this.propertyModel
         .updateMany({ _id: { $in: propertyIds } }, { $inc: { impressions: 1 } })
@@ -436,10 +466,11 @@ export class PropertyService {
         .catch((err) => console.error("Impression update failed", err));
     }
 
+    // 10. Return formatted response
     return {
       data: populatedMainData,
       total,
-      page: Number(page),
+      page: currentPage,
       limit: adjustedLimit,
       totalPages: Math.ceil(total / adjustedLimit),
       message:
@@ -454,11 +485,12 @@ export class PropertyService {
     }
 
     const cleaned = query.trim();
-
-    const flexiblePattern = cleaned
+    const escapedChars = cleaned
       .replace(/[-/\s]/g, "")
       .split("")
-      .join("[-/\\s]?");
+      .map((char) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+    const flexiblePattern = escapedChars.join("[-/\\s]?");
 
     const regex = new RegExp(flexiblePattern, "i");
 
@@ -466,6 +498,7 @@ export class PropertyService {
       {
         $match: {
           status: true,
+          isApproved: true,
           $or: [
             { location: regex },
             { title: regex },
@@ -495,18 +528,90 @@ export class PropertyService {
     sort = "newest",
     search?: string,
     city?: string,
+    filters?: {
+      hostOption?: string;
+      status?: "active" | "inactive";
+      approvalStatus?: "approved" | "pending";
+      addressQuery?: string;
+      minRent?: number;
+      maxRent?: number;
+    },
   ) {
-    // console.log("Finding properties for user:", userId);
     const filter: FilterQuery<any> = {
       ownerId: userId,
     };
-    // console.log("Base filter:", filter);
-    if (search) {
-      filter.title = { $regex: search, $options: "i" };
+
+    const searchRegex =
+      search && search.trim()
+        ? { $regex: search.trim(), $options: "i" }
+        : undefined;
+    if (searchRegex) {
+      filter.$or = [
+        { title: searchRegex },
+        { location: searchRegex },
+        { area: searchRegex },
+        { "address.street": searchRegex },
+        { "address.city": searchRegex },
+      ];
     }
 
     if (city) {
-      filter.city = city;
+      filter["address.city"] = city;
+    }
+
+    if (filters?.addressQuery?.trim()) {
+      const addressRegex = {
+        $regex: filters.addressQuery.trim(),
+        $options: "i",
+      };
+      const existingOr = Array.isArray(filter.$or) ? filter.$or : [];
+      filter.$or = [
+        ...existingOr,
+        { location: addressRegex },
+        { area: addressRegex },
+        { "address.street": addressRegex },
+        { "address.city": addressRegex },
+      ];
+    }
+
+    if (filters?.hostOption) {
+      filter.hostOption = filters.hostOption;
+    }
+
+    if (filters?.status === "active") {
+      filter.status = true;
+    } else if (filters?.status === "inactive") {
+      filter.status = false;
+    }
+
+    if (filters?.approvalStatus === "approved") {
+      filter.isApproved = true;
+    } else if (filters?.approvalStatus === "pending") {
+      filter.isApproved = false;
+    }
+
+    if (
+      filters?.minRent !== undefined ||
+      filters?.maxRent !== undefined
+    ) {
+      const rentQuery: Record<string, number> = {};
+      if (filters?.minRent !== undefined) {
+        rentQuery.$gte = Number(filters.minRent);
+      }
+      if (filters?.maxRent !== undefined) {
+        rentQuery.$lte = Number(filters.maxRent);
+      }
+
+      filter.$and = [
+        ...(Array.isArray(filter.$and) ? filter.$and : []),
+        {
+          $or: [
+            { monthlyRent: rentQuery },
+            { weeklyRent: rentQuery },
+            { dailyRent: rentQuery },
+          ],
+        },
+      ];
     }
 
     if (sort === "pending") {
@@ -515,8 +620,8 @@ export class PropertyService {
 
     let sortOption: any = { createdAt: -1 };
     if (sort === "oldest") sortOption = { createdAt: 1 };
-    if (sort === "priceLow") sortOption = { price: 1 };
-    if (sort === "priceHigh") sortOption = { price: -1 };
+    if (sort === "priceLow") sortOption = { monthlyRent: 1, createdAt: -1 };
+    if (sort === "priceHigh") sortOption = { monthlyRent: -1, createdAt: -1 };
 
     const skip = (page - 1) * limit;
 
@@ -618,17 +723,183 @@ export class PropertyService {
       userId && property.owner?._id?.toString() === userId.toString();
     property.chat = !isOwner && !!userId;
 
-    await this.propertyModel.updateOne(
-      { _id: objectId },
-      { $inc: { views: 1 } },
-    );
+    this.propertyViewTracker.queueView(propertyId);
 
     return property;
   }
 
+  async getPropertyUploaderSummary(propertyId: string) {
+    console.log("[PropertyService] getPropertyUploaderSummary:start", {
+      propertyId,
+    });
+
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
+    const property = await this.propertyModel
+      .findById(propertyId)
+      .select("ownerId")
+      .lean();
+
+    if (!property?.ownerId) {
+      console.warn("[PropertyService] uploader summary property missing", {
+        propertyId,
+      });
+      throw new NotFoundException("Property not found");
+    }
+
+    const ownerObjectId =
+      property.ownerId instanceof Types.ObjectId
+        ? property.ownerId
+        : new Types.ObjectId(property.ownerId);
+    const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
+
+    const [owner, groupedCounts] = await Promise.all([
+      this.userModel
+        .findById(ownerObjectId)
+        .select(
+          "_id name phone profileImage subscription role isPhoneVerified isEmailVerified",
+        )
+        .lean(),
+      this.propertyModel.aggregate([
+        {
+          $match: {
+            ownerId: { $in: ownerIdCandidates },
+            moderationStatus: { $ne: "DELETED" },
+          },
+        },
+        {
+          $group: {
+            _id: "$hostOption",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    if (!owner) {
+      console.warn("[PropertyService] uploader summary owner missing", {
+        propertyId,
+        ownerObjectId: ownerObjectId.toString(),
+      });
+      throw new NotFoundException("Uploader not found");
+    }
+
+    const stats = {
+      totalProperties: 0,
+      homes: 0,
+      apartments: 0,
+      hostels: 0,
+      shops: 0,
+      offices: 0,
+    };
+
+    for (const entry of groupedCounts) {
+      stats.totalProperties += entry.count;
+
+      if (entry._id === "home") stats.homes = entry.count;
+      if (entry._id === "apartment") stats.apartments = entry.count;
+      if (entry._id === "hostel") stats.hostels = entry.count;
+      if (entry._id === "shop") stats.shops = entry.count;
+      if (entry._id === "office") stats.offices = entry.count;
+    }
+
+    const subscription = owner.subscription || "free";
+    const planLabel =
+      subscription === "pro"
+        ? "Pro Member"
+        : subscription === "standard"
+          ? "Standard Member"
+          : "Free Member";
+
+    const payload = {
+      uploader: {
+        _id: owner._id,
+        name: owner.name,
+        phone: owner.phone,
+        profileImage: owner.profileImage,
+        subscription,
+        planLabel,
+        role: owner.role,
+        isPhoneVerified: owner.isPhoneVerified ?? false,
+        isEmailVerified: owner.isEmailVerified ?? false,
+      },
+      stats,
+    };
+
+    console.log("[PropertyService] getPropertyUploaderSummary:done", {
+      propertyId,
+      ownerId: ownerObjectId.toString(),
+      stats,
+    });
+
+    return payload;
+  }
+
+  async getPropertyUploaderProfile(propertyId: string) {
+    console.log("[PropertyService] getPropertyUploaderProfile:start", {
+      propertyId,
+    });
+
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
+    const property = await this.propertyModel
+      .findById(propertyId)
+      .select("ownerId")
+      .lean();
+
+    if (!property?.ownerId) {
+      console.warn("[PropertyService] uploader profile property missing", {
+        propertyId,
+      });
+      throw new NotFoundException("Property not found");
+    }
+
+    const ownerObjectId =
+      property.ownerId instanceof Types.ObjectId
+        ? property.ownerId
+        : new Types.ObjectId(property.ownerId);
+    const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
+
+    const [summary, listings] = await Promise.all([
+      this.getPropertyUploaderSummary(propertyId),
+      this.propertyModel
+        .find({
+          ownerId: { $in: ownerIdCandidates },
+          isApproved: true,
+          status: true,
+          $or: [
+            { moderationStatus: "ACTIVE" },
+            { moderationStatus: { $exists: false } },
+            { moderationStatus: null },
+          ],
+        })
+        .sort({ featured: -1, sortWeight: -1, createdAt: -1 })
+        .limit(20)
+        .lean(),
+    ]);
+
+    const payload = {
+      ...summary,
+      listings,
+    };
+
+    console.log("[PropertyService] getPropertyUploaderProfile:done", {
+      propertyId,
+      ownerId: ownerObjectId.toString(),
+      listingsCount: listings.length,
+      uploaderId: summary?.uploader?._id?.toString?.() ?? summary?.uploader?._id,
+    });
+
+    return payload;
+  }
+
   async getFeaturedProperties(userId?: string) {
     const data = (await this.propertyModel
-      .find()
+      .find({ status: true, isApproved: true })
       .sort({ views: -1 })
       .limit(5)
       .populate("ownerId", "name email")
@@ -754,29 +1025,60 @@ export class PropertyService {
       property.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
     }
 
-    const isFilled = (value: any): boolean => {
-      if (value === null || value === undefined) return false;
-      if (Array.isArray(value)) return value.length > 0;
-      if (typeof value === "object") return Object.keys(value).length > 0;
-      if (typeof value === "string") return value.trim() !== "";
-      return true;
-    };
-
-    const requiredFields = [
-      "title",
-      "hostOption",
-      "location",
-      "monthlyRent",
-      "SecuritybasePrice",
-      "address",
-      "capacityState",
-    ];
-
-    property.status = requiredFields.every((field) =>
-      isFilled(property[field]),
+    const validation = validatePropertyPayload(
+      property.toObject() as unknown as Partial<CreatePropertyDto>,
     );
 
+    if (!validation.valid) {
+      property.status = false;
+    } else if (dto.status !== undefined) {
+      if (dto.status && !property.isApproved) {
+        throw new BadRequestException(
+          "This property must be approved before it can be activated.",
+        );
+      }
+
+      property.status = dto.status;
+    }
+
     return property.save();
+  }
+
+  async updatePropertyVisibility(
+    propertyId: string,
+    userId: string,
+    nextStatus: boolean,
+  ) {
+    const property = await this.propertyModel.findById(propertyId);
+    if (!property) throw new NotFoundException("Property not found");
+
+    if (property.ownerId.toString() !== userId.toString()) {
+      throw new UnauthorizedException(
+        "You are not allowed to manage this property",
+      );
+    }
+
+    if (nextStatus && !property.isApproved) {
+      throw new BadRequestException(
+        "Your listing can only go live after admin approval.",
+      );
+    }
+
+    if (nextStatus && property.moderationStatus !== "ACTIVE") {
+      throw new BadRequestException(
+        "This listing cannot be activated in its current moderation state.",
+      );
+    }
+
+    property.status = nextStatus;
+    await property.save();
+
+    return {
+      message: nextStatus
+        ? "Property activated successfully."
+        : "Property deactivated successfully.",
+      property,
+    };
   }
   async findPropertyByIdAndDelete(propertyId: string, userId: string) {
     const property = await this.propertyModel.findById(propertyId);
@@ -815,11 +1117,11 @@ export class PropertyService {
     await this.propertyDraftModel.findByIdAndDelete(draftId);
     return { message: "Draft deleted, photos queued for Cloudinary cleanup" };
   }
-  async findUnapprovedProperties(page = 1, limit = 10) {
+  async findUnapprovedProperties(page = 1, limit = 10, hostOption?: string) {
     const skip = (page - 1) * limit;
 
     const [result] = await this.propertyModel.aggregate([
-      { $match: { isApproved: false } },
+      { $match: { isApproved: false, ...(hostOption ? { hostOption } : {}) } },
 
       { $sort: { createdAt: -1 } },
 
@@ -864,6 +1166,93 @@ export class PropertyService {
 
     return {
       data: properties,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findAdminProperties(
+    page = 1,
+    limit = 10,
+    filters?: {
+      hostOption?: string;
+      q?: string;
+      approvalStatus?: "all" | "approved" | "pending";
+      listingStatus?: "all" | "active" | "inactive";
+    },
+  ) {
+    const skip = (page - 1) * limit;
+    const match: Record<string, any> = {};
+
+    if (filters?.hostOption) {
+      match.hostOption = filters.hostOption;
+    }
+
+    if (filters?.approvalStatus === "approved") {
+      match.isApproved = true;
+    } else if (filters?.approvalStatus === "pending") {
+      match.isApproved = false;
+    }
+
+    if (filters?.listingStatus === "active") {
+      match.status = true;
+    } else if (filters?.listingStatus === "inactive") {
+      match.status = false;
+    }
+
+    if (filters?.q?.trim()) {
+      const regex = new RegExp(filters.q.trim(), "i");
+      match.$or = [
+        { title: regex },
+        { location: regex },
+        { area: regex },
+        { "address.street": regex },
+        { "address.city": regex },
+      ];
+    }
+
+    const [result] = await this.propertyModel.aggregate([
+      { $match: match },
+      { $sort: { createdAt: -1 } },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $addFields: {
+                ownerObjId: { $toObjectId: "$ownerId" },
+              },
+            },
+            {
+              $lookup: {
+                from: "users",
+                localField: "ownerObjId",
+                foreignField: "_id",
+                as: "ownerId",
+              },
+            },
+            { $unwind: { path: "$ownerId", preserveNullAndEmptyArrays: true } },
+            {
+              $project: {
+                "ownerId.password": 0,
+                "ownerId.refreshToken": 0,
+                ownerObjId: 0,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const total = result?.metadata?.[0]?.total || 0;
+    const data = result?.data || [];
+
+    return {
+      data,
       total,
       page,
       limit,

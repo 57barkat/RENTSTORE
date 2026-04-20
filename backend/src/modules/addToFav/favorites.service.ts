@@ -11,21 +11,17 @@ export class AddToFavService {
     const userObjectId = new Types.ObjectId(userId);
     const propertyObjectId = new Types.ObjectId(propertyId);
 
-    const exists = await this.favModel.findOne({
-      user: userObjectId,
-      property: propertyObjectId,
-    });
-
-    if (exists) {
-      throw new ConflictException("Already in favorites");
+    try {
+      return await this.favModel.create({
+        user: userObjectId,
+        property: propertyObjectId,
+      });
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new ConflictException("Already in favorites");
+      }
+      throw error;
     }
-
-    const fav = new this.favModel({
-      user: userObjectId,
-      property: propertyObjectId,
-    });
-
-    return fav.save();
   }
 
   async removeFavorite(userId: string, propertyId: string) {
@@ -39,7 +35,7 @@ export class AddToFavService {
     return this.favModel
       .find({ user: new Types.ObjectId(userId) })
       .populate("property")
-      .populate("user", "email")
+      .lean()
       .exec();
   }
 
@@ -48,6 +44,6 @@ export class AddToFavService {
       .find({ user: new Types.ObjectId(userId) })
       .select("property")
       .lean();
-    return favs.map(f => f.property.toString());
+    return favs.map((f) => f.property.toString());
   }
 }

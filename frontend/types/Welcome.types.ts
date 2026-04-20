@@ -6,5 +6,8 @@ export interface StepContainerProps {
   children: ReactNode;
   onNext: () => void;
   isNextDisabled?: boolean;
-  progress?: number; // value between 0–100
+  progress?: number;
+  nextDisabledReason?: string;
+  stepNumber?: number;
+  totalSteps?: number;
 }

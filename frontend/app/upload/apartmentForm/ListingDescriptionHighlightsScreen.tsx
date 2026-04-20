@@ -8,6 +8,10 @@ import { Colors } from "@/constants/Colors";
 import { HIGHLIGHTS_DATA } from "@/utils/HighlightsData";
 import { FormContext } from "@/contextStore/FormContext";
 import { AmenityCard } from "@/components/UploadPropertyComponents/AmenityCard";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const MAX_SELECTIONS = 2;
 
@@ -50,11 +54,29 @@ const ApartmentDescriptionHighlightsScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={20}
+      nextDisabledReason={buildDisabledReason([
+        isNextDisabled
+          ? "Choose at least one highlight so renters see what stands out."
+          : undefined,
+      ])}
+      stepNumber={7}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
           Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get your description started.
         </Text>
+        {isNextDisabled ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginBottom: 16,
+              fontWeight: "600",
+            }}
+          >
+            Pick at least one highlight to continue.
+          </Text>
+        ) : null}
 
         <View style={styles.chipsContainer}>
           {HIGHLIGHTS_DATA.map((highlight) => (

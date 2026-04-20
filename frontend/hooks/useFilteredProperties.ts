@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
+import { useAuth } from "@/contextStore/AuthContext";
 import {
   useFilteredProperties,
   useFavorites,
@@ -11,6 +12,7 @@ export const usePropertiesPage = (
   hostOption: string,
   sortBy: string,
 ) => {
+  const { isGuest } = useAuth();
   const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
   const [allProperties, setAllProperties] = useState<any[]>([]);
@@ -36,11 +38,14 @@ export const usePropertiesPage = (
     refetch: refetchFavorites,
     addToFav,
     removeFromFav,
-  } = useFavorites();
+  } = useFavorites(!isGuest);
 
   const favoriteIds = useMemo(
-    () => favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
-    [favData],
+    () =>
+      isGuest
+        ? []
+        : favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
+    [favData, isGuest],
   );
 
   useEffect(() => {
@@ -54,8 +59,6 @@ export const usePropertiesPage = (
     const formatted = formatProperties(
       data.data,
       filters.city || "",
-      filters.addressQuery || "",
-      () => {},
     ).map((p, index) => {
       const rawItem = data.data[index];
 
@@ -101,7 +104,10 @@ export const usePropertiesPage = (
   const onRefresh = async () => {
     setRefreshing(true);
     setPage(1);
-    await Promise.all([refetch(), refetchFavorites()]);
+    await Promise.all([
+      refetch(),
+      isGuest ? Promise.resolve() : refetchFavorites(),
+    ]);
     setRefreshing(false);
   };
 

@@ -8,29 +8,38 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { JwtService } from "@nestjs/jwt";
+import { ChatEventService } from "./chat-event.service";
+import { ChatRealtimeService } from "./chat-realtime.service";
 import { ChatService } from "./chat.service";
+import { createSocketGatewayOptions } from "../common/utils/cors.util";
+import { extractSocketToken } from "../common/utils/socket-auth.util";
 
-@WebSocketGateway({ cors: { origin: "*" } })
+@WebSocketGateway(createSocketGatewayOptions())
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(
     private readonly jwtService: JwtService,
+    private readonly chatEventService: ChatEventService,
+    private readonly chatRealtime: ChatRealtimeService,
     private readonly chatService: ChatService,
   ) {}
 
+  afterInit(server: Server) {
+    this.chatRealtime.bindServer(server);
+  }
+
   async handleConnection(client: Socket) {
     try {
-      const token =
-        client.handshake.auth?.token || client.handshake.headers?.token;
+      const token = extractSocketToken(client);
       if (!token) {
         client.disconnect();
         return;
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || "suppersecretkey",
+        secret: process.env.JWT_SECRET,
       });
 
       client.data.userId = payload.sub;
@@ -76,20 +85,28 @@ export class ChatGateway implements OnGatewayConnection {
     );
 
     this.server.to(data.chatRoomId).emit("newMessage", populatedMessage);
-
-    const room = await this.chatService.createOrGetRoom(senderId, [], "");
-    const otherParticipants = room.participants.filter(
-      (p) => p.toString() !== senderId.toString(),
+    await this.chatEventService.publishNewMessage(
+      data.chatRoomId,
+      populatedMessage.toObject(),
     );
 
-    otherParticipants.forEach(async (participantId) => {
-      const updatedRooms = await this.chatService.getUserRooms(
-        participantId.toString(),
-      );
-      this.server
-        .to(participantId.toString())
-        .emit("roomsUpdated", updatedRooms);
-    });
+    const participantIds = await this.chatService.getRoomParticipantIds(
+      data.chatRoomId,
+    );
+
+    await Promise.all(
+      participantIds.map(async (participantId) => {
+        const updatedRoom = await this.chatService.getRoomSummary(
+          data.chatRoomId,
+          participantId,
+        );
+        this.server.to(participantId).emit("roomUpdated", updatedRoom);
+        await this.chatEventService.publishRoomUpdated(
+          participantId,
+          updatedRoom,
+        );
+      }),
+    );
   }
 
   @SubscribeMessage("markAsRead")
@@ -105,8 +122,15 @@ export class ChatGateway implements OnGatewayConnection {
         client.data.userId,
       );
 
-      const rooms = await this.chatService.getUserRooms(client.data.userId);
-      this.server.to(client.data.userId).emit("roomsUpdated", rooms);
+      const updatedRoom = await this.chatService.getRoomSummary(
+        data.roomId,
+        client.data.userId,
+      );
+      this.server.to(client.data.userId).emit("roomUpdated", updatedRoom);
+      await this.chatEventService.publishRoomUpdated(
+        client.data.userId,
+        updatedRoom,
+      );
     } catch (err) {
       console.error("Mark as read error", err);
     }

@@ -1,5 +1,12 @@
 import { Schema, Prop, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
+import {
+  APARTMENT_TYPES,
+  FURNISHING_TYPES,
+  HOSTEL_TYPES,
+  PROPERTY_HOST_OPTIONS,
+  PROPERTY_SIZE_UNITS,
+} from "./property.constants";
 
 export type PropertyDocument = Property & Document;
 
@@ -13,7 +20,7 @@ export enum PropertyModerationStatus {
 @Schema({ timestamps: true })
 export class Property extends Document {
   @Prop({ type: String }) title?: string;
-  @Prop({ type: String }) hostOption?: string;
+  @Prop({ type: String, enum: PROPERTY_HOST_OPTIONS }) hostOption?: string;
   @Prop({ type: String }) location?: string;
   @Prop({ type: String }) area?: string;
 
@@ -32,7 +39,7 @@ export class Property extends Document {
     },
     _id: false,
   })
-  locationGeo: {
+  locationGeo!: {
     type: string;
     coordinates: number[];
   };
@@ -45,15 +52,17 @@ export class Property extends Document {
   @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];
 
   @Prop({
-    type: {
-      aptSuiteUnit: String,
-      street: String,
-      city: String,
-      stateTerritory: String,
-      country: String,
-      zipCode: String,
-      _id: false,
-    },
+    type: [
+      {
+        aptSuiteUnit: String,
+        street: String,
+        city: String,
+        stateTerritory: String,
+        country: String,
+        zipCode: String,
+        _id: false,
+      },
+    ],
     default: [],
   })
   address?: Record<string, any>[];
@@ -92,21 +101,33 @@ export class Property extends Document {
 
   @Prop({
     type: String,
-    enum: ["studio", "1BHK", "2BHK", "3BHK", "penthouse"],
+    enum: APARTMENT_TYPES,
   })
   apartmentType?: string;
 
   @Prop({
     type: String,
-    enum: ["furnished", "semi-furnished", "unfurnished"],
+    enum: FURNISHING_TYPES,
   })
   furnishing?: string;
 
   @Prop({ type: Boolean }) parking?: boolean;
 
   @Prop({
+    type: {
+      value: Number,
+      unit: { type: String, enum: PROPERTY_SIZE_UNITS },
+      _id: false,
+    },
+  })
+  size?: {
+    value: number;
+    unit: string;
+  };
+
+  @Prop({
     type: String,
-    enum: ["male", "female", "mixed"],
+    enum: HOSTEL_TYPES,
   })
   hostelType?: string;
 
@@ -114,7 +135,7 @@ export class Property extends Document {
   @Prop({ type: [String], default: [] }) rules?: string[];
 
   @Prop({ type: Types.ObjectId, required: true, index: true })
-  ownerId: Types.ObjectId;
+  ownerId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: "Agency" })
   agency?: Types.ObjectId;
@@ -122,36 +143,37 @@ export class Property extends Document {
   @Prop({ type: Types.ObjectId, ref: "User" })
   listedBy?: Types.ObjectId;
 
-  @Prop({ type: Boolean, default: false }) status: boolean;
-  @Prop({ type: Boolean, default: false }) isApproved: boolean;
+  @Prop({ type: Boolean, default: false }) status!: boolean;
+  @Prop({ type: Boolean, default: false }) isApproved!: boolean;
+
   @Prop({ type: Number, default: 1, enum: [1, 2, 3] })
-  sortWeight: number;
+  sortWeight!: number;
 
   @Prop({ type: Boolean, default: false })
-  featured: boolean;
+  featured!: boolean;
 
   @Prop({ type: Date })
   featuredUntil?: Date;
 
   @Prop({ type: Boolean, default: false })
-  isBoosted: boolean;
+  isBoosted!: boolean;
 
   @Prop({ default: 0 })
-  views: number;
+  views!: number;
 
   @Prop({ default: 0 })
-  impressions: Number;
+  impressions!: number;
 
   @Prop({
     type: String,
     enum: PropertyModerationStatus,
     default: PropertyModerationStatus.ACTIVE,
   })
-  moderationStatus: PropertyModerationStatus;
+  moderationStatus!: PropertyModerationStatus;
 
-  @Prop({ default: true }) isVisible: boolean;
-  @Prop({ default: 0 }) reportCount: number;
-  @Prop({ default: 0 }) strikeCount: number;
+  @Prop({ default: true }) isVisible!: boolean;
+  @Prop({ default: 0 }) reportCount!: number;
+  @Prop({ default: 0 }) strikeCount!: number;
 
   @Prop() suspendedAt?: Date;
   @Prop() deletedAt?: Date;
@@ -159,8 +181,9 @@ export class Property extends Document {
 
 export const PropertySchema = SchemaFactory.createForClass(Property);
 
-// 1. PRIMARY SEARCH INDEX (The "ESR" Rule: Equality, Sort, Range)
-// This covers your status checks and the default 'newest' sort.
+/** INDEXES **/
+
+// 1. PRIMARY SEARCH INDEX
 PropertySchema.index({
   moderationStatus: 1,
   status: 1,
@@ -169,14 +192,19 @@ PropertySchema.index({
   createdAt: -1,
 });
 
-// 2. PRICE SORT INDEXES
-// Needed when filters.sortBy is price_asc or price_desc
+// 2. PRICE ASC INDEX
 PropertySchema.index({
   moderationStatus: 1,
   status: 1,
   isApproved: 1,
   monthlyRent: 1,
 });
+
+// 3. OWNER INDEXES
+PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
+PropertySchema.index({ ownerId: 1, createdAt: -1 });
+
+// 4. PRICE DESC INDEX
 PropertySchema.index({
   moderationStatus: 1,
   status: 1,
@@ -184,8 +212,33 @@ PropertySchema.index({
   monthlyRent: -1,
 });
 
-// 3. GEOSPATIAL (Keep this as is)
-PropertySchema.index({ locationGeo: "2dsphere" });
+// 5. GEO INDEX
+PropertySchema.index({
+  locationGeo: "2dsphere",
+  moderationStatus: 1,
+});
 
-// 4. OWNER LOOKUP (For the dashboard)
-PropertySchema.index({ ownerId: 1, createdAt: -1 });
+// 6. FEATURED INDEX
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  hostOption: 1,
+  featured: -1,
+  createdAt: -1,
+});
+
+// 7. GENERAL VISIBILITY INDEX
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  createdAt: -1,
+});
+
+// 8. PRICE & RECENCY INDEX
+PropertySchema.index({
+  status: 1,
+  isApproved: 1,
+  monthlyRent: 1,
+  createdAt: -1,
+});
+PropertySchema.index({ "size.value": 1, "size.unit": 1 });

@@ -6,9 +6,16 @@
   --color-card: var(--card-bg);
   --color-sidebar: var(--sidebar-bg);
   --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
   --color-border: var(--border);
-  --color-muted: var(--muted);
+  --color-muted: var(--muted-surface);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
 
   --color-chart-grid: var(--chart-grid);
   --color-chart-text: var(--chart-text);
@@ -20,54 +27,242 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-    --card-bg: #ffffff;
-    --sidebar-bg: #0f172a;
-    --primary: #3b82f6;
-    --border: #e2e8f0;
-    --muted: #f1f5f9;
-    --accent: #f1f5f9;
+    color-scheme: light;
 
-    --chart-grid: #f1f5f9;
-    --chart-text: #94a3b8;
-    --chart-bar: #e2e8f0;
-    --chart-highlight: #3b82f6;
+    --admin-text: #0f172a;
+    --admin-background: #ffffff;
+    --admin-card: #f8fafc;
+    --admin-border: #e2e8f0;
+    --admin-muted: #64748b;
+    --admin-tint: #2563eb;
+    --admin-primary: #000080;
+    --admin-secondary: #059669;
+    --admin-accent: #f59f0bb0;
+    --admin-danger: #e11d48;
+    --admin-featured: #fb2424be;
+    --admin-success: #059669;
+    --admin-error: #dc2626;
+    --admin-warning: #d97706;
+    --admin-info: #2563eb;
+    --admin-icon: #475569;
+    --admin-tab-icon-default: #94a3b8;
+    --admin-tab-icon-selected: #000080;
+    --admin-placeholder: #94a3b8;
+    --admin-shadow: rgba(0, 0, 0, 0.05);
+
+    --admin-primary-soft: rgba(0, 0, 128, 0.08);
+    --admin-primary-strong: rgba(0, 0, 128, 0.16);
+    --admin-secondary-soft: rgba(5, 150, 105, 0.12);
+    --admin-secondary-strong: rgba(5, 150, 105, 0.2);
+    --admin-accent-soft: rgba(245, 159, 11, 0.14);
+    --admin-success-soft: rgba(5, 150, 105, 0.12);
+    --admin-danger-soft: rgba(225, 29, 72, 0.12);
+    --admin-error-soft: rgba(220, 38, 38, 0.12);
+    --admin-warning-soft: rgba(217, 119, 6, 0.12);
+    --admin-info-soft: rgba(37, 99, 235, 0.12);
+    --admin-surface: #eff3ff;
+
+    --background: var(--admin-background);
+    --foreground: var(--admin-text);
+    --card-bg: var(--admin-card);
+    --sidebar-bg: var(--admin-primary);
+    --primary: var(--admin-primary);
+    --primary-foreground: var(--admin-background);
+    --border: var(--admin-border);
+    --muted-surface: var(--admin-surface);
+    --muted-foreground: var(--admin-muted);
+    --accent: var(--admin-surface);
+    --accent-foreground: var(--admin-text);
+    --destructive: var(--admin-danger);
+    --success: var(--admin-success);
+    --warning: var(--admin-warning);
+    --info: var(--admin-info);
+
+    --chart-grid: var(--admin-border);
+    --chart-text: var(--admin-muted);
+    --chart-bar: #bfdbfe;
+    --chart-highlight: var(--admin-secondary);
   }
 
-  .dark {
-    --background: #020617;
-    --foreground: #f8fafc;
-    --card-bg: #0f172a;
-    --sidebar-bg: #000000;
-    --primary: #60a5fa;
-    --border: #1e293b;
-    --muted: #1e293b;
-    --accent: #1e293b;
+  html.dark {
+    color-scheme: dark;
 
-    --chart-grid: #1e293b;
-    --chart-text: #64748b;
-    --chart-bar: #334155;
-    --chart-highlight: #60a5fa;
+    --admin-placeholder: #64748b;
+    --admin-text: #f8fafc;
+    --admin-background: #0f172a;
+    --admin-card: #1e293b;
+    --admin-border: #334155;
+    --admin-muted: #94a3b8;
+    --admin-featured: #fb2424be;
+    --admin-tint: #60a5fa;
+    --admin-primary: #34d399;
+    --admin-secondary: #34d399;
+    --admin-accent: #fbbf24;
+    --admin-success: #10b981;
+    --admin-error: #fb7185;
+    --admin-warning: #fbbf24;
+    --admin-info: #60a5fa;
+    --admin-danger: #f43f5e;
+    --admin-icon: #94a3b8;
+    --admin-tab-icon-default: #475569;
+    --admin-tab-icon-selected: #60a5fa;
+    --admin-shadow: rgba(0, 0, 0, 0.4);
+
+    --admin-primary-soft: rgba(52, 211, 153, 0.14);
+    --admin-primary-strong: rgba(52, 211, 153, 0.28);
+    --admin-secondary-soft: rgba(52, 211, 153, 0.14);
+    --admin-secondary-strong: rgba(52, 211, 153, 0.28);
+    --admin-accent-soft: rgba(251, 191, 36, 0.16);
+    --admin-success-soft: rgba(16, 185, 129, 0.16);
+    --admin-danger-soft: rgba(244, 63, 94, 0.16);
+    --admin-error-soft: rgba(251, 113, 133, 0.16);
+    --admin-warning-soft: rgba(251, 191, 36, 0.16);
+    --admin-info-soft: rgba(96, 165, 250, 0.16);
+    --admin-surface: #162033;
+
+    --background: var(--admin-background);
+    --foreground: var(--admin-text);
+    --card-bg: var(--admin-card);
+    --sidebar-bg: #081225;
+    --primary: var(--admin-primary);
+    --primary-foreground: var(--admin-background);
+    --border: var(--admin-border);
+    --muted-surface: var(--admin-surface);
+    --muted-foreground: var(--admin-muted);
+    --accent: var(--admin-surface);
+    --accent-foreground: var(--admin-text);
+    --destructive: var(--admin-danger);
+    --success: var(--admin-success);
+    --warning: var(--admin-warning);
+    --info: var(--admin-info);
+
+    --chart-grid: rgba(148, 163, 184, 0.16);
+    --chart-text: var(--admin-muted);
+    --chart-bar: rgba(96, 165, 250, 0.35);
+    --chart-highlight: var(--admin-primary);
   }
-}
 
-@layer base {
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    @apply antialiased transition-colors duration-300;
+    background:
+      radial-gradient(circle at top left, var(--admin-primary-soft), transparent 28%),
+      radial-gradient(circle at top right, var(--admin-secondary-soft), transparent 24%),
+      linear-gradient(180deg, var(--admin-background) 0%, var(--admin-card) 100%);
+    color: var(--admin-text);
+    @apply antialiased;
   }
 
-  /* Fixed Scrollbar Logic */
+  ::selection {
+    background: var(--admin-primary);
+    color: var(--admin-background);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--admin-placeholder);
+  }
+
   ::-webkit-scrollbar {
     width: 5px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
-    background: var(--border); /* Changed from bg-muted to var approach */
+    background: var(--admin-border);
     border-radius: 10px;
+  }
+}
+
+@layer components {
+  .admin-surface {
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 18px 40px -28px var(--admin-shadow);
+  }
+
+  .admin-subtle-surface {
+    background-color: var(--admin-background);
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 12px 28px -24px var(--admin-shadow);
+  }
+
+  .admin-input {
+    background-color: var(--admin-card);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .admin-input:focus {
+    border-color: var(--admin-primary);
+    background-color: var(--admin-background);
+    box-shadow: 0 0 0 4px var(--admin-primary-soft);
+    outline: none;
+  }
+
+  .admin-button-primary {
+    background-color: var(--admin-primary);
+    color: var(--admin-background);
+    box-shadow: 0 20px 40px -24px var(--admin-primary-strong);
+    transition:
+      transform 160ms ease,
+      opacity 160ms ease,
+      background-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .admin-button-primary:hover {
+    opacity: 0.94;
+    transform: translateY(-1px);
+  }
+
+  .admin-button-secondary {
+    background-color: var(--admin-background);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-text);
+    transition:
+      border-color 160ms ease,
+      color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  .admin-button-secondary:hover {
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
+    background-color: var(--admin-primary-soft);
+  }
+
+  .admin-badge-featured {
+    background-color: var(--admin-accent);
+    color: var(--admin-text);
+  }
+
+  .admin-badge-info {
+    background-color: var(--admin-info);
+    color: var(--admin-background);
+  }
+
+  .admin-badge-success {
+    background-color: var(--admin-success-soft);
+    border: 1px solid rgba(5, 150, 105, 0.2);
+    color: var(--admin-success);
+  }
+
+  .admin-badge-danger {
+    background-color: var(--admin-error-soft);
+    border: 1px solid rgba(220, 38, 38, 0.18);
+    color: var(--admin-error);
+  }
+
+  .admin-badge-warning {
+    background-color: var(--admin-warning-soft);
+    border: 1px solid rgba(217, 119, 6, 0.18);
+    color: var(--admin-warning);
   }
 }

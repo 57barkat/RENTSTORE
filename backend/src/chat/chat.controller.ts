@@ -7,9 +7,11 @@ import {
   UseGuards,
   BadRequestException,
   Param,
+  Query,
 } from "@nestjs/common";
 import { ChatService } from "./chat.service";
 import { AuthGuard } from "@nestjs/passport";
+import { RateLimit } from "../common/decorators/rate-limit.decorator";
 
 @Controller("chat")
 @UseGuards(AuthGuard("jwt"))
@@ -17,6 +19,7 @@ export class ChatController {
   constructor(private chatService: ChatService) {}
 
   @Post("rooms")
+  @RateLimit({ limit: 30, windowMs: 60_000, scope: "user" })
   async createOrGetRoom(
     @Req() req,
     @Body() body: { participants: string[]; propertyId?: string },
@@ -35,13 +38,23 @@ export class ChatController {
   }
 
   @Get("rooms")
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "user" })
   async getRooms(@Req() req) {
     return await this.chatService.getUserRooms(req.user.userId);
   }
 
   @Get("messages/:roomId")
-  async getMessages(@Req() req, @Param("roomId") roomId: string) {
+  @RateLimit({ limit: 120, windowMs: 60_000, scope: "user" })
+  async getMessages(
+    @Req() req,
+    @Param("roomId") roomId: string,
+    @Query("before") before?: string,
+    @Query("limit") limit?: string,
+  ) {
     if (!roomId) throw new BadRequestException("roomId is required");
-    return await this.chatService.getMessages(roomId, req.user.userId);
+    return await this.chatService.getMessages(roomId, req.user.userId, {
+      before,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 }

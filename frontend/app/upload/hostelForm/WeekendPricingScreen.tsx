@@ -12,6 +12,10 @@ import StepContainer from "@/app/upload/Welcome";
 import { FormContext } from "@/contextStore/FormContext";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import {
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 type RentType = "daily" | "weekly" | "monthly";
 type BillType = "electricity" | "water" | "gas";
@@ -87,6 +91,20 @@ const HostelRentScreen: FC = () => {
     (offer.daily && rents.daily < MIN_RENT) ||
     (offer.weekly && rents.weekly < MIN_RENT) ||
     (offer.monthly && rents.monthly < MIN_RENT);
+  const nextDisabledReason = buildDisabledReason([
+    !Object.values(offer).some(Boolean)
+      ? "Enable at least one rent option to continue."
+      : undefined,
+    offer.daily && rents.daily < MIN_RENT
+      ? `Daily rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+    offer.weekly && rents.weekly < MIN_RENT
+      ? `Weekly rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+    offer.monthly && rents.monthly < MIN_RENT
+      ? `Monthly rent must be at least ${MIN_RENT} PKR.`
+      : undefined,
+  ]);
 
   return (
     <StepContainer
@@ -94,6 +112,9 @@ const HostelRentScreen: FC = () => {
       onNext={handleNext}
       isNextDisabled={isNextDisabled}
       progress={88}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={9}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       {/* Inline Rent Inputs with styled toggles */}
       <View style={{ marginTop: 20 }}>
@@ -118,7 +139,10 @@ const HostelRentScreen: FC = () => {
                   styles.centerInput,
                   {
                     color: currentTheme.text,
-                    borderColor: currentTheme.border,
+                    borderColor:
+                      offer[type] && rents[type] < MIN_RENT
+                        ? currentTheme.error
+                        : currentTheme.border,
                   },
                 ]}
                 placeholder="Amount"
@@ -140,6 +164,17 @@ const HostelRentScreen: FC = () => {
             />
           </View>
         ))}
+        {nextDisabledReason ? (
+          <Text
+            style={{
+              color: currentTheme.error,
+              marginTop: 6,
+              fontWeight: "600",
+            }}
+          >
+            {nextDisabledReason}
+          </Text>
+        ) : null}
       </View>
 
       {/* Bills Section */}

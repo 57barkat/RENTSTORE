@@ -9,6 +9,12 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/contextStore/AuthContext";
 import TierStatusBanner from "@/components/UploadPropertyComponents/TierStatusBanner";
+import {
+  PROPERTY_HOST_OPTIONS_CONFIG,
+  PROPERTY_UPLOAD_TOTAL_STEPS,
+  PropertyHostOption,
+  buildDisabledReason,
+} from "@/utils/propertyTypes";
 
 const WelcomeScreen = () => {
   const formContext = useContext(FormContext);
@@ -23,15 +29,9 @@ const WelcomeScreen = () => {
   const credits = user?.paidPropertyCredits || 0;
   const hasAccess = used < limit || credits > 0;
 
-  const [selectedType, setSelectedType] = useState<string | null>(
+  const [selectedType, setSelectedType] = useState<PropertyHostOption | null>(
     formContext?.data.hostOption ?? null,
   );
-
-  const hostOptions = [
-    { title: "Home", value: "home", icon: "home-city-outline" },
-    { title: "Apartment", value: "apartment", icon: "office-building-outline" },
-    { title: "Hostel", value: "hostel", icon: "bed-empty" },
-  ];
 
   const handleNext = () => {
     if (!hasAccess) {
@@ -58,12 +58,18 @@ const WelcomeScreen = () => {
 
     if (formContext) {
       formContext.updateForm("hostOption", selectedType);
+      formContext.updateForm("propertyType", selectedType);
       if (selectedType === "hostel") router.push("/upload/hostelForm/Location");
       else if (selectedType === "apartment")
         router.push("/upload/apartmentForm/Location");
-      else if (selectedType === "home") router.push("/upload/Location");
+      else router.push("/upload/Location");
     }
   };
+
+  const nextDisabledReason = buildDisabledReason([
+    !hasAccess ? "Your upload limit has been reached. Buy more credits to continue." : undefined,
+    !selectedType ? "Choose the type of property you want to upload before continuing." : undefined,
+  ]);
 
   return (
     <StepContainer
@@ -71,6 +77,9 @@ const WelcomeScreen = () => {
       showBack={false}
       onNext={handleNext}
       isNextDisabled={!selectedType || !hasAccess}
+      nextDisabledReason={nextDisabledReason}
+      stepNumber={1}
+      totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -92,7 +101,20 @@ const WelcomeScreen = () => {
             </Text>
           )}
 
-          {hostOptions.map((option) => (
+          {!selectedType && hasAccess ? (
+            <Text
+              style={{
+                color: currentTheme.error,
+                textAlign: "center",
+                marginBottom: 12,
+                fontWeight: "600",
+              }}
+            >
+              Select one property type to continue.
+            </Text>
+          ) : null}
+
+          {PROPERTY_HOST_OPTIONS_CONFIG.map((option) => (
             <TouchableOpacity
               key={option.value}
               disabled={!hasAccess}

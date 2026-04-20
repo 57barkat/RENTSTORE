@@ -12,6 +12,7 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 export default function OwnerSection({
+  propertyId,
   owner,
   theme,
   onChat,
@@ -22,10 +23,16 @@ export default function OwnerSection({
 
   if (!owner) return null;
 
-  const isAgencyRole = owner.role === "agency";
-  const isAgentRole = owner.role === "agent";
-  const isProUser = owner.subscription === "pro";
-  const displayImage = owner.profileImage || "https://via.placeholder.com/150";
+  const summaryOwner = owner;
+  const isAgencyRole = summaryOwner?.role === "agency";
+  const isAgentRole = summaryOwner?.role === "agent";
+  const isProUser = summaryOwner?.subscription === "pro";
+  const displayImage =
+    summaryOwner?.profileImage || "https://via.placeholder.com/150";
+  const handleOpenUploader = () => {
+    if (!propertyId) return;
+    router.push(`/uploader/${propertyId}`);
+  };
 
   return (
     <View
@@ -36,8 +43,7 @@ export default function OwnerSection({
     >
       <View style={styles.footerContent}>
         <TouchableOpacity
-          onPress={() => isAgencyRole && router.push(`/agency/${owner._id}`)}
-          disabled={!isAgencyRole}
+          onPress={handleOpenUploader}
           style={styles.infoWrapper}
           activeOpacity={0.7}
         >
@@ -51,7 +57,7 @@ export default function OwnerSection({
               <Image source={{ uri: displayImage }} style={styles.avatar} />
             </View>
 
-            {(owner.isPhoneVerified || owner.isEmailVerified) && (
+            {(summaryOwner?.isPhoneVerified || summaryOwner?.isEmailVerified) && (
               <View
                 style={[styles.verifyBadge, { backgroundColor: theme.primary }]}
               >
@@ -66,7 +72,7 @@ export default function OwnerSection({
                 style={[styles.ownerName, { color: theme.text }]}
                 numberOfLines={1}
               >
-                {owner.name || "Owner"}
+                {summaryOwner?.name || "Owner"}
               </Text>
               {isProUser && (
                 <FontAwesome5
@@ -82,17 +88,23 @@ export default function OwnerSection({
               style={[styles.statusText, { color: theme.secondary }]}
               numberOfLines={1}
             >
-              {isAgentRole
+              Tap to view {isAgentRole
                 ? "Professional Agent"
                 : isAgencyRole
                   ? "Agency"
-                  : "Individual Host"}
+                  : "Owner"} profile
             </Text>
           </View>
         </TouchableOpacity>
 
         {!isOwner && (
           <View style={styles.actionWrapper}>
+            <TouchableOpacity
+              onPress={handleOpenUploader}
+              style={[styles.profileBtn, { borderColor: theme.border }]}
+            >
+              <Ionicons name="person-outline" size={18} color={theme.text} />
+            </TouchableOpacity>
             <TouchableOpacity
               onPress={onChat}
               disabled={isCreating}
@@ -103,7 +115,11 @@ export default function OwnerSection({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => Linking.openURL(`tel:${owner.phone}`)}
+              onPress={() =>
+                summaryOwner?.phone
+                  ? Linking.openURL(`tel:${summaryOwner.phone}`)
+                  : null
+              }
               style={[styles.callBtn, { borderColor: theme.border }]}
             >
               <Ionicons name="call-outline" size={20} color={theme.text} />
@@ -193,6 +209,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  profileBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   chatBtn: {
     flexDirection: "row",

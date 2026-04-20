@@ -9,13 +9,13 @@ import { ReportReason } from "../report.schema";
 
 export class CreateReportDto {
   @IsMongoId()
-  propertyId: string;
+  propertyId!: string;
 
   @IsEnum(ReportReason, {
     message:
       "Reason must be one of: SCAM, SOLD, INCORRECT_DATA, MISLEADING_PHOTOS, or OTHER",
   })
-  reason: ReportReason;
+  reason!: ReportReason;
 
   @IsOptional()
   @IsString()
