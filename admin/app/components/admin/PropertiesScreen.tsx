@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import apiClient from "@/app/lib/api-client";
@@ -40,7 +40,12 @@ export default function PropertiesScreen({
   const [totalPages, setTotalPages] = useState<number>(
     initialResponse.totalPages || 1,
   );
+  const [activeMutation, setActiveMutation] = useState<{
+    propertyId: string;
+    action: "approve" | "delete";
+  } | null>(null);
   const itemsPerPage = initialResponse.limit || 6;
+  const hasMountedRef = useRef(false);
 
   const {
     selectedProperty,
@@ -68,27 +73,45 @@ export default function PropertiesScreen({
   );
 
   useEffect(() => {
-    if (currentPage === (initialResponse.page || 1)) {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
       return;
     }
 
     fetchUnapproved(currentPage);
-  }, [currentPage, fetchUnapproved, initialResponse.page]);
+  }, [currentPage, fetchUnapproved]);
 
-  const handleApprove = async (id: string) => {
-    try {
-      await apiClient.patch(`/properties/admin/approve/${id}`);
-      if (properties.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1);
-      } else {
-        await fetchUnapproved(currentPage);
-      }
+  const finalizeModeration = useCallback(
+    (id: string) => {
+      const shouldGoToPreviousPage =
+        properties.length === 1 && currentPage > 1;
 
       if (selectedProperty?._id === id) {
         clearSelectedProperty();
       }
+
+      if (shouldGoToPreviousPage) {
+        setCurrentPage((page) => page - 1);
+        return;
+      }
+
+      setProperties((previous) =>
+        previous.filter((property) => property._id !== id),
+      );
+    },
+    [clearSelectedProperty, currentPage, properties.length, selectedProperty?._id],
+  );
+
+  const handleApprove = async (id: string) => {
+    setActiveMutation({ propertyId: id, action: "approve" });
+    try {
+      await apiClient.patch(`/properties/admin/approve/${id}`);
+      finalizeModeration(id);
     } catch (error) {
+      console.error("Approval failed", error);
       alert("Approval failed");
+    } finally {
+      setActiveMutation(null);
     }
   };
 
@@ -97,19 +120,15 @@ export default function PropertiesScreen({
       return;
     }
 
+    setActiveMutation({ propertyId: id, action: "delete" });
     try {
       await apiClient.delete(`/properties/admin/delete/${id}`);
-      if (properties.length === 1 && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1);
-      } else {
-        await fetchUnapproved(currentPage);
-      }
-
-      if (selectedProperty?._id === id) {
-        clearSelectedProperty();
-      }
+      finalizeModeration(id);
     } catch (error) {
+      console.error("Delete failed", error);
       alert("Delete failed");
+    } finally {
+      setActiveMutation(null);
     }
   };
 
@@ -122,6 +141,8 @@ export default function PropertiesScreen({
           onClose={clearSelectedProperty}
           onApprove={handleApprove}
           onDelete={handleDelete}
+          isSubmitting={Boolean(activeMutation)}
+          activeAction={activeMutation?.action || null}
         />
       )}
 
@@ -159,6 +180,12 @@ export default function PropertiesScreen({
                 onReview={handleViewDetails}
                 onApprove={handleApprove}
                 onDelete={handleDelete}
+                isProcessing={activeMutation?.propertyId === property._id}
+                activeAction={
+                  activeMutation?.propertyId === property._id
+                    ? activeMutation.action
+                    : null
+                }
               />
             ))}
           </div>

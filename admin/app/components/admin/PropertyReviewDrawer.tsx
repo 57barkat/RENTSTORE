@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import {
@@ -16,12 +17,51 @@ import {
   ExternalLink,
 } from "lucide-react";
 
+interface PropertyReviewOwner {
+  name?: string;
+  email?: string;
+  phone?: string;
+  profileImage?: string;
+}
+
+interface PropertyReviewData {
+  _id: string;
+  title?: string;
+  createdAt?: string;
+  photos?: string[];
+  monthlyRent?: number;
+  SecuritybasePrice?: number;
+  apartmentType?: string;
+  capacityState?: {
+    bedrooms?: number;
+    beds?: number;
+    bathrooms?: number;
+    Persons?: number;
+  };
+  address?: Array<{
+    aptSuiteUnit?: string;
+    street?: string;
+    city?: string;
+    stateTerritory?: string;
+  }>;
+  owner?: PropertyReviewOwner;
+  safetyDetailsData?: {
+    safetyDetails?: string[];
+    cameraDescription?: string;
+  };
+  description?: {
+    highlighted?: string[];
+  };
+}
+
 interface PropertyReviewDrawerProps {
-  property: any;
+  property: PropertyReviewData | null;
   loading: boolean;
   onClose: () => void;
-  onApprove: (id: string) => void;
-  onDelete: (id: string) => void;
+  onApprove: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  isSubmitting?: boolean;
+  activeAction?: "approve" | "delete" | null;
 }
 
 export default function PropertyReviewDrawer({
@@ -30,10 +70,16 @@ export default function PropertyReviewDrawer({
   onApprove,
   onDelete,
   loading,
+  isSubmitting = false,
+  activeAction = null,
 }: PropertyReviewDrawerProps) {
   if (!property) return null;
 
   const addr = property.address?.[0] || {};
+  const createdAtLabel = property.createdAt
+    ? new Date(property.createdAt).toLocaleDateString()
+    : "Unknown";
+  const safetyDetails = property.safetyDetailsData?.safetyDetails ?? [];
 
   if (loading) {
     return (
@@ -61,7 +107,7 @@ export default function PropertyReviewDrawer({
                 className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground"
               >
                 <Calendar className="h-3 w-3" />
-                {new Date(property.createdAt).toLocaleDateString()}
+                {createdAtLabel}
               </span>
             </div>
             <h2 className="text-xl font-black tracking-tight">Review Property</h2>
@@ -218,8 +264,8 @@ export default function PropertyReviewDrawer({
                 Safety Check
               </h4>
               <div className="flex flex-wrap gap-1.5">
-                {property.safetyDetailsData?.safetyDetails?.length > 0 ? (
-                  property.safetyDetailsData.safetyDetails.map((detail: string) => (
+                {safetyDetails.length > 0 ? (
+                  safetyDetails.map((detail: string) => (
                     <span
                       key={detail}
                       className="flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-[10px] font-bold capitalize text-green-600"
@@ -265,22 +311,24 @@ export default function PropertyReviewDrawer({
 
           <div className="sticky bottom-0 flex gap-4 border-t border-border bg-card/90 pb-2 pt-4 backdrop-blur-md">
             <button
-              onClick={() => {
-                onDelete(property._id);
-                onClose();
+              disabled={isSubmitting}
+              onClick={async () => {
+                await onDelete(property._id);
               }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-4 font-black text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-red-500 py-4 font-black text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Trash2 className="h-5 w-5" /> REJECT
+              <Trash2 className="h-5 w-5" />
+              {isSubmitting && activeAction === "delete" ? "REJECTING..." : "REJECT"}
             </button>
             <button
-              onClick={() => {
-                onApprove(property._id);
-                onClose();
+              disabled={isSubmitting}
+              onClick={async () => {
+                await onApprove(property._id);
               }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90"
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-black text-white shadow-lg shadow-primary/30 transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <CheckCircle className="h-5 w-5" /> APPROVE
+              <CheckCircle className="h-5 w-5" />
+              {isSubmitting && activeAction === "approve" ? "APPROVING..." : "APPROVE"}
             </button>
           </div>
         </div>

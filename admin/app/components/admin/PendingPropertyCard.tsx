@@ -21,8 +21,10 @@ interface PendingProperty {
 interface PendingPropertyCardProps {
   property: PendingProperty;
   onReview: (id: string) => void;
-  onApprove: (id: string) => void;
-  onDelete: (id: string) => void;
+  onApprove: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  isProcessing?: boolean;
+  activeAction?: "approve" | "delete" | null;
 }
 
 export default function PendingPropertyCard({
@@ -30,6 +32,8 @@ export default function PendingPropertyCard({
   onReview,
   onApprove,
   onDelete,
+  isProcessing = false,
+  activeAction = null,
 }: PendingPropertyCardProps) {
   return (
     <BasePropertyCard
@@ -45,6 +49,7 @@ export default function PendingPropertyCard({
         <button
           type="button"
           onClick={() => onReview(property._id)}
+          disabled={isProcessing}
           className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2 text-xs font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-sky-50 hover:text-sky-700"
         >
           <Eye className="h-4 w-4" /> Review
@@ -89,16 +94,20 @@ export default function PendingPropertyCard({
           <button
             type="button"
             onClick={() => onDelete(property._id)}
-            className="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500 hover:text-white"
+            disabled={isProcessing}
+            className="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Trash2 className="h-3.5 w-3.5" /> Reject
+            <Trash2 className="h-3.5 w-3.5" />
+            {isProcessing && activeAction === "delete" ? "Rejecting..." : "Reject"}
           </button>
           <button
             type="button"
             onClick={() => onApprove(property._id)}
-            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90"
+            disabled={isProcessing}
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-white transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <CheckCircle className="h-3.5 w-3.5" /> Approve
+            <CheckCircle className="h-3.5 w-3.5" />
+            {isProcessing && activeAction === "approve" ? "Approving..." : "Approve"}
           </button>
         </div>
       }

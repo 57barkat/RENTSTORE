@@ -423,10 +423,20 @@ export class UserService {
     userId: string,
     updateUserDto: UpdateUserDto,
   ): Promise<User> {
+    const updatePayload = await this.prepareAdminUserUpdate(updateUserDto);
+
+    if (Object.keys(updatePayload).length === 0) {
+      const existingUser = await this.userModel.findById(userId).exec();
+      if (!existingUser) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+      return existingUser;
+    }
+
     const updatedUser = await this.userModel
       .findByIdAndUpdate(
         userId,
-        { $set: updateUserDto },
+        updatePayload,
         { new: true, runValidators: true },
       )
       .exec();
@@ -435,6 +445,96 @@ export class UserService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
     return updatedUser;
+  }
+
+  private async prepareAdminUserUpdate(updateUserDto: UpdateUserDto) {
+    const dateFields = new Set([
+      "resetPasswordCodeExpires",
+      "subscriptionStartDate",
+      "subscriptionEndDate",
+      "emailVerificationCodeExpires",
+      "suspendedAt",
+      "bannedAt",
+    ]);
+    const arrayFields = new Set(["subscriptions", "favorites"]);
+    const unsettableFields = new Set([
+      "resetPasswordCode",
+      "agency",
+      "agencyLicense",
+      "preferences",
+      "fcmToken",
+      "refreshToken",
+      "profileImage",
+      "emailVerificationCode",
+      "suspensionReason",
+    ]);
+
+    const updateQuery: Record<string, Record<string, any>> = {
+      $set: {},
+      $unset: {},
+    };
+
+    for (const [key, rawValue] of Object.entries(updateUserDto)) {
+      if (rawValue === undefined) {
+        continue;
+      }
+
+      if (key === "password") {
+        const password = String(rawValue).trim();
+        if (password) {
+          updateQuery.$set.password = await bcrypt.hash(password, 10);
+        }
+        continue;
+      }
+
+      if (dateFields.has(key)) {
+        if (!rawValue) {
+          updateQuery.$unset[key] = 1;
+          continue;
+        }
+
+        const parsedDate = new Date(String(rawValue));
+        if (Number.isNaN(parsedDate.getTime())) {
+          throw new BadRequestException(`Invalid date supplied for ${key}`);
+        }
+
+        updateQuery.$set[key] = parsedDate;
+        continue;
+      }
+
+      if (arrayFields.has(key)) {
+        updateQuery.$set[key] = Array.isArray(rawValue) ? rawValue : [];
+        continue;
+      }
+
+      if (unsettableFields.has(key)) {
+        const normalized =
+          typeof rawValue === "string" ? rawValue.trim() : rawValue;
+
+        if (
+          normalized === "" ||
+          normalized === null ||
+          normalized === undefined
+        ) {
+          updateQuery.$unset[key] = 1;
+        } else {
+          updateQuery.$set[key] = rawValue;
+        }
+        continue;
+      }
+
+      updateQuery.$set[key] = rawValue;
+    }
+
+    if (Object.keys(updateQuery.$set).length === 0) {
+      delete updateQuery.$set;
+    }
+
+    if (Object.keys(updateQuery.$unset).length === 0) {
+      delete updateQuery.$unset;
+    }
+
+    return Object.keys(updateQuery).length > 0 ? updateQuery : {};
   }
 
   async deleteUser(userId: string) {
