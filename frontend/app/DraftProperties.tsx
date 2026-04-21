@@ -215,19 +215,6 @@ export default function DraftProperties() {
         barStyle={theme === "dark" ? "light-content" : "dark-content"}
       />
 
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={currentTheme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
-          Drafts
-        </Text>
-      </View>
-
       {/* Drafts List */}
       <FlatList
         data={drafts}
@@ -304,15 +291,6 @@ export default function DraftProperties() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-  },
-  backButton: { padding: 4 },
-  headerTitle: { fontSize: 24, fontWeight: "700" },
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   listContent: { padding: 16, paddingBottom: 40 },
   card: {

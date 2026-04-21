@@ -15,7 +15,11 @@ import { DeletedImagesService } from "../../deletedImages/deletedImages.service"
 import { PropertyFilters } from "./utils/property-filter.util";
 import {
   buildMongoFilter,
+  buildMinimalAddressQuery,
+  buildNormalizedContainsRegex,
+  buildNormalizedPrefixRegex,
   formatLocationGeo,
+  preparePropertySearchFields,
   processPhotos,
   validateAndDeductCredits,
 } from "./utils/property.utils";
@@ -23,6 +27,10 @@ import { validatePropertyPayload } from "./property.validation";
 import { User, UserDocument } from "../user/user.entity";
 import { PropertyImpressionTrackerService } from "./property-impression-tracker.service";
 import { PropertyViewTrackerService } from "./property-view-tracker.service";
+import {
+  escapeRegex,
+  normalizeAddressSearch,
+} from "../../common/utils/normalize.util";
 
 @Injectable()
 export class PropertyService {
@@ -92,6 +100,7 @@ export class PropertyService {
 
         const locationGeo = formatLocationGeo(dto.lat, dto.lng);
         if (locationGeo) dto.locationGeo = locationGeo;
+        Object.assign(dto, preparePropertySearchFields(dto));
 
         const handleCredits = async (isNew: boolean, isFeatured: boolean) => {
           const needsSave = validateAndDeductCredits(user, isNew, isFeatured);
@@ -118,7 +127,14 @@ export class PropertyService {
               (url) => !cleanedPhotos.includes(url),
             );
 
-            Object.assign(existingProperty, dto);
+            Object.assign(
+              existingProperty,
+              dto,
+              preparePropertySearchFields({
+                ...(existingProperty.toObject() as unknown as Partial<CreatePropertyDto>),
+                ...dto,
+              }),
+            );
             const savedProperty = await existingProperty.save({ session });
             response = { property: savedProperty, user };
             return;
@@ -139,14 +155,20 @@ export class PropertyService {
               ...(draftData.photos ?? []),
             ]);
 
-            const property = new this.propertyModel({
+            const propertyPayload = {
               ...draftData,
               ...dto,
               photos: combinedPhotos,
               ownerId: userId,
               status: true,
               isApproved: false,
-            });
+            };
+            Object.assign(
+              propertyPayload,
+              preparePropertySearchFields(propertyPayload),
+            );
+
+            const property = new this.propertyModel(propertyPayload);
 
             const savedProperty = await property.save({ session });
             await this.propertyDraftModel.findByIdAndDelete(propertyId).session(session);
@@ -162,12 +184,15 @@ export class PropertyService {
 
         await handleCredits(true, dto.featured === true);
 
-        const property = new this.propertyModel({
+        const propertyPayload = {
           ...dto,
           photos: cleanedPhotos,
           ownerId: userId,
           status: true,
-        });
+        };
+        Object.assign(propertyPayload, preparePropertySearchFields(propertyPayload));
+
+        const property = new this.propertyModel(propertyPayload);
 
         const savedProperty = await property.save({ session });
         user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
@@ -342,6 +367,7 @@ export class PropertyService {
       ownerId: new Types.ObjectId(userId),
       status: false,
     };
+    Object.assign(update, preparePropertySearchFields(update));
 
     return this.propertyDraftModel.findOneAndUpdate(filter, update, {
       new: true,
@@ -522,41 +548,70 @@ export class PropertyService {
       return [];
     }
 
-    const cleaned = query.trim();
-    const escapedChars = cleaned
-      .replace(/[-/\s]/g, "")
-      .split("")
-      .map((char) => char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const trimmedQuery = query.trim();
+    const normalizedQuery = normalizeAddressSearch(trimmedQuery);
+    if (!normalizedQuery) {
+      return [];
+    }
 
-    const flexiblePattern = escapedChars.join("[-/\\s]?");
+    const prefixRegex = buildNormalizedPrefixRegex(normalizedQuery);
+    const containsRegex = buildNormalizedContainsRegex(normalizedQuery);
+    const readableRegex = new RegExp(escapeRegex(trimmedQuery), "i");
+    const addressConditions: Array<Record<string, any>> = [
+      { addressQuery: readableRegex },
+      { area: readableRegex },
+      { location: readableRegex },
+      { "address.street": readableRegex },
+    ];
 
-    const regex = new RegExp(flexiblePattern, "i");
+    if (prefixRegex) {
+      addressConditions.unshift({ addressQueryNormalized: prefixRegex });
+    }
 
-    const results = await this.propertyModel.aggregate([
-      {
-        $match: {
-          status: true,
-          isApproved: true,
-          $or: [
-            { location: regex },
-            { title: regex },
-            { "address.street": regex },
-            { area: regex },
-          ],
-        },
-      },
-      {
-        $project: {
-          suggestion: {
-            $ifNull: ["$location", "$title"],
-          },
-        },
-      },
-      { $group: { _id: "$suggestion" } },
-      { $limit: limit },
-    ]);
+    if (containsRegex && containsRegex.source !== prefixRegex?.source) {
+      addressConditions.push({ addressQueryNormalized: containsRegex });
+    }
 
-    return results.map((r) => r._id);
+    const candidates = await this.propertyModel
+      .find({
+        status: true,
+        isApproved: true,
+        moderationStatus: "ACTIVE",
+        $or: addressConditions,
+      })
+      .select("addressQuery area location address addressQueryNormalized createdAt")
+      .sort({ createdAt: -1 })
+      .limit(Math.max(limit * 4, limit))
+      .lean();
+
+    const suggestions: Array<{
+      label: string;
+      addressQuery: string;
+      city?: string;
+    }> = [];
+    const seen = new Set<string>();
+
+    for (const candidate of candidates) {
+      const addressQuery = buildMinimalAddressQuery(candidate as any);
+      const normalizedAddressQuery = normalizeAddressSearch(addressQuery);
+
+      if (!addressQuery || !normalizedAddressQuery || seen.has(normalizedAddressQuery)) {
+        continue;
+      }
+
+      suggestions.push({
+        label: addressQuery,
+        addressQuery,
+        city: candidate.address?.[0]?.city?.trim() || undefined,
+      });
+      seen.add(normalizedAddressQuery);
+
+      if (suggestions.length >= limit) {
+        break;
+      }
+    }
+
+    return suggestions;
   }
 
   async findMyProperties(
@@ -598,17 +653,29 @@ export class PropertyService {
     }
 
     if (filters?.addressQuery?.trim()) {
-      const addressRegex = {
-        $regex: filters.addressQuery.trim(),
+      const normalizedAddressQuery = normalizeAddressSearch(filters.addressQuery);
+      const readableRegex = {
+        $regex: escapeRegex(filters.addressQuery.trim()),
         $options: "i",
       };
-      const existingOr = Array.isArray(filter.$or) ? filter.$or : [];
-      filter.$or = [
-        ...existingOr,
-        { location: addressRegex },
-        { area: addressRegex },
-        { "address.street": addressRegex },
-        { "address.city": addressRegex },
+      const addressConditions: Array<Record<string, any>> = [
+        { addressQuery: readableRegex },
+        { location: readableRegex },
+        { area: readableRegex },
+        { "address.street": readableRegex },
+        { "address.city": readableRegex },
+      ];
+
+      const normalizedRegex = buildNormalizedContainsRegex(
+        normalizedAddressQuery,
+      );
+      if (normalizedRegex) {
+        addressConditions.unshift({ addressQueryNormalized: normalizedRegex });
+      }
+
+      filter.$and = [
+        ...(Array.isArray(filter.$and) ? filter.$and : []),
+        { $or: addressConditions },
       ];
     }
 
@@ -1063,6 +1130,14 @@ export class PropertyService {
       property.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
     }
 
+    Object.assign(
+      property,
+      preparePropertySearchFields({
+        ...(property.toObject() as unknown as Partial<CreatePropertyDto>),
+        ...dto,
+      }),
+    );
+
     const validation = validatePropertyPayload(
       property.toObject() as unknown as Partial<CreatePropertyDto>,
     );
@@ -1241,14 +1316,21 @@ export class PropertyService {
     }
 
     if (filters?.q?.trim()) {
-      const regex = new RegExp(filters.q.trim(), "i");
-      match.$or = [
+      const normalizedQuery = normalizeAddressSearch(filters.q);
+      const regex = new RegExp(escapeRegex(filters.q.trim()), "i");
+      const searchConditions: Array<Record<string, any>> = [
         { title: regex },
+        { addressQuery: regex },
         { location: regex },
         { area: regex },
         { "address.street": regex },
         { "address.city": regex },
       ];
+      const normalizedRegex = buildNormalizedContainsRegex(normalizedQuery);
+      if (normalizedRegex) {
+        searchConditions.unshift({ addressQueryNormalized: normalizedRegex });
+      }
+      match.$or = searchConditions;
     }
 
     const [result] = await this.propertyModel.aggregate([

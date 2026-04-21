@@ -19,7 +19,7 @@ import {
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 import { router } from "expo-router";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { FontSize } from "@/constants/Typography";
 import { useLength } from "@/contextStore/LengthContext";
@@ -224,26 +224,6 @@ const Favorites = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>
-      {/* Updated Header with Back Button */}
-      <View
-        style={[
-          styles.headerWrapper,
-          { borderBottomColor: currentTheme.border },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="chevron-back" size={28} color={currentTheme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
-          Favorites
-        </Text>
-        <View style={{ width: 28 }} />
-      </View>
-
       <FlatList
         style={{ flex: 1 }}
         data={favoritesArray}
@@ -306,21 +286,6 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 10, fontSize: FontSize.base, fontWeight: "500" },
   errorText: { marginTop: 10, fontSize: FontSize.sm, fontWeight: "600" },
-  headerWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: "700",
-  },
   emptyContainer: {
     flex: 1,
     alignItems: "center",

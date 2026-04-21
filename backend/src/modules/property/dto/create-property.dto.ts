@@ -204,6 +204,7 @@ export class CreatePropertyDto {
 
   // --- UI Helpers ---
   @IsOptional() @IsString() addressQuery?: string;
+  @IsOptional() @IsString() addressQueryNormalized?: string;
   @IsOptional() @IsString() searchText?: string;
   @IsOptional() @IsString() addressText?: string;
 }

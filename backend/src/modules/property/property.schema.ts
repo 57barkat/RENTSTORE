@@ -7,6 +7,7 @@ import {
   PROPERTY_HOST_OPTIONS,
   PROPERTY_SIZE_UNITS,
 } from "./property.constants";
+import { preparePropertySearchFields } from "./utils/property.utils";
 
 export type PropertyDocument = Property & Document;
 
@@ -66,6 +67,15 @@ export class Property extends Document {
     default: [],
   })
   address?: Record<string, any>[];
+
+  @Prop({ type: String, trim: true, index: true })
+  addressQuery?: string;
+
+  @Prop({ type: String, trim: true, index: true, select: false })
+  addressQueryNormalized?: string;
+
+  @Prop({ type: String, trim: true, select: false })
+  searchText?: string;
 
   @Prop({ type: [String], default: [] }) amenities?: string[];
   @Prop({ type: [String], default: [] }) photos?: string[];
@@ -203,6 +213,12 @@ PropertySchema.index({
 // 3. OWNER INDEXES
 PropertySchema.index({ ownerId: 1, moderationStatus: 1 });
 PropertySchema.index({ ownerId: 1, createdAt: -1 });
+PropertySchema.index({
+  addressQueryNormalized: 1,
+  moderationStatus: 1,
+  status: 1,
+  isApproved: 1,
+});
 
 // 4. PRICE DESC INDEX
 PropertySchema.index({
@@ -242,3 +258,8 @@ PropertySchema.index({
   createdAt: -1,
 });
 PropertySchema.index({ "size.value": 1, "size.unit": 1 });
+
+PropertySchema.pre("save", function normalizeAddressFields(next) {
+  Object.assign(this, preparePropertySearchFields(this.toObject()));
+  next();
+});

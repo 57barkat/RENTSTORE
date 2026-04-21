@@ -20,6 +20,9 @@ export const PropertyDraftSchema = new Schema(
         zipCode: String,
       },
     ],
+    addressQuery: String,
+    addressQueryNormalized: { type: String, index: true, select: false },
+    searchText: { type: String, select: false },
     amenities: [String],
     capacityState: {
       Persons: Number,

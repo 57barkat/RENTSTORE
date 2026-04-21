@@ -92,19 +92,6 @@ export default function ChatListScreen() {
       />
 
       <View style={[styles.header, { borderBottomColor: currentTheme.border }]}>
-        <View style={styles.topRow}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="chevron-back" size={28} color={currentTheme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.text }]}>
-            Messages
-          </Text>
-        </View>
-
         <View
           style={[
             styles.searchContainer,
@@ -266,19 +253,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 15,
     borderBottomWidth: 0.5,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  backButton: {
-    marginRight: 10,
-    marginLeft: -5,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
   },
   searchContainer: {
     flexDirection: "row",

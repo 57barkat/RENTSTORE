@@ -1,12 +1,10 @@
-import { normalizeText } from "../../../common/utils/normalize.util";
-import { Model, FilterQuery } from "mongoose";
-
 export interface PropertyFilters {
   city?: string;
   stateTerritory?: string;
   country?: string;
   title?: string;
   addressQuery?: string;
+  persons?: number;
   minRent?: number;
   maxRent?: number;
   minSecurity?: number;
@@ -14,6 +12,7 @@ export interface PropertyFilters {
   bedrooms?: number;
   beds?: number;
   bathrooms?: number;
+  /** @deprecated prefer `persons` */
   Persons?: number;
   floorLevel?: number;
   amenities?: string[];

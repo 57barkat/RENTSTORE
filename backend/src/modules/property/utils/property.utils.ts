@@ -1,9 +1,26 @@
 import { BadRequestException } from "@nestjs/common";
 import { Types } from "mongoose";
 import { UserDocument } from "../../user/user.entity";
+import {
+  buildContainsRegex,
+  buildPrefixRegex,
+  escapeRegex,
+  normalizeAddressSearch,
+} from "../../../common/utils/normalize.util";
 
-const escapeRegex = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+type SearchableAddressInput = {
+  addressQuery?: string;
+  area?: string;
+  location?: string;
+  title?: string;
+  address?: Array<{
+    aptSuiteUnit?: string;
+    street?: string;
+    city?: string;
+    stateTerritory?: string;
+    country?: string;
+  }>;
+};
 
 export const parseNumericFields = (
   query: Record<string, any>,
@@ -44,6 +61,128 @@ export const mapHostelType = (
   return mapping[key] || null;
 };
 
+const cleanDisplayValue = (value?: string | null) => {
+  if (!value || typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim().replace(/\s+/g, " ");
+};
+
+const toUniqueValues = (values: Array<string | undefined>) => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const cleaned = cleanDisplayValue(value);
+    if (!cleaned) {
+      continue;
+    }
+
+    const normalized = normalizeAddressSearch(cleaned);
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    result.push(cleaned);
+  }
+
+  return result;
+};
+
+export const buildMinimalAddressQuery = (
+  property: SearchableAddressInput,
+): string => {
+  const firstAddress = Array.isArray(property.address)
+    ? property.address[0]
+    : undefined;
+
+  const excludedNormalizedValues = new Set(
+    [
+      firstAddress?.city,
+      firstAddress?.stateTerritory,
+      firstAddress?.country,
+      property.location,
+    ]
+      .map((value) => normalizeAddressSearch(value))
+      .filter(Boolean),
+  );
+
+  const explicitAddressQuery = cleanDisplayValue(property.addressQuery);
+  if (explicitAddressQuery) {
+    return explicitAddressQuery;
+  }
+
+  const minimalParts = toUniqueValues([
+    firstAddress?.aptSuiteUnit,
+    firstAddress?.street,
+    property.area,
+  ]).filter(
+    (value) => !excludedNormalizedValues.has(normalizeAddressSearch(value)),
+  );
+
+  if (minimalParts.length > 0) {
+    return minimalParts.join(", ");
+  }
+
+  return (
+    toUniqueValues([
+      property.area,
+      firstAddress?.street,
+      property.location,
+      property.title,
+    ])[0] || ""
+  );
+};
+
+export const buildPropertySearchText = (
+  property: SearchableAddressInput,
+): string => {
+  const firstAddress = Array.isArray(property.address)
+    ? property.address[0]
+    : undefined;
+
+  return toUniqueValues([
+    property.title,
+    property.location,
+    property.area,
+    property.addressQuery,
+    firstAddress?.aptSuiteUnit,
+    firstAddress?.street,
+    firstAddress?.city,
+    firstAddress?.stateTerritory,
+    firstAddress?.country,
+  ]).join(" ");
+};
+
+export const preparePropertySearchFields = (
+  property: SearchableAddressInput,
+): Pick<
+  SearchableAddressInput & {
+    addressQueryNormalized?: string;
+    searchText?: string;
+  },
+  "addressQuery" | "addressQueryNormalized" | "searchText"
+> => {
+  const addressQuery = buildMinimalAddressQuery(property);
+
+  return {
+    addressQuery,
+    addressQueryNormalized: normalizeAddressSearch(addressQuery),
+    searchText: buildPropertySearchText({
+      ...property,
+      addressQuery,
+    }),
+  };
+};
+
+export const buildNormalizedPrefixRegex = (value?: string | null) =>
+  buildPrefixRegex(value);
+
+export const buildNormalizedContainsRegex = (value?: string | null) =>
+  buildContainsRegex(value);
+
 export const buildMongoFilter = (filters: any, userId?: string) => {
   const {
     title,
@@ -68,6 +207,8 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     minSize,
     maxSize,
     sizeUnit,
+    persons,
+    Persons,
   } = filters;
 
   const mongoFilter: any = {
@@ -92,30 +233,40 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   const searchInput = addressQuery || location || area;
   if (searchInput) {
     const cleanedQuery = searchInput.trim();
-    const flexiblePattern = cleanedQuery
-      .replace(/[-/\s]/g, "")
-      .split("")
-      .map((char) => escapeRegex(char))
-      .join("[-/\\s]?");
-    const searchRegex = { $regex: flexiblePattern, $options: "i" };
+    const normalizedSearch = normalizeAddressSearch(cleanedQuery);
+    const normalizedPrefixRegex = buildNormalizedPrefixRegex(normalizedSearch);
+    const normalizedContainsRegex =
+      buildNormalizedContainsRegex(normalizedSearch);
+    const readableRegex = {
+      $regex: escapeRegex(cleanedQuery),
+      $options: "i",
+    };
+    const searchConditions: Array<Record<string, any>> = [];
 
-    const isSpecific =
-      /\d[-/\s]\d/.test(cleanedQuery) ||
-      (cleanedQuery.length > 3 && /[0-9]$/.test(cleanedQuery));
+    if (normalizedPrefixRegex) {
+      searchConditions.push({
+        addressQueryNormalized: normalizedPrefixRegex,
+      });
+    }
 
-    andConditions.push({
-      $or: isSpecific
-        ? [
-            { location: searchRegex },
-            { title: searchRegex },
-            { "address.street": searchRegex },
-          ]
-        : [
-            { area: searchRegex },
-            { location: searchRegex },
-            { title: searchRegex },
-          ],
-    });
+    if (
+      normalizedContainsRegex &&
+      normalizedContainsRegex.source !== normalizedPrefixRegex?.source
+    ) {
+      searchConditions.push({
+        addressQueryNormalized: normalizedContainsRegex,
+      });
+    }
+
+    searchConditions.push(
+      { addressQuery: readableRegex },
+      { area: readableRegex },
+      { location: readableRegex },
+      { title: readableRegex },
+      { "address.street": readableRegex },
+    );
+
+    andConditions.push({ $or: searchConditions });
   }
 
   // 2. City
@@ -178,6 +329,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   // 8. Capacity
   if (bedrooms !== undefined && bedrooms !== 0)
     mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
+  const guests = persons ?? Persons;
+  if (guests !== undefined && guests !== 0)
+    mongoFilter["capacityState.Persons"] = Number(guests);
   if (bathrooms !== undefined && bathrooms !== 0)
     mongoFilter["capacityState.bathrooms"] = Number(bathrooms);
   if (floorLevel !== undefined)

@@ -24,7 +24,10 @@ import {
   RULES,
 } from "@/utils/homeTabUtils/filterUtils";
 import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
-import { useGetAddressSuggestionsQuery } from "@/services/api";
+import {
+  AddressSuggestion,
+  useGetAddressSuggestionsQuery,
+} from "@/services/api";
 
 interface Props {
   visible: boolean;
@@ -67,14 +70,28 @@ export const FilterModal: React.FC<Props> = ({
     return () => clearTimeout(timer);
   }, [addressInput]);
 
+  const shouldQueryAddressSuggestions = debouncedAddress.trim().length >= 2;
+
   const { data: addressSuggestions = [], isFetching: addressLoading } =
     useGetAddressSuggestionsQuery(debouncedAddress, {
-      skip: debouncedAddress.length < 2,
+      skip: !shouldQueryAddressSuggestions,
     });
 
   React.useEffect(() => {
     if (visible) setAddressInput(filters.addressQuery || "");
-  }, [visible]);
+  }, [visible, filters.addressQuery]);
+
+  const handleAddressSuggestionPress = React.useCallback(
+    (suggestion: AddressSuggestion) => {
+      setAddressInput(suggestion.addressQuery);
+      setFilters({
+        ...filters,
+        addressQuery: suggestion.addressQuery,
+        city: suggestion.city || filters.city,
+      });
+    },
+    [filters, setFilters],
+  );
 
   return (
     <Modal
@@ -230,30 +247,49 @@ export const FilterModal: React.FC<Props> = ({
               )}
             </View>
 
-            {addressSuggestions.length > 0 && (
+            {(addressSuggestions.length > 0 ||
+              (shouldQueryAddressSuggestions && !addressLoading)) && (
               <View
                 style={[
                   styles.suggestionBox,
                   { backgroundColor: theme.card, borderColor: theme.border },
                 ]}
               >
-                {addressSuggestions.map((item, index) => (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.suggestionItem,
-                      index === addressSuggestions.length - 1 && {
-                        borderBottomWidth: 0,
-                      },
-                    ]}
-                    onPress={() => {
-                      setAddressInput(item);
-                      setFilters({ ...filters, addressQuery: item });
-                    }}
-                  >
-                    <Text style={{ color: theme.text }}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
+                {addressSuggestions.length > 0 ? (
+                  addressSuggestions.map((item, index) => (
+                    <TouchableOpacity
+                      key={`${item.addressQuery}-${item.city || "no-city"}`}
+                      style={[
+                        styles.suggestionItem,
+                        index === addressSuggestions.length - 1 && {
+                          borderBottomWidth: 0,
+                        },
+                      ]}
+                      onPress={() => handleAddressSuggestionPress(item)}
+                    >
+                      <Text style={{ color: theme.text, fontWeight: "600" }}>
+                        {item.label}
+                      </Text>
+                      {item.city ? (
+                        <Text
+                          style={{
+                            color: theme.muted,
+                            marginTop: 4,
+                            fontSize: 12,
+                          }}
+                        >
+                          {item.city}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <View style={styles.emptySuggestionState}>
+                    <Text style={{ color: theme.muted }}>
+                      No matching areas found
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
           </View>
@@ -602,6 +638,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+  },
+  emptySuggestionState: {
+    paddingVertical: 14,
+    paddingHorizontal: 14,
   },
   footer: {
     padding: 20,

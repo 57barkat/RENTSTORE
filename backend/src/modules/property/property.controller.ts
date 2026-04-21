@@ -229,6 +229,7 @@ export class PropertyController {
       "maxRent",
       "bedrooms",
       "bathrooms",
+      "persons",
       "Persons",
       "lat",
       "lng",
@@ -253,6 +254,9 @@ export class PropertyController {
 
     const page = Math.min(Math.max(Number(query.page || 1), 1), 100);
     const limit = Math.min(Math.max(Number(query.limit || 10), 1), 24);
+    if (query.persons !== undefined && query.Persons === undefined) {
+      query.Persons = query.persons;
+    }
 
     const filters = { ...query };
     delete filters.page;

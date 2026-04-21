@@ -11,6 +11,12 @@ const configuredApiUrl =
 
 export const API_URL = configuredApiUrl.replace(/\/api\/v1\/?$/, "");
 
+export interface AddressSuggestion {
+  label: string;
+  addressQuery: string;
+  city?: string;
+}
+
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||
 //   "http://192.168.81.201:3000" ||
@@ -333,9 +339,10 @@ export const api = createApi({
         }
       },
     }),
-    getAddressSuggestions: builder.query<string[], string>({
+    getAddressSuggestions: builder.query<AddressSuggestion[], string>({
       query: (q) => ({
-        url: `/api/v1/properties/address-suggestions?q=${q}`,
+        url: "/api/v1/properties/address-suggestions",
+        params: { q },
         method: "GET",
       }),
     }),
