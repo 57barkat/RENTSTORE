@@ -9,22 +9,24 @@ import { SmsService } from "./sms.service";
 import { UserService } from "../user/user.service";
 import { AuthGuard } from "@nestjs/passport";
 import { User } from "../user/user.entity";
+import { getRedis } from "../../common/redis/redis.service";
+
+const OTP_TTL_MS = 5 * 60 * 1000;
+
 @UseGuards(AuthGuard("jwt"))
 @Controller("auth")
 export class AuthController {
-  private otpStore = new Map<string, { otp: string; expiresAt: number }>();
-
   constructor(
     private readonly smsService: SmsService,
 
-    private readonly userService: UserService
+    private readonly userService: UserService,
   ) {}
 
   @Post("send-otp")
   async sendOtp(@Body("phone") phone: string) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    this.otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    await getRedis().set(this.getOtpKey(phone), otp, { px: OTP_TTL_MS });
 
     await this.smsService.sendOtp(phone, otp);
     return { success: true, message: "OTP sent successfully" };
@@ -33,18 +35,14 @@ export class AuthController {
   @Post("verify-otp")
   async verifyOtp(
     @Body("phone") phone: string,
-    @Body("otp") otp: string
+    @Body("otp") otp: string,
   ): Promise<{ success: boolean; message: string }> {
-    const record = this.otpStore.get(phone);
+    const storedOtp = await getRedis().get<string>(this.getOtpKey(phone));
 
-    if (!record) throw new BadRequestException("No OTP sent or expired");
-    if (record.expiresAt < Date.now()) {
-      this.otpStore.delete(phone);
-      throw new BadRequestException("OTP expired");
-    }
-    if (record.otp !== otp) throw new BadRequestException("Invalid OTP");
+    if (!storedOtp) throw new BadRequestException("No OTP sent or expired");
+    if (storedOtp !== otp) throw new BadRequestException("Invalid OTP");
 
-    this.otpStore.delete(phone);
+    await getRedis().del(this.getOtpKey(phone));
 
     const user = await this.userService.findByPhone(phone);
     if (!user) throw new BadRequestException("User not found");
@@ -57,5 +55,9 @@ export class AuthController {
       success: true,
       message: "Phone verified successfully",
     };
+  }
+
+  private getOtpKey(phone: string) {
+    return `otp:${phone}`;
   }
 }

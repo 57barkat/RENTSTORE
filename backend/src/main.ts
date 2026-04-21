@@ -1,3 +1,6 @@
+import "./instrument";
+import "dotenv/config";
+import * as Sentry from "@sentry/nestjs";
 import { Logger, ValidationPipe } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
@@ -51,7 +54,12 @@ async function bootstrap() {
   logger.log(`Server running on port ${port}`);
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch(async (err) => {
   const logger = new Logger("Bootstrap");
   logger.error("Error during bootstrap", err);
+
+  Sentry.captureException(err);
+  await Sentry.flush(2000);
+
+  process.exit(1);
 });

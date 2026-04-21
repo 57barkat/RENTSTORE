@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
   async validate(payload: any) {
     if (!payload || !payload.sub) throw new UnauthorizedException();
 
-    const cachedUser = this.authUserCacheService.get(payload.sub);
+    const cachedUser = await this.authUserCacheService.get(payload.sub);
     if (cachedUser) {
       if (cachedUser.isBlocked) {
         throw new UnauthorizedException(
@@ -38,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
     const user = await this.userService.findById(payload.sub);
     if (!user) throw new UnauthorizedException("User not found");
 
-    this.authUserCacheService.set(payload.sub, {
+    await this.authUserCacheService.set(payload.sub, {
       id: user.id,
       email: user.email,
       role: user.role,
