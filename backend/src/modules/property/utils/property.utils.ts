@@ -218,7 +218,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   };
 
   if (userId) {
-    mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+    mongoFilter.ownerId = { $ne: userId };
   }
 
   const andConditions: any[] = [];
