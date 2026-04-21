@@ -1,47 +1,38 @@
-import { Injectable, OnModuleDestroy } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
+import { getRedis } from "../common/redis/redis.service";
 
 interface RateLimitRecord {
   count: number;
   expiresAt: number;
 }
 
+const CONSUME_RATE_LIMIT_SCRIPT = `
+local current = redis.call("INCR", KEYS[1])
+local ttl = redis.call("PTTL", KEYS[1])
+
+if current == 1 or ttl < 0 then
+  redis.call("PEXPIRE", KEYS[1], ARGV[1])
+  ttl = tonumber(ARGV[1])
+end
+
+return { current, ttl }
+`;
+
 @Injectable()
-export class RequestRateLimitService implements OnModuleDestroy {
-  private readonly records = new Map<string, RateLimitRecord>();
-  private readonly cleanupTimer = setInterval(() => this.cleanupExpired(), 30_000);
+export class RequestRateLimitService {
+  async consume(key: string, windowMs: number): Promise<RateLimitRecord> {
+    const ttlMs = Math.max(1, Math.floor(windowMs));
+    const [count, ttl] = await getRedis().eval<[number], [number, number]>(
+      CONSUME_RATE_LIMIT_SCRIPT,
+      [key],
+      [ttlMs],
+    );
 
-  constructor() {
-    this.cleanupTimer.unref?.();
-  }
+    const remainingTtl = typeof ttl === "number" && ttl > 0 ? ttl : ttlMs;
 
-  async consume(key: string, windowMs: number) {
-    const now = Date.now();
-    const existing = this.records.get(key);
-
-    if (!existing || existing.expiresAt <= now) {
-      const nextRecord = {
-        count: 1,
-        expiresAt: now + windowMs,
-      };
-      this.records.set(key, nextRecord);
-      return nextRecord;
-    }
-
-    existing.count += 1;
-    return existing;
-  }
-
-  onModuleDestroy() {
-    clearInterval(this.cleanupTimer);
-  }
-
-  private cleanupExpired() {
-    const now = Date.now();
-
-    for (const [key, record] of this.records.entries()) {
-      if (record.expiresAt <= now) {
-        this.records.delete(key);
-      }
-    }
+    return {
+      count: Number(count) || 0,
+      expiresAt: Date.now() + remainingTtl,
+    };
   }
 }

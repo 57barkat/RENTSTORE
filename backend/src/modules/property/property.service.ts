@@ -527,7 +527,7 @@ export class PropertyService {
     // 9. Track Impressions (Non-blocking)
     const propertyIds = populatedMainData.map((p: any) => p._id.toString());
     if (propertyIds.length > 0) {
-      this.propertyImpressionTracker.queueImpressions(propertyIds);
+      void this.propertyImpressionTracker.queueImpressions(propertyIds);
     }
 
     // 10. Return formatted response
@@ -828,7 +828,7 @@ export class PropertyService {
       userId && property.owner?._id?.toString() === userId.toString();
     property.chat = !isOwner && !!userId;
 
-    this.propertyViewTracker.queueView(propertyId);
+    void this.propertyViewTracker.queueView(propertyId);
 
     return property;
   }

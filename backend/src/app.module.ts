@@ -1,8 +1,9 @@
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ConfigModule } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
+import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import appConfig from "./config/app.config";
 import dbConfig from "./config/database.config";
 import { validationSchema } from "./config/validation";
@@ -22,16 +23,18 @@ import { ReportsModule } from "./modules/report/reports.module";
 import { EmailModule } from "./services/email/email.module";
 import { AgencyModule } from "./modules/Agency/agency.module";
 import { PaymentModule } from "./services/payment/payment.module";
+import { HealthModule } from "./health/health.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
 import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
 import { RequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
+import { SentryDebugController } from "./sentry/sentry-debug.controller";
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig, dbConfig],
@@ -70,9 +73,15 @@ import { RequestLoggingMiddleware } from "./common/middleware/request-logging.mi
     EmailModule,
     AgencyModule,
     PaymentModule,
+    HealthModule,
     RequestRateLimitModule,
   ],
+  controllers: [SentryDebugController],
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

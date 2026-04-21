@@ -45,8 +45,11 @@ export class RequestRateLimitGuard implements CanActivate {
       return true;
     }
 
-    const windowBucket = Math.floor(Date.now() / policy.windowMs);
+    const now = Date.now();
+    const windowBucket = Math.floor(now / policy.windowMs);
+    const expiresInMs = ((windowBucket + 1) * policy.windowMs) - now;
     const key = [
+      "rate-limit",
       request.method,
       controllerName,
       handlerName,
@@ -57,7 +60,7 @@ export class RequestRateLimitGuard implements CanActivate {
 
     const record = await this.requestRateLimitService.consume(
       key,
-      policy.windowMs,
+      expiresInMs,
     );
 
     if ((record?.count ?? 0) > policy.limit) {

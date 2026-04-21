@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { getRedis } from "../common/redis/redis.service";
 
 type CachedUserAuthSnapshot = {
   id: string;
@@ -7,38 +8,34 @@ type CachedUserAuthSnapshot = {
   isBlocked: boolean;
 };
 
-interface CacheEntry {
-  value: CachedUserAuthSnapshot | null;
-  expiresAt: number;
-}
-
 @Injectable()
 export class AuthUserCacheService {
-  private readonly cache = new Map<string, CacheEntry>();
   private readonly ttlMs = 60_000;
 
-  get(userId: string): CachedUserAuthSnapshot | null | undefined {
-    const entry = this.cache.get(userId);
+  async get(userId: string): Promise<CachedUserAuthSnapshot | null | undefined> {
+    const entry = await getRedis().get<string>(this.getKey(userId));
     if (!entry) {
       return undefined;
     }
 
-    if (entry.expiresAt <= Date.now()) {
-      this.cache.delete(userId);
+    try {
+      return JSON.parse(entry) as CachedUserAuthSnapshot | null;
+    } catch {
       return undefined;
     }
-
-    return entry.value;
   }
 
-  set(userId: string, value: CachedUserAuthSnapshot | null) {
-    this.cache.set(userId, {
-      value,
-      expiresAt: Date.now() + this.ttlMs,
+  async set(userId: string, value: CachedUserAuthSnapshot | null) {
+    await getRedis().set(this.getKey(userId), JSON.stringify(value), {
+      px: this.ttlMs,
     });
   }
 
-  invalidate(userId: string) {
-    this.cache.delete(userId);
+  async invalidate(userId: string) {
+    await getRedis().del(this.getKey(userId));
+  }
+
+  private getKey(userId: string) {
+    return `auth:user-cache:${userId}`;
   }
 }
