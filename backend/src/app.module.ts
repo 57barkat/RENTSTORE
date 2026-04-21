@@ -25,6 +25,7 @@ import { AgencyModule } from "./modules/Agency/agency.module";
 import { PaymentModule } from "./services/payment/payment.module";
 import { HealthModule } from "./health/health.module";
 import { MetricsModule } from "./metrics/metrics.module";
+import { ObservabilityModule } from "./observability/observability.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
@@ -76,6 +77,7 @@ import { SentryDebugController } from "./sentry/sentry-debug.controller";
     PaymentModule,
     HealthModule,
     MetricsModule,
+    ObservabilityModule,
     RequestRateLimitModule,
   ],
   controllers: [SentryDebugController],

@@ -22,6 +22,7 @@ export const PUBLIC_CATEGORY_SEGMENTS = [
 
 export const PROTECTED_ROUTE_PREFIXES = [
   "/dashboard",
+  "/observability",
   "/properties",
   "/reports",
   "/users",

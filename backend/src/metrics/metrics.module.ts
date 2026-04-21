@@ -13,5 +13,6 @@ import { MetricsService } from "./metrics.service";
       useClass: MetricsInterceptor,
     },
   ],
+  exports: [MetricsService],
 })
 export class MetricsModule {}

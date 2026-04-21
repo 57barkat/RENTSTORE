@@ -3,9 +3,9 @@ import { InjectConnection } from "@nestjs/mongoose";
 import { Connection } from "mongoose";
 import { getRedis } from "../common/redis/redis.service";
 
-type DependencyStatus = "ok" | "failed";
+export type DependencyStatus = "ok" | "failed";
 
-type HealthResponse = {
+export type HealthResponse = {
   status: "ok" | "ready" | "not_ready";
   service: "backend";
   checks?: {
@@ -68,6 +68,18 @@ export class HealthService {
         ...(Object.keys(errors).length > 0 ? { errors } : {}),
         timestamp: new Date().toISOString(),
       },
+    };
+  }
+
+  async getHealthDetails() {
+    const liveness = this.getLiveness();
+    const readiness = await this.getReadiness();
+
+    return {
+      liveness,
+      readiness: readiness.body,
+      readinessStatusCode: readiness.statusCode,
+      timestamp: new Date().toISOString(),
     };
   }
 

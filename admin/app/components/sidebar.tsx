@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Activity,
   Home,
   PieChart,
   Users,
@@ -36,6 +37,7 @@ export default function Sidebar({
 
   const menuItems = [
     { icon: <Home size={20} />, label: "Dashboard", path: "/dashboard" },
+    { icon: <Activity size={20} />, label: "Observability", path: "/observability" },
     { icon: <PieChart size={20} />, label: "Properties", path: "/properties" },
     { icon: <Users size={20} />, label: "Users", path: "/users" },
     { icon: <MailWarning size={20} />, label: "Reports", path: "/reports" },
