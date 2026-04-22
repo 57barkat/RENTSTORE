@@ -63,11 +63,6 @@ const requestJson = async <T>(path: string): Promise<T> => {
 
   for (const baseUrl of candidateBaseUrls) {
     try {
-      console.log("[Admin PropertyService] Requesting", {
-        path,
-        baseUrl,
-      });
-
       const response = await fetch(`${baseUrl}${path}`, {
         headers: {
           "Content-Type": "application/json",
@@ -78,12 +73,6 @@ const requestJson = async <T>(path: string): Promise<T> => {
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
-        console.warn("[Admin PropertyService] Non-OK response, trying next base URL", {
-          path,
-          baseUrl,
-          status: response.status,
-          body: body.slice(0, 300),
-        });
         lastError = new Error(
           `Property request failed with status ${response.status} from ${baseUrl}${body ? `: ${body.slice(0, 160)}` : ""}`,
         );
@@ -100,22 +89,8 @@ const requestJson = async <T>(path: string): Promise<T> => {
       }
 
       const json = (await response.json()) as T;
-      console.log("[Admin PropertyService] Response received", {
-        path,
-        baseUrl,
-        keys:
-          json && typeof json === "object"
-            ? Object.keys(json as Record<string, unknown>)
-            : [],
-      });
-
       return json;
     } catch (error) {
-      console.warn("[Admin PropertyService] Request attempt failed", {
-        path,
-        baseUrl,
-        error: error instanceof Error ? error.message : String(error),
-      });
       lastError =
         error instanceof Error
           ? error
@@ -126,11 +101,6 @@ const requestJson = async <T>(path: string): Promise<T> => {
       });
     }
   }
-
-  console.error("[Admin PropertyService] All base URLs failed", {
-    path,
-    attempts: failedAttempts,
-  });
 
   throw (
     lastError ||
@@ -218,25 +188,12 @@ export const PropertyService = {
     propertyId: string,
   ): Promise<UploaderProfileResponse | null> {
     if (!propertyId) {
-      console.warn(
-        "[Admin PropertyService] Missing property id for uploader profile",
-      );
       return null;
     }
 
     try {
-      const profile = await getPropertyUploaderProfileInternal(propertyId);
-      console.log("[Admin PropertyService] Uploader profile resolved", {
-        propertyId,
-        uploaderId: profile?.uploader?._id,
-        listingsCount: profile?.listings?.length ?? 0,
-      });
-      return profile;
-    } catch (error) {
-      console.error("[Admin PropertyService] Failed uploader profile lookup", {
-        propertyId,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      return await getPropertyUploaderProfileInternal(propertyId);
+    } catch {
       return null;
     }
   },

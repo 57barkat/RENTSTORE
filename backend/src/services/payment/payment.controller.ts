@@ -36,6 +36,7 @@ export class PaymentController {
 
     return this.paymentService.createCheckout(userId, body.packageId);
   }
+
   @Public()
   @Get("payment-success")
   async handlePaymentSuccess(
@@ -86,21 +87,18 @@ export class PaymentController {
       if (signature === rawSha512) match = true;
     }
 
-    if (!match) throw new BadRequestException("Signature Mismatch");
+    if (!match) {
+      throw new BadRequestException("Signature Mismatch");
+    }
 
     try {
-      console.log("✅ Webhook Verified. Tracker:", notification?.tracker);
-
       if (notification?.state === "PAID") {
         const trackerId = notification.tracker;
-
         const localPayment =
           await this.paymentService.getInternalPaymentByTracker(trackerId);
 
         if (localPayment && localPayment.status === "pending") {
           const { userId, packageId } = localPayment;
-
-          console.log(`💰 SUCCESS: Granting ${packageId} to User ${userId}`);
 
           await this.userService.handleSuccessfulPayment(
             userId.toString(),
@@ -112,16 +110,11 @@ export class PaymentController {
             userId.toString(),
             `Your payment for ${packageId} was successful!`,
           );
-        } else {
-          console.warn(
-            `⚠️ No pending local record found for tracker: ${trackerId}`,
-          );
         }
       }
 
       return { status: "success" };
-    } catch (err) {
-      console.error("🔥 Webhook processing error:", err);
+    } catch {
       return { status: "error" };
     }
   }
@@ -188,10 +181,6 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @Get("history")
   async getHistory(@Req() req: any) {
-    // 🔍 1. Log the object properly to see the keys (id vs userId)
-    console.log("📊 User object from JWT:", JSON.stringify(req.user));
-
-    // 2. Extract ID (Check both common patterns)
     const userId = req.user?.userId || req.user?.id || req.user?._id;
 
     if (!userId) {

@@ -9,10 +9,14 @@ import React, {
   useCallback,
 } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { tokenManager } from "../services/tokenManager";
+import {
+  SessionClearReason,
+  tokenManager,
+} from "../services/tokenManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { disconnectSocket, connectSocket } from "@/services/socket";
-import { useLazyGetMeQuery } from "@/services/api";
+import { api, useLazyGetMeQuery } from "@/services/api";
+import { store } from "@/services/store";
 import SubscriptionStatusModal from "@/components/SubscriptionStatusModal";
 
 export type UserType = {
@@ -44,6 +48,8 @@ type AuthContextType = {
   loading: boolean;
   login: (response: any) => Promise<void>;
   logout: () => Promise<void>;
+  authExitReason: SessionClearReason | null;
+  clearAuthExitReason: () => void;
   refreshAuthState: () => Promise<void>;
   setVerified: (status: boolean) => Promise<void>;
   updateUser: (newUserData: Partial<UserType>) => Promise<void>;
@@ -64,6 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGuest, setIsGuest] = useState(false);
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authExitReason, setAuthExitReason] =
+    useState<SessionClearReason | null>(null);
   const [statusModal, setStatusModal] = useState({
     visible: false,
     title: "",
@@ -111,6 +119,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       prioritySlotCredits: u.prioritySlotCredits ?? 0,
     };
   };
+
+  const finalizeSignedOutState = useCallback(
+    async (reason: SessionClearReason | null) => {
+      disconnectSocket();
+      store.dispatch(api.util.resetApiState());
+      await AsyncStorage.multiRemove(["userId", "userPhone"]);
+      setUser(null);
+      setIsAuthenticated(false);
+      setIsGuest(true);
+      setIsPhoneVerified(false);
+      setAuthExitReason(reason);
+    },
+    [],
+  );
+
+  const clearAuthExitReason = useCallback(() => {
+    setAuthExitReason(null);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || isGuest || !user?.id) return;
@@ -166,14 +192,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (accessToken) {
         await triggerGetMe().unwrap();
       } else {
+        clearAuthExitReason();
         setIsGuest(true);
         setIsAuthenticated(false);
         setUser(null);
+        setIsPhoneVerified(false);
       }
     } catch (error) {
       console.error(error);
     }
-  }, [triggerGetMe]);
+  }, [clearAuthExitReason, triggerGetMe]);
+
+  useEffect(() => {
+    return tokenManager.subscribeToClears((reason) => {
+      void finalizeSignedOutState(reason);
+    });
+  }, [finalizeSignedOutState]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -186,10 +220,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsAuthenticated(true);
           setIsGuest(false);
           setIsPhoneVerified(storedUser.isPhoneVerified);
+          clearAuthExitReason();
           triggerGetMe();
         } else {
+          clearAuthExitReason();
           setIsGuest(true);
           setIsAuthenticated(false);
+          setIsPhoneVerified(false);
         }
       } catch (e) {
         console.error(e);
@@ -198,7 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     bootstrap();
-  }, [triggerGetMe]);
+  }, [clearAuthExitReason, triggerGetMe]);
 
   const login = async (response: any) => {
     const {
@@ -221,6 +258,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(true);
     setIsGuest(false);
     setIsPhoneVerified(finalUser.isPhoneVerified);
+    clearAuthExitReason();
   };
 
   const updateUser = async (newUserData: Partial<UserType> | any) => {
@@ -236,13 +274,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    disconnectSocket();
-    await tokenManager.clear();
-    await AsyncStorage.removeItem("userId");
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsGuest(true);
-    setIsPhoneVerified(false);
+    await tokenManager.clear("logout", false);
+    await finalizeSignedOutState("logout");
   };
 
   const setVerified = async (status: boolean) => {
@@ -273,6 +306,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loading,
         login,
         logout,
+        authExitReason,
+        clearAuthExitReason,
         refreshAuthState,
         setVerified,
         updateUser,

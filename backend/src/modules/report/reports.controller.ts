@@ -9,6 +9,7 @@ import {
   Patch,
   Param,
   SetMetadata,
+  Query,
 } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { CreateReportDto } from "./dto/create-report.dto";
@@ -32,8 +33,11 @@ export class ReportsController {
 
   @Get()
   @SetMetadata("roles", ["admin"])
-  async getAllReports() {
-    return this.reportsService.getAllReports();
+  async getAllReports(
+    @Query("page") page: string = "1",
+    @Query("limit") limit: string = "20",
+  ) {
+    return this.reportsService.getAllReports(Number(page), Number(limit));
   }
 
   @Patch(":id/status")

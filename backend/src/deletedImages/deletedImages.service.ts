@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { DeletedImage } from "./deletedImage.schema";
@@ -6,6 +6,9 @@ import { CloudinaryService } from "../services/Cloudinary Service/cloudinary.ser
 
 @Injectable()
 export class DeletedImagesService {
+  private readonly logger = new Logger(DeletedImagesService.name);
+  private static readonly CLEANUP_BATCH_SIZE = 50;
+
   constructor(
     @InjectModel(DeletedImage.name)
     private deletedImageModel: Model<DeletedImage>,
@@ -23,18 +26,33 @@ export class DeletedImagesService {
   }
 
   async cleanUpDeletedImages() {
-    const images = await this.deletedImageModel.find({}).lean();
-    if (!images.length) return;
+    while (true) {
+      const images = await this.deletedImageModel
+        .find({})
+        .sort({ createdAt: 1, _id: 1 })
+        .limit(DeletedImagesService.CLEANUP_BATCH_SIZE)
+        .lean();
 
-    await Promise.all(
-      images.map(async (img) => {
+      if (!images.length) {
+        return;
+      }
+
+      for (const image of images) {
         try {
-          await this.cloudinary.deleteFileByUrl(img.url);
-          await this.deletedImageModel.findByIdAndDelete(img._id);
+          await this.cloudinary.deleteFileByUrl(image.url);
+          await this.deletedImageModel.findByIdAndDelete(image._id);
         } catch (error) {
-          console.error(`Failed to delete image ${img.url}:`, error);
+          const message =
+            error instanceof Error ? error.message : "Unknown cleanup failure";
+          this.logger.warn(
+            `Failed to delete queued image ${image.url}: ${message}`,
+          );
         }
-      }),
-    );
+      }
+
+      if (images.length < DeletedImagesService.CLEANUP_BATCH_SIZE) {
+        return;
+      }
+    }
   }
 }

@@ -30,6 +30,14 @@ export interface Report {
   status: "PENDING" | "RESOLVED" | "REJECTED";
 }
 
+export interface ReportsResponse {
+  data: Report[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export default function ReportsScreen({
   initialReports,
 }: {
@@ -44,7 +52,7 @@ export default function ReportsScreen({
     setLoading(true);
     try {
       const res = await ReportsService.getAll();
-      setReports(res.data);
+      setReports(res.data.data);
     } catch {
       toast.error("Failed to load reports");
     } finally {

@@ -22,6 +22,9 @@ export class ChatEvent {
   @Prop()
   targetUserId?: string;
 
+  @Prop({ type: [String], default: undefined })
+  targetUserIds?: string[];
+
   @Prop({ type: Object, required: true })
   payload!: Record<string, any>;
 

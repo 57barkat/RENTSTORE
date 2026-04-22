@@ -13,11 +13,13 @@ import { ChatRealtimeService } from "./chat-realtime.service";
 import { ChatService } from "./chat.service";
 import { createSocketGatewayOptions } from "../common/utils/cors.util";
 import { extractSocketToken } from "../common/utils/socket-auth.util";
+import { Logger } from "@nestjs/common";
 
 @WebSocketGateway(createSocketGatewayOptions())
 export class ChatGateway implements OnGatewayConnection {
   @WebSocketServer()
   server!: Server;
+  private readonly logger = new Logger(ChatGateway.name);
 
   constructor(
     private readonly jwtService: JwtService,
@@ -99,13 +101,17 @@ export class ChatGateway implements OnGatewayConnection {
       participantIds,
     );
 
-    await Promise.all(
-      updatedRooms.map(async (updatedRoom, index) => {
-        const participantId = participantIds[index];
-        this.server.to(participantId).emit("roomUpdated", updatedRoom);
-        await this.chatEventService.publishRoomUpdated(participantId, updatedRoom);
-      }),
-    );
+    const roomUpdatePayloads = updatedRooms.map((updatedRoom, index) => {
+      const participantId = participantIds[index];
+      this.server.to(participantId).emit("roomUpdated", updatedRoom);
+
+      return {
+        targetUserId: participantId,
+        payload: updatedRoom,
+      };
+    });
+
+    await this.chatEventService.publishRoomUpdates(roomUpdatePayloads);
   }
 
   @SubscribeMessage("markAsRead")
@@ -130,8 +136,8 @@ export class ChatGateway implements OnGatewayConnection {
         client.data.userId,
         updatedRoom,
       );
-    } catch (err) {
-      console.error("Mark as read error", err);
+    } catch (error) {
+      this.logger.warn(`Mark as read error: ${String(error)}`);
     }
   }
 }

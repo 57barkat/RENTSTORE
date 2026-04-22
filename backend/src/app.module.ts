@@ -31,7 +31,6 @@ import { RolesGuard } from "./auth/guards/roles.guard";
 import { RequestRateLimitGuard } from "./rate-limit/request-rate-limit.guard";
 import { RequestRateLimitModule } from "./rate-limit/request-rate-limit.module";
 import { RequestLoggingMiddleware } from "./common/middleware/request-logging.middleware";
-import { SentryDebugController } from "./sentry/sentry-debug.controller";
 
 @Module({
   imports: [
@@ -80,7 +79,6 @@ import { SentryDebugController } from "./sentry/sentry-debug.controller";
     ObservabilityModule,
     RequestRateLimitModule,
   ],
-  controllers: [SentryDebugController],
   providers: [
     {
       provide: APP_FILTER,

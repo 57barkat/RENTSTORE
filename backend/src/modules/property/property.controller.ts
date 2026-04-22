@@ -37,6 +37,32 @@ interface PaginationQuery {
   limit?: number;
 }
 
+const PUBLIC_LIST_MAX_LIMIT = 24;
+const OWNER_LIST_MAX_LIMIT = 50;
+const ADMIN_LIST_MAX_LIMIT = 50;
+
+function clampPage(value: number | string | undefined, fallback = 1) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.max(1, Math.floor(parsed));
+}
+
+function clampLimit(
+  value: number | string | undefined,
+  fallback: number,
+  max: number,
+) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(1, Math.floor(parsed)), max);
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller("properties")
 export class PropertyController {
@@ -50,7 +76,6 @@ export class PropertyController {
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
     @Req() req: any,
   ) {
-    console.log("Received createProperty request with DTO:", dto);
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
 
@@ -173,9 +198,8 @@ export class PropertyController {
   @Get()
   @Public()
   async getAll(@Query() query: PaginationQuery) {
-    console.log("Fetching all properties with query:", query);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
+    const page = clampPage(query.page, 1);
+    const limit = clampLimit(query.limit, 10, PUBLIC_LIST_MAX_LIMIT);
     return this.propertyService.findAll(page, limit);
   }
 
@@ -202,14 +226,13 @@ export class PropertyController {
     @Query() query: PaginationQuery,
     @GetUser("userId") userId?: string,
   ) {
-    console.log("Filtering by hostOption:", userId);
     if (!PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
       throw new BadRequestException(
         `Invalid hostOption. Expected one of: ${PROPERTY_HOST_OPTIONS.join(", ")}`,
       );
     }
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
+    const page = clampPage(query.page, 1);
+    const limit = clampLimit(query.limit, 10, PUBLIC_LIST_MAX_LIMIT);
     return this.propertyService.findFiltered(
       page,
       limit,
@@ -284,8 +307,8 @@ export class PropertyController {
     if (!userId) throw new UnauthorizedException("User not authenticated");
     return this.propertyService.findMyProperties(
       userId,
-      Number(page),
-      Number(limit),
+      clampPage(page, 1),
+      clampLimit(limit, 10, OWNER_LIST_MAX_LIMIT),
       sort,
       search,
       city,
@@ -319,7 +342,11 @@ export class PropertyController {
     @Query("limit") limit: number = 10,
   ) {
     const userId = req.user.userId;
-    return this.propertyService.getOwnerDashboard(userId, page, limit);
+    return this.propertyService.getOwnerDashboard(
+      userId,
+      clampPage(page, 1),
+      clampLimit(limit, 10, OWNER_LIST_MAX_LIMIT),
+    );
   }
   @Get("featured")
   async getFeaturedProperties(@Req() req: any) {
@@ -350,7 +377,6 @@ export class PropertyController {
   @Get(":id/uploader-profile")
   @Public()
   async getUploaderProfile(@Param("id") id: string) {
-    console.log("[PropertyController] uploader-profile request", { id });
     return this.propertyService.getPropertyUploaderProfile(id);
   }
 
@@ -422,8 +448,8 @@ export class PropertyController {
       );
     }
     return this.propertyService.findUnapprovedProperties(
-      Number(page),
-      Number(limit),
+      clampPage(page, 1),
+      clampLimit(limit, 10, ADMIN_LIST_MAX_LIMIT),
       hostOption,
     );
   }
@@ -446,12 +472,16 @@ export class PropertyController {
       );
     }
 
-    return this.propertyService.findAdminProperties(Number(page), Number(limit), {
-      hostOption,
-      q,
-      approvalStatus,
-      listingStatus,
-    });
+    return this.propertyService.findAdminProperties(
+      clampPage(page, 1),
+      clampLimit(limit, 10, ADMIN_LIST_MAX_LIMIT),
+      {
+        hostOption,
+        q,
+        approvalStatus,
+        listingStatus,
+      },
+    );
   }
 
   @Patch("admin/approve/:id")

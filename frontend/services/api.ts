@@ -11,10 +11,9 @@ const configuredApiUrl =
 
 export const API_URL = configuredApiUrl.replace(/\/api\/v1\/?$/, "");
 
-export interface AddressSuggestion {
+export interface AreaSuggestion {
   label: string;
-  addressQuery: string;
-  city?: string;
+  area: string;
 }
 
 // export const API_URL =
@@ -40,7 +39,7 @@ let refreshPromise: Promise<void> | null = null;
 const refreshTokens = async (api: any, extraOptions: any) => {
   const refreshToken = tokenManager.getRefreshToken();
   if (!refreshToken) {
-    await tokenManager.clear();
+    await tokenManager.clear("expired");
     return;
   }
 
@@ -58,7 +57,7 @@ const refreshTokens = async (api: any, extraOptions: any) => {
     const { accessToken, refreshToken: newRefresh } = result.data as any;
     await tokenManager.setTokens(accessToken, newRefresh);
   } else {
-    await tokenManager.clear();
+    await tokenManager.clear("expired");
   }
 };
 
@@ -77,7 +76,7 @@ const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
 
   const result = await rawBaseQuery(args, api, extraOptions);
   if (result.error?.status === 401) {
-    await tokenManager.clear();
+    await tokenManager.clear("unauthorized");
   }
   return result;
 };
@@ -339,7 +338,7 @@ export const api = createApi({
         }
       },
     }),
-    getAddressSuggestions: builder.query<AddressSuggestion[], string>({
+    getAddressSuggestions: builder.query<AreaSuggestion[], string>({
       query: (q) => ({
         url: "/api/v1/properties/address-suggestions",
         params: { q },
@@ -446,6 +445,7 @@ export const {
   useClearVoiceSessionMutation,
   useGetNearbyPropertiesQuery,
   useGetAddressSuggestionsQuery,
+  useLazyGetAddressSuggestionsQuery,
   usePropertyReportMutation,
   usePromotePropertyMutation,
   useGetPaymentHistoryQuery,

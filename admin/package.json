@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:smoke": "node --test ./tests/smoke/admin-critical-flows.test.mjs"
   },
   "dependencies": {
     "axios": "^1.13.5",

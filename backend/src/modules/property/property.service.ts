@@ -28,8 +28,12 @@ import { User, UserDocument } from "../user/user.entity";
 import { PropertyImpressionTrackerService } from "./property-impression-tracker.service";
 import { PropertyViewTrackerService } from "./property-view-tracker.service";
 import {
+  buildFlexibleAreaRegex,
+  cleanDisplayValue,
   escapeRegex,
+  formatCanonicalArea,
   normalizeAddressSearch,
+  normalizeAreaSearch,
 } from "../../common/utils/normalize.util";
 
 @Injectable()
@@ -116,7 +120,9 @@ export class PropertyService {
 
           if (existingProperty) {
             if (existingProperty.ownerId.toString() !== userId.toString()) {
-              throw new UnauthorizedException("Not allowed to edit this property");
+              throw new UnauthorizedException(
+                "Not allowed to edit this property",
+              );
             }
 
             if (dto.featured === true && existingProperty.featured !== true) {
@@ -140,13 +146,16 @@ export class PropertyService {
             return;
           }
 
-          const draft = await this.propertyDraftModel.findById(propertyId).session(session);
+          const draft = await this.propertyDraftModel
+            .findById(propertyId)
+            .session(session);
           if (draft) {
             if (draft.ownerId.toString() !== userId.toString()) {
               throw new UnauthorizedException("Not allowed to promote draft");
             }
 
-            const wantsFeatured = dto.featured === true || draft.featured === true;
+            const wantsFeatured =
+              dto.featured === true || draft.featured === true;
             await handleCredits(true, wantsFeatured);
 
             const { _id, ...draftData } = draft.toObject();
@@ -171,7 +180,9 @@ export class PropertyService {
             const property = new this.propertyModel(propertyPayload);
 
             const savedProperty = await property.save({ session });
-            await this.propertyDraftModel.findByIdAndDelete(propertyId).session(session);
+            await this.propertyDraftModel
+              .findByIdAndDelete(propertyId)
+              .session(session);
 
             user.usedPropertyCount = (user.usedPropertyCount || 0) + 1;
             const updatedUser = await user.save({ session });
@@ -190,7 +201,10 @@ export class PropertyService {
           ownerId: userId,
           status: true,
         };
-        Object.assign(propertyPayload, preparePropertySearchFields(propertyPayload));
+        Object.assign(
+          propertyPayload,
+          preparePropertySearchFields(propertyPayload),
+        );
 
         const property = new this.propertyModel(propertyPayload);
 
@@ -222,14 +236,16 @@ export class PropertyService {
   async promoteListing(
     propertyId: string,
     userId: string,
-  type: "boost" | "featured",
+    type: "boost" | "featured",
   ): Promise<{ property: Property; user: any }> {
     const session = await this.connection.startSession();
     let response: { property: Property; user: any } | null = null;
 
     try {
       await session.withTransaction(async () => {
-        const property = await this.propertyModel.findById(propertyId).session(session);
+        const property = await this.propertyModel
+          .findById(propertyId)
+          .session(session);
         if (!property) throw new NotFoundException("Property not found");
 
         if (property.ownerId.toString() !== userId) {
@@ -422,6 +438,10 @@ export class PropertyService {
     userId?: string,
   ): Promise<any> {
     const mongoFilter = buildMongoFilter(filters, userId);
+    console.log(
+      "Constructed Mongo Filter:",
+      JSON.stringify(mongoFilter, null, 2),
+    );
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
@@ -549,27 +569,14 @@ export class PropertyService {
     }
 
     const trimmedQuery = query.trim();
-    const normalizedQuery = normalizeAddressSearch(trimmedQuery);
+    const normalizedQuery = normalizeAreaSearch(trimmedQuery);
     if (!normalizedQuery) {
       return [];
     }
 
-    const prefixRegex = buildNormalizedPrefixRegex(normalizedQuery);
-    const containsRegex = buildNormalizedContainsRegex(normalizedQuery);
-    const readableRegex = new RegExp(escapeRegex(trimmedQuery), "i");
-    const addressConditions: Array<Record<string, any>> = [
-      { addressQuery: readableRegex },
-      { area: readableRegex },
-      { location: readableRegex },
-      { "address.street": readableRegex },
-    ];
-
-    if (prefixRegex) {
-      addressConditions.unshift({ addressQueryNormalized: prefixRegex });
-    }
-
-    if (containsRegex && containsRegex.source !== prefixRegex?.source) {
-      addressConditions.push({ addressQueryNormalized: containsRegex });
+    const flexibleAreaRegex = buildFlexibleAreaRegex(trimmedQuery);
+    if (!flexibleAreaRegex) {
+      return [];
     }
 
     const candidates = await this.propertyModel
@@ -577,34 +584,76 @@ export class PropertyService {
         status: true,
         isApproved: true,
         moderationStatus: "ACTIVE",
-        $or: addressConditions,
+        area: flexibleAreaRegex,
       })
-      .select("addressQuery area location address addressQueryNormalized createdAt")
+      .select("area createdAt")
       .sort({ createdAt: -1 })
-      .limit(Math.max(limit * 4, limit))
+      .limit(Math.max(limit * 8, limit))
       .lean();
+
+    const scoredCandidates = candidates
+      .reduce<
+        Array<{
+          canonicalArea: string;
+          normalizedArea: string;
+          score: number;
+          createdAt: number;
+        }>
+      >((acc, candidate: any) => {
+        const rawArea = cleanDisplayValue(candidate.area);
+        const normalizedArea = normalizeAreaSearch(rawArea);
+
+        if (!rawArea || !normalizedArea) {
+          return acc;
+        }
+
+        const canonicalArea = formatCanonicalArea(rawArea);
+        const score =
+          normalizedArea === normalizedQuery
+            ? 0
+            : normalizedArea.startsWith(normalizedQuery)
+              ? 1
+              : normalizedArea.includes(normalizedQuery)
+                ? 2
+                : 3;
+
+        acc.push({
+          canonicalArea,
+          normalizedArea,
+          score,
+          createdAt: candidate.createdAt?.valueOf?.() ?? 0,
+        });
+
+        return acc;
+      }, [])
+      .sort((left: any, right: any) => {
+        if (left.score !== right.score) {
+          return left.score - right.score;
+        }
+
+        if (left.canonicalArea.length !== right.canonicalArea.length) {
+          return left.canonicalArea.length - right.canonicalArea.length;
+        }
+
+        return right.createdAt - left.createdAt;
+      });
 
     const suggestions: Array<{
       label: string;
-      addressQuery: string;
-      city?: string;
+      area: string;
     }> = [];
     const seen = new Set<string>();
 
-    for (const candidate of candidates) {
-      const addressQuery = buildMinimalAddressQuery(candidate as any);
-      const normalizedAddressQuery = normalizeAddressSearch(addressQuery);
-
-      if (!addressQuery || !normalizedAddressQuery || seen.has(normalizedAddressQuery)) {
+    for (const candidate of scoredCandidates) {
+      if (seen.has(candidate.normalizedArea)) {
         continue;
       }
 
       suggestions.push({
-        label: addressQuery,
-        addressQuery,
-        city: candidate.address?.[0]?.city?.trim() || undefined,
+        label: candidate.canonicalArea,
+        area: candidate.canonicalArea,
       });
-      seen.add(normalizedAddressQuery);
+      seen.add(candidate.normalizedArea);
 
       if (suggestions.length >= limit) {
         break;
@@ -653,13 +702,17 @@ export class PropertyService {
     }
 
     if (filters?.addressQuery?.trim()) {
-      const normalizedAddressQuery = normalizeAddressSearch(filters.addressQuery);
+      const normalizedAddressQuery = normalizeAddressSearch(
+        filters.addressQuery,
+      );
       const readableRegex = {
         $regex: escapeRegex(filters.addressQuery.trim()),
         $options: "i",
       };
+      const flexibleAreaRegex = buildFlexibleAreaRegex(filters.addressQuery);
       const addressConditions: Array<Record<string, any>> = [
         { addressQuery: readableRegex },
+        ...(flexibleAreaRegex ? [{ area: flexibleAreaRegex }] : []),
         { location: readableRegex },
         { area: readableRegex },
         { "address.street": readableRegex },
@@ -695,10 +748,7 @@ export class PropertyService {
       filter.isApproved = false;
     }
 
-    if (
-      filters?.minRent !== undefined ||
-      filters?.maxRent !== undefined
-    ) {
+    if (filters?.minRent !== undefined || filters?.maxRent !== undefined) {
       const rentQuery: Record<string, number> = {};
       if (filters?.minRent !== undefined) {
         rentQuery.$gte = Number(filters.minRent);
@@ -834,10 +884,6 @@ export class PropertyService {
   }
 
   async getPropertyUploaderSummary(propertyId: string) {
-    console.log("[PropertyService] getPropertyUploaderSummary:start", {
-      propertyId,
-    });
-
     if (!Types.ObjectId.isValid(propertyId)) {
       throw new BadRequestException("Invalid property id");
     }
@@ -848,9 +894,6 @@ export class PropertyService {
       .lean();
 
     if (!property?.ownerId) {
-      console.warn("[PropertyService] uploader summary property missing", {
-        propertyId,
-      });
       throw new NotFoundException("Property not found");
     }
 
@@ -884,10 +927,6 @@ export class PropertyService {
     ]);
 
     if (!owner) {
-      console.warn("[PropertyService] uploader summary owner missing", {
-        propertyId,
-        ownerObjectId: ownerObjectId.toString(),
-      });
       throw new NotFoundException("Uploader not found");
     }
 
@@ -933,20 +972,10 @@ export class PropertyService {
       stats,
     };
 
-    console.log("[PropertyService] getPropertyUploaderSummary:done", {
-      propertyId,
-      ownerId: ownerObjectId.toString(),
-      stats,
-    });
-
     return payload;
   }
 
   async getPropertyUploaderProfile(propertyId: string) {
-    console.log("[PropertyService] getPropertyUploaderProfile:start", {
-      propertyId,
-    });
-
     if (!Types.ObjectId.isValid(propertyId)) {
       throw new BadRequestException("Invalid property id");
     }
@@ -957,9 +986,6 @@ export class PropertyService {
       .lean();
 
     if (!property?.ownerId) {
-      console.warn("[PropertyService] uploader profile property missing", {
-        propertyId,
-      });
       throw new NotFoundException("Property not found");
     }
 
@@ -991,13 +1017,6 @@ export class PropertyService {
       ...summary,
       listings,
     };
-
-    console.log("[PropertyService] getPropertyUploaderProfile:done", {
-      propertyId,
-      ownerId: ownerObjectId.toString(),
-      listingsCount: listings.length,
-      uploaderId: summary?.uploader?._id?.toString?.() ?? summary?.uploader?._id,
-    });
 
     return payload;
   }
@@ -1318,10 +1337,12 @@ export class PropertyService {
     if (filters?.q?.trim()) {
       const normalizedQuery = normalizeAddressSearch(filters.q);
       const regex = new RegExp(escapeRegex(filters.q.trim()), "i");
+      const flexibleAreaRegex = buildFlexibleAreaRegex(filters.q);
       const searchConditions: Array<Record<string, any>> = [
         { title: regex },
         { addressQuery: regex },
         { location: regex },
+        ...(flexibleAreaRegex ? [{ area: flexibleAreaRegex }] : []),
         { area: regex },
         { "address.street": regex },
         { "address.city": regex },

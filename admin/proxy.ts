@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { verifyAuthToken } from "@/app/lib/auth-token";
 import { isProtectedRoute } from "@/app/lib/route-constants";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
   const { pathname } = request.nextUrl;
   const reauthRequested = request.nextUrl.searchParams.get("reauth") === "1";

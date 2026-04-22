@@ -25,8 +25,8 @@ import {
 } from "@/utils/homeTabUtils/filterUtils";
 import { getCitySuggestions, pakistaniCities } from "@/utils/cities";
 import {
-  AddressSuggestion,
-  useGetAddressSuggestionsQuery,
+  AreaSuggestion,
+  useLazyGetAddressSuggestionsQuery,
 } from "@/services/api";
 
 interface Props {
@@ -50,11 +50,22 @@ export const FilterModal: React.FC<Props> = ({
   setFilters,
   theme,
 }) => {
+  const normalizeAreaQuery = React.useCallback(
+    (value?: string) => (value || "").toLowerCase().replace(/[\s/-]+/g, ""),
+    [],
+  );
   const [citySuggestions, setCitySuggestions] = React.useState<string[]>([]);
   const [addressInput, setAddressInput] = React.useState(
     filters.addressQuery || "",
   );
+  const [addressSuggestions, setAddressSuggestions] = React.useState<
+    AreaSuggestion[]
+  >([]);
   const [debouncedAddress, setDebouncedAddress] = React.useState("");
+  const addressSuggestionCacheRef = React.useRef(
+    new Map<string, AreaSuggestion[]>(),
+  );
+  const inFlightAddressQueryRef = React.useRef(new Set<string>());
   const showRoomFilters = hostOption !== "hostel";
   const showSizeFilters = hostOption !== "hostel";
   const showFloorFilter = hostOption !== "hostel";
@@ -66,28 +77,94 @@ export const FilterModal: React.FC<Props> = ({
         : "Bedrooms";
 
   React.useEffect(() => {
-    const timer = setTimeout(() => setDebouncedAddress(addressInput), 400);
+    const timer = setTimeout(() => setDebouncedAddress(addressInput), 450);
     return () => clearTimeout(timer);
   }, [addressInput]);
 
   const shouldQueryAddressSuggestions = debouncedAddress.trim().length >= 2;
-
-  const { data: addressSuggestions = [], isFetching: addressLoading } =
-    useGetAddressSuggestionsQuery(debouncedAddress, {
-      skip: !shouldQueryAddressSuggestions,
-    });
+  const [triggerAddressSuggestions, { isFetching: addressLoading }] =
+    useLazyGetAddressSuggestionsQuery();
+  const safeAddressSuggestions = Array.isArray(addressSuggestions)
+    ? addressSuggestions
+    : [];
 
   React.useEffect(() => {
-    if (visible) setAddressInput(filters.addressQuery || "");
-  }, [visible, filters.addressQuery]);
+    if (visible) {
+      const nextInput = filters.addressQuery || "";
+      setAddressInput(nextInput);
+
+      const normalizedInput = normalizeAreaQuery(nextInput);
+      if (!normalizedInput || nextInput.trim().length < 2) {
+        setAddressSuggestions([]);
+        return;
+      }
+
+      const cachedSuggestions =
+        addressSuggestionCacheRef.current.get(normalizedInput);
+      if (cachedSuggestions) {
+        setAddressSuggestions(cachedSuggestions);
+      }
+    }
+  }, [visible, filters.addressQuery, normalizeAreaQuery]);
+
+  React.useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const trimmedQuery = debouncedAddress.trim();
+    const normalizedQuery = normalizeAreaQuery(trimmedQuery);
+
+    if (!shouldQueryAddressSuggestions || !normalizedQuery) {
+      setAddressSuggestions([]);
+      return;
+    }
+
+    const cachedSuggestions =
+      addressSuggestionCacheRef.current.get(normalizedQuery);
+    if (cachedSuggestions) {
+      setAddressSuggestions(cachedSuggestions);
+      return;
+    }
+
+    if (inFlightAddressQueryRef.current.has(normalizedQuery)) {
+      return;
+    }
+
+    inFlightAddressQueryRef.current.add(normalizedQuery);
+
+    triggerAddressSuggestions(trimmedQuery, true)
+      .unwrap()
+      .then((results) => {
+        const safeResults = Array.isArray(results) ? results : [];
+        addressSuggestionCacheRef.current.set(normalizedQuery, safeResults);
+        if (normalizeAreaQuery(debouncedAddress.trim()) === normalizedQuery) {
+          setAddressSuggestions(safeResults);
+        }
+      })
+      .catch(() => {
+        addressSuggestionCacheRef.current.set(normalizedQuery, []);
+        if (normalizeAreaQuery(debouncedAddress.trim()) === normalizedQuery) {
+          setAddressSuggestions([]);
+        }
+      })
+      .finally(() => {
+        inFlightAddressQueryRef.current.delete(normalizedQuery);
+      });
+  }, [
+    debouncedAddress,
+    normalizeAreaQuery,
+    shouldQueryAddressSuggestions,
+    triggerAddressSuggestions,
+    visible,
+  ]);
 
   const handleAddressSuggestionPress = React.useCallback(
-    (suggestion: AddressSuggestion) => {
-      setAddressInput(suggestion.addressQuery);
+    (suggestion: AreaSuggestion) => {
+      setAddressInput(suggestion.area);
       setFilters({
         ...filters,
-        addressQuery: suggestion.addressQuery,
-        city: suggestion.city || filters.city,
+        addressQuery: suggestion.area,
       });
     },
     [filters, setFilters],
@@ -234,12 +311,15 @@ export const FilterModal: React.FC<Props> = ({
               />
               <TextInput
                 style={[styles.cleanInput, { color: theme.text }]}
-                placeholder="Search by address..."
+                placeholder="Search by area..."
                 placeholderTextColor={theme.muted}
                 value={addressInput}
                 onChangeText={(txt) => {
                   setAddressInput(txt);
                   setFilters({ ...filters, addressQuery: txt });
+                  if (txt.trim().length < 2) {
+                    setAddressSuggestions([]);
+                  }
                 }}
               />
               {addressLoading && (
@@ -247,7 +327,7 @@ export const FilterModal: React.FC<Props> = ({
               )}
             </View>
 
-            {(addressSuggestions.length > 0 ||
+            {(safeAddressSuggestions.length > 0 ||
               (shouldQueryAddressSuggestions && !addressLoading)) && (
               <View
                 style={[
@@ -255,13 +335,13 @@ export const FilterModal: React.FC<Props> = ({
                   { backgroundColor: theme.card, borderColor: theme.border },
                 ]}
               >
-                {addressSuggestions.length > 0 ? (
-                  addressSuggestions.map((item, index) => (
+                {safeAddressSuggestions.length > 0 ? (
+                  safeAddressSuggestions.map((item, index) => (
                     <TouchableOpacity
-                      key={`${item.addressQuery}-${item.city || "no-city"}`}
+                      key={item.area}
                       style={[
                         styles.suggestionItem,
-                        index === addressSuggestions.length - 1 && {
+                        index === safeAddressSuggestions.length - 1 && {
                           borderBottomWidth: 0,
                         },
                       ]}
@@ -270,17 +350,6 @@ export const FilterModal: React.FC<Props> = ({
                       <Text style={{ color: theme.text, fontWeight: "600" }}>
                         {item.label}
                       </Text>
-                      {item.city ? (
-                        <Text
-                          style={{
-                            color: theme.muted,
-                            marginTop: 4,
-                            fontSize: 12,
-                          }}
-                        >
-                          {item.city}
-                        </Text>
-                      ) : null}
                     </TouchableOpacity>
                   ))
                 ) : (

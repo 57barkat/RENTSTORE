@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { Provider } from "react-redux";
@@ -33,11 +33,48 @@ const AppContent = () => {
   const [fontsLoaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const { isAuthenticated, isGuest, loading } = useAuth();
+  const {
+    isAuthenticated,
+    isGuest,
+    loading,
+    authExitReason,
+    clearAuthExitReason,
+  } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
+  const currentSegments = segments as string[];
   const [navReady, setNavReady] = useState(false);
+  const previousAuthRef = useRef(false);
+
+  const rootSegment = currentSegments[0] ?? "";
+  const nestedSegment = currentSegments[1] ?? "";
+  const isAuthRoute = ["signin", "signup"].includes(rootSegment);
+  const isProtectedRoute = useMemo(() => {
+    if (
+      [
+        "OwnerDashboard",
+        "ChatListScreen",
+        "favorites",
+        "MyListingsScreen",
+        "upload",
+        "DraftProperties",
+        "TransactionHistory",
+      ].includes(rootSegment)
+    ) {
+      return true;
+    }
+
+    if (rootSegment === "chat") {
+      return true;
+    }
+
+    if (rootSegment === "shop" && nestedSegment === "BuyCredits") {
+      return true;
+    }
+
+    return false;
+  }, [nestedSegment, rootSegment]);
 
   useEffect(() => {
     const setupSystemUI = async () => {
@@ -56,23 +93,55 @@ const AppContent = () => {
 
   useEffect(() => {
     if (!fontsLoaded || loading) return;
-    const segment = segments[0] ?? "";
-    const inAuthGroup = ["(auth)", "signin", "signup"].includes(segment);
+    const wasAuthenticated = previousAuthRef.current;
 
     const timeout = setTimeout(() => {
       if (isAuthenticated) {
-        if (inAuthGroup || segment === "") {
-          router.replace("/homePage");
+        previousAuthRef.current = true;
+        clearAuthExitReason();
+
+        if (isAuthRoute) {
+          setNavReady(false);
+          router.replace("/");
+          return;
         }
-      } else if (isGuest) {
-        if (segment === "") {
-          router.replace("/homePage");
-        }
+
+        setNavReady(true);
+        return;
       }
+
+      previousAuthRef.current = false;
+
+      if (isGuest && isProtectedRoute) {
+        setNavReady(false);
+
+        if (wasAuthenticated || authExitReason) {
+          router.replace("/");
+          return;
+        }
+
+        router.replace("/signin");
+        return;
+      }
+
+      if (!isProtectedRoute && authExitReason) {
+        clearAuthExitReason();
+      }
+
       setNavReady(true);
     }, 1);
     return () => clearTimeout(timeout);
-  }, [fontsLoaded, loading, isAuthenticated, isGuest, segments]);
+  }, [
+    authExitReason,
+    clearAuthExitReason,
+    fontsLoaded,
+    isAuthRoute,
+    isAuthenticated,
+    isGuest,
+    isProtectedRoute,
+    loading,
+    router,
+  ]);
 
   if (!fontsLoaded || loading || !navReady) {
     return (

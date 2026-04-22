@@ -12,6 +12,8 @@ import { UserAccountStatus } from "../user/user.entity";
 
 @Injectable()
 export class ReportsService {
+  private static readonly MAX_REPORT_PAGE_SIZE = 50;
+
   constructor(
     @InjectModel(PropertyReport.name)
     private reportModel: Model<PropertyReport>,
@@ -81,12 +83,34 @@ export class ReportsService {
     return { message: "Report submitted successfully" };
   }
 
-  async getAllReports() {
-    return this.reportModel
-      .find()
-      .populate("propertyId")
-      .populate("reporterId")
-      .exec();
+  async getAllReports(page = 1, limit = 20) {
+    const currentPage = Math.max(1, Number(page) || 1);
+    const pageSize = Math.min(
+      Math.max(1, Number(limit) || 20),
+      ReportsService.MAX_REPORT_PAGE_SIZE,
+    );
+    const skip = (currentPage - 1) * pageSize;
+
+    const [reports, total] = await Promise.all([
+      this.reportModel
+        .find()
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .populate("propertyId")
+        .populate("reporterId", "name email phone role")
+        .lean()
+        .exec(),
+      this.reportModel.countDocuments().exec(),
+    ]);
+
+    return {
+      data: reports,
+      total,
+      page: currentPage,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   async updateReportStatus(reportId: string, status: string) {

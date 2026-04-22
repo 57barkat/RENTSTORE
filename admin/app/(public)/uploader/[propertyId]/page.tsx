@@ -11,17 +11,10 @@ interface UploaderPageProps {
 
 export default async function UploaderPage({ params }: UploaderPageProps) {
   const resolvedParams = await params;
-  console.log("[Admin UploaderPage] Incoming params", resolvedParams);
 
   const profile = await PropertyService.getPropertyUploaderProfileByProperty(
     resolvedParams.propertyId,
   );
-
-  console.log("[Admin UploaderPage] Loaded profile", {
-    propertyId: resolvedParams.propertyId,
-    hasUploader: Boolean(profile?.uploader),
-    listingsCount: profile?.listings?.length ?? 0,
-  });
 
   if (!profile?.uploader) {
     notFound();

@@ -61,7 +61,7 @@ type CachedPayload =
 const WINDOW_MINUTES = 60;
 const CACHE_TTL_MS = 10_000;
 const SNAPSHOT_LIMITATION =
-  "Metrics are derived from the current process's rolling in-memory window and reset on restart.";
+  "Time-bucketed observability metrics are aggregated from shared Redis minute buckets and retained for the recent rolling window.";
 
 @Injectable()
 export class ObservabilityService {
@@ -77,7 +77,8 @@ export class ObservabilityService {
 
   async getSummary(): Promise<SummaryResponse> {
     return this.fromCache("summary", async () => {
-      const summary = this.metricsService.getObservabilitySummary(WINDOW_MINUTES);
+      const summary =
+        await this.metricsService.getObservabilitySummary(WINDOW_MINUTES);
       const health = await this.healthService.getHealthDetails();
 
       return {
@@ -97,7 +98,7 @@ export class ObservabilityService {
 
   async getRequestsOverTime(): Promise<PointsResponse> {
     return this.fromCache("requests-over-time", async () => ({
-      points: this.metricsService.getRequestVolumeSeries(WINDOW_MINUTES),
+      points: await this.metricsService.getRequestVolumeSeries(WINDOW_MINUTES),
       lastUpdated: new Date().toISOString(),
       windowMinutes: WINDOW_MINUTES,
     }));
@@ -105,7 +106,7 @@ export class ObservabilityService {
 
   async getErrorsOverTime(): Promise<PointsResponse> {
     return this.fromCache("errors-over-time", async () => ({
-      points: this.metricsService.getErrorSeries(WINDOW_MINUTES),
+      points: await this.metricsService.getErrorSeries(WINDOW_MINUTES),
       lastUpdated: new Date().toISOString(),
       windowMinutes: WINDOW_MINUTES,
     }));
@@ -113,7 +114,7 @@ export class ObservabilityService {
 
   async getLatencyOverTime(): Promise<PointsResponse> {
     return this.fromCache("latency-over-time", async () => ({
-      points: this.metricsService.getLatencySeries(WINDOW_MINUTES),
+      points: await this.metricsService.getLatencySeries(WINDOW_MINUTES),
       lastUpdated: new Date().toISOString(),
       windowMinutes: WINDOW_MINUTES,
     }));
@@ -121,7 +122,7 @@ export class ObservabilityService {
 
   async getRoutes(): Promise<RoutesResponse> {
     return this.fromCache("routes", async () => ({
-      routes: this.metricsService.getTopRoutes(WINDOW_MINUTES),
+      routes: await this.metricsService.getTopRoutes(WINDOW_MINUTES),
       lastUpdated: new Date().toISOString(),
       windowMinutes: WINDOW_MINUTES,
       limitation: SNAPSHOT_LIMITATION,

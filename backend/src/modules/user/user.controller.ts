@@ -51,7 +51,7 @@ export class UserController {
       body.emailOrPhone,
       body.password,
     );
-
+    console.log("User logged in:", user.email);
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

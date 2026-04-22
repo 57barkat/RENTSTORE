@@ -12,7 +12,11 @@ export class AuthService {
   ) {}
 
   async loginWithPassword(emailOrPhone: string, password: string) {
-    const normalizedIdentifier = emailOrPhone.toLowerCase().trim();
+    const trimmedIdentifier = emailOrPhone.trim();
+    const isEmailLogin = trimmedIdentifier.includes("@");
+    const normalizedIdentifier = isEmailLogin
+      ? trimmedIdentifier.toLowerCase()
+      : trimmedIdentifier;
 
     const user = await this.userService.validatePassword(
       normalizedIdentifier,
@@ -27,7 +31,7 @@ export class AuthService {
       );
     }
 
-    if (!user.isEmailVerified) {
+    if (isEmailLogin && !user.isEmailVerified) {
       await this.userService.sendEmailVerificationCode(normalizedIdentifier);
       throw new UnauthorizedException("VERIFY_EMAIL_REQUIRED");
     }

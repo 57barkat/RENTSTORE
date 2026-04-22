@@ -52,6 +52,24 @@ export class ChatEventService implements OnModuleInit, OnModuleDestroy {
             event.payload,
           );
         }
+
+        if (
+          event.type === ChatEventType.ROOM_UPDATED &&
+          Array.isArray(event.targetUserIds)
+        ) {
+          const payloadByUserId =
+            event.payload?.payloadByUserId &&
+            typeof event.payload.payloadByUserId === "object"
+              ? event.payload.payloadByUserId
+              : {};
+
+          for (const targetUserId of event.targetUserIds) {
+            const payload = payloadByUserId[targetUserId];
+            if (payload) {
+              this.chatRealtime.emitToUser(targetUserId, "roomUpdated", payload);
+            }
+          }
+        }
       });
 
       this.changeStream.on("error", (error) => {
@@ -85,6 +103,23 @@ export class ChatEventService implements OnModuleInit, OnModuleDestroy {
       originInstanceId: this.instanceId,
       targetUserId,
       payload,
+    });
+  }
+
+  async publishRoomUpdates(
+    payloads: Array<{ targetUserId: string; payload: Record<string, any> }>,
+  ) {
+    if (!this.eventBusEnabled || payloads.length === 0) return;
+
+    await this.chatEventModel.create({
+      type: ChatEventType.ROOM_UPDATED,
+      originInstanceId: this.instanceId,
+      targetUserIds: payloads.map((entry) => entry.targetUserId),
+      payload: {
+        payloadByUserId: Object.fromEntries(
+          payloads.map((entry) => [entry.targetUserId, entry.payload]),
+        ),
+      },
     });
   }
 }

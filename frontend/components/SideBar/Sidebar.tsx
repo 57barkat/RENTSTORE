@@ -144,7 +144,11 @@ const Sidebar: React.FC = () => {
       setTheme("light");
       close();
       await logout();
-      router.replace("/signin");
+      Toast.show({
+        type: "success",
+        text1: "You have been logged out",
+      });
+      router.replace("/");
     }
   };
 

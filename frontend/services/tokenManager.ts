@@ -5,6 +5,11 @@ const ACCESS_TOKEN_KEY = "ACCESS_TOKEN";
 const REFRESH_TOKEN_KEY = "REFRESH_TOKEN";
 const PHONE_VERIFIED_KEY = "IS_PHONE_VERIFIED";
 const USER_DATA_KEY = "USER_DATA";
+export type SessionClearReason =
+  | "logout"
+  | "expired"
+  | "unauthorized"
+  | "unknown";
 const SECURE_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
 };
@@ -15,6 +20,7 @@ class TokenManager {
   private userData: any | null = null;
   private loaded = false;
   private secureStoreAvailable: boolean | null = null;
+  private clearListeners = new Set<(reason: SessionClearReason) => void>();
 
   private async canUseSecureStore(): Promise<boolean> {
     if (this.secureStoreAvailable !== null) {
@@ -146,7 +152,22 @@ class TokenManager {
     return this.refreshToken;
   }
 
-  async clear(): Promise<void> {
+  subscribeToClears(listener: (reason: SessionClearReason) => void) {
+    this.clearListeners.add(listener);
+
+    return () => {
+      this.clearListeners.delete(listener);
+    };
+  }
+
+  private notifyCleared(reason: SessionClearReason) {
+    this.clearListeners.forEach((listener) => listener(reason));
+  }
+
+  async clear(
+    reason: SessionClearReason = "unknown",
+    notify = true,
+  ): Promise<void> {
     this.accessToken = null;
     this.refreshToken = null;
     this.userData = null;
@@ -165,6 +186,10 @@ class TokenManager {
       ]);
     } catch (error) {
       // console.warn("TokenManager clear failed:", error);
+    } finally {
+      if (notify) {
+        this.notifyCleared(reason);
+      }
     }
   }
 

@@ -1,5 +1,7 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
+import { Interval } from "@nestjs/schedule";
 import { Counter, Histogram, Registry } from "prom-client";
+import { getRedis } from "../common/redis/redis.service";
 
 type HttpMetricLabelName = "method" | "route" | "status";
 
@@ -11,7 +13,7 @@ type HttpMetricLabels = {
 
 type LatencyAccumulator = {
   count: number;
-  sumSeconds: number;
+  sumMilliseconds: number;
   bucketCounts: number[];
 };
 
@@ -55,28 +57,33 @@ export type ObservabilitySummary = {
   lastUpdated: string;
 };
 
+type RedisHash = Record<string, string | number>;
+
 const BUCKET_DURATION_MS = 60_000;
+const FLUSH_INTERVAL_MS = 5_000;
 const RETENTION_WINDOW_MINUTES = 60;
-const MAX_BUCKETS = RETENTION_WINDOW_MINUTES + 2;
-const LATENCY_BUCKET_UPPER_BOUNDS_SECONDS = [
-  0.005,
-  0.01,
-  0.025,
-  0.05,
-  0.1,
-  0.25,
-  0.5,
-  1,
-  2,
+const OBSERVABILITY_TTL_SECONDS = (RETENTION_WINDOW_MINUTES + 10) * 60;
+const LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS = [
   5,
+  10,
+  25,
+  50,
+  100,
+  250,
+  500,
+  1000,
+  2000,
+  5000,
   Number.POSITIVE_INFINITY,
 ];
 
 @Injectable()
 export class MetricsService {
+  private readonly logger = new Logger(MetricsService.name);
   private readonly registry = new Registry();
-  private readonly snapshots = new Map<number, BucketSnapshot>();
-  private lastCleanupAt = 0;
+  private readonly pendingSnapshots = new Map<number, BucketSnapshot>();
+  private flushInProgress = false;
+  private lastFlushFailureLogAt = 0;
 
   private readonly httpRequestsTotal = new Counter<HttpMetricLabelName>({
     name: "http_requests_total",
@@ -90,14 +97,16 @@ export class MetricsService {
       name: "http_request_duration_seconds",
       help: "HTTP request duration in seconds",
       labelNames: ["method", "route", "status"],
-      buckets: LATENCY_BUCKET_UPPER_BOUNDS_SECONDS.filter(Number.isFinite),
+      buckets: LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS
+        .filter(Number.isFinite)
+        .map((value) => value / 1000),
       registers: [this.registry],
     });
 
   recordHttpRequest(labels: HttpMetricLabels, durationSeconds: number) {
     this.httpRequestsTotal.inc(labels);
     this.httpRequestDurationSeconds.observe(labels, durationSeconds);
-    this.recordSnapshot(labels, durationSeconds);
+    this.recordPendingSnapshot(labels, durationSeconds);
   }
 
   getContentType() {
@@ -108,35 +117,49 @@ export class MetricsService {
     return this.registry.metrics();
   }
 
-  getObservabilitySummary(windowMinutes = RETENTION_WINDOW_MINUTES): ObservabilitySummary {
-    const aggregate = this.aggregateWindow(windowMinutes);
+  async getObservabilitySummary(
+    windowMinutes = RETENTION_WINDOW_MINUTES,
+  ): Promise<ObservabilitySummary> {
+    const aggregate = await this.aggregateWindow(windowMinutes);
 
     return {
       windowMinutes,
       totalRequests: aggregate.requests,
       total5xxErrors: aggregate.errors5xx,
-      averageLatencyMs: this.toLatencyMs(aggregate.latency.sumSeconds, aggregate.latency.count),
+      averageLatencyMs: this.toLatencyMs(
+        aggregate.latency.sumMilliseconds,
+        aggregate.latency.count,
+      ),
       p95LatencyMs: this.computeApproximateP95Ms(aggregate.latency.bucketCounts),
       lastUpdated: new Date().toISOString(),
     };
   }
 
-  getRequestVolumeSeries(windowMinutes = RETENTION_WINDOW_MINUTES): ObservabilityPoint[] {
+  async getRequestVolumeSeries(
+    windowMinutes = RETENTION_WINDOW_MINUTES,
+  ): Promise<ObservabilityPoint[]> {
     return this.buildTimeSeries(windowMinutes, (bucket) => ({
       value: bucket?.requests ?? 0,
     }));
   }
 
-  getErrorSeries(windowMinutes = RETENTION_WINDOW_MINUTES): ObservabilityPoint[] {
+  async getErrorSeries(
+    windowMinutes = RETENTION_WINDOW_MINUTES,
+  ): Promise<ObservabilityPoint[]> {
     return this.buildTimeSeries(windowMinutes, (bucket) => ({
       value: bucket?.errors5xx ?? 0,
     }));
   }
 
-  getLatencySeries(windowMinutes = RETENTION_WINDOW_MINUTES): ObservabilityPoint[] {
+  async getLatencySeries(
+    windowMinutes = RETENTION_WINDOW_MINUTES,
+  ): Promise<ObservabilityPoint[]> {
     return this.buildTimeSeries(windowMinutes, (bucket) => ({
       avgLatencyMs: bucket
-        ? this.toLatencyMs(bucket.latency.sumSeconds, bucket.latency.count)
+        ? this.toLatencyMs(
+            bucket.latency.sumMilliseconds,
+            bucket.latency.count,
+          )
         : 0,
       p95LatencyMs: bucket
         ? this.computeApproximateP95Ms(bucket.latency.bucketCounts)
@@ -144,8 +167,11 @@ export class MetricsService {
     }));
   }
 
-  getTopRoutes(windowMinutes = RETENTION_WINDOW_MINUTES, limit = 15): ObservabilityRouteStats[] {
-    const aggregate = this.aggregateWindow(windowMinutes);
+  async getTopRoutes(
+    windowMinutes = RETENTION_WINDOW_MINUTES,
+    limit = 15,
+  ): Promise<ObservabilityRouteStats[]> {
+    const aggregate = await this.aggregateWindow(windowMinutes);
 
     return Array.from(aggregate.routes.values())
       .map((route) => ({
@@ -153,7 +179,7 @@ export class MetricsService {
         route: route.route,
         requestCount: route.requests,
         errorCount: route.errors5xx,
-        avgLatencyMs: this.toLatencyMs(route.sumSeconds, route.count),
+        avgLatencyMs: this.toLatencyMs(route.sumMilliseconds, route.count),
         p95LatencyMs: this.computeApproximateP95Ms(route.bucketCounts),
       }))
       .sort((left, right) => {
@@ -170,19 +196,102 @@ export class MetricsService {
       .slice(0, limit);
   }
 
-  private recordSnapshot(labels: HttpMetricLabels, durationSeconds: number) {
-    this.cleanupSnapshotsIfNeeded();
+  @Interval(FLUSH_INTERVAL_MS)
+  async flushPendingSnapshots() {
+    if (this.flushInProgress || this.pendingSnapshots.size === 0) {
+      return;
+    }
 
+    const batch = this.drainPendingSnapshots();
+    if (batch.size === 0) {
+      return;
+    }
+
+    this.flushInProgress = true;
+
+    try {
+      const redis = getRedis();
+      const pipeline = redis.pipeline();
+
+      for (const snapshot of batch.values()) {
+        const globalKey = this.getBucketKey(snapshot.bucketStart);
+        const routeKey = this.getRouteBucketKey(snapshot.bucketStart);
+
+        pipeline.hincrby(globalKey, "requests", snapshot.requests);
+        pipeline.hincrbyfloat(
+          globalKey,
+          "latencySumMilliseconds",
+          snapshot.latency.sumMilliseconds,
+        );
+        pipeline.hincrby(globalKey, "errors5xx", snapshot.errors5xx);
+        snapshot.latency.bucketCounts.forEach((count, index) => {
+          if (count > 0) {
+            pipeline.hincrby(globalKey, `bucket:${index}`, count);
+          }
+        });
+        pipeline.expire(globalKey, OBSERVABILITY_TTL_SECONDS);
+
+        for (const route of snapshot.routes.values()) {
+          const routeKeyPrefix = `${route.method}|${route.route}`;
+
+          pipeline.hincrby(routeKey, `${routeKeyPrefix}|requests`, route.requests);
+          pipeline.hincrbyfloat(
+            routeKey,
+            `${routeKeyPrefix}|latencySumMilliseconds`,
+            route.sumMilliseconds,
+          );
+          pipeline.hincrby(
+            routeKey,
+            `${routeKeyPrefix}|errors5xx`,
+            route.errors5xx,
+          );
+          route.bucketCounts.forEach((count, index) => {
+            if (count > 0) {
+              pipeline.hincrby(
+                routeKey,
+                `${routeKeyPrefix}|bucket:${index}`,
+                count,
+              );
+            }
+          });
+        }
+
+        pipeline.expire(routeKey, OBSERVABILITY_TTL_SECONDS);
+      }
+
+      await pipeline.exec();
+    } catch (error) {
+      this.mergePendingSnapshots(batch);
+
+      const now = Date.now();
+      if (now - this.lastFlushFailureLogAt >= BUCKET_DURATION_MS) {
+        this.lastFlushFailureLogAt = now;
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unknown observability Redis flush failure";
+        this.logger.warn(`Failed to flush observability metrics: ${message}`);
+      }
+    } finally {
+      this.flushInProgress = false;
+    }
+  }
+
+  private recordPendingSnapshot(
+    labels: HttpMetricLabels,
+    durationSeconds: number,
+  ) {
     const now = Date.now();
     const bucketStart = Math.floor(now / BUCKET_DURATION_MS) * BUCKET_DURATION_MS;
-    const snapshot = this.getOrCreateSnapshot(bucketStart);
+    const durationMilliseconds = Math.max(0, Math.round(durationSeconds * 1000));
+    const snapshot = this.getOrCreatePendingSnapshot(bucketStart);
     const isServerError = this.is5xx(labels.status);
 
     snapshot.requests += 1;
     if (isServerError) {
       snapshot.errors5xx += 1;
     }
-    this.addLatencyMeasurement(snapshot.latency, durationSeconds);
+    this.addLatencyMeasurement(snapshot.latency, durationMilliseconds);
 
     const routeKey = `${labels.method} ${labels.route}`;
     const routeAggregate =
@@ -193,28 +302,69 @@ export class MetricsService {
     if (isServerError) {
       routeAggregate.errors5xx += 1;
     }
-    this.addLatencyMeasurement(routeAggregate, durationSeconds);
+    this.addLatencyMeasurement(routeAggregate, durationMilliseconds);
 
     snapshot.routes.set(routeKey, routeAggregate);
   }
 
-  private aggregateWindow(windowMinutes: number) {
-    const cutoff = Date.now() - windowMinutes * BUCKET_DURATION_MS;
+  private getOrCreatePendingSnapshot(bucketStart: number) {
+    const existing = this.pendingSnapshots.get(bucketStart);
+
+    if (existing) {
+      return existing;
+    }
+
+    const created: BucketSnapshot = {
+      bucketStart,
+      requests: 0,
+      errors5xx: 0,
+      latency: this.createLatencyAccumulator(),
+      routes: new Map(),
+    };
+
+    this.pendingSnapshots.set(bucketStart, created);
+    return created;
+  }
+
+  private drainPendingSnapshots() {
+    const drained = new Map(this.pendingSnapshots);
+    this.pendingSnapshots.clear();
+    return drained;
+  }
+
+  private mergePendingSnapshots(snapshots: Map<number, BucketSnapshot>) {
+    for (const snapshot of snapshots.values()) {
+      const target = this.getOrCreatePendingSnapshot(snapshot.bucketStart);
+      target.requests += snapshot.requests;
+      target.errors5xx += snapshot.errors5xx;
+      this.mergeLatencyAccumulator(target.latency, snapshot.latency);
+
+      for (const [routeKey, route] of snapshot.routes.entries()) {
+        const existing =
+          target.routes.get(routeKey) ||
+          this.createRouteAggregate(route.method, route.route);
+
+        existing.requests += route.requests;
+        existing.errors5xx += route.errors5xx;
+        this.mergeLatencyAccumulator(existing, route);
+        target.routes.set(routeKey, existing);
+      }
+    }
+  }
+
+  private async aggregateWindow(windowMinutes: number) {
+    const buckets = await this.loadWindowBuckets(windowMinutes);
     const aggregateLatency = this.createLatencyAccumulator();
     const routeAggregates = new Map<string, RouteAggregate>();
     let requests = 0;
     let errors5xx = 0;
 
-    for (const snapshot of this.snapshots.values()) {
-      if (snapshot.bucketStart < cutoff) {
-        continue;
-      }
+    for (const bucket of buckets) {
+      requests += bucket.requests;
+      errors5xx += bucket.errors5xx;
+      this.mergeLatencyAccumulator(aggregateLatency, bucket.latency);
 
-      requests += snapshot.requests;
-      errors5xx += snapshot.errors5xx;
-      this.mergeLatencyAccumulator(aggregateLatency, snapshot.latency);
-
-      for (const [routeKey, route] of snapshot.routes.entries()) {
+      for (const [routeKey, route] of bucket.routes.entries()) {
         const existing =
           routeAggregates.get(routeKey) ||
           this.createRouteAggregate(route.method, route.route);
@@ -234,17 +384,21 @@ export class MetricsService {
     };
   }
 
-  private buildTimeSeries(
+  private async buildTimeSeries(
     windowMinutes: number,
     project: (bucket: BucketSnapshot | undefined) => Omit<ObservabilityPoint, "timestamp">,
-  ): ObservabilityPoint[] {
+  ): Promise<ObservabilityPoint[]> {
+    const buckets = await this.loadWindowBuckets(windowMinutes);
+    const bucketMap = new Map(
+      buckets.map((bucket) => [bucket.bucketStart, bucket] as const),
+    );
     const now = Date.now();
     const currentBucketStart = Math.floor(now / BUCKET_DURATION_MS) * BUCKET_DURATION_MS;
     const points: ObservabilityPoint[] = [];
 
     for (let index = windowMinutes - 1; index >= 0; index -= 1) {
       const bucketStart = currentBucketStart - index * BUCKET_DURATION_MS;
-      const bucket = this.snapshots.get(bucketStart);
+      const bucket = bucketMap.get(bucketStart);
 
       points.push({
         timestamp: new Date(bucketStart).toISOString(),
@@ -255,47 +409,136 @@ export class MetricsService {
     return points;
   }
 
-  private getOrCreateSnapshot(bucketStart: number): BucketSnapshot {
-    const existing = this.snapshots.get(bucketStart);
-
-    if (existing) {
-      return existing;
+  private async loadWindowBuckets(windowMinutes: number) {
+    const bucketStarts = this.getWindowBucketStarts(windowMinutes);
+    if (bucketStarts.length === 0) {
+      return [];
     }
 
-    const created: BucketSnapshot = {
-      bucketStart,
-      requests: 0,
-      errors5xx: 0,
-      latency: this.createLatencyAccumulator(),
-      routes: new Map(),
-    };
+    const redis = getRedis();
+    const pipeline = redis.pipeline();
 
-    this.snapshots.set(bucketStart, created);
-    return created;
+    for (const bucketStart of bucketStarts) {
+      pipeline.hgetall<RedisHash>(this.getBucketKey(bucketStart));
+      pipeline.hgetall<RedisHash>(this.getRouteBucketKey(bucketStart));
+    }
+
+    const results = (await pipeline.exec()) as Array<RedisHash | null>;
+    const buckets: BucketSnapshot[] = [];
+
+    for (let index = 0; index < bucketStarts.length; index += 1) {
+      const bucketStart = bucketStarts[index];
+      const globalHash = results[index * 2];
+      const routeHash = results[index * 2 + 1];
+
+      buckets.push(
+        this.parseBucketSnapshot(bucketStart, globalHash ?? {}, routeHash ?? {}),
+      );
+    }
+
+    return buckets;
   }
 
-  private cleanupSnapshotsIfNeeded() {
-    const now = Date.now();
+  private parseBucketSnapshot(
+    bucketStart: number,
+    globalHash: RedisHash,
+    routeHash: RedisHash,
+  ): BucketSnapshot {
+    const latency = this.createLatencyAccumulator();
+    const routes = new Map<string, RouteAggregate>();
 
-    if (now - this.lastCleanupAt < BUCKET_DURATION_MS) {
-      return;
-    }
+    latency.count = this.toNumber(globalHash.requests);
+    latency.sumMilliseconds = this.toNumber(globalHash.latencySumMilliseconds);
+    latency.bucketCounts = LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS.map(
+      (_, index) => this.toNumber(globalHash[`bucket:${index}`]),
+    );
 
-    this.lastCleanupAt = now;
-    const cutoff = now - MAX_BUCKETS * BUCKET_DURATION_MS;
+    for (const [field, rawValue] of Object.entries(routeHash)) {
+      const parsed = this.parseRouteField(field);
 
-    for (const bucketStart of this.snapshots.keys()) {
-      if (bucketStart < cutoff) {
-        this.snapshots.delete(bucketStart);
+      if (!parsed) {
+        continue;
       }
+
+      const aggregate =
+        routes.get(parsed.routeKey) ||
+        this.createRouteAggregate(parsed.method, parsed.route);
+      const value = this.toNumber(rawValue);
+
+      if (parsed.metric === "requests") {
+        aggregate.requests = value;
+        aggregate.count = value;
+      } else if (parsed.metric === "errors5xx") {
+        aggregate.errors5xx = value;
+      } else if (parsed.metric === "latencySumMilliseconds") {
+        aggregate.sumMilliseconds = value;
+      } else if (parsed.metric.startsWith("bucket:")) {
+        const bucketIndex = Number(parsed.metric.split(":")[1]);
+        if (
+          Number.isInteger(bucketIndex) &&
+          bucketIndex >= 0 &&
+          bucketIndex < aggregate.bucketCounts.length
+        ) {
+          aggregate.bucketCounts[bucketIndex] = value;
+        }
+      }
+
+      routes.set(parsed.routeKey, aggregate);
     }
+
+    return {
+      bucketStart,
+      requests: this.toNumber(globalHash.requests),
+      errors5xx: this.toNumber(globalHash.errors5xx),
+      latency,
+      routes,
+    };
+  }
+
+  private parseRouteField(field: string) {
+    const firstSeparator = field.indexOf("|");
+    const lastSeparator = field.lastIndexOf("|");
+
+    if (firstSeparator <= 0 || lastSeparator <= firstSeparator) {
+      return null;
+    }
+
+    const method = field.slice(0, firstSeparator);
+    const route = field.slice(firstSeparator + 1, lastSeparator);
+    const metric = field.slice(lastSeparator + 1);
+
+    return {
+      method,
+      route,
+      metric,
+      routeKey: `${method} ${route}`,
+    };
+  }
+
+  private getWindowBucketStarts(windowMinutes: number) {
+    const count = Math.max(1, Math.min(windowMinutes, RETENTION_WINDOW_MINUTES));
+    const currentBucketStart =
+      Math.floor(Date.now() / BUCKET_DURATION_MS) * BUCKET_DURATION_MS;
+
+    return Array.from({ length: count }, (_, index) => {
+      const reverseIndex = count - 1 - index;
+      return currentBucketStart - reverseIndex * BUCKET_DURATION_MS;
+    });
+  }
+
+  private getBucketKey(bucketStart: number) {
+    return `observability:http:bucket:${bucketStart}`;
+  }
+
+  private getRouteBucketKey(bucketStart: number) {
+    return `observability:http:routes:${bucketStart}`;
   }
 
   private createLatencyAccumulator(): LatencyAccumulator {
     return {
       count: 0,
-      sumSeconds: 0,
-      bucketCounts: LATENCY_BUCKET_UPPER_BOUNDS_SECONDS.map(() => 0),
+      sumMilliseconds: 0,
+      bucketCounts: LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS.map(() => 0),
     };
   }
 
@@ -309,10 +552,13 @@ export class MetricsService {
     };
   }
 
-  private addLatencyMeasurement(accumulator: LatencyAccumulator, durationSeconds: number) {
+  private addLatencyMeasurement(
+    accumulator: LatencyAccumulator,
+    durationMilliseconds: number,
+  ) {
     accumulator.count += 1;
-    accumulator.sumSeconds += durationSeconds;
-    accumulator.bucketCounts[this.findLatencyBucketIndex(durationSeconds)] += 1;
+    accumulator.sumMilliseconds += durationMilliseconds;
+    accumulator.bucketCounts[this.findLatencyBucketIndex(durationMilliseconds)] += 1;
   }
 
   private mergeLatencyAccumulator(
@@ -320,18 +566,18 @@ export class MetricsService {
     source: LatencyAccumulator,
   ) {
     target.count += source.count;
-    target.sumSeconds += source.sumSeconds;
+    target.sumMilliseconds += source.sumMilliseconds;
     source.bucketCounts.forEach((count, index) => {
       target.bucketCounts[index] += count;
     });
   }
 
-  private findLatencyBucketIndex(durationSeconds: number) {
-    const index = LATENCY_BUCKET_UPPER_BOUNDS_SECONDS.findIndex(
-      (upperBound) => durationSeconds <= upperBound,
+  private findLatencyBucketIndex(durationMilliseconds: number) {
+    const index = LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS.findIndex(
+      (upperBound) => durationMilliseconds <= upperBound,
     );
 
-    return index >= 0 ? index : LATENCY_BUCKET_UPPER_BOUNDS_SECONDS.length - 1;
+    return index >= 0 ? index : LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS.length - 1;
   }
 
   private computeApproximateP95Ms(bucketCounts: number[]) {
@@ -348,20 +594,33 @@ export class MetricsService {
       runningTotal += bucketCounts[index];
 
       if (runningTotal >= threshold) {
-        const upperBound = LATENCY_BUCKET_UPPER_BOUNDS_SECONDS[index];
-        return Number.isFinite(upperBound) ? Number((upperBound * 1000).toFixed(2)) : null;
+        const upperBound = LATENCY_BUCKET_UPPER_BOUNDS_MILLISECONDS[index];
+        return Number.isFinite(upperBound) ? Number(upperBound.toFixed(2)) : null;
       }
     }
 
     return null;
   }
 
-  private toLatencyMs(sumSeconds: number, count: number) {
+  private toLatencyMs(sumMilliseconds: number, count: number) {
     if (count === 0) {
       return 0;
     }
 
-    return Number(((sumSeconds / count) * 1000).toFixed(2));
+    return Number((sumMilliseconds / count).toFixed(2));
+  }
+
+  private toNumber(value: string | number | undefined) {
+    if (typeof value === "number") {
+      return value;
+    }
+
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    return 0;
   }
 
   private is5xx(status: string) {

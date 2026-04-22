@@ -7,6 +7,7 @@ import {
   useEffect,
 } from "react";
 
+import { useAuth } from "@/contextStore/AuthContext";
 import { useGetUserFavoritesQuery } from "@/services/api";
 import { useGetRoomsQuery } from "@/hooks/chat";
 
@@ -32,17 +33,24 @@ export function LengthProvider({ children }: { children: ReactNode }) {
   const [fav, setFav] = useState(0);
   const [upload, setUpload] = useState(0);
   const [unread, setUnread] = useState(0);
+  const { isAuthenticated } = useAuth();
 
-  const { data: favorites } = useGetUserFavoritesQuery(null);
+  const { data: favorites } = useGetUserFavoritesQuery(null, {
+    skip: !isAuthenticated,
+  });
 
-  const { data: rooms } = useGetRoomsQuery();
+  const { data: rooms } = useGetRoomsQuery(undefined, {
+    skip: !isAuthenticated,
+  });
 
   useEffect(() => {
     if (Array.isArray(favorites)) {
       const validFavorites = favorites.filter((f) => f.property != null);
       setFav(validFavorites.length);
+    } else if (!isAuthenticated) {
+      setFav(0);
     }
-  }, [favorites]);
+  }, [favorites, isAuthenticated]);
 
   useEffect(() => {
     if (Array.isArray(rooms)) {
@@ -52,8 +60,10 @@ export function LengthProvider({ children }: { children: ReactNode }) {
       );
 
       setUnread(totalUnread);
+    } else if (!isAuthenticated) {
+      setUnread(0);
     }
-  }, [rooms]);
+  }, [rooms, isAuthenticated]);
 
   const value = useMemo(
     () => ({

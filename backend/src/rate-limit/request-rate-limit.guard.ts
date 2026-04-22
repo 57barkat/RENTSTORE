@@ -12,12 +12,6 @@ import {
   RateLimitPolicy,
 } from "../common/decorators/rate-limit.decorator";
 
-const DEFAULT_POLICY: RateLimitPolicy = {
-  limit: 300,
-  windowMs: 60_000,
-  scope: "userOrIp",
-};
-
 @Injectable()
 export class RequestRateLimitGuard implements CanActivate {
   constructor(
@@ -31,11 +25,14 @@ export class RequestRateLimitGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const policy =
-      this.reflector.getAllAndOverride<RateLimitPolicy>(RATE_LIMIT_METADATA, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? DEFAULT_POLICY;
+    const policy = this.reflector.getAllAndOverride<RateLimitPolicy | undefined>(
+      RATE_LIMIT_METADATA,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (!policy) {
+      return true;
+    }
 
     const controllerName = context.getClass().name;
     const handlerName = context.getHandler().name;

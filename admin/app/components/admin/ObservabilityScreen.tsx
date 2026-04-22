@@ -270,7 +270,7 @@ export default function ObservabilityScreen({
   useEffect(() => {
     const interval = window.setInterval(() => {
       void refresh(true);
-    }, 15_000);
+    }, 300_000);
 
     return () => window.clearInterval(interval);
   }, [refresh]);

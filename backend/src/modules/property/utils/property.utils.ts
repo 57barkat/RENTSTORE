@@ -4,8 +4,12 @@ import { UserDocument } from "../../user/user.entity";
 import {
   buildContainsRegex,
   buildPrefixRegex,
+  buildFlexibleAreaRegex,
+  cleanDisplayValue,
   escapeRegex,
+  formatCanonicalArea,
   normalizeAddressSearch,
+  normalizeAreaSearch,
 } from "../../../common/utils/normalize.util";
 
 type SearchableAddressInput = {
@@ -59,14 +63,6 @@ export const mapHostelType = (
   };
   const key = input.toLowerCase().replace(/\s|-/g, "_");
   return mapping[key] || null;
-};
-
-const cleanDisplayValue = (value?: string | null) => {
-  if (!value || typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().replace(/\s+/g, " ");
 };
 
 const toUniqueValues = (values: Array<string | undefined>) => {
@@ -166,12 +162,14 @@ export const preparePropertySearchFields = (
   "addressQuery" | "addressQueryNormalized" | "searchText"
 > => {
   const addressQuery = buildMinimalAddressQuery(property);
+  const canonicalArea = formatCanonicalArea(property.area);
 
   return {
     addressQuery,
     addressQueryNormalized: normalizeAddressSearch(addressQuery),
     searchText: buildPropertySearchText({
       ...property,
+      area: canonicalArea || property.area,
       addressQuery,
     }),
   };
@@ -237,6 +235,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     const normalizedPrefixRegex = buildNormalizedPrefixRegex(normalizedSearch);
     const normalizedContainsRegex =
       buildNormalizedContainsRegex(normalizedSearch);
+    const flexibleAreaRegex = buildFlexibleAreaRegex(cleanedQuery);
     const readableRegex = {
       $regex: escapeRegex(cleanedQuery),
       $options: "i",
@@ -260,6 +259,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
 
     searchConditions.push(
       { addressQuery: readableRegex },
+      ...(flexibleAreaRegex ? [{ area: flexibleAreaRegex }] : []),
       { area: readableRegex },
       { location: readableRegex },
       { title: readableRegex },

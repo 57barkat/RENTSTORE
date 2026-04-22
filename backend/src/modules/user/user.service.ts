@@ -19,6 +19,7 @@ import { EmailService } from "../../services/email/email.service";
 
 @Injectable()
 export class UserService {
+  private static readonly MAX_ADMIN_PAGE_SIZE = 50;
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
   constructor(
@@ -29,14 +30,35 @@ export class UserService {
     private readonly emailService: EmailService,
   ) {}
 
+  private normalizeEmail(email?: string | null): string {
+    return (email || "").trim().toLowerCase();
+  }
+
+  private buildEmailLookup(email?: string | null) {
+    const normalizedEmail = this.normalizeEmail(email);
+
+    return {
+      normalizedEmail,
+      emailQuery: normalizedEmail
+        ? { $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" }
+        : normalizedEmail,
+    };
+  }
+
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
+    const normalizedEmail = this.normalizeEmail(dto.email);
+
     // 1. Check for existing users
     const conflict = await this.userModel.findOne({
-      $or: [{ email: dto.email }, { phone: dto.phone }, { cnic: dto.cnic }],
+      $or: [
+        { email: { $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" } },
+        { phone: dto.phone },
+        { cnic: dto.cnic },
+      ],
     });
 
     if (conflict) {
-      if (conflict.email === dto.email)
+      if (this.normalizeEmail(conflict.email) === normalizedEmail)
         throw new BadRequestException("EMAIL_EXISTS");
       if (conflict.phone === dto.phone)
         throw new BadRequestException("PHONE_EXISTS");
@@ -76,6 +98,7 @@ export class UserService {
 
     const user = await this.userModel.create({
       ...cleanedData,
+      email: normalizedEmail,
       password: hashedPassword,
       role,
       propertyLimit,
@@ -106,15 +129,16 @@ export class UserService {
   }
 
   async sendEmailVerificationCode(email: string) {
+    const { normalizedEmail, emailQuery } = this.buildEmailLookup(email);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     await this.userModel.updateOne(
-      { email },
+      { email: emailQuery },
       {
         emailVerificationCode: code,
         emailVerificationCodeExpires: new Date(Date.now() + 10 * 60 * 1000),
       },
     );
-    this.emailService.sendVerificationEmail(email, code);
+    this.emailService.sendVerificationEmail(normalizedEmail, code);
   }
 
   async handleSuccessfulPayment(userId: string, packageId: string) {
@@ -171,7 +195,8 @@ export class UserService {
   }
 
   async verifyEmail(email: string, code: string): Promise<UserDocument> {
-    const user = await this.userModel.findOne({ email });
+    const { normalizedEmail, emailQuery } = this.buildEmailLookup(email);
+    const user = await this.userModel.findOne({ email: emailQuery });
 
     if (!user) throw new BadRequestException("User not found");
     if (user.isEmailVerified)
@@ -190,7 +215,7 @@ export class UserService {
     await user.save();
 
     try {
-      const fbUser = await admin.auth().getUserByEmail(email);
+      const fbUser = await admin.auth().getUserByEmail(normalizedEmail);
       await admin.auth().updateUser(fbUser.uid, { emailVerified: true });
     } catch {}
 
@@ -198,7 +223,8 @@ export class UserService {
   }
 
   async requestPasswordReset(email: string) {
-    const user = await this.userModel.findOne({ email });
+    const { normalizedEmail, emailQuery } = this.buildEmailLookup(email);
+    const user = await this.userModel.findOne({ email: emailQuery });
     if (!user)
       return {
         message: "If your email is registered, you will receive a code.",
@@ -211,14 +237,15 @@ export class UserService {
     user.isResetCodeVerified = false;
     await user.save();
 
-    await this.emailService.sendVerificationEmail(email, code);
+    await this.emailService.sendVerificationEmail(normalizedEmail, code);
 
     return { message: "Reset code sent successfully" };
   }
 
   async verifyResetCode(email: string, code: string) {
+    const { emailQuery } = this.buildEmailLookup(email);
     const user = await this.userModel.findOne({
-      email,
+      email: emailQuery,
       resetPasswordCode: code,
       resetPasswordCodeExpires: { $gt: new Date() },
     });
@@ -232,8 +259,9 @@ export class UserService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    const { emailQuery } = this.buildEmailLookup(dto.email);
     const user = await this.userModel.findOne({
-      email: dto.email,
+      email: emailQuery,
       isResetCodeVerified: true,
     });
 
@@ -262,9 +290,6 @@ export class UserService {
       const currentProps = Number(user.paidPropertyCredits) || 0;
       user.paidPropertyCredits =
         currentProps + Number(updateDto.paidPropertyCredits);
-      console.log(
-        `[CREDIT_UPDATE] Added ${updateDto.paidPropertyCredits} Property Credits to User ${userId}`,
-      );
     }
 
     // 2. Update Featured Credits only if provided in payload
@@ -272,9 +297,6 @@ export class UserService {
       const currentFeatured = Number(user.paidFeaturedCredits) || 0;
       user.paidFeaturedCredits =
         currentFeatured + Number(updateDto.paidFeaturedCredits);
-      console.log(
-        `[CREDIT_UPDATE] Added ${updateDto.paidFeaturedCredits} Featured Credits to User ${userId}`,
-      );
     }
 
     const updatedUser = await user.save();
@@ -297,12 +319,18 @@ export class UserService {
     const payload = ticket.getPayload();
     if (!payload?.email) throw new UnauthorizedException();
 
-    let user = await this.userModel.findOne({ email: payload.email });
+    const normalizedEmail = this.normalizeEmail(payload.email);
+    let user = await this.userModel.findOne({
+      email: {
+        $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $options: "i",
+      },
+    });
 
     if (!user) {
       user = await this.userModel.create({
         name: payload.name,
-        email: payload.email,
+        email: normalizedEmail,
         password: await bcrypt.hash(Math.random().toString(), 10),
         isEmailVerified: true,
         isPhoneVerified: true,
@@ -355,9 +383,20 @@ export class UserService {
     };
   }
   async validatePassword(emailOrPhone: string, password: string) {
-    const user = await this.userModel.findOne({
-      $or: [{ email: emailOrPhone }, { phone: emailOrPhone }],
-    });
+    const trimmedIdentifier = emailOrPhone.trim();
+    const isEmailLogin = trimmedIdentifier.includes("@");
+    const normalizedEmail = this.normalizeEmail(trimmedIdentifier);
+
+    const user = await this.userModel.findOne(
+      isEmailLogin
+        ? {
+            email: {
+              $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+              $options: "i",
+            },
+          }
+        : { phone: trimmedIdentifier },
+    );
 
     if (!user || !user.password) return null;
     if (!(await bcrypt.compare(password, user.password))) return null;
@@ -383,7 +422,12 @@ export class UserService {
     return this.userModel.find();
   }
   async findAllPaginated(page: number, limit: number, search: string) {
-    const skip = (page - 1) * limit;
+    const currentPage = Math.max(1, Number(page) || 1);
+    const pageSize = Math.min(
+      Math.max(1, Number(limit) || 10),
+      UserService.MAX_ADMIN_PAGE_SIZE,
+    );
+    const skip = (currentPage - 1) * pageSize;
 
     // Create a search filter if search string exists
     const query = search
@@ -401,7 +445,7 @@ export class UserService {
         .find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(pageSize)
         .exec(),
       this.userModel.countDocuments(query),
     ]);
@@ -409,9 +453,9 @@ export class UserService {
     return {
       data: users,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: currentPage,
+      limit: pageSize,
+      totalPages: Math.ceil(total / pageSize),
     };
   }
   async clearRefreshToken(userId: string) {
