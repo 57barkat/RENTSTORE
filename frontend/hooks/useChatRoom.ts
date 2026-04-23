@@ -23,7 +23,7 @@ export const useChatRoom = (
             : "Owner information is missing.",
           [
             { text: "Cancel" },
-            { text: "Login", onPress: () => router.push("/login") },
+            { text: "Login", onPress: () => router.push("/signin") },
           ],
         );
         return;

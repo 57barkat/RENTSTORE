@@ -66,17 +66,28 @@ function Section({
 function Field({
   label,
   error,
+  hint,
   children,
 }: {
   label: string;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-semibold text-foreground">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-foreground">
+        {label}
+      </span>
       {children}
-      {error ? <p className="mt-2 text-xs font-semibold text-[var(--admin-error)]">{error}</p> : null}
+      {hint ? (
+        <p className="mt-2 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
+      {error ? (
+        <p className="mt-2 text-xs font-semibold text-[var(--admin-error)]">
+          {error}
+        </p>
+      ) : null}
     </label>
   );
 }
@@ -126,7 +137,9 @@ export default function AdminUploadPropertyForm() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userOptions, setUserOptions] = useState<AdminUserOption[]>([]);
   const [userSearchLoading, setUserSearchLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<AdminUserOption | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserOption | null>(
+    null,
+  );
   const [localPhotos, setLocalPhotos] = useState<LocalPhoto[]>([]);
   const searchCacheRef = useRef(new Map<string, AdminUserOption[]>());
   const activeSearchRef = useRef("");
@@ -216,7 +229,12 @@ export default function AdminUploadPropertyForm() {
         value: String(localPhotos.length + form.photos.length),
       },
     ],
-    [form.hostOption, form.photos.length, localPhotos.length, selectedUser?.name],
+    [
+      form.hostOption,
+      form.photos.length,
+      localPhotos.length,
+      selectedUser?.name,
+    ],
   );
 
   const setField = <K extends keyof AdminPropertyUploadForm>(
@@ -240,12 +258,7 @@ export default function AdminUploadPropertyForm() {
   };
 
   const toggleArrayValue = (
-    key:
-      | "amenities"
-      | "ALL_BILLS"
-      | "mealPlan"
-      | "rules"
-      | "photos",
+    key: "amenities" | "ALL_BILLS" | "mealPlan" | "rules" | "photos",
     value: string,
   ) => {
     setForm((current) => {
@@ -280,7 +293,9 @@ export default function AdminUploadPropertyForm() {
       }
 
       const values = current.safetyDetailsData.safetyDetails.includes(value)
-        ? current.safetyDetailsData.safetyDetails.filter((entry) => entry !== value)
+        ? current.safetyDetailsData.safetyDetails.filter(
+            (entry) => entry !== value,
+          )
         : [...current.safetyDetailsData.safetyDetails, value];
 
       return {
@@ -318,7 +333,9 @@ export default function AdminUploadPropertyForm() {
     setErrors((current) => ({ ...current, ownerId: "" }));
   };
 
-  const handleHostOptionChange = (value: AdminPropertyUploadForm["hostOption"]) => {
+  const handleHostOptionChange = (
+    value: AdminPropertyUploadForm["hostOption"],
+  ) => {
     setForm((current) => ({
       ...current,
       hostOption: value,
@@ -381,7 +398,9 @@ export default function AdminUploadPropertyForm() {
   const removeAddress = (index: number) => {
     setForm((current) => ({
       ...current,
-      address: current.address.filter((_, addressIndex) => addressIndex !== index),
+      address: current.address.filter(
+        (_, addressIndex) => addressIndex !== index,
+      ),
     }));
   };
 
@@ -432,11 +451,21 @@ export default function AdminUploadPropertyForm() {
       window.setTimeout(() => {
         router.push("/properties");
       }, 450);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        "Property upload failed. Please try again.";
+        error &&
+        typeof error === "object" &&
+        "response" in error &&
+        error.response &&
+        typeof error.response === "object" &&
+        "data" in error.response &&
+        error.response.data &&
+        typeof error.response.data === "object" &&
+        "message" in error.response.data
+          ? String(error.response.data.message)
+          : error instanceof Error
+            ? error.message
+            : "Property upload failed. Please try again.";
       toast.error(String(message));
     } finally {
       setSubmitting(false);
@@ -457,20 +486,27 @@ export default function AdminUploadPropertyForm() {
             <ArrowLeft className="h-4 w-4" />
             Back to properties
           </Link>
-          <h1 className="text-3xl font-black text-foreground">Upload Property</h1>
+          <h1 className="text-3xl font-black text-foreground">
+            Upload Property
+          </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Create a listing on behalf of any user using the same field structure the
-            mobile upload flow sends to the backend.
+            Create a listing on behalf of any user using the same field
+            structure the mobile upload flow sends to the backend.
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
           {summaryCards.map((card) => (
-            <div key={card.label} className="rounded-2xl border border-border bg-card px-4 py-3">
+            <div
+              key={card.label}
+              className="rounded-2xl border border-border bg-card px-4 py-3"
+            >
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                 {card.label}
               </p>
-              <p className="mt-1 truncate text-lg font-black text-foreground">{card.value}</p>
+              <p className="mt-1 truncate text-lg font-black text-foreground">
+                {card.value}
+              </p>
             </div>
           ))}
         </div>
@@ -492,7 +528,10 @@ export default function AdminUploadPropertyForm() {
                   if (
                     selectedUser &&
                     nextValue !==
-                      (selectedUser.name || selectedUser.email || selectedUser.phone || "")
+                      (selectedUser.name ||
+                        selectedUser.email ||
+                        selectedUser.phone ||
+                        "")
                   ) {
                     setSelectedUser(null);
                     setField("ownerId", "");
@@ -516,7 +555,8 @@ export default function AdminUploadPropertyForm() {
                 {selectedUser.name || "Unnamed user"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {selectedUser.email || "No email"} {selectedUser.phone ? `• ${selectedUser.phone}` : ""}
+                {selectedUser.email || "No email"}{" "}
+                {selectedUser.phone ? `• ${selectedUser.phone}` : ""}
               </p>
             </div>
           ) : null}
@@ -536,7 +576,8 @@ export default function AdminUploadPropertyForm() {
                         {user.name || "Unnamed user"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {user.email || "No email"} {user.phone ? `• ${user.phone}` : ""}
+                        {user.email || "No email"}{" "}
+                        {user.phone ? `• ${user.phone}` : ""}
                       </p>
                     </div>
                     <span className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -637,17 +678,32 @@ export default function AdminUploadPropertyForm() {
             <label className="flex cursor-pointer items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-background px-4 py-6 text-sm font-semibold text-muted-foreground transition hover:border-primary hover:text-primary">
               <Upload className="h-4 w-4" />
               Choose images
-              <input type="file" accept="image/*" multiple className="hidden" onChange={handlePhotoSelection} />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handlePhotoSelection}
+              />
             </label>
           </Field>
 
           {localPhotos.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {localPhotos.map((photo) => (
-                <div key={photo.id} className="overflow-hidden rounded-2xl border border-border bg-background">
-                  <img src={photo.previewUrl} alt={photo.file.name} className="h-40 w-full object-cover" />
+                <div
+                  key={photo.id}
+                  className="overflow-hidden rounded-2xl border border-border bg-background"
+                >
+                  <img
+                    src={photo.previewUrl}
+                    alt={photo.file.name}
+                    className="h-40 w-full object-cover"
+                  />
                   <div className="flex items-center justify-between gap-3 px-3 py-3">
-                    <p className="truncate text-sm font-medium text-foreground">{photo.file.name}</p>
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {photo.file.name}
+                    </p>
                     <button
                       type="button"
                       onClick={() => removeLocalPhoto(photo.id)}
@@ -675,7 +731,9 @@ export default function AdminUploadPropertyForm() {
               <Field label="Apartment type" error={errors.apartmentType}>
                 <select
                   value={form.apartmentType}
-                  onChange={(event) => setField("apartmentType", event.target.value)}
+                  onChange={(event) =>
+                    setField("apartmentType", event.target.value)
+                  }
                   className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 >
                   {APARTMENT_TYPES.map((option) => (
@@ -689,7 +747,9 @@ export default function AdminUploadPropertyForm() {
               <Field label="Furnishing" error={errors.furnishing}>
                 <select
                   value={form.furnishing}
-                  onChange={(event) => setField("furnishing", event.target.value)}
+                  onChange={(event) =>
+                    setField("furnishing", event.target.value)
+                  }
                   className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 >
                   {FURNISHING_TYPES.map((option) => (
@@ -703,7 +763,9 @@ export default function AdminUploadPropertyForm() {
               <Field label="Parking">
                 <select
                   value={form.parking ? "yes" : "no"}
-                  onChange={(event) => setField("parking", event.target.value === "yes")}
+                  onChange={(event) =>
+                    setField("parking", event.target.value === "yes")
+                  }
                   className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 >
                   <option value="yes">Yes</option>
@@ -778,7 +840,9 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={1}
                     value={form.capacityState.Persons ?? 1}
-                    onChange={(event) => updateCapacity("Persons", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("Persons", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -787,7 +851,9 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={0}
                     value={form.capacityState.bedrooms ?? 0}
-                    onChange={(event) => updateCapacity("bedrooms", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("bedrooms", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -796,7 +862,9 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={1}
                     value={form.capacityState.beds ?? 1}
-                    onChange={(event) => updateCapacity("beds", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("beds", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -805,7 +873,9 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={1}
                     value={form.capacityState.bathrooms ?? 1}
-                    onChange={(event) => updateCapacity("bathrooms", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("bathrooms", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -813,14 +883,18 @@ export default function AdminUploadPropertyForm() {
             ) : (
               <>
                 <Field
-                  label={form.hostOption === "home" ? "Bedrooms" : "Rooms / sections"}
+                  label={
+                    form.hostOption === "home" ? "Bedrooms" : "Rooms / sections"
+                  }
                   error={errors.capacityBedrooms}
                 >
                   <input
                     type="number"
                     min={1}
                     value={form.capacityState.bedrooms ?? 1}
-                    onChange={(event) => updateCapacity("bedrooms", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("bedrooms", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -829,7 +903,9 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={1}
                     value={form.capacityState.bathrooms ?? 1}
-                    onChange={(event) => updateCapacity("bathrooms", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("bathrooms", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
@@ -838,13 +914,16 @@ export default function AdminUploadPropertyForm() {
                     type="number"
                     min={0}
                     value={form.capacityState.floorLevel ?? 0}
-                    onChange={(event) => updateCapacity("floorLevel", Number(event.target.value))}
+                    onChange={(event) =>
+                      updateCapacity("floorLevel", Number(event.target.value))
+                    }
                     className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                   />
                 </Field>
                 {isApartment ? (
                   <div className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">
-                    Ground floor is represented as <span className="font-semibold text-foreground">0</span>.
+                    Ground floor is represented as{" "}
+                    <span className="font-semibold text-foreground">0</span>.
                   </div>
                 ) : null}
               </>
@@ -860,7 +939,9 @@ export default function AdminUploadPropertyForm() {
             <Field label="Monthly rent" error={errors.pricing}>
               <input
                 value={form.monthlyRent}
-                onChange={(event) => setField("monthlyRent", event.target.value)}
+                onChange={(event) =>
+                  setField("monthlyRent", event.target.value)
+                }
                 placeholder="65000"
                 className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
               />
@@ -881,10 +962,32 @@ export default function AdminUploadPropertyForm() {
                 className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
               />
             </Field>
+            <Field
+              label="Default displayed rent"
+              error={errors.defaultRentType}
+              hint="Controls which rent shows first on listing cards and property details."
+            >
+              <select
+                value={form.defaultRentType}
+                onChange={(event) =>
+                  setField(
+                    "defaultRentType",
+                    event.target.value as "daily" | "weekly" | "monthly",
+                  )
+                }
+                className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </Field>
             <Field label="Security deposit" error={errors.SecuritybasePrice}>
               <input
                 value={form.SecuritybasePrice}
-                onChange={(event) => setField("SecuritybasePrice", event.target.value)}
+                onChange={(event) =>
+                  setField("SecuritybasePrice", event.target.value)
+                }
                 placeholder="50000"
                 className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
               />
@@ -952,12 +1055,17 @@ export default function AdminUploadPropertyForm() {
             <ChipGroup
               options={SAFETY_DETAILS}
               values={form.safetyDetailsData.safetyDetails}
-              onToggle={(value) => toggleNestedArrayValue("safetyDetails", value)}
+              onToggle={(value) =>
+                toggleNestedArrayValue("safetyDetails", value)
+              }
             />
           </Field>
 
           {form.safetyDetailsData.safetyDetails.includes("exterior_camera") ? (
-            <Field label="Exterior camera disclosure" error={errors.cameraDescription}>
+            <Field
+              label="Exterior camera disclosure"
+              error={errors.cameraDescription}
+            >
               <textarea
                 value={form.safetyDetailsData.cameraDescription}
                 onChange={(event) =>
@@ -983,9 +1091,14 @@ export default function AdminUploadPropertyForm() {
         >
           <div className="space-y-5">
             {form.address.map((entry, index) => (
-              <div key={`${index}-${entry.street}`} className="rounded-2xl border border-border bg-background p-4">
+              <div
+                key={`${index}-${entry.street}`}
+                className="rounded-2xl border border-border bg-background p-4"
+              >
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground">Address {index + 1}</h3>
+                  <h3 className="text-sm font-bold text-foreground">
+                    Address {index + 1}
+                  </h3>
                   {form.address.length > 1 ? (
                     <button
                       type="button"
@@ -998,10 +1111,15 @@ export default function AdminUploadPropertyForm() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Street address" error={index === 0 ? errors.street : undefined}>
+                  <Field
+                    label="Street address"
+                    error={index === 0 ? errors.street : undefined}
+                  >
                     <input
                       value={entry.street}
-                      onChange={(event) => setAddressField(index, "street", event.target.value)}
+                      onChange={(event) =>
+                        setAddressField(index, "street", event.target.value)
+                      }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
                   </Field>
@@ -1009,15 +1127,24 @@ export default function AdminUploadPropertyForm() {
                     <input
                       value={entry.aptSuiteUnit}
                       onChange={(event) =>
-                        setAddressField(index, "aptSuiteUnit", event.target.value)
+                        setAddressField(
+                          index,
+                          "aptSuiteUnit",
+                          event.target.value,
+                        )
                       }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
                   </Field>
-                  <Field label="City" error={index === 0 ? errors.city : undefined}>
+                  <Field
+                    label="City"
+                    error={index === 0 ? errors.city : undefined}
+                  >
                     <input
                       value={entry.city}
-                      onChange={(event) => setAddressField(index, "city", event.target.value)}
+                      onChange={(event) =>
+                        setAddressField(index, "city", event.target.value)
+                      }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
                   </Field>
@@ -1028,7 +1155,11 @@ export default function AdminUploadPropertyForm() {
                     <input
                       value={entry.stateTerritory}
                       onChange={(event) =>
-                        setAddressField(index, "stateTerritory", event.target.value)
+                        setAddressField(
+                          index,
+                          "stateTerritory",
+                          event.target.value,
+                        )
                       }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
@@ -1036,14 +1167,21 @@ export default function AdminUploadPropertyForm() {
                   <Field label="Country">
                     <input
                       value={entry.country}
-                      onChange={(event) => setAddressField(index, "country", event.target.value)}
+                      onChange={(event) =>
+                        setAddressField(index, "country", event.target.value)
+                      }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
                   </Field>
-                  <Field label="ZIP code" error={index === 0 ? errors.zipCode : undefined}>
+                  <Field
+                    label="ZIP code"
+                    error={index === 0 ? errors.zipCode : undefined}
+                  >
                     <input
                       value={entry.zipCode}
-                      onChange={(event) => setAddressField(index, "zipCode", event.target.value)}
+                      onChange={(event) =>
+                        setAddressField(index, "zipCode", event.target.value)
+                      }
                       className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                     />
                   </Field>
@@ -1064,7 +1202,9 @@ export default function AdminUploadPropertyForm() {
         <div className="sticky bottom-4 z-10 rounded-[2rem] border border-border bg-card/95 p-4 shadow-lg backdrop-blur">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-bold text-foreground">Admin upload summary</p>
+              <p className="text-sm font-bold text-foreground">
+                Admin upload summary
+              </p>
               <p className="text-sm text-muted-foreground">
                 This will create a published property for{" "}
                 <span className="font-semibold text-foreground">
@@ -1082,7 +1222,9 @@ export default function AdminUploadPropertyForm() {
               {submitting || uploadingImages ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {uploadingImages ? "Uploading images..." : "Creating property..."}
+                  {uploadingImages
+                    ? "Uploading images..."
+                    : "Creating property..."}
                 </>
               ) : (
                 "Create property"

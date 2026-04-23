@@ -3,8 +3,11 @@ import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PriceRow } from "@/components/Properties/PropertyPriceCard";
 import { formatPrice } from "@/utils/properties/formatPrice";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export default function FinancialDetailsCard({ property, theme }: any) {
+  const primaryRent = getPrimaryRentInfo(property);
+
   return (
     <View
       style={[
@@ -23,8 +26,8 @@ export default function FinancialDetailsCard({ property, theme }: any) {
         </Text>
       </View>
       <PriceRow
-        label="Monthly Rent"
-        value={formatPrice(property.monthlyRent, "not available")}
+        label={primaryRent?.title || "Monthly Rent"}
+        value={formatPrice(primaryRent?.amount, "not available")}
         theme={theme}
         color={theme.secondary}
         isLarge

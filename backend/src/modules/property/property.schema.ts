@@ -18,6 +18,9 @@ export enum PropertyModerationStatus {
   DELETED = "DELETED",
 }
 
+export const RENT_TYPES = ["daily", "weekly", "monthly"] as const;
+export type RentType = (typeof RENT_TYPES)[number];
+
 @Schema({ timestamps: true })
 export class Property extends Document {
   @Prop({ type: String }) title?: string;
@@ -48,6 +51,8 @@ export class Property extends Document {
   @Prop({ type: Number }) monthlyRent?: number;
   @Prop({ type: Number }) dailyRent?: number;
   @Prop({ type: Number }) weeklyRent?: number;
+  @Prop({ type: String, enum: RENT_TYPES, default: "monthly" })
+  defaultRentType?: RentType;
   @Prop({ type: Number }) SecuritybasePrice?: number;
 
   @Prop({ type: [String], default: [] }) ALL_BILLS?: string[];

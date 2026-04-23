@@ -23,7 +23,10 @@ import {
   processPhotos,
   validateAndDeductCredits,
 } from "./utils/property.utils";
-import { validatePropertyPayload } from "./property.validation";
+import {
+  normalizeDefaultRentType,
+  validatePropertyPayload,
+} from "./property.validation";
 import { User, UserDocument } from "../user/user.entity";
 import { PropertyImpressionTrackerService } from "./property-impression-tracker.service";
 import { PropertyViewTrackerService } from "./property-view-tracker.service";
@@ -101,6 +104,7 @@ export class PropertyService {
         // 2. Data Pre-processing (Type Safe)
         const cleanedPhotos = processPhotos(dto.photos);
         dto.photos = cleanedPhotos;
+        dto.defaultRentType = normalizeDefaultRentType(dto);
 
         const locationGeo = formatLocationGeo(dto.lat, dto.lng);
         if (locationGeo) dto.locationGeo = locationGeo;
@@ -356,6 +360,7 @@ export class PropertyService {
     imageFiles?: Express.Multer.File[],
     userId?: string,
   ) {
+    dto.defaultRentType = normalizeDefaultRentType(dto);
     let photos: string[] = [];
 
     if (imageFiles?.length) {
@@ -1142,6 +1147,9 @@ export class PropertyService {
 
     // Prevent _id override
     if (dto._id) delete dto._id;
+    if (dto.defaultRentType !== undefined) {
+      dto.defaultRentType = normalizeDefaultRentType(dto);
+    }
 
     Object.assign(property, dto);
 
@@ -1160,6 +1168,14 @@ export class PropertyService {
     const validation = validatePropertyPayload(
       property.toObject() as unknown as Partial<CreatePropertyDto>,
     );
+
+    if (validation.fieldErrors.defaultRentType) {
+      throw new BadRequestException({
+        message: "The selected default rent type is invalid.",
+        error: "VALIDATION_FAILED",
+        fieldErrors: validation.fieldErrors,
+      });
+    }
 
     if (!validation.valid) {
       property.status = false;

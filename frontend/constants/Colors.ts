@@ -4,7 +4,7 @@ const tintColorDark = "#60A5FA"; // Accessible Light Blue
 
 export const Colors = {
   light: {
-    text: "#0F172A",
+    text: "#74809b",
     background: "#FFFFFF",
     card: "#F8FAFC", // Slightly cooler gray for a premium feel
     border: "#E2E8F0",

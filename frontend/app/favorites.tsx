@@ -23,11 +23,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { FontSize } from "@/constants/Typography";
 import { useLength } from "@/contextStore/LengthContext";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 type Property = {
   _id: string;
   title?: string;
   location?: string;
+  defaultRentType?: "daily" | "weekly" | "monthly";
+  dailyRent?: number;
+  weeklyRent?: number;
   monthlyRent?: number;
   photos?: string[];
 };
@@ -139,88 +143,97 @@ const Favorites = () => {
     </View>
   );
 
-  const renderFavoriteItem = ({ item }: { item: Property }) => (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: currentTheme.card,
-          width: cardWidth,
-          borderColor: currentTheme.border,
-        },
-      ]}
-    >
+  const renderFavoriteItem = ({ item }: { item: Property }) => {
+    const primaryRent = getPrimaryRentInfo(item);
+
+    return (
       <View
         style={[
-          styles.imagePlaceholder,
-          { backgroundColor: currentTheme.muted + "20" },
+          styles.card,
+          {
+            backgroundColor: currentTheme.card,
+            width: cardWidth,
+            borderColor: currentTheme.border,
+          },
         ]}
       >
-        {item.photos?.[0] ? (
-          <Image
-            source={{ uri: item.photos[0] }}
-            style={styles.propertyImage}
-          />
-        ) : (
-          <MaterialCommunityIcons
-            name="image-off-outline"
-            size={40}
-            color={currentTheme.muted}
-          />
-        )}
-      </View>
-      <View style={styles.cardContent}>
-        <Text
-          style={[styles.title, { color: currentTheme.text }]}
-          numberOfLines={1}
+        <View
+          style={[
+            styles.imagePlaceholder,
+            { backgroundColor: currentTheme.muted + "20" },
+          ]}
         >
-          {item.title ?? "Property Title"}
-        </Text>
-        <View style={styles.infoRow}>
-          <MaterialCommunityIcons
-            name="map-marker-outline"
-            size={16}
-            color={currentTheme.secondary}
-          />
+          {item.photos?.[0] ? (
+            <Image
+              source={{ uri: item.photos[0] }}
+              style={styles.propertyImage}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name="image-off-outline"
+              size={40}
+              color={currentTheme.muted}
+            />
+          )}
+        </View>
+        <View style={styles.cardContent}>
           <Text
-            style={[styles.location, { color: currentTheme.muted }]}
+            style={[styles.title, { color: currentTheme.text }]}
             numberOfLines={1}
           >
-            {item.location ?? "Unknown Location"}
+            {item.title ?? "Property Title"}
           </Text>
-        </View>
-        <View style={styles.priceRow}>
-          <Text style={[styles.priceLabel, { color: currentTheme.muted }]}>
-            Monthly Rent
-          </Text>
-          <Text style={[styles.price, { color: currentTheme.secondary }]}>
-            Rs. {item.monthlyRent?.toLocaleString() ?? "N/A"}
-          </Text>
-        </View>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: currentTheme.secondary }]}
-            onPress={() => handleOpenDetails(item._id)}
-          >
-            <Text style={styles.buttonText}>View Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.removeButton, { borderColor: currentTheme.danger }]}
-            onPress={() => {
-              setSelectedId(item._id);
-              setShowModal(true);
-            }}
-          >
+          <View style={styles.infoRow}>
             <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={20}
-              color={currentTheme.danger}
+              name="map-marker-outline"
+              size={16}
+              color={currentTheme.secondary}
             />
-          </TouchableOpacity>
+            <Text
+              style={[styles.location, { color: currentTheme.muted }]}
+              numberOfLines={1}
+            >
+              {item.location ?? "Unknown Location"}
+            </Text>
+          </View>
+          <View style={styles.priceRow}>
+            <Text style={[styles.priceLabel, { color: currentTheme.muted }]}>
+              {primaryRent?.title || "Rent"}
+            </Text>
+            <Text style={[styles.price, { color: currentTheme.secondary }]}>
+              {primaryRent
+                ? `Rs. ${primaryRent.amount.toLocaleString()} / ${primaryRent.label}`
+                : "N/A"}
+            </Text>
+          </View>
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[
+                styles.button,
+                { backgroundColor: currentTheme.secondary },
+              ]}
+              onPress={() => handleOpenDetails(item._id)}
+            >
+              <Text style={styles.buttonText}>View Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.removeButton, { borderColor: currentTheme.danger }]}
+              onPress={() => {
+                setSelectedId(item._id);
+                setShowModal(true);
+              }}
+            >
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={20}
+                color={currentTheme.danger}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: currentTheme.background }}>

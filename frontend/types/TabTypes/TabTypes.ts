@@ -3,6 +3,9 @@ interface PropertyItem {
   title: string;
   address?: { city?: string; country?: string }[];
   monthlyRent?: number;
+  dailyRent?: number;
+  weeklyRent?: number;
+  defaultRentType?: "daily" | "weekly" | "monthly";
   photos?: string[];
   featured?: boolean;
   isFav?: boolean;
@@ -18,6 +21,9 @@ interface PropertyCardProps {
   country?: string;
   rent?: number;
   monthlyRent?: number;
+  dailyRent?: number;
+  weeklyRent?: number;
+  defaultRentType?: "daily" | "weekly" | "monthly";
   image?: string;
   photos?: string[];
   featured?: boolean;

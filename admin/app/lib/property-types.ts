@@ -53,6 +53,7 @@ export interface PublicProperty {
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
+  defaultRentType?: "daily" | "weekly" | "monthly";
   SecuritybasePrice?: number;
   ALL_BILLS?: string[];
   address?: PropertyAddress[] | PropertyAddress;

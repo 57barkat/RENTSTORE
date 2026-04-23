@@ -22,6 +22,7 @@ import {
 } from "@/services/api";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export default function DraftProperties() {
   const { theme } = useTheme();
@@ -112,100 +113,108 @@ export default function DraftProperties() {
   }
 
   // Render each draft
-  const renderItem = ({ item }: { item: any }) => (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: currentTheme.card,
-          borderColor: currentTheme.border,
-        },
-      ]}
-    >
-      <TouchableOpacity
-        onPress={() => handleEdit(item)}
-        style={styles.cardPressable}
-      >
-        <Image
-          source={
-            item.photos?.[0]
-              ? { uri: item.photos[0] }
-              : { uri: "https://via.placeholder.com/300?text=No+Image" }
-          }
-          style={[styles.image, { backgroundColor: currentTheme.border }]}
-          resizeMode="cover"
-        />
-        <View style={styles.info}>
-          <Text
-            style={[styles.title, { color: currentTheme.text }]}
-            numberOfLines={1}
-          >
-            {item.title || "Untitled Property"}
-          </Text>
-          <View style={styles.locationRow}>
-            <Ionicons
-              name="location-outline"
-              size={14}
-              color={currentTheme.muted}
-            />
-            <Text
-              style={[styles.subText, { color: currentTheme.muted }]}
-              numberOfLines={1}
-            >
-              {item.location || "No location set"}
-            </Text>
-          </View>
-          <Text style={[styles.price, { color: currentTheme.primary }]}>
-            Rs. {item.monthlyRent?.toLocaleString() || "0"}
-            <Text style={styles.pricePeriod}>/month</Text>
-          </Text>
-        </View>
-      </TouchableOpacity>
+  const renderItem = ({ item }: { item: any }) => {
+    const primaryRent = getPrimaryRentInfo(item);
 
+    return (
       <View
-        style={[styles.actionsRow, { borderTopColor: currentTheme.border }]}
+        style={[
+          styles.card,
+          {
+            backgroundColor: currentTheme.card,
+            borderColor: currentTheme.border,
+          },
+        ]}
       >
         <TouchableOpacity
-          style={styles.actionButton}
           onPress={() => handleEdit(item)}
+          style={styles.cardPressable}
         >
-          <MaterialCommunityIcons
-            name="pencil"
-            size={18}
-            color={currentTheme.primary}
+          <Image
+            source={
+              item.photos?.[0]
+                ? { uri: item.photos[0] }
+                : { uri: "https://via.placeholder.com/300?text=No+Image" }
+            }
+            style={[styles.image, { backgroundColor: currentTheme.border }]}
+            resizeMode="cover"
           />
-          <Text
-            style={[styles.actionButtonText, { color: currentTheme.primary }]}
-          >
-            Continue
-          </Text>
+          <View style={styles.info}>
+            <Text
+              style={[styles.title, { color: currentTheme.text }]}
+              numberOfLines={1}
+            >
+              {item.title || "Untitled Property"}
+            </Text>
+            <View style={styles.locationRow}>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={currentTheme.muted}
+              />
+              <Text
+                style={[styles.subText, { color: currentTheme.muted }]}
+                numberOfLines={1}
+              >
+                {item.location || "No location set"}
+              </Text>
+            </View>
+            <Text style={[styles.price, { color: currentTheme.primary }]}>
+              {primaryRent
+                ? `Rs. ${primaryRent.amount.toLocaleString()}`
+                : "Rs. 0"}
+              <Text style={styles.pricePeriod}>
+                /{primaryRent?.label || "month"}
+              </Text>
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <View
-          style={[styles.divider, { backgroundColor: currentTheme.border }]}
-        />
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => {
-            setSelectedId(item._id);
-            setShowDeleteModal(true);
-          }}
+          style={[styles.actionsRow, { borderTopColor: currentTheme.border }]}
         >
-          <MaterialCommunityIcons
-            name="trash-can-outline"
-            size={18}
-            color={currentTheme.danger}
-          />
-          <Text
-            style={[styles.actionButtonText, { color: currentTheme.danger }]}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleEdit(item)}
           >
-            Delete
-          </Text>
-        </TouchableOpacity>
+            <MaterialCommunityIcons
+              name="pencil"
+              size={18}
+              color={currentTheme.primary}
+            />
+            <Text
+              style={[styles.actionButtonText, { color: currentTheme.primary }]}
+            >
+              Continue
+            </Text>
+          </TouchableOpacity>
+
+          <View
+            style={[styles.divider, { backgroundColor: currentTheme.border }]}
+          />
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedId(item._id);
+              setShowDeleteModal(true);
+            }}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={18}
+              color={currentTheme.danger}
+            />
+            <Text
+              style={[styles.actionButtonText, { color: currentTheme.danger }]}
+            >
+              Delete
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView

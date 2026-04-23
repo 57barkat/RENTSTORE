@@ -8,6 +8,13 @@ export const PropertyDraftSchema = new Schema(
     lat: Number, // latitude
     lng: Number, // longitude
     monthlyRent: Number,
+    dailyRent: Number,
+    weeklyRent: Number,
+    defaultRentType: {
+      type: String,
+      enum: ["daily", "weekly", "monthly"],
+      default: "monthly",
+    },
     SecuritybasePrice: Number,
     ALL_BILLS: [String],
     address: [

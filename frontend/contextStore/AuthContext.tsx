@@ -7,6 +7,7 @@ import React, {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import {
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const [triggerGetMe, { data: latestUserData }] = useLazyGetMeQuery();
+  const sessionVersionRef = useRef(0);
 
   const showStatus = (
     title: string,
@@ -122,6 +124,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const finalizeSignedOutState = useCallback(
     async (reason: SessionClearReason | null) => {
+      sessionVersionRef.current += 1;
       disconnectSocket();
       store.dispatch(api.util.resetApiState());
       await AsyncStorage.multiRemove(["userId", "userPhone"]);
@@ -177,13 +180,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isAuthenticated, isGuest, user?.id, triggerGetMe]);
 
   useEffect(() => {
+    if (!latestUserData) {
+      return;
+    }
+
+    if (!isAuthenticated && !tokenManager.getAccessToken()) {
+      return;
+    }
+
     if (latestUserData) {
       const formatted = formatUserResponse(latestUserData);
       setUser(formatted);
+      setIsAuthenticated(true);
+      setIsGuest(false);
       setIsPhoneVerified(formatted.isPhoneVerified);
-      tokenManager.setUserData(formatted);
+      void tokenManager.setUserData(formatted);
     }
-  }, [latestUserData]);
+  }, [isAuthenticated, latestUserData]);
 
   const refreshAuthState = useCallback(async () => {
     try {
@@ -192,6 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (accessToken) {
         await triggerGetMe().unwrap();
       } else {
+        disconnectSocket();
         clearAuthExitReason();
         setIsGuest(true);
         setIsAuthenticated(false);
@@ -211,10 +225,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const bootstrap = async () => {
+      const bootstrapSessionVersion = sessionVersionRef.current;
+
       try {
         await tokenManager.load();
         const accessToken = tokenManager.getAccessToken();
         const storedUser = tokenManager.getUserData();
+        if (bootstrapSessionVersion !== sessionVersionRef.current) {
+          return;
+        }
+
         if (accessToken && storedUser) {
           setUser(storedUser);
           setIsAuthenticated(true);
@@ -249,6 +269,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const finalUser = formatUserResponse(userData, role, isphoneverified);
 
+    sessionVersionRef.current += 1;
+    disconnectSocket();
+    store.dispatch(api.util.resetApiState());
     await tokenManager.setTokens(accessToken, refreshToken);
     await tokenManager.setUserData(finalUser);
     await tokenManager.setPhoneVerified(finalUser.isPhoneVerified);

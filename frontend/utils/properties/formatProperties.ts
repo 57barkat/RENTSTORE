@@ -1,11 +1,20 @@
+import { getPrimaryRentInfo } from "./rent";
+
 export const formatProperties = (data: any[], city: string) => {
   return data.map((item) => ({
+    ...(getPrimaryRentInfo(item)
+      ? {
+          rent: getPrimaryRentInfo(item)!.amount,
+        }
+      : {}),
     id: item._id || item.id,
     _id: item._id,
     title: item.title,
     city: item.address?.[0]?.city || city,
     location: item.area || item.address?.[0]?.street || "Islamabad",
-    rent: item.monthlyRent || item.rent,
+    defaultRentType: item.defaultRentType,
+    dailyRent: item.dailyRent,
+    weeklyRent: item.weeklyRent,
     monthlyRent: item.monthlyRent,
     image: item.photos?.[0] || item.image,
     photos: item.photos || [],
@@ -25,8 +34,11 @@ export const formatPhoneForWhatsApp = (phone: any) => {
   return cleaned;
 };
 export const getPriceDisplay = (item: any) => {
-  if (item.monthlyRent > 0) return { val: item.monthlyRent, label: "month" };
-  if (item.weeklyRent > 0) return { val: item.weeklyRent, label: "week" };
-  if (item.dailyRent > 0) return { val: item.dailyRent, label: "day" };
-  return null;
+  const primaryRent = getPrimaryRentInfo(item);
+
+  if (!primaryRent) {
+    return null;
+  }
+
+  return { val: primaryRent.amount, label: primaryRent.label };
 };

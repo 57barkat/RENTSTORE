@@ -15,6 +15,7 @@ import { Ionicons, FontAwesome5 } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useGetPropertyUploaderProfileQuery } from "@/services/api";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export const options = { headerShown: false };
 
@@ -169,40 +170,51 @@ export default function UploaderProfileScreen() {
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           Uploaded Properties
         </Text>
-        {listings.map((listing: any) => (
-          <TouchableOpacity
-            key={listing._id}
-            onPress={() => router.push(`/property/${listing._id}`)}
-            style={[
-              styles.listingCard,
-              { backgroundColor: currentTheme.card, borderColor: currentTheme.border },
-            ]}
-          >
-            <Image
-              source={{
-                uri: listing.photos?.[0] || "https://via.placeholder.com/200",
-              }}
-              style={styles.listingImage}
-            />
-            <View style={styles.listingContent}>
-              <Text
-                style={[styles.listingTitle, { color: currentTheme.text }]}
-                numberOfLines={1}
-              >
-                {listing.title}
-              </Text>
-              <Text
-                style={[styles.listingMeta, { color: currentTheme.secondary }]}
-                numberOfLines={1}
-              >
-                {listing.location || listing.address?.[0]?.city || "Property"}
-              </Text>
-              <Text style={[styles.listingPrice, { color: currentTheme.text }]}>
-                Rs. {Number(listing.monthlyRent || 0).toLocaleString()}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        {listings.map((listing: any) => {
+          const primaryRent = getPrimaryRentInfo(listing);
+
+          return (
+            <TouchableOpacity
+              key={listing._id}
+              onPress={() => router.push(`/property/${listing._id}`)}
+              style={[
+                styles.listingCard,
+                {
+                  backgroundColor: currentTheme.card,
+                  borderColor: currentTheme.border,
+                },
+              ]}
+            >
+              <Image
+                source={{
+                  uri: listing.photos?.[0] || "https://via.placeholder.com/200",
+                }}
+                style={styles.listingImage}
+              />
+              <View style={styles.listingContent}>
+                <Text
+                  style={[styles.listingTitle, { color: currentTheme.text }]}
+                  numberOfLines={1}
+                >
+                  {listing.title}
+                </Text>
+                <Text
+                  style={[styles.listingMeta, { color: currentTheme.secondary }]}
+                  numberOfLines={1}
+                >
+                  {listing.location || listing.address?.[0]?.city || "Property"}
+                </Text>
+                <Text
+                  style={[styles.listingPrice, { color: currentTheme.text }]}
+                >
+                  {primaryRent
+                    ? `Rs. ${primaryRent.amount.toLocaleString()} / ${primaryRent.label}`
+                    : "Price on request"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
     </ScrollView>
   );

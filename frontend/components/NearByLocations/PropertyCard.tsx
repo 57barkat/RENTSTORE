@@ -3,12 +3,16 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 interface Property {
   _id: string;
   title: string;
   location: string;
-  monthlyRent: number;
+  monthlyRent?: number;
+  dailyRent?: number;
+  weeklyRent?: number;
+  defaultRentType?: "daily" | "weekly" | "monthly";
   photos?: string[];
   capacityState?: {
     bedrooms?: number;
@@ -25,6 +29,7 @@ const PropertyCard = ({
 }) => {
   const { theme } = useTheme();
   const colors = Colors[theme];
+  const primaryRent = getPrimaryRentInfo(property);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card }]}>
@@ -42,7 +47,9 @@ const PropertyCard = ({
 
         <View style={styles.info}>
           <Text style={[styles.price, { color: colors.text }]}>
-            Rs {property.monthlyRent?.toLocaleString()}
+            {primaryRent
+              ? `Rs ${primaryRent.amount.toLocaleString()} / ${primaryRent.label}`
+              : "Price on request"}
           </Text>
 
           <Text

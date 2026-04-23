@@ -57,7 +57,8 @@ export default function OwnerSection({
               <Image source={{ uri: displayImage }} style={styles.avatar} />
             </View>
 
-            {(summaryOwner?.isPhoneVerified || summaryOwner?.isEmailVerified) && (
+            {(summaryOwner?.isPhoneVerified ||
+              summaryOwner?.isEmailVerified) && (
               <View
                 style={[styles.verifyBadge, { backgroundColor: theme.primary }]}
               >
@@ -88,23 +89,19 @@ export default function OwnerSection({
               style={[styles.statusText, { color: theme.secondary }]}
               numberOfLines={1}
             >
-              Tap to view {isAgentRole
+              Tap to view{" "}
+              {isAgentRole
                 ? "Professional Agent"
                 : isAgencyRole
                   ? "Agency"
-                  : "Owner"} profile
+                  : "Owner"}{" "}
+              profile
             </Text>
           </View>
         </TouchableOpacity>
 
         {!isOwner && (
           <View style={styles.actionWrapper}>
-            <TouchableOpacity
-              onPress={handleOpenUploader}
-              style={[styles.profileBtn, { borderColor: theme.border }]}
-            >
-              <Ionicons name="person-outline" size={18} color={theme.text} />
-            </TouchableOpacity>
             <TouchableOpacity
               onPress={onChat}
               disabled={isCreating}

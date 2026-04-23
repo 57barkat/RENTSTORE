@@ -100,7 +100,7 @@ const ApartmentPhotosScreen: FC = () => {
     );
   };
 
-  const MIN_PHOTOS_REQUIRED = 5;
+  const MIN_PHOTOS_REQUIRED = 3;
   const isNextDisabled = selectedImages.length < MIN_PHOTOS_REQUIRED;
   const photosCount = selectedImages.length;
 

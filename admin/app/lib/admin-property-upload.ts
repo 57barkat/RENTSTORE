@@ -39,6 +39,7 @@ export interface AdminPropertyUploadForm {
   monthlyRent: string;
   dailyRent: string;
   weeklyRent: string;
+  defaultRentType: "daily" | "weekly" | "monthly";
   SecuritybasePrice: string;
   ALL_BILLS: string[];
   safetyDetailsData: {
@@ -190,6 +191,7 @@ export const createEmptyPropertyUploadForm = (): AdminPropertyUploadForm => ({
   monthlyRent: "",
   dailyRent: "",
   weeklyRent: "",
+  defaultRentType: "monthly",
   SecuritybasePrice: "",
   ALL_BILLS: [],
   safetyDetailsData: {
@@ -269,6 +271,11 @@ export const validateAdminPropertyForm = (
   const weeklyRent = toNumber(form.weeklyRent);
   const securityDeposit = toNumber(form.SecuritybasePrice);
   const sizeValue = toNumber(form.size.value);
+  const defaultRentMap = {
+    daily: dailyRent,
+    weekly: weeklyRent,
+    monthly: monthlyRent,
+  } as const;
 
   if (!form.ownerId) {
     errors.ownerId = "Select the user who should own this listing.";
@@ -326,6 +333,10 @@ export const validateAdminPropertyForm = (
 
   if (!hasNonNegativeNumber(securityDeposit)) {
     errors.SecuritybasePrice = "Security deposit is required.";
+  }
+
+  if (!hasPositiveNumber(defaultRentMap[form.defaultRentType])) {
+    errors.defaultRentType = `Add a valid ${form.defaultRentType} rent before setting it as the default display rent.`;
   }
 
   if (form.safetyDetailsData.safetyDetails.length === 0) {
@@ -437,6 +448,7 @@ export const buildAdminPropertyPayload = (form: AdminPropertyUploadForm) => {
     monthlyRent: toNumber(form.monthlyRent),
     dailyRent: toNumber(form.dailyRent),
     weeklyRent: toNumber(form.weeklyRent),
+    defaultRentType: form.defaultRentType,
     SecuritybasePrice: toNumber(form.SecuritybasePrice),
     ALL_BILLS: dedupeStrings(form.ALL_BILLS),
     safetyDetailsData: {

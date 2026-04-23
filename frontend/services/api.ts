@@ -23,6 +23,13 @@ export interface AreaSuggestion {
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: async (headers) => {
+    const skipAuth = headers.get("x-skip-auth") === "true";
+    headers.delete("x-skip-auth");
+
+    if (skipAuth) {
+      return headers;
+    }
+
     await tokenManager.load();
     const token = tokenManager.getAccessToken();
 
@@ -35,6 +42,24 @@ const rawBaseQuery = fetchBaseQuery({
 });
 
 let refreshPromise: Promise<void> | null = null;
+
+const shouldSkipAuth = (args: unknown) => {
+  if (!args || typeof args !== "object" || !("headers" in args)) {
+    return false;
+  }
+
+  const headers = args.headers;
+
+  if (headers instanceof Headers) {
+    return headers.get("x-skip-auth") === "true";
+  }
+
+  if (headers && typeof headers === "object") {
+    return (headers as Record<string, string>)["x-skip-auth"] === "true";
+  }
+
+  return false;
+};
 
 const refreshTokens = async (api: any, extraOptions: any) => {
   const refreshToken = tokenManager.getRefreshToken();
@@ -62,10 +87,12 @@ const refreshTokens = async (api: any, extraOptions: any) => {
 };
 
 const baseQueryWithRefresh = async (args: any, api: any, extraOptions: any) => {
+  const skipAuth = shouldSkipAuth(args);
+
   await tokenManager.load();
   const accessToken = tokenManager.getAccessToken();
 
-  if (accessToken && isTokenExpired(accessToken)) {
+  if (!skipAuth && accessToken && isTokenExpired(accessToken)) {
     if (!refreshPromise) {
       refreshPromise = refreshTokens(api, extraOptions).finally(() => {
         refreshPromise = null;
@@ -87,10 +114,20 @@ export const api = createApi({
   tagTypes: ["Property", "Favorites", "User", "DraftProperties", "Payments"],
   endpoints: (builder) => ({
     createUser: builder.mutation({
-      query: (body) => ({ url: "/api/v1/users/signup", method: "POST", body }),
+      query: (body) => ({
+        url: "/api/v1/users/signup",
+        method: "POST",
+        body,
+        headers: { "x-skip-auth": "true" },
+      }),
     }),
     login: builder.mutation({
-      query: (body) => ({ url: "/api/v1/users/login", method: "POST", body }),
+      query: (body) => ({
+        url: "/api/v1/users/login",
+        method: "POST",
+        body,
+        headers: { "x-skip-auth": "true" },
+      }),
     }),
     deleteUser: builder.mutation({
       query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
@@ -271,7 +308,12 @@ export const api = createApi({
       }),
     }),
     loginWithGoogle: builder.mutation({
-      query: (body) => ({ url: "/api/v1/users/google", method: "POST", body }),
+      query: (body) => ({
+        url: "/api/v1/users/google",
+        method: "POST",
+        body,
+        headers: { "x-skip-auth": "true" },
+      }),
     }),
     getUserStats: builder.query({
       query: () => ({ url: "/api/v1/user/stats", method: "GET" }),
@@ -302,6 +344,7 @@ export const api = createApi({
         url: "/api/v1/users/verify-email",
         method: "POST",
         body,
+        headers: { "x-skip-auth": "true" },
       }),
     }),
     logout: builder.mutation<void, void>({
@@ -309,14 +352,6 @@ export const api = createApi({
         url: "/api/v1/users/logout",
         method: "POST",
       }),
-      onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
-        try {
-          await queryFulfilled;
-          dispatch(api.util.resetApiState());
-        } catch {
-          // console.error("Logout mutation failed", err);
-        }
-      },
     }),
     getNearbyProperties: builder.query({
       query: ({ lat, lng, maxDistance = 10000 }) => {
@@ -391,6 +426,7 @@ export const api = createApi({
         url: "/api/v1/users/forgot-password",
         method: "POST",
         body,
+        headers: { "x-skip-auth": "true" },
       }),
     }),
     verifyResetCode: builder.mutation({
@@ -398,6 +434,7 @@ export const api = createApi({
         url: "/api/v1/users/verify-reset-code",
         method: "POST",
         body,
+        headers: { "x-skip-auth": "true" },
       }),
     }),
     resetPassword: builder.mutation({
@@ -405,6 +442,7 @@ export const api = createApi({
         url: "/api/v1/users/reset-password",
         method: "POST",
         body,
+        headers: { "x-skip-auth": "true" },
       }),
     }),
   }),

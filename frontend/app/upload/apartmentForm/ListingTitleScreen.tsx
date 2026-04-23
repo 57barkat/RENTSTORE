@@ -12,7 +12,7 @@ import {
   buildDisabledReason,
 } from "@/utils/propertyTypes";
 
-const MAX_TITLE_LENGTH = 50;
+const MAX_TITLE_LENGTH = 150;
 const MIN_TITLE_LENGTH = 5;
 
 const ApartmentTitleScreen: FC = () => {

@@ -1,5 +1,6 @@
 import { CreatePropertyDto } from "./dto/create-property.dto";
 import { PropertyHostOption } from "./property.constants";
+import { RENT_TYPES, type RentType } from "./property.schema";
 
 type FieldErrors = Record<string, string>;
 
@@ -34,6 +35,16 @@ const hasAtLeastOneRent = (dto: Partial<CreatePropertyDto>) =>
   hasPositiveNumber(dto.dailyRent) ||
   hasPositiveNumber(dto.weeklyRent) ||
   hasPositiveNumber(dto.monthlyRent);
+
+const getEffectiveDefaultRentType = (
+  value: unknown,
+): RentType | "monthly" => {
+  if (typeof value === "string" && RENT_TYPES.includes(value as RentType)) {
+    return value as RentType;
+  }
+
+  return "monthly";
+};
 
 const addError = (errors: FieldErrors, field: string, message: string) => {
   if (!errors[field]) {
@@ -100,6 +111,41 @@ export const validatePropertyPayload = (
       errors,
       "pricing",
       "Provide at least one valid daily, weekly, or monthly rent.",
+    );
+  }
+
+  const defaultRentType = getEffectiveDefaultRentType(dto.defaultRentType);
+
+  if (
+    defaultRentType === "daily" &&
+    !hasPositiveNumber(dto.dailyRent)
+  ) {
+    addError(
+      errors,
+      "defaultRentType",
+      "Daily rent must be set before daily can be the default display rent.",
+    );
+  }
+
+  if (
+    defaultRentType === "weekly" &&
+    !hasPositiveNumber(dto.weeklyRent)
+  ) {
+    addError(
+      errors,
+      "defaultRentType",
+      "Weekly rent must be set before weekly can be the default display rent.",
+    );
+  }
+
+  if (
+    defaultRentType === "monthly" &&
+    !hasPositiveNumber(dto.monthlyRent)
+  ) {
+    addError(
+      errors,
+      "defaultRentType",
+      "Monthly rent must be set before monthly can be the default display rent.",
     );
   }
 
@@ -206,4 +252,10 @@ export const validatePropertyPayload = (
     valid: Object.keys(errors).length === 0,
     fieldErrors: errors,
   };
+};
+
+export const normalizeDefaultRentType = (
+  dto: Partial<CreatePropertyDto>,
+): "daily" | "weekly" | "monthly" => {
+  return getEffectiveDefaultRentType(dto.defaultRentType);
 };

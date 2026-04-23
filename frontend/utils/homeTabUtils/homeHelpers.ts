@@ -23,6 +23,9 @@ export const formatAndTagFavorites = (
       sortWeight: p.sortWeight || rawItem?.sortWeight || 1,
       featured: p.featured || rawItem?.featured || false,
       monthlyRent: p.monthlyRent || rawItem?.monthlyRent || p.rent,
+      defaultRentType: p.defaultRentType || rawItem?.defaultRentType,
+      dailyRent: p.dailyRent || rawItem?.dailyRent,
+      weeklyRent: p.weeklyRent || rawItem?.weeklyRent,
       // Identification
       isFav: favoriteIds.includes(p.id),
     };

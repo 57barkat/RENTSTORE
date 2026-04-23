@@ -44,7 +44,7 @@ export default function SignInScreen() {
     if (isAuthenticated) {
       router.replace("/homePage");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, router]);
 
   const handleSignIn = async () => {
     if (!emailOrPhone.trim() || !password.trim()) {

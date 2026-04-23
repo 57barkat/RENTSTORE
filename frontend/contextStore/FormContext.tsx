@@ -179,6 +179,7 @@ export interface FormData {
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
+  defaultRentType?: "daily" | "weekly" | "monthly";
   securityDeposit?: number;
   ALL_BILLS?: BillType[];
   safetyDetailsData?: SafetyDetailsData;

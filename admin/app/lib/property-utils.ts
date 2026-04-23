@@ -437,20 +437,28 @@ const buildPriceInfo = (
 export const getPropertyPricingOptions = (
   property: PublicProperty,
 ): PropertyPriceInfo[] => {
+  const preferredFrequency =
+    property.defaultRentType === "daily" ||
+    property.defaultRentType === "weekly" ||
+    property.defaultRentType === "monthly"
+      ? property.defaultRentType
+      : "monthly";
+
   const priceMap = [
-    {
-      frequency: "monthly" as const,
-      amount: toPositivePrice(property.monthlyRent),
-    },
-    {
-      frequency: "weekly" as const,
-      amount: toPositivePrice(property.weeklyRent),
-    },
-    {
-      frequency: "daily" as const,
-      amount: toPositivePrice(property.dailyRent),
-    },
-  ];
+    preferredFrequency,
+    ...(["monthly", "weekly", "daily"] as const).filter(
+      (frequency) => frequency !== preferredFrequency,
+    ),
+  ].map((frequency) => ({
+    frequency,
+    amount: toPositivePrice(
+      frequency === "monthly"
+        ? property.monthlyRent
+        : frequency === "weekly"
+          ? property.weeklyRent
+          : property.dailyRent,
+    ),
+  }));
 
   return priceMap
     .filter(

@@ -148,7 +148,7 @@ const Sidebar: React.FC = () => {
         type: "success",
         text1: "You have been logged out",
       });
-      router.replace("/");
+      router.replace("/signin");
     }
   };
 

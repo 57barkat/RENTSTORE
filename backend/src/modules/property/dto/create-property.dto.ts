@@ -12,7 +12,11 @@ import {
   IsNotEmpty,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { Property, PropertyModerationStatus } from "../property.schema";
+import {
+  Property,
+  PropertyModerationStatus,
+  RENT_TYPES,
+} from "../property.schema";
 import {
   APARTMENT_TYPES,
   FURNISHING_TYPES,
@@ -95,6 +99,10 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsNumber()
   weeklyRent?: number;
+
+  @IsOptional()
+  @IsEnum(RENT_TYPES)
+  defaultRentType?: "daily" | "weekly" | "monthly";
 
   @Transform(({ value }) => (value !== undefined ? Number(value) : value))
   @IsOptional()

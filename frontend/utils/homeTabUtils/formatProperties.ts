@@ -1,4 +1,5 @@
 import { PropertyItem, PropertyCardProps } from "@/types/TabTypes/TabTypes";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export const formatProperties = (
   items: PropertyItem[] = [],
@@ -26,11 +27,13 @@ export const formatProperties = (
   });
 
   return sorted.map((item) => ({
+    ...(getPrimaryRentInfo(item)
+      ? { rent: getPrimaryRentInfo(item)!.amount }
+      : { rent: item.monthlyRent }),
     id: item._id,
     title: item.title,
     city: item.address?.[0]?.city,
     country: item.address?.[0]?.country ?? "Pakistan",
-    rent: item.monthlyRent,
     image: item.photos?.[0],
     featured: item.featured,
     isFav: item.isFav,
