@@ -4,6 +4,8 @@ import { destroyCookie, parseCookies, setCookie } from "nookies";
 
 const API_BASE_PATH = "/api/v1";
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
+let refreshRequest: Promise<{ accessToken: string; refreshToken: string }> | null =
+  null;
 
 const apiClient = axios.create({
   baseURL: API_BASE_PATH,
@@ -44,13 +46,37 @@ apiClient.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const res = await axios.post(`${API_BASE_PATH}/users/refresh`, {
-            refreshToken,
+          if (!refreshRequest) {
+            refreshRequest = axios
+              .post(`${API_BASE_PATH}/users/refresh`, {
+                refreshToken,
+              }, {
+                headers: {
+                  "x-frontend-secret": FRONTEND_SECRET,
+                },
+              })
+              .then((res) => ({
+                accessToken: res.data.accessToken,
+                refreshToken: res.data.refreshToken,
+              }))
+              .finally(() => {
+                refreshRequest = null;
+              });
+          }
+
+          const { accessToken: newToken, refreshToken: nextRefreshToken } =
+            await refreshRequest;
+
+          setCookie(null, "admin_token", newToken, {
+            path: "/",
+            maxAge: 30 * 24 * 60 * 60,
           });
-
-          const newToken = res.data.accessToken;
-
-          setCookie(null, "admin_token", newToken, { path: "/" });
+          if (nextRefreshToken) {
+            setCookie(null, "refresh_token", nextRefreshToken, {
+              path: "/",
+              maxAge: 30 * 24 * 60 * 60,
+            });
+          }
 
           originalRequest.headers = originalRequest.headers || {};
           (
@@ -59,8 +85,8 @@ apiClient.interceptors.response.use(
 
           return apiClient(originalRequest);
         } catch {
-          destroyCookie(null, "admin_token");
-          destroyCookie(null, "refresh_token");
+          destroyCookie(null, "admin_token", { path: "/" });
+          destroyCookie(null, "refresh_token", { path: "/" });
 
           if (typeof window !== "undefined") {
             window.location.href = "/login";

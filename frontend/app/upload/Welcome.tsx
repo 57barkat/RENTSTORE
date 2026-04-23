@@ -105,7 +105,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
     }
   };
 
-  const nextButtonText = progress >= 100 ? "Submit for Approval" : "Next";
+  const nextButtonText = progress >= 100 ? "Submit" : "Next";
 
   return (
     <SafeAreaView
@@ -166,10 +166,7 @@ const StepContainer: React.FC<StepContainerProps> = ({
             ]}
           >
             <Text
-              style={[
-                styles.disabledReasonText,
-                { color: currentTheme.error },
-              ]}
+              style={[styles.disabledReasonText, { color: currentTheme.error }]}
             >
               {nextDisabledReason}
             </Text>

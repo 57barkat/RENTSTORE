@@ -39,7 +39,6 @@
     "@sfpy/node-core": "^0.3.5",
     "@sfpy/node-sdk": "^3.0.2",
     "@types/joi": "^17.2.2",
-    "@upstash/redis": "^1.37.0",
     "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

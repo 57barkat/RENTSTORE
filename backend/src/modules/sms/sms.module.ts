@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './sms.controller';
 import { SmsService } from './sms.service';
+import { OtpStoreService } from './otp-store.service';
 import { UserModule } from '../user/user.module';
 
 @Module({
   controllers: [AuthController],
-  providers: [SmsService],
+  providers: [SmsService, OtpStoreService],
   exports: [SmsService],
   imports: [UserModule],
 })

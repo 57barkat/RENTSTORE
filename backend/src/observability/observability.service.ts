@@ -44,9 +44,8 @@ type HealthDetailsResponse = {
     service: string;
     checks?: {
       mongo: string;
-      redis: string;
     };
-    errors?: Partial<Record<"mongo" | "redis", string>>;
+    errors?: Partial<Record<"mongo", string>>;
     timestamp: string;
   };
   timestamp: string;
@@ -61,7 +60,7 @@ type CachedPayload =
 const WINDOW_MINUTES = 60;
 const CACHE_TTL_MS = 10_000;
 const SNAPSHOT_LIMITATION =
-  "Time-bucketed observability metrics are aggregated from shared Redis minute buckets and retained for the recent rolling window.";
+  "Time-bucketed observability metrics are retained in process memory for the recent rolling window.";
 
 @Injectable()
 export class ObservabilityService {

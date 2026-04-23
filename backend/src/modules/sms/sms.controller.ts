@@ -8,8 +8,7 @@ import {
 import { SmsService } from "./sms.service";
 import { UserService } from "../user/user.service";
 import { AuthGuard } from "@nestjs/passport";
-import { User } from "../user/user.entity";
-import { getRedis } from "../../common/redis/redis.service";
+import { OtpStoreService } from "./otp-store.service";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 
@@ -18,15 +17,15 @@ const OTP_TTL_MS = 5 * 60 * 1000;
 export class AuthController {
   constructor(
     private readonly smsService: SmsService,
-
     private readonly userService: UserService,
+    private readonly otpStoreService: OtpStoreService,
   ) {}
 
   @Post("send-otp")
   async sendOtp(@Body("phone") phone: string) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await getRedis().set(this.getOtpKey(phone), otp, { px: OTP_TTL_MS });
+    await this.otpStoreService.set(this.getOtpKey(phone), otp, OTP_TTL_MS);
 
     await this.smsService.sendOtp(phone, otp);
     return { success: true, message: "OTP sent successfully" };
@@ -37,12 +36,12 @@ export class AuthController {
     @Body("phone") phone: string,
     @Body("otp") otp: string,
   ): Promise<{ success: boolean; message: string }> {
-    const storedOtp = await getRedis().get<string>(this.getOtpKey(phone));
+    const storedOtp = await this.otpStoreService.get(this.getOtpKey(phone));
 
     if (!storedOtp) throw new BadRequestException("No OTP sent or expired");
     if (storedOtp !== otp) throw new BadRequestException("Invalid OTP");
 
-    await getRedis().del(this.getOtpKey(phone));
+    await this.otpStoreService.delete(this.getOtpKey(phone));
 
     const user = await this.userService.findByPhone(phone);
     if (!user) throw new BadRequestException("User not found");

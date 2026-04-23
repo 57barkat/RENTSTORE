@@ -68,17 +68,10 @@ function clampLimit(
 export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
-  @Post("create")
-  // @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
-  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
-  async createProperty(
-    @Body() dto: Partial<CreatePropertyDto>,
-    @UploadedFiles() files: { photos?: Express.Multer.File[] },
-    @Req() req: any,
+  private async normalizeCreatePayload(
+    dto: Partial<CreatePropertyDto>,
+    files: { photos?: Express.Multer.File[] },
   ) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException("User not authenticated");
-
     const parseJson = (val: any) => {
       if (!val) return undefined;
       try {
@@ -105,9 +98,7 @@ export class PropertyController {
     if (dto.address) {
       try {
         parsedAddress =
-          typeof dto.address === "string"
-            ? JSON.parse(dto.address)
-            : dto.address;
+          typeof dto.address === "string" ? JSON.parse(dto.address) : dto.address;
       } catch {
         parsedAddress = [];
       }
@@ -121,7 +112,7 @@ export class PropertyController {
           });
           return cleaned;
         })
-        .filter((a) => Object.keys(a).length > 0);
+        .filter((addressEntry) => Object.keys(addressEntry).length > 0);
     }
     parsedDto.address = parsedAddress;
 
@@ -139,6 +130,21 @@ export class PropertyController {
         coordinates: [parsedDto.lng, parsedDto.lat],
       };
     }
+
+    return parsedDto;
+  }
+
+  @Post("create")
+  // @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
+  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
+  async createProperty(
+    @Body() dto: Partial<CreatePropertyDto>,
+    @UploadedFiles() files: { photos?: Express.Multer.File[] },
+    @Req() req: any,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException("User not authenticated");
+    const parsedDto = await this.normalizeCreatePayload(dto, files);
 
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
@@ -184,6 +190,35 @@ export class PropertyController {
     }
 
     return this.propertyService.createOrUpdate(parsedDto, userId);
+  }
+
+  @Post("admin/create")
+  @SetMetadata("roles", ["admin"])
+  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
+  async adminCreateProperty(
+    @Body() dto: Partial<CreatePropertyDto>,
+    @UploadedFiles() files: { photos?: Express.Multer.File[] },
+  ) {
+    const ownerId = dto.ownerId?.trim();
+    if (!ownerId) {
+      throw new BadRequestException("ownerId is required for admin uploads");
+    }
+
+    const parsedDto = await this.normalizeCreatePayload(dto, files);
+    delete parsedDto._id;
+    parsedDto.ownerId = ownerId;
+    parsedDto.status = true;
+
+    const validation = validatePropertyPayload(parsedDto);
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: "Property submission is incomplete.",
+        error: "VALIDATION_FAILED",
+        fieldErrors: validation.fieldErrors,
+      });
+    }
+
+    return this.propertyService.createOrUpdate(parsedDto, ownerId);
   }
   @UseGuards(JwtAuthGuard)
   @Post(":id/promote")

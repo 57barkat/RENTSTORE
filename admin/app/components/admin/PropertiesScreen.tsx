@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Upload } from "lucide-react";
 
 import apiClient from "@/app/lib/api-client";
 import { useAdminPropertyDetails } from "@/app/hooks/useProperties";
@@ -228,7 +229,16 @@ export default function PropertiesScreen({
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="flex flex-col gap-3 lg:items-end">
+          <Link
+            href="/properties/upload"
+            className="admin-button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold"
+          >
+            <Upload className="h-4 w-4" />
+            Upload Property
+          </Link>
+
+          <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card px-4 py-3">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Results
@@ -251,6 +261,7 @@ export default function PropertiesScreen({
               {activeSummary.activeCount}
             </p>
           </div>
+        </div>
         </div>
       </div>
 
