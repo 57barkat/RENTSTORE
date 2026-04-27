@@ -12,6 +12,7 @@ import {
 import { ChatService } from "./chat.service";
 import { AuthGuard } from "@nestjs/passport";
 import { RateLimit } from "../common/decorators/rate-limit.decorator";
+import { CreateRoomDto, GetMessagesQueryDto } from "./dto/chat.dto";
 
 @Controller("chat")
 @UseGuards(AuthGuard("jwt"))
@@ -22,7 +23,7 @@ export class ChatController {
   @RateLimit({ limit: 30, windowMs: 60_000, scope: "user" })
   async createOrGetRoom(
     @Req() req,
-    @Body() body: { participants: string[]; propertyId?: string },
+    @Body() body: CreateRoomDto,
   ) {
     if (!body?.participants?.length) {
       throw new BadRequestException("Participants are required");
@@ -48,13 +49,12 @@ export class ChatController {
   async getMessages(
     @Req() req,
     @Param("roomId") roomId: string,
-    @Query("before") before?: string,
-    @Query("limit") limit?: string,
+    @Query() query: GetMessagesQueryDto,
   ) {
     if (!roomId) throw new BadRequestException("roomId is required");
     return await this.chatService.getMessages(roomId, req.user.userId, {
-      before,
-      limit: limit ? Number(limit) : undefined,
+      before: query.before,
+      limit: query.limit,
     });
   }
 }

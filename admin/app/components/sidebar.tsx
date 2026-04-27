@@ -30,9 +30,12 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     destroyCookie(null, "admin_token", { path: "/" });
-    destroyCookie(null, "refresh_token", { path: "/" });
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
     router.push("/login");
   };
 

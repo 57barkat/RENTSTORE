@@ -9,6 +9,8 @@ import { SmsService } from "./sms.service";
 import { UserService } from "../user/user.service";
 import { AuthGuard } from "@nestjs/passport";
 import { OtpStoreService } from "./otp-store.service";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
+import { SendOtpDto, VerifyOtpDto } from "./dto/otp.dto";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 
@@ -22,8 +24,10 @@ export class AuthController {
   ) {}
 
   @Post("send-otp")
-  async sendOtp(@Body("phone") phone: string) {
+  @RateLimit({ limit: 5, windowMs: 10 * 60 * 1000, scope: "user" })
+  async sendOtp(@Body() dto: SendOtpDto) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const phone = dto.phone;
 
     await this.otpStoreService.set(this.getOtpKey(phone), otp, OTP_TTL_MS);
 
@@ -32,10 +36,11 @@ export class AuthController {
   }
 
   @Post("verify-otp")
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "user" })
   async verifyOtp(
-    @Body("phone") phone: string,
-    @Body("otp") otp: string,
+    @Body() dto: VerifyOtpDto,
   ): Promise<{ success: boolean; message: string }> {
+    const { phone, otp } = dto;
     const storedOtp = await this.otpStoreService.get(this.getOtpKey(phone));
 
     if (!storedOtp) throw new BadRequestException("No OTP sent or expired");

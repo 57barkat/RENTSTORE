@@ -14,6 +14,8 @@ import {
 import { ReportsService } from "./reports.service";
 import { CreateReportDto } from "./dto/create-report.dto";
 import { AuthGuard } from "@nestjs/passport";
+import { UpdateReportStatusDto } from "./dto/update-report-status.dto";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 
 @Controller("reports")
 export class ReportsController {
@@ -21,6 +23,7 @@ export class ReportsController {
 
   @UseGuards(AuthGuard("jwt"))
   @Post()
+  @RateLimit({ limit: 10, windowMs: 15 * 60 * 1000, scope: "user" })
   async createReport(@Req() req, @Body() dto: CreateReportDto) {
     const userId = req.user.userId;
 
@@ -44,9 +47,9 @@ export class ReportsController {
   @SetMetadata("roles", ["admin"])
   async updateReportStatus(
     @Param("id") reportId: string,
-    @Body("status") status: string,
+    @Body() dto: UpdateReportStatusDto,
   ) {
-    return this.reportsService.updateReportStatus(reportId, status);
+    return this.reportsService.updateReportStatus(reportId, dto.status);
   }
 
   @Patch("property/:id/approve")

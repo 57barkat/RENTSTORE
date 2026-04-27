@@ -1,11 +1,11 @@
 import axios from "axios";
 import type { AxiosHeaders, InternalAxiosRequestConfig } from "axios";
-import { destroyCookie, parseCookies, setCookie } from "nookies";
+import { destroyCookie, parseCookies } from "nookies";
+import { getAccessTokenCookieOptions } from "@/app/lib/auth-cookies";
 
 const API_BASE_PATH = "/api/v1";
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
-let refreshRequest: Promise<{ accessToken: string; refreshToken: string }> | null =
-  null;
+let refreshRequest: Promise<{ accessToken: string }> | null = null;
 
 const apiClient = axios.create({
   baseURL: API_BASE_PATH,
@@ -41,56 +41,45 @@ apiClient.interceptors.response.use(
     ) {
       originalRequest._retry = true;
 
-      const cookies = parseCookies();
-      const refreshToken = cookies["refresh_token"];
-
-      if (refreshToken) {
-        try {
-          if (!refreshRequest) {
-            refreshRequest = axios
-              .post(`${API_BASE_PATH}/users/refresh`, {
-                refreshToken,
-              }, {
-                headers: {
-                  "x-frontend-secret": FRONTEND_SECRET,
-                },
-              })
-              .then((res) => ({
-                accessToken: res.data.accessToken,
-                refreshToken: res.data.refreshToken,
-              }))
-              .finally(() => {
-                refreshRequest = null;
-              });
-          }
-
-          const { accessToken: newToken, refreshToken: nextRefreshToken } =
-            await refreshRequest;
-
-          setCookie(null, "admin_token", newToken, {
-            path: "/",
-            maxAge: 30 * 24 * 60 * 60,
-          });
-          if (nextRefreshToken) {
-            setCookie(null, "refresh_token", nextRefreshToken, {
-              path: "/",
-              maxAge: 30 * 24 * 60 * 60,
+      try {
+        if (!refreshRequest) {
+          refreshRequest = fetch("/api/auth/refresh", {
+            method: "POST",
+            credentials: "same-origin",
+          })
+            .then(async (res) => {
+              const payload = await res.json().catch(() => null);
+              if (!res.ok || !payload?.accessToken) {
+                throw new Error("Refresh failed");
+              }
+              return { accessToken: payload.accessToken as string };
+            })
+            .finally(() => {
+              refreshRequest = null;
             });
-          }
+        }
 
-          originalRequest.headers = originalRequest.headers || {};
-          (
-            originalRequest.headers as AxiosHeaders & Record<string, string>
-          ).Authorization = `Bearer ${newToken}`;
+        const { accessToken: newToken } = await refreshRequest;
 
-          return apiClient(originalRequest);
-        } catch {
-          destroyCookie(null, "admin_token", { path: "/" });
-          destroyCookie(null, "refresh_token", { path: "/" });
+        document.cookie = `admin_token=${newToken}; Path=/; Max-Age=${getAccessTokenCookieOptions().maxAge}; SameSite=Lax${
+          getAccessTokenCookieOptions().secure ? "; Secure" : ""
+        }`;
+        originalRequest.headers = originalRequest.headers || {};
+        (
+          originalRequest.headers as AxiosHeaders & Record<string, string>
+        ).Authorization = `Bearer ${newToken}`;
 
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
+        return apiClient(originalRequest);
+      } catch {
+        destroyCookie(null, "admin_token", { path: "/" });
+
+        if (typeof window !== "undefined") {
+          void fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "same-origin",
+          }).finally(() => {
+            window.location.href = "/login?reauth=1";
+          });
         }
       }
     }

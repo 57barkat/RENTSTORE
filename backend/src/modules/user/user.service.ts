@@ -48,6 +48,10 @@ export class UserService {
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
     const normalizedEmail = this.normalizeEmail(dto.email);
 
+    if (dto.role === UserRole.ADMIN) {
+      throw new BadRequestException("ADMIN_SIGNUP_FORBIDDEN");
+    }
+
     // 1. Check for existing users
     const conflict = await this.userModel.findOne({
       $or: [
@@ -93,6 +97,7 @@ export class UserService {
       agencyName,
       agencyLogo,
       agencyAddress,
+      role: _requestedRole,
       ...cleanedData
     } = dto;
 
@@ -443,6 +448,9 @@ export class UserService {
     const [users, total] = await Promise.all([
       this.userModel
         .find(query)
+        .select(
+          "-password -refreshToken -resetPasswordCode -resetPasswordCodeExpires -emailVerificationCode -emailVerificationCodeExpires -fcmToken",
+        )
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(pageSize)

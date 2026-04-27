@@ -360,6 +360,10 @@ export class PropertyService {
     imageFiles?: Express.Multer.File[],
     userId?: string,
   ) {
+    if (!userId) {
+      throw new UnauthorizedException("User not authenticated");
+    }
+
     dto.defaultRentType = normalizeDefaultRentType(dto);
     let photos: string[] = [];
 
@@ -378,14 +382,28 @@ export class PropertyService {
       };
     }
 
-    const filter = dto._id
-      ? { _id: new Types.ObjectId(dto._id) }
-      : { _id: new Types.ObjectId() };
+    const ownerObjectId = new Types.ObjectId(userId);
+    let filter:
+      | { _id: Types.ObjectId; ownerId: Types.ObjectId }
+      | { _id: Types.ObjectId };
+
+    if (dto._id) {
+      const draftObjectId = new Types.ObjectId(dto._id);
+      const existingDraft = await this.propertyDraftModel.findById(draftObjectId);
+
+      if (existingDraft && existingDraft.ownerId.toString() !== userId.toString()) {
+        throw new UnauthorizedException("Not allowed to update this draft");
+      }
+
+      filter = { _id: draftObjectId, ownerId: ownerObjectId };
+    } else {
+      filter = { _id: new Types.ObjectId() };
+    }
 
     const update = {
       ...dto,
       photos: uniquePhotos,
-      ownerId: new Types.ObjectId(userId),
+      ownerId: ownerObjectId,
       status: false,
     };
     Object.assign(update, preparePropertySearchFields(update));
@@ -810,8 +828,37 @@ export class PropertyService {
     };
   }
 
-  async findPropertyById(propertyId: string, userId?: string) {
+  async findPropertyById(
+    propertyId: string,
+    userId?: string,
+    userRole?: string,
+  ) {
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
     const objectId = new Types.ObjectId(propertyId);
+    const visibilitySnapshot = await this.propertyModel
+      .findById(objectId)
+      .select("ownerId status isApproved moderationStatus")
+      .lean();
+
+    if (!visibilitySnapshot) {
+      throw new NotFoundException("Property not found");
+    }
+
+    const isAdmin = userRole === "admin";
+    const isOwner =
+      !!userId &&
+      visibilitySnapshot.ownerId?.toString() === userId.toString();
+    const isPubliclyVisible =
+      visibilitySnapshot.status === true &&
+      visibilitySnapshot.isApproved === true &&
+      visibilitySnapshot.moderationStatus === "ACTIVE";
+
+    if (!isPubliclyVisible && !isOwner && !isAdmin) {
+      throw new NotFoundException("Property not found");
+    }
 
     const [property] = await this.propertyModel.aggregate([
       { $match: { _id: objectId } },
@@ -879,9 +926,9 @@ export class PropertyService {
 
     property.photos = Array.from(new Set(property.photos || []));
 
-    const isOwner =
+    const isPropertyOwner =
       userId && property.owner?._id?.toString() === userId.toString();
-    property.chat = !isOwner && !!userId;
+    property.chat = !isPropertyOwner && !!userId;
 
     void this.propertyViewTracker.queueView(propertyId);
 
@@ -1231,6 +1278,12 @@ export class PropertyService {
   async findPropertyByIdAndDelete(propertyId: string, userId: string) {
     const property = await this.propertyModel.findById(propertyId);
     if (!property) throw new NotFoundException("Property not found");
+
+    if (property.ownerId.toString() !== userId.toString()) {
+      throw new UnauthorizedException(
+        "You are not allowed to delete this property",
+      );
+    }
 
     if (property.photos?.length) {
       await this.deletedImagesService.addDeletedImages(

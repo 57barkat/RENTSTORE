@@ -10,6 +10,28 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { createCorsOptions } from "./common/utils/cors.util";
 
+function stripDangerousMongoKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripDangerousMongoKeys(item));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  return Object.entries(value as Record<string, unknown>).reduce(
+    (accumulator, [key, nestedValue]) => {
+      if (key.startsWith("$") || key.includes(".")) {
+        return accumulator;
+      }
+
+      accumulator[key] = stripDangerousMongoKeys(nestedValue);
+      return accumulator;
+    },
+    {} as Record<string, unknown>,
+  );
+}
+
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -30,11 +52,23 @@ async function bootstrap() {
     }),
   );
   app.use(cookieParser());
+  app.use((_req, res, next) => {
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+    next();
+  });
+  app.use((req, _res, next) => {
+    req.body = stripDangerousMongoKeys(req.body);
+    req.query = stripDangerousMongoKeys(req.query) as typeof req.query;
+    next();
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true,
       transformOptions: {
         enableImplicitConversion: true,
       },

@@ -16,6 +16,13 @@ import { UserService } from "../../modules/user/user.service";
 import { PaymentSocketGateway } from "./payment-socket.gateway";
 import { Public } from "../../common/decorators/public.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
+import {
+  CreateCheckoutDto,
+  PaymentSuccessQueryDto,
+  SafepayNotificationDto,
+  VerifyPaymentQueryDto,
+} from "./dto/payment.dto";
+import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 
 @Controller("payments")
 export class PaymentController {
@@ -27,7 +34,8 @@ export class PaymentController {
 
   @UseGuards(JwtAuthGuard)
   @Post("create-checkout")
-  async createCheckout(@Req() req: any, @Body() body: { packageId: string }) {
+  @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "user" })
+  async createCheckout(@Req() req: any, @Body() body: CreateCheckoutDto) {
     const userId = req.user?.userId || req.user?.id || req.user?.sub;
 
     if (!userId) {
@@ -40,14 +48,14 @@ export class PaymentController {
   @Public()
   @Get("payment-success")
   async handlePaymentSuccess(
-    @Query("tracker") tracker: string,
+    @Query() query: PaymentSuccessQueryDto,
     @Res() res: any,
   ) {
-    const redirectUrl = `rentstoreapp://shop/BuyCredits?tracker=${tracker}`;
+    const redirectUrl = `rentstoreapp://shop/BuyCredits?tracker=${encodeURIComponent(query.tracker)}`;
     return res.setHeader("Content-Type", "text/html").send(`
       <html>
         <body style="text-align:center; padding-top:50px; font-family: sans-serif;">
-          <script>window.location.href = "${redirectUrl}";</script>
+          <script>window.location.href = ${JSON.stringify(redirectUrl)};</script>
           <h2>Payment Successful!</h2>
           <p>Redirecting you back to Rent Store...</p>
         </body>
@@ -59,7 +67,7 @@ export class PaymentController {
   @Post("safepay-webhook")
   async handleSafepayWebhook(
     @Req() req: any,
-    @Body() body: any,
+    @Body() body: SafepayNotificationDto,
     @Headers("x-sfpy-signature") signature: string,
   ) {
     const secret = process.env.SAFEPAY_WEBHOOK_SECRET;
@@ -94,6 +102,9 @@ export class PaymentController {
     try {
       if (notification?.state === "PAID") {
         const trackerId = notification.tracker;
+        if (!trackerId) {
+          return { status: "ignored" };
+        }
         const localPayment =
           await this.paymentService.getInternalPaymentByTracker(trackerId);
 
@@ -121,15 +132,14 @@ export class PaymentController {
 
   @UseGuards(JwtAuthGuard)
   @Get("verify")
-  async verifyPayment(@Req() req: any, @Query("tracker") tracker: string) {
+  @RateLimit({ limit: 30, windowMs: 10 * 60 * 1000, scope: "user" })
+  async verifyPayment(@Req() req: any, @Query() query: VerifyPaymentQueryDto) {
     const userId = req.user?.userId || req.user?.id || req.user?.sub;
     if (!userId) {
       throw new BadRequestException("User ID not found in token payload");
     }
 
-    if (!tracker) {
-      throw new BadRequestException("Tracker is required");
-    }
+    const { tracker } = query;
 
     const localPayment =
       await this.paymentService.getInternalPaymentByTracker(tracker);
@@ -180,6 +190,7 @@ export class PaymentController {
 
   @UseGuards(JwtAuthGuard)
   @Get("history")
+  @RateLimit({ limit: 60, windowMs: 10 * 60 * 1000, scope: "user" })
   async getHistory(@Req() req: any) {
     const userId = req.user?.userId || req.user?.id || req.user?._id;
 

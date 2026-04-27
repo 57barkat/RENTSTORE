@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { destroyCookie, setCookie } from "nookies";
+import { destroyCookie } from "nookies";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
-
-import apiClient from "@/app/lib/api-client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +19,10 @@ export default function LoginPage() {
     }
 
     destroyCookie(null, "admin_token", { path: "/" });
-    destroyCookie(null, "refresh_token", { path: "/" });
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
   }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -29,20 +30,20 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post("/users/login", {
-        emailOrPhone: email,
-        password,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          emailOrPhone: email,
+          password,
+        }),
       });
-      const { accessToken, refreshToken } = response.data;
-
-      setCookie(null, "admin_token", accessToken, {
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60,
-      });
-      setCookie(null, "refresh_token", refreshToken, {
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60,
-      });
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
 
       router.push("/dashboard");
     } catch {

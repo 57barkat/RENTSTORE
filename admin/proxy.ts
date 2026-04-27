@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import {
+  getAccessTokenCookieOptions,
+  getRefreshTokenCookieOptions,
+} from "@/app/lib/auth-cookies";
 import { verifyAuthToken } from "@/app/lib/auth-token";
 import { isProtectedRoute } from "@/app/lib/route-constants";
 
@@ -61,14 +65,16 @@ const applyAuthCookies = (
   response: NextResponse,
   tokens: { accessToken: string; refreshToken: string },
 ) => {
-  response.cookies.set("admin_token", tokens.accessToken, {
-    path: "/",
-    maxAge: 30 * 24 * 60 * 60,
-  });
-  response.cookies.set("refresh_token", tokens.refreshToken, {
-    path: "/",
-    maxAge: 30 * 24 * 60 * 60,
-  });
+  response.cookies.set(
+    "admin_token",
+    tokens.accessToken,
+    getAccessTokenCookieOptions(),
+  );
+  response.cookies.set(
+    "refresh_token",
+    tokens.refreshToken,
+    getRefreshTokenCookieOptions(),
+  );
 
   return response;
 };

@@ -40,6 +40,24 @@ interface PaginationQuery {
 const PUBLIC_LIST_MAX_LIMIT = 24;
 const OWNER_LIST_MAX_LIMIT = 50;
 const ADMIN_LIST_MAX_LIMIT = 50;
+const USER_RESTRICTED_PROPERTY_FIELDS = [
+  "ownerId",
+  "agency",
+  "listedBy",
+  "isApproved",
+  "moderationStatus",
+  "sortWeight",
+  "featured",
+  "featuredUntil",
+  "isBoosted",
+  "views",
+  "impressions",
+  "reportCount",
+  "strikeCount",
+  "addressQuery",
+  "addressQueryNormalized",
+  "searchText",
+] as const;
 
 function clampPage(value: number | string | undefined, fallback = 1) {
   const parsed = Number(value);
@@ -61,6 +79,18 @@ function clampLimit(
   }
 
   return Math.min(Math.max(1, Math.floor(parsed)), max);
+}
+
+function stripRestrictedPropertyFields(
+  dto: Partial<CreatePropertyDto>,
+): Partial<CreatePropertyDto> {
+  const sanitized = { ...dto };
+
+  for (const field of USER_RESTRICTED_PROPERTY_FIELDS) {
+    delete sanitized[field];
+  }
+
+  return sanitized;
 }
 
 @UseGuards(JwtAuthGuard)
@@ -135,7 +165,7 @@ export class PropertyController {
   }
 
   @Post("create")
-  // @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
   @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
   async createProperty(
     @Body() dto: Partial<CreatePropertyDto>,
@@ -144,7 +174,10 @@ export class PropertyController {
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
-    const parsedDto = await this.normalizeCreatePayload(dto, files);
+    const parsedDto = await this.normalizeCreatePayload(
+      stripRestrictedPropertyFields(dto),
+      files,
+    );
 
     const isFilled = (value: any): boolean => {
       if (value === null || value === undefined) return false;
@@ -419,7 +452,8 @@ export class PropertyController {
   @Public()
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
-    return this.propertyService.findPropertyById(id, userId);
+    const userRole = req.user?.role;
+    return this.propertyService.findPropertyById(id, userId, userRole);
   }
 
   @Patch(":id")
@@ -430,7 +464,11 @@ export class PropertyController {
   ) {
     const userId = req.user?.userId;
     if (!userId) throw new UnauthorizedException("User not authenticated");
-    return this.propertyService.updateProperty(id, dto, userId);
+    return this.propertyService.updateProperty(
+      id,
+      stripRestrictedPropertyFields(dto),
+      userId,
+    );
   }
 
   @Patch(":id/visibility")
@@ -535,6 +573,6 @@ export class PropertyController {
   @SetMetadata("roles", ["admin"])
   async adminViewProperty(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
-    return this.propertyService.findPropertyById(id, userId);
+    return this.propertyService.findPropertyById(id, userId, req.user?.role);
   }
 }

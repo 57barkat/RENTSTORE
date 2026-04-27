@@ -8,11 +8,9 @@ import {
   IsBoolean,
   IsNotEmpty,
   Matches,
-  IsNumber,
-  IsDateString,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { UserRole, SubscriptionType } from "../user.entity";
+import { UserRole } from "../user.entity";
 
 export class CreateUserDto {
   @IsString()
@@ -47,48 +45,6 @@ export class CreateUserDto {
   @Type(() => Boolean)
   acceptedTerms!: boolean;
 
-  @IsOptional()
-  @IsEnum(SubscriptionType)
-  subscription?: SubscriptionType;
-
-  @IsOptional()
-  @IsDateString()
-  subscriptionStartDate?: string;
-
-  @IsOptional()
-  @IsDateString()
-  subscriptionEndDate?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  subscriptionAutoRenew?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  @Type(() => Boolean)
-  subscriptionTrialUsed?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  propertyLimit?: number;
-
-  @IsOptional()
-  @IsNumber()
-  usedPropertyCount?: number;
-
-  @IsOptional()
-  @IsNumber()
-  paidPropertyCredits?: number;
-
-  @IsOptional()
-  @IsNumber()
-  paidFeaturedCredits?: number;
-
-  @IsOptional()
-  @IsNumber()
-  prioritySlotCredits?: number;
- 
   @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)

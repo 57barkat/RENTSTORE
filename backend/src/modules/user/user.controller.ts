@@ -21,6 +21,13 @@ import { UserResponseDto } from "./dto/user-response.dto";
 import { UserDocument } from "./user.entity";
 import { UpdateUserDto } from "./dto/user-update.dto";
 import {
+  GoogleAuthDto,
+  LoginDto,
+  RefreshTokenDto,
+  UpdateCreditsDto,
+  VerifyEmailDto,
+} from "./dto/auth.dto";
+import {
   ForgotPasswordDto,
   ResetPasswordDto,
   VerifyResetCodeDto,
@@ -46,7 +53,7 @@ export class UserController {
   @Public()
   @Post("login")
   @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
-  async login(@Body() body: { emailOrPhone: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     const { user, tokens } = await this.authService.loginWithPassword(
       body.emailOrPhone,
       body.password,
@@ -78,18 +85,21 @@ export class UserController {
 
   @Public()
   @Post("forgot-password")
+  @RateLimit({ limit: 5, windowMs: 15 * 60 * 1000, scope: "ip" })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return await this.userService.requestPasswordReset(dto.email);
   }
 
   @Public()
   @Post("verify-reset-code")
+  @RateLimit({ limit: 10, windowMs: 15 * 60 * 1000, scope: "ip" })
   async verifyResetCode(@Body() dto: VerifyResetCodeDto) {
     return await this.userService.verifyResetCode(dto.email, dto.code);
   }
 
   @Public()
   @Post("reset-password")
+  @RateLimit({ limit: 5, windowMs: 15 * 60 * 1000, scope: "ip" })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return await this.userService.resetPassword(dto);
   }
@@ -125,7 +135,7 @@ export class UserController {
   @Public()
   @Post("verify-email")
   @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
-  async verifyEmail(@Body() body: { email: string; code: string }) {
+  async verifyEmail(@Body() body: VerifyEmailDto) {
     const user = await this.userService.verifyEmail(body.email, body.code);
     return this.mapUser(user);
   }
@@ -133,8 +143,8 @@ export class UserController {
   @Public()
   @Post("google")
   @RateLimit({ limit: 10, windowMs: 10 * 60 * 1000, scope: "ip" })
-  async google(@Body("access_token") token: string) {
-    const user = await this.userService.googleLogin(token);
+  async google(@Body() dto: GoogleAuthDto) {
+    const user = await this.userService.googleLogin(dto.access_token);
     return this.authService.issueTokens(user);
   }
   @UseGuards(JwtAuthGuard)
@@ -156,8 +166,8 @@ export class UserController {
   @Public()
   @Post("refresh")
   @RateLimit({ limit: 30, windowMs: 10 * 60 * 1000, scope: "ip" })
-  async refresh(@Body("refreshToken") token: string) {
-    return await this.authService.refresh(token);
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return await this.authService.refresh(dto.refreshToken);
   }
   @UseGuards(AuthGuard("jwt"))
   @Post("logout")
@@ -210,8 +220,7 @@ export class UserController {
   @Patch("admin/update-credits/:userId")
   async updateCredits(
     @Param("userId") userId: string,
-    @Body()
-    updateDto: { paidPropertyCredits?: number; paidFeaturedCredits?: number },
+    @Body() updateDto: UpdateCreditsDto,
     @Req() req: any,
   ) {
     if (req.user.role !== "admin") {

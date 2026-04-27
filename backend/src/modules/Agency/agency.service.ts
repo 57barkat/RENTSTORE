@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
 import { Agency, AgencyDocument } from "./agency.entity";
@@ -30,16 +34,27 @@ export class AgencyService {
     return agency;
   }
 
-  async addAgent(agencyId: string, agentId: string) {
+  async addAgent(
+    agencyId: string,
+    agentId: string,
+    actorUserId?: string,
+    actorRole?: string,
+  ) {
     const agency = await this.agencyModel.findById(agencyId);
     if (!agency) throw new NotFoundException("Agency not found");
+
+    const isAdmin = actorRole === UserRole.ADMIN;
+    const isOwner = actorUserId && agency.owner?.toString() === actorUserId;
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException("Not allowed to manage this agency");
+    }
 
     agency.agents.push(new Types.ObjectId(agentId));
     await agency.save();
 
     await this.userModel.findByIdAndUpdate(agentId, {
       agency: agencyId,
-      role: UserRole.AGENCY,
+      role: UserRole.AGENT,
       propertyLimit: 9999,
     });
 
