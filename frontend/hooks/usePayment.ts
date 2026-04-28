@@ -11,6 +11,9 @@ export const usePayment = () => {
   const [loading, setLoading] = useState(false);
   const { updateUser, refreshAuthState } = useAuth();
   const router = useRouter();
+  const redirectUri = Linking.createURL("payments/callback", {
+    scheme: "anganstay",
+  });
 
   const verifyPaymentOnBackend = async (tracker: string) => {
     setLoading(true);
@@ -67,7 +70,7 @@ export const usePayment = () => {
 
       const result = await WebBrowser.openAuthSessionAsync(
         data.url,
-        "rentstoreapp://",
+        redirectUri,
       );
 
       if (result.type === "success" && result.url) {

@@ -8,20 +8,17 @@ import {
 } from "@/app/lib/property-detail";
 import { BRAND_NAME } from "@/app/lib/property-utils";
 
-interface DetailPageProps {
+interface PropertySlugPageProps {
   params: Promise<{
-    category: string;
-    city: string;
-    location: string;
-    id: string;
+    slug: string;
   }>;
 }
 
 export async function generateMetadata({
   params,
-}: DetailPageProps): Promise<Metadata> {
+}: PropertySlugPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const metadata = await buildPropertyDetailMetadata(resolvedParams.id);
+  const metadata = await buildPropertyDetailMetadata(resolvedParams.slug);
 
   return {
     title: `${metadata.title} | ${BRAND_NAME}`,
@@ -45,12 +42,12 @@ export async function generateMetadata({
   };
 }
 
-export default async function LegacyPropertyDetailPage({
+export default async function PropertySlugPage({
   params,
-}: DetailPageProps) {
+}: PropertySlugPageProps) {
   const resolvedParams = await params;
-  const detail = await resolvePropertyDetail(resolvedParams.id);
-  const currentPath = `/${resolvedParams.category}/${resolvedParams.city}/${resolvedParams.location}/${resolvedParams.id}`;
+  const detail = await resolvePropertyDetail(resolvedParams.slug);
+  const currentPath = `/${resolvedParams.slug}`;
 
   if (detail.canonicalHref !== currentPath) {
     redirect(detail.canonicalHref);

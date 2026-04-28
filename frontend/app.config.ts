@@ -12,7 +12,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   platforms: ["android", "ios", "web"],
   orientation: "portrait",
 
-  icon: "./assets/images/icon.png",
+  icon: "./assets/images/adaptive-icon.png",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
 
@@ -23,8 +23,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
       NSLocationWhenInUseUsageDescription:
-        "This app needs access to your location to show nearby rentals.",
-      NSLocationAlwaysAndWhenInUseUsageDescription:
         "This app needs access to your location to show nearby rentals.",
       NSMicrophoneUsageDescription:
         "This app uses the microphone for voice-based property searching.",
@@ -61,22 +59,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.web,
     bundler: "metro",
     output: "static",
-    favicon: "./assets/images/favicon.png",
+    favicon: "./assets/images/adaptive-icon.png",
   },
 
   extra: {
     ...config.extra,
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     shareBaseUrl: process.env.EXPO_PUBLIC_SHARE_BASE_URL,
+    privacyPolicyUrl: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL,
     GOOGLE_PLACES_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY,
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
     UPLOAD_PRESET: process.env.UPLOAD_PRESET,
     MAPBOX_PUBLIC_TOKEN: process.env.MAPBOX_PUBLIC_TOKEN,
-    MAPBOX_DOWNLOADS_TOKEN: process.env.MAPBOX_DOWNLOADS_TOKEN,
-
-    eas: {
-      projectId: process.env.EAS_PROJECT_ID,
-    },
 
     router: {},
   },
@@ -115,7 +109,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "@rnmapbox/maps",
       {
         RNMapboxMapsImpl: "mapbox",
-        RNMapboxMapsDownloadToken: process.env.MAPBOX_DOWNLOADS_TOKEN,
       },
     ],
   ],

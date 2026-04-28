@@ -5,11 +5,15 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 
-import { PUBLIC_CATEGORY_LINKS } from "@/app/lib/route-constants";
+import {
+  PUBLIC_CATEGORY_LINKS,
+  getPublicCategoryFromPath,
+} from "@/app/lib/route-constants";
 
 export default function PublicHeader() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const activeCategory = getPublicCategoryFromPath(pathname);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--admin-border)] bg-[var(--admin-background)]/95 backdrop-blur-xl">
@@ -24,8 +28,7 @@ export default function PublicHeader() {
 
           <nav className="hidden items-center gap-2 lg:flex">
             {PUBLIC_CATEGORY_LINKS.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = activeCategory === item.category;
 
               return (
                 <Link
@@ -58,8 +61,7 @@ export default function PublicHeader() {
         <div className="border-t border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 shadow-[0_20px_40px_-30px_var(--admin-shadow)] lg:hidden">
           <nav className="flex flex-col gap-2">
             {PUBLIC_CATEGORY_LINKS.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const isActive = activeCategory === item.category;
 
               return (
                 <Link

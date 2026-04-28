@@ -2,16 +2,27 @@ import type {
   HostelType,
   PropertyAddress,
   PropertyCategory,
+  PropertyPurpose,
   PropertySearchFilters,
   PropertySort,
   PublicProperty,
   SizeUnit,
 } from "@/app/lib/property-types";
+import {
+  buildPropertyDetailSlug,
+  buildSeoListingSlug,
+  canBuildSeoListingSlug,
+  getSeoPropertyTypeForCategory,
+  normalizePurpose,
+  normalizeSeoCity,
+} from "@/app/lib/property-seo";
 
 const CATEGORY_ALIASES: Record<string, PropertyCategory> = {
   home: "home",
   house: "home",
   houses: "home",
+  property: "property",
+  properties: "property",
   apartment: "apartment",
   apartments: "apartment",
   hostel: "hostel",
@@ -24,6 +35,7 @@ const CATEGORY_ALIASES: Record<string, PropertyCategory> = {
 
 const CATEGORY_SEGMENTS: Record<PropertyCategory, string> = {
   home: "houses",
+  property: "properties",
   apartment: "apartments",
   hostel: "hostels",
   shop: "shops",
@@ -113,6 +125,8 @@ export const getCategoryLabel = (
   switch (category) {
     case "home":
       return plural ? "Houses" : "House";
+    case "property":
+      return plural ? "Properties" : "Property";
     case "apartment":
       return plural ? "Apartments" : "Apartment";
     case "hostel":
@@ -136,11 +150,15 @@ export const parsePropertySearchParams = (
 ): PropertySearchFilters => {
   const hostelTypeValue = toSingleValue(searchParams.hostelType) || "";
   const sortValue = toSingleValue(searchParams.sortBy) || "newest";
+  const purposeValue = normalizePurpose(
+    toSingleValue(searchParams.purpose) || "rent",
+  );
 
   return {
     category,
+    purpose: (purposeValue || "rent") as PropertyPurpose,
     title: toSingleValue(searchParams.title) || "",
-    city: toSingleValue(searchParams.city) || "",
+    city: normalizeSeoCity(toSingleValue(searchParams.city) || ""),
     location:
       toSingleValue(searchParams.location) ||
       toSingleValue(searchParams.addressQuery) ||
@@ -178,22 +196,28 @@ export const buildPropertySearchQuery = (
   filters: PropertySearchFilters,
 ): string => {
   const params = new URLSearchParams();
+  const addressQuery = [filters.location, filters.city]
+    .map((value) => (value || "").trim())
+    .filter(Boolean)
+    .join(", ");
 
-  params.set("hostOption", filters.category);
+  if (filters.category !== "property") {
+    params.set("hostOption", filters.category);
+  }
   params.set("page", String(filters.page || 1));
   params.set("limit", String(filters.limit || 12));
   params.set("sortBy", filters.sortBy || "newest");
 
-  if (filters.city) {
-    params.set("city", filters.city);
+  if (filters.purpose) {
+    params.set("purpose", filters.purpose);
   }
 
   if (filters.title) {
     params.set("title", filters.title);
   }
 
-  if (filters.location) {
-    params.set("addressQuery", filters.location);
+  if (addressQuery) {
+    params.set("addressQuery", addressQuery);
   }
 
   if (filters.minRent !== "" && filters.minRent !== undefined) {
@@ -229,11 +253,19 @@ export const buildPropertySearchQuery = (
 
 export const buildPropertyBrowserQuery = (
   filters: PropertySearchFilters,
+  options?: {
+    omitCity?: boolean;
+    omitPurpose?: boolean;
+  },
 ): string => {
   const params = new URLSearchParams();
 
-  if (filters.city) {
+  if (filters.city && !options?.omitCity) {
     params.set("city", filters.city);
+  }
+
+  if (filters.purpose && filters.purpose !== "rent" && !options?.omitPurpose) {
+    params.set("purpose", filters.purpose);
   }
 
   if (filters.title) {
@@ -286,9 +318,44 @@ export const buildPropertyBrowserQuery = (
 export const buildSearchHref = (
   pathname: string,
   filters: PropertySearchFilters,
+  options?: {
+    omitCity?: boolean;
+    omitPurpose?: boolean;
+  },
 ): string => {
-  const query = buildPropertyBrowserQuery(filters);
+  const query = buildPropertyBrowserQuery(filters, options);
   return query ? `${pathname}?${query}` : pathname;
+};
+
+export const canUseSeoListingPath = (
+  filters: PropertySearchFilters,
+): boolean =>
+  canBuildSeoListingSlug({
+    category: filters.category,
+    purpose: filters.purpose || "rent",
+    city: filters.city,
+  });
+
+export const buildListingPath = (
+  filters: PropertySearchFilters,
+  options?: {
+    preferSeo?: boolean;
+  },
+): string => {
+  if (options?.preferSeo && canUseSeoListingPath(filters)) {
+    const seoSegment = buildSeoListingSlug({
+      category: filters.category,
+      purpose: filters.purpose || "rent",
+      city: filters.city,
+      propertyType: getSeoPropertyTypeForCategory(filters.category) || undefined,
+    });
+
+    if (seoSegment) {
+      return `/${seoSegment}`;
+    }
+  }
+
+  return `/${getCanonicalCategorySegment(filters.category)}`;
 };
 
 export const getPropertyAddresses = (
@@ -319,6 +386,14 @@ export const getPropertyCity = (property: PublicProperty): string => {
 
 export const getPropertyLocation = (property: PublicProperty): string => {
   return toText(property.area || property.location) || "Prime location";
+};
+
+export const getPropertyPurpose = (
+  property: PublicProperty,
+): PropertyPurpose => {
+  return property.defaultRentType || property.monthlyRent || property.weeklyRent || property.dailyRent
+    ? "rent"
+    : "sale";
 };
 
 export const getPropertyTitle = (property: PublicProperty): string => {
@@ -530,6 +605,21 @@ export const extractPropertyId = (segment: string): string | null => {
 
 export const buildPropertyHref = (property: PublicProperty): string => {
   const normalizedCategory = getPropertyCategory(property);
+  const propertyHrefSlug = buildPropertyDetailSlug({
+    title: getPropertyTitle(property),
+    propertyType: getSeoPropertyTypeForCategory(normalizedCategory) || undefined,
+    purpose: getPropertyPurpose(property),
+    area: getPropertyLocation(property),
+    city: getPropertyCity(property),
+    sizeValue: property.size?.value,
+    sizeUnit: property.size?.unit,
+    hostelType: property.hostelType,
+    propertyId: property._id,
+  });
+
+  if (propertyHrefSlug) {
+    return `/${propertyHrefSlug}`;
+  }
 
   return `/${getCanonicalCategorySegment(normalizedCategory)}/${slugify(
     getPropertyCity(property),
@@ -541,9 +631,10 @@ export const buildPropertyHref = (property: PublicProperty): string => {
 export const buildListingTitle = (filters: PropertySearchFilters): string => {
   const categoryLabel = getCategoryLabel(filters.category, true);
   const city = filters.city || "Islamabad";
-  const location = filters.location || "prime locations";
+  const location = filters.location ? ` in ${filters.location}` : "";
+  const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
 
-  return `${categoryLabel} for rent in ${city}  ${location}`;
+  return `${categoryLabel} for ${purposeLabel} in ${city}${location}`;
 };
 
 export const buildListingDescription = (
@@ -557,20 +648,21 @@ export const buildListingDescription = (
 
   const category = getCategoryKeyword(filters.category);
   const city = filters.city || "Islamabad";
+  const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
   const location = filters.location
-    ? `in ${filters.location}`
-    : "prime locations";
+    ? `near ${filters.location}`
+    : "across prime locations";
 
-  return `${resultPrefix} for ${category} in ${city} ${location}. Find the perfect match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`;
+  return `${resultPrefix} for ${category} for ${purposeLabel} in ${city} ${location}. Find the right match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`;
 };
 
 export const buildPropertyMetadataTitle = (
   category: PropertyCategory,
   property: PublicProperty,
 ): string => {
-  return `${getCategoryLabel(category)} in ${getPropertyCity(
+  return `${getPropertyTitle(property)} for ${getPropertyPurpose(
     property,
-  )}, ${getPropertyLocation(property)} | ${getPropertyTitle(property)}`;
+  )} in ${getPropertyLocation(property)} ${getPropertyCity(property)}`;
 };
 
 export const buildPropertyMetadataDescription = (
@@ -578,13 +670,17 @@ export const buildPropertyMetadataDescription = (
   property: PublicProperty,
 ): string => {
   const priceDisplay = getPropertyPriceDisplay(property);
+  const title = getPropertyTitle(property);
+  const location = getPropertyLocation(property);
+  const city = getPropertyCity(property);
 
-  return `${getPropertyDescriptionText(
+  return `Find ${title.toLowerCase()} for ${getPropertyPurpose(
     property,
-    140,
-  )} Explore this ${getCategoryKeyword(category)} listing in ${getPropertyCity(
-    property,
-  )} near ${getPropertyLocation(property)} with ${priceDisplay.toLowerCase()}, verified amenities, and safety details on ${BRAND_NAME}.`;
+  )} in ${location} ${city}. ${
+    priceDisplay === "Contact for Price"
+      ? "Verified listing, contact host directly."
+      : `${priceDisplay}, verified listing, contact host directly.`
+  }`;
 };
 
 export const getPropertyContactPhone = (property: PublicProperty): string => {

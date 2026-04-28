@@ -1,6 +1,10 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 frontend/.env
+frontend/.env.*
 .env
+.env.*
+!.env.example
+!frontend/.env.example
 # dependencies
 node_modules/
 
@@ -14,10 +18,13 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
+*.keystore.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+frontend/android/gradle.properties
 
 # Metro
 .metro-health-check*
@@ -26,7 +33,6 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
-frontend/.env
 # macOS
 .DS_Store
 *.pem

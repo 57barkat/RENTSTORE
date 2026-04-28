@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   View,
@@ -7,8 +7,8 @@ import {
   Platform,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Formik } from "formik";
 import { Colors } from "../constants/Colors";
@@ -17,7 +17,6 @@ import { useCreateUserMutation, useVerifyEmailMutation } from "@/services/api";
 import { signupValidationSchema } from "@/utils/signupValidation";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import { createUserPayload } from "@/utils/apiPayload";
-import { Loader } from "@/components/Loader";
 import { InputField } from "@/components/InputField";
 import { AgencyFields } from "@/components/AgencyFields";
 import { TermsCheckbox } from "@/components/TermsCheckbox";
@@ -25,6 +24,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import TermsModal from "@/components/TermsModal";
 import VerificationModal from "@/components/VerificationModal";
+import { getStoredRole } from "@/utils/storage";
 
 // ✅ Updated Constants based on your structure
 const ROLES = {
@@ -41,8 +41,6 @@ export default function SignUpScreen() {
   // ✅ State handles which specific role is selected
   const [role, setRole] = useState<string>(ROLES.USER);
 
-  console.log("Signup Screen - Selected Role:", role);
-
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
 
@@ -52,6 +50,32 @@ export default function SignUpScreen() {
 
   const [createUser, { isLoading: creating }] = useCreateUserMutation();
   const [verifyEmail, { isLoading: verifying }] = useVerifyEmailMutation();
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadStoredRole = async () => {
+      const storedRole = await getStoredRole();
+      const normalizedRole =
+        storedRole === "renter" ? ROLES.AGENT : storedRole;
+
+      if (
+        mounted &&
+        normalizedRole &&
+        Object.values(ROLES).includes(
+          normalizedRole as (typeof ROLES)[keyof typeof ROLES],
+        )
+      ) {
+        setRole(normalizedRole);
+      }
+    };
+
+    void loadStoredRole();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const toggleRole = (newRole: string) => {
     setRole(newRole);
@@ -98,6 +122,10 @@ export default function SignUpScreen() {
     } catch (error: any) {
       showErrorToast("Error", error?.data?.message || "Invalid code");
     }
+  };
+
+  const openPrivacyPolicy = () => {
+    router.push("/PrivacyPolicyScreen");
   };
 
   return (
@@ -391,6 +419,23 @@ export default function SignUpScreen() {
                 />
 
                 <TouchableOpacity
+                  style={styles.privacyLink}
+                  onPress={openPrivacyPolicy}
+                >
+                  <Text style={{ color: currentTheme.muted }}>
+                    Read our{" "}
+                    <Text
+                      style={{
+                        color: currentTheme.secondary,
+                        fontWeight: "700",
+                      }}
+                    >
+                      Privacy Policy
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={styles.footerLink}
                   onPress={() => router.push("/signin")}
                 >
@@ -472,6 +517,7 @@ const styles = StyleSheet.create({
   infoSub: { fontSize: 12, marginTop: 2, color: "#64748b" },
   form: { gap: 12 },
   agreementWrapper: { marginTop: 10 },
+  privacyLink: { marginTop: 16, alignItems: "center" },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",

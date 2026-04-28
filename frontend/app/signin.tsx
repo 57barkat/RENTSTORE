@@ -56,10 +56,12 @@ export default function SignInScreen() {
         emailOrPhone,
         password,
       }).unwrap();
+      const isPhoneVerified =
+        response?.isPhoneVerified ?? response?.isphoneverified;
 
       await login(response);
 
-      if (response.isPhoneVerified === false) {
+      if (isPhoneVerified === false) {
         showErrorToast(
           "Phone Not Verified",
           "Please verify your phone number to continue.",
@@ -110,6 +112,10 @@ export default function SignInScreen() {
     }
   };
 
+  const openPrivacyPolicy = () => {
+    router.push("/PrivacyPolicyScreen");
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -121,9 +127,7 @@ export default function SignInScreen() {
         bounces={false}
       >
         <ImageBackground
-          source={{
-            uri: "https://images.pexels.com/photos/29174521/pexels-photo-29174521/free-photo-of-modern-apartment-building-with-autumn-foliage.jpeg?auto=compress&cs=tinysrgb&w=600",
-          }}
+          source={require("../assets/images/authimage.jpg")}
           style={styles.backgroundImage}
           resizeMode="cover"
         >
@@ -222,6 +226,23 @@ export default function SignInScreen() {
               />
 
               <TouchableOpacity
+                style={styles.privacyLink}
+                onPress={openPrivacyPolicy}
+              >
+                <Text style={{ color: currentTheme.muted }}>
+                  Review our{" "}
+                  <Text
+                    style={{
+                      color: currentTheme.secondary,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 style={styles.footerLink}
                 onPress={() => router.push("/signup")}
               >
@@ -309,5 +330,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
+  privacyLink: { marginTop: 16, alignItems: "center" },
   footerLink: { marginTop: 20, alignItems: "center" },
 });

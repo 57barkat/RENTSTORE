@@ -32,6 +32,31 @@ function stripDangerousMongoKeys(value: unknown): unknown {
   );
 }
 
+function sanitizeObjectInPlace(value: unknown): unknown {
+  const sanitized = stripDangerousMongoKeys(value);
+
+  if (
+    value &&
+    sanitized &&
+    typeof value === "object" &&
+    typeof sanitized === "object" &&
+    !Array.isArray(value) &&
+    !Array.isArray(sanitized)
+  ) {
+    const target = value as Record<string, unknown>;
+    const source = sanitized as Record<string, unknown>;
+
+    for (const key of Object.keys(target)) {
+      delete target[key];
+    }
+
+    Object.assign(target, source);
+    return target;
+  }
+
+  return sanitized;
+}
+
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -60,8 +85,8 @@ async function bootstrap() {
     next();
   });
   app.use((req, _res, next) => {
-    req.body = stripDangerousMongoKeys(req.body);
-    req.query = stripDangerousMongoKeys(req.query) as typeof req.query;
+    req.body = sanitizeObjectInPlace(req.body);
+    sanitizeObjectInPlace(req.query);
     next();
   });
   app.useGlobalPipes(

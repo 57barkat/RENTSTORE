@@ -10,7 +10,7 @@ export interface AdminSession extends AuthTokenPayload {
 }
 
 const getJwtSecret = (): string | undefined => {
-  return process.env.MY_APP_SECRET;
+  return process.env.JWT_SECRET || process.env.MY_APP_SECRET;
 };
 
 export const getAdminSession = async (): Promise<AdminSession | null> => {

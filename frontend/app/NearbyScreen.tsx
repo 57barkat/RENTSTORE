@@ -17,8 +17,17 @@ import { Colors } from "@/constants/Colors";
 import { useGetNearbyPropertiesQuery } from "@/services/api";
 import PropertyCard from "@/components/NearByLocations/PropertyCard";
 import { useRouter } from "expo-router";
+import Constants from "expo-constants";
 
-MapboxGL.setAccessToken(process.env.MAPBOX_PUBLIC_TOKEN!);
+const mapboxToken =
+  Constants.expoConfig?.extra?.MAPBOX_PUBLIC_TOKEN ||
+  process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN ||
+  process.env.MAPBOX_PUBLIC_TOKEN ||
+  "";
+
+if (mapboxToken) {
+  MapboxGL.setAccessToken(mapboxToken);
+}
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.85;

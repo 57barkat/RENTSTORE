@@ -33,7 +33,7 @@ export const useVoiceRecorder = () => {
         playsInSilentModeIOS: true,
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
-        staysActiveInBackground: true,
+        staysActiveInBackground: false,
       });
 
       const { recording: newRecording } = await Audio.Recording.createAsync(

@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { PropertyService } from "@/app/lib/PropertyService";
 import type { PropertyCategory, PublicProperty } from "@/app/lib/property-types";
 import {
+  buildListingPath,
   buildPropertyHref,
   getCanonicalCategorySegment,
   getPropertyCity,
@@ -10,6 +11,7 @@ import {
 import { toAbsoluteUrl } from "@/app/lib/site-config";
 
 const CATEGORIES: PropertyCategory[] = [
+  "property",
   "hostel",
   "apartment",
   "home",
@@ -66,7 +68,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       seenUrls.add(categoryUrl);
     }
 
-    const properties = await getCategoryProperties(category);
+    const properties =
+      category === "property"
+        ? (
+            await Promise.all(
+              (["hostel", "apartment", "home", "shop", "office"] as PropertyCategory[]).map(
+                (item) => getCategoryProperties(item),
+              ),
+            )
+          ).flat()
+        : await getCategoryProperties(category);
     const seenCities = new Set<string>();
 
     for (const property of properties) {
@@ -75,7 +86,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       if (!seenCities.has(cityKey)) {
         const cityUrl = toAbsoluteUrl(
-          `${categoryPath}?city=${encodeURIComponent(city)}`,
+          buildListingPath(
+            {
+              category,
+              purpose: "rent",
+              city,
+              page: 1,
+              limit: 12,
+              sortBy: "newest",
+            },
+            { preferSeo: true },
+          ),
         );
         entries.push({
           url: cityUrl,

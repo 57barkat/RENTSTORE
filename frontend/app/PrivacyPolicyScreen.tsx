@@ -3,6 +3,49 @@ import { SafeAreaView, ScrollView, Text, StyleSheet } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
 
+const sections = [
+  {
+    title: "1. Information We Collect",
+    body: "We collect account and profile information such as your name, email address, phone number, password, role, and verification status. Hosts may also provide identity or business information such as CNIC details, agency name, agency license information, listing descriptions, pricing, amenities, and uploaded property photos.",
+  },
+  {
+    title: "2. Location Information",
+    body: "If you allow it, the app collects foreground location information to show nearby properties, help place listings on the map, and improve address selection. This can include approximate or precise coordinates and address details derived from those coordinates.",
+  },
+  {
+    title: "3. Audio, Photos, and User Content",
+    body: "If you use voice search, the app records and uploads audio clips to process your request. If you upload profile images or property photos, those files and related listing content are processed and stored through our service providers.",
+  },
+  {
+    title: "4. How We Use Information",
+    body: "We use collected information to create and secure accounts, verify contact details, publish and manage listings, support messaging and favorites, process purchases, improve search and map features, and respond to support or abuse reports.",
+  },
+  {
+    title: "5. Sharing and Service Providers",
+    body: "We may share information with service providers that support hosting, media storage, maps and address lookup, payments, and realtime features. Examples visible in the app code include Cloudinary for image uploads, Google Places for address search, Mapbox for maps, and backend services that power authentication, listings, payments, and chat.",
+  },
+  {
+    title: "6. Local Device Storage",
+    body: "The app stores certain information on your device, including session tokens, account state, phone-verification state, saved theme preference, upload queue state, and view-tracking markers. Where supported, sensitive session tokens are stored using SecureStore.",
+  },
+  {
+    title: "7. Security",
+    body: "We use reasonable safeguards to protect data in transit and at rest, but no system can guarantee absolute security. You should keep your device secure and avoid sharing your login credentials.",
+  },
+  {
+    title: "8. Your Choices",
+    body: "You can choose whether to grant optional permissions such as location, microphone, and media-library access. You may also request account updates or deletion through the support contact listed below, subject to applicable operational or legal requirements.",
+  },
+  {
+    title: "9. Children’s Privacy",
+    body: "The app is not intended for children under 13, and we do not knowingly seek to collect their personal information.",
+  },
+  {
+    title: "10. Contact Us",
+    body: "For privacy questions or requests, contact barkat.khattak@codeshop.biz.",
+  },
+];
+
 const PrivacyPolicyScreen = () => {
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -13,95 +56,22 @@ const PrivacyPolicyScreen = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={[styles.heading, { color: currentTheme.text }]}>
-          Anganstay Privacy Policy
+          AnganStay Privacy Policy
         </Text>
         <Text style={[styles.date, { color: currentTheme.muted }]}>
-          Effective Date: September 17, 2025
+          Effective Date: April 28, 2026
         </Text>
 
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          1. Information We Collect
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We may collect personal information such as name, email, phone number,
-          account credentials, property details uploaded by users, location
-          data, and app usage information.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          2. How We Use Your Information
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          Your information is used to provide and maintain our services,
-          facilitate property listings and rentals, communicate updates, improve
-          app features, and comply with legal obligations.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          3. How We Share Your Information
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We do not sell or rent your information. We may share information with
-          service providers, as required by law, or in business transfers like
-          mergers.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          4. Data Security
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We implement reasonable technical and organizational measures to
-          protect your information. However, no method is completely secure.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          5. Your Rights
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          You may have rights to access, update, or delete your personal data,
-          and to object or restrict certain processing. Contact us at
-          barkat.khattak@codeshop.biz to exercise these rights.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          6. Cookies and Tracking
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We may use cookies and tracking technologies to enhance your
-          experience. Disabling them may affect app functionality.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          7. Third-Party Links
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          The app may contain links to third-party services. We are not
-          responsible for their privacy practices.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          8. Children’s Privacy
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          Anganstay is not intended for children under 13 years old. We do not
-          knowingly collect data from children.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          9. Changes to This Privacy Policy
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          We may update this Privacy Policy. Updates will be posted here with
-          the new effective date.
-        </Text>
-
-        <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
-          10. Contact Us
-        </Text>
-        <Text style={[styles.paragraph, { color: currentTheme.text }]}>
-          Email: barkat.khattak@codeshop.biz{"\n"}
-          App Name: Anganstay
-        </Text>
+        {sections.map((section) => (
+          <React.Fragment key={section.title}>
+            <Text style={[styles.sectionHeading, { color: currentTheme.text }]}>
+              {section.title}
+            </Text>
+            <Text style={[styles.paragraph, { color: currentTheme.text }]}>
+              {section.body}
+            </Text>
+          </React.Fragment>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );

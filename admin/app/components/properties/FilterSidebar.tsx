@@ -21,6 +21,7 @@ const FilterSidebarComponent = ({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const showSizeFilters =
+    category === "property" ||
     category === "home" ||
     category === "apartment" ||
     category === "shop" ||

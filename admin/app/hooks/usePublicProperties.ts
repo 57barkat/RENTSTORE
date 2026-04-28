@@ -8,30 +8,49 @@ import type {
   PropertySearchFilters,
 } from "@/app/lib/property-types";
 import {
+  buildListingPath,
   buildPropertyBrowserQuery,
   parsePropertySearchParams,
 } from "@/app/lib/property-utils";
+import { parseSeoListingSlug } from "@/app/lib/property-seo";
 
 export const useProperties = (category: PropertyCategory) => {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathSegment = pathname.split("/").filter(Boolean)[0] || "";
+  const seoRoute = useMemo(() => parseSeoListingSlug(pathSegment), [pathSegment]);
 
   const filters = useMemo(
-    () =>
-      parsePropertySearchParams(
-        category,
+    () => {
+      const nextFilters = parsePropertySearchParams(
+        seoRoute?.category || category,
         Object.fromEntries(searchParams.entries()),
-      ),
-    [category, searchParams],
+      );
+
+      if (seoRoute) {
+        nextFilters.city = seoRoute.city;
+        nextFilters.purpose = seoRoute.purpose;
+      }
+
+      return nextFilters;
+    },
+    [category, searchParams, seoRoute],
   );
 
   const pushFilters = useCallback(
     (nextFilters: PropertySearchFilters) => {
-      const query = buildPropertyBrowserQuery(nextFilters);
-      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      const nextPath = buildListingPath(nextFilters, {
+        preferSeo: Boolean(seoRoute) || Boolean(nextFilters.city),
+      });
+      const nextSeoRoute = parseSeoListingSlug(nextPath.replace(/^\//, ""));
+      const query = buildPropertyBrowserQuery(nextFilters, {
+        omitCity: Boolean(nextSeoRoute),
+        omitPurpose: Boolean(nextSeoRoute),
+      });
+      router.push(query ? `${nextPath}?${query}` : nextPath, { scroll: false });
     },
-    [pathname, router],
+    [router, seoRoute],
   );
 
   const updateFilters = useCallback(

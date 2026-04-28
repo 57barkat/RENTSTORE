@@ -1092,7 +1092,7 @@ export default function AdminUploadPropertyForm() {
           <div className="space-y-5">
             {form.address.map((entry, index) => (
               <div
-                key={`${index}-${entry.street}`}
+                key={index}
                 className="rounded-2xl border border-border bg-background p-4"
               >
                 <div className="mb-4 flex items-center justify-between">

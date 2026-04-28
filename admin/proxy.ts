@@ -6,6 +6,7 @@ import {
   getRefreshTokenCookieOptions,
 } from "@/app/lib/auth-cookies";
 import { verifyAuthToken } from "@/app/lib/auth-token";
+import { parsePropertyDetailSlug } from "@/app/lib/property-seo";
 import { isProtectedRoute } from "@/app/lib/route-constants";
 
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
@@ -50,7 +51,10 @@ const refreshAdminSession = async (
       return null;
     }
 
-    const session = await verifyAuthToken(data.accessToken, process.env.MY_APP_SECRET);
+    const session = await verifyAuthToken(
+      data.accessToken,
+      process.env.JWT_SECRET || process.env.MY_APP_SECRET,
+    );
     if (!session || session.role !== "admin") {
       return null;
     }
@@ -84,7 +88,10 @@ export async function proxy(request: NextRequest) {
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const { pathname } = request.nextUrl;
   const reauthRequested = request.nextUrl.searchParams.get("reauth") === "1";
-  let session = await verifyAuthToken(token, process.env.MY_APP_SECRET);
+  let session = await verifyAuthToken(
+    token,
+    process.env.JWT_SECRET || process.env.MY_APP_SECRET,
+  );
 
   if ((!session || session.role !== "admin") && refreshToken) {
     const refreshed = await refreshAdminSession(request, refreshToken);
@@ -96,7 +103,7 @@ export async function proxy(request: NextRequest) {
       };
       session = await verifyAuthToken(
         refreshedTokens.accessToken,
-        process.env.MY_APP_SECRET,
+        process.env.JWT_SECRET || process.env.MY_APP_SECRET,
       );
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set(
@@ -166,6 +173,17 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const pathSegments = pathname.split("/").filter(Boolean);
+  if (
+    pathSegments.length === 1 &&
+    parsePropertyDetailSlug(pathSegments[0]) &&
+    pathSegments[0] !== "property"
+  ) {
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = `/property/${pathSegments[0]}`;
+    return NextResponse.rewrite(rewriteUrl);
   }
 
   return NextResponse.next();

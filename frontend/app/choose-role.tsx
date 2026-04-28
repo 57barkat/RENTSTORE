@@ -47,7 +47,7 @@ export default function ChooseRoleScreen() {
               shadowColor: currentTheme.muted,
             },
           ]}
-          onPress={() => handleSelect("renter")}
+          onPress={() => handleSelect("agent")}
         >
           <MaterialCommunityIcons name="home-plus-outline" size={24} color="#fff" />
           <Text style={styles.buttonText}>I&apos;m Posting My Property</Text>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { Search } from "lucide-react";
 
 import FilterSidebar from "@/app/components/properties/FilterSidebar";
@@ -13,16 +13,23 @@ import type {
 } from "@/app/lib/property-types";
 import {
   BRAND_NAME,
+  buildListingPath,
   buildListingDescription,
+  buildPropertySearchQuery,
   buildListingTitle,
   buildPropertyBrowserQuery,
   buildPropertyHref,
+  canUseSeoListingPath,
   getCanonicalCategorySegment,
   getCategoryLabel,
   getPropertyTitle,
   normalizeCategorySegment,
   parsePropertySearchParams,
 } from "@/app/lib/property-utils";
+import {
+  getLegacyCategoryAliasPath,
+  parseSeoListingSlug,
+} from "@/app/lib/property-seo";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
 
 interface PageProps {
@@ -38,19 +45,37 @@ const getCategoryRouteContext = async (
 ) => {
   const params = await paramsPromise;
   const searchParams = await searchParamsPromise;
-  const category = normalizeCategorySegment(params.category);
+  const legacyAliasPath = getLegacyCategoryAliasPath(params.category);
+  const seoRoute = parseSeoListingSlug(params.category);
+  const category = seoRoute?.category || normalizeCategorySegment(params.category);
 
   if (!category) {
     notFound();
   }
 
   const filters = parsePropertySearchParams(category, searchParams);
+  if (seoRoute) {
+    filters.city = seoRoute.city;
+    filters.purpose = seoRoute.purpose;
+  }
+
   const canonicalCategory = getCanonicalCategorySegment(category);
+  const canonicalPath = buildListingPath(filters, {
+    preferSeo: Boolean(seoRoute) || canUseSeoListingPath(filters),
+  });
+  const canonicalQuery = buildPropertyBrowserQuery(filters, {
+    omitCity: canonicalPath !== `/${canonicalCategory}`,
+    omitPurpose: canonicalPath !== `/${canonicalCategory}`,
+  });
 
   return {
     params,
     category,
     canonicalCategory,
+    legacyAliasPath,
+    seoRoute,
+    canonicalPath,
+    canonicalQuery,
     filters,
   };
 };
@@ -59,15 +84,15 @@ export async function generateMetadata({
   params,
   searchParams,
 }: PageProps): Promise<Metadata> {
-  const { canonicalCategory, filters } = await getCategoryRouteContext(
+  const { canonicalPath, canonicalQuery, filters } = await getCategoryRouteContext(
     params,
     searchParams,
   );
   const title = buildListingTitle(filters);
   const description = buildListingDescription(filters);
-  const query = buildPropertyBrowserQuery(filters);
-  const canonicalPath = `/${canonicalCategory}${query ? `?${query}` : ""}`;
-  const canonicalUrl = toAbsoluteUrl(canonicalPath);
+  const canonicalUrl = toAbsoluteUrl(
+    `${canonicalPath}${canonicalQuery ? `?${canonicalQuery}` : ""}`,
+  );
 
   return {
     title: `${title} | ${BRAND_NAME}`,
@@ -94,7 +119,13 @@ const buildPreviewHref = (
   filters: PropertySearchFilters,
   propertyId: string,
 ) => {
-  const params = new URLSearchParams(buildPropertyBrowserQuery(filters));
+  const isSeoPath = Boolean(parseSeoListingSlug(pathname.replace(/^\//, "")));
+  const params = new URLSearchParams(
+    buildPropertyBrowserQuery(filters, {
+      omitCity: isSeoPath,
+      omitPurpose: isSeoPath,
+    }),
+  );
   params.set("preview", propertyId);
   return `${pathname}?${params.toString()}`;
 };
@@ -104,9 +135,13 @@ const buildPaginationHref = (
   filters: PropertySearchFilters,
   page: number,
 ) => {
+  const isSeoPath = Boolean(parseSeoListingSlug(pathname.replace(/^\//, "")));
   const query = buildPropertyBrowserQuery({
     ...filters,
     page,
+  }, {
+    omitCity: isSeoPath,
+    omitPurpose: isSeoPath,
   });
 
   return `${pathname}?${query}`;
@@ -119,13 +154,30 @@ export default async function CategoryPage({
   const {
     params: resolvedParams,
     category,
-    canonicalCategory,
+    canonicalPath,
+    canonicalQuery,
+    legacyAliasPath,
     filters,
   } = await getCategoryRouteContext(params, searchParams);
 
-  if (resolvedParams.category !== canonicalCategory) {
-    const query = buildPropertyBrowserQuery(filters);
-    redirect(`/${canonicalCategory}${query ? `?${query}` : ""}`);
+  if (
+    legacyAliasPath &&
+    resolvedParams.category !== legacyAliasPath.replace(/^\//, "")
+  ) {
+    const aliasQuery = buildPropertyBrowserQuery(filters, {
+      omitCity: false,
+      omitPurpose: false,
+    });
+    permanentRedirect(
+      `${legacyAliasPath}${aliasQuery ? `?${aliasQuery}` : ""}`,
+    );
+  }
+
+  const canonicalSegment = canonicalPath.replace(/^\//, "");
+  const redirectTarget = `${canonicalPath}${canonicalQuery ? `?${canonicalQuery}` : ""}`;
+
+  if (resolvedParams.category !== canonicalSegment) {
+    permanentRedirect(redirectTarget);
   }
 
   let fetchError: string | null = null;
@@ -137,6 +189,15 @@ export default async function CategoryPage({
     totalPages: 0,
   };
   try {
+    if (process.env.NODE_ENV !== "production" && category === "office") {
+      console.info("[public-listing-query]", {
+        category,
+        pathname: resolvedParams.category,
+        filters,
+        apiQuery: buildPropertySearchQuery(filters),
+      });
+    }
+
     response = await PropertyService.searchProperties(filters);
   } catch (error) {
     fetchError =
@@ -145,10 +206,10 @@ export default async function CategoryPage({
         : "Unable to load property listings right now.";
   }
 
-  const pathname = `/${canonicalCategory}`;
+  const pathname = canonicalPath;
   const title = buildListingTitle(filters);
   const description = buildListingDescription(filters, response.total);
-  const pageUrl = toAbsoluteUrl(pathname);
+  const pageUrl = toAbsoluteUrl(redirectTarget);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -166,6 +227,10 @@ export default async function CategoryPage({
       })),
     },
   };
+  const serializedJsonLd = JSON.stringify(jsonLd)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
   const currentPage = response.page || 1;
   const totalPages = response.totalPages || 1;
   const pages = Array.from(
@@ -178,7 +243,7 @@ export default async function CategoryPage({
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializedJsonLd }}
       />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">

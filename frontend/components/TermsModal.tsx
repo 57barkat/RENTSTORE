@@ -9,6 +9,7 @@ import {
   Pressable,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 interface TermsModalProps {
   visible: boolean;
@@ -24,6 +25,7 @@ const TermsModal: React.FC<TermsModalProps> = ({
   color,
 }) => {
   const [isChecked, setIsChecked] = useState(false);
+  const router = useRouter();
 
   // Data matching the Figma content
   const termsData = [
@@ -116,6 +118,12 @@ const TermsModal: React.FC<TermsModalProps> = ({
                 <Text style={styles.linkText}>Terms and Conditions</Text>
               </Text>
             </Pressable>
+            <TouchableOpacity
+              style={styles.privacyLink}
+              onPress={() => router.push("/PrivacyPolicyScreen")}
+            >
+              <Text style={styles.privacyLinkText}>View Privacy Policy</Text>
+            </TouchableOpacity>
           </ScrollView>
 
           {/* Action Button */}
@@ -224,6 +232,15 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: { fontSize: 13, color: "#475569", flex: 1, lineHeight: 18 },
   linkText: { color: "#10B981", fontWeight: "700" },
+  privacyLink: {
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  privacyLinkText: {
+    color: "#0F766E",
+    fontWeight: "700",
+    fontSize: 14,
+  },
   footer: {
     paddingHorizontal: 24,
     paddingTop: 10,

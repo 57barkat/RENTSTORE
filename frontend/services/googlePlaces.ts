@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 
 const GOOGLE_API_KEY: string | undefined =
   process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY ||
-  Constants.expoConfig?.extra?.GOOGLE_MAPS_API_KEY;
+  Constants.expoConfig?.extra?.GOOGLE_PLACES_API_KEY;
 
 if (!GOOGLE_API_KEY) {
   // console.warn("⚠️ GOOGLE_MAPS_API_KEY is missing");

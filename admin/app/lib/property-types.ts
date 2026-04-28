@@ -1,12 +1,14 @@
 export type PropertyCategory =
   | "home"
   | "apartment"
+  | "property"
   | "hostel"
   | "shop"
   | "office";
 export type PropertySort = "newest" | "price_asc" | "price_desc" | "popular";
 export type HostelType = "male" | "female" | "mixed";
 export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft.";
+export type PropertyPurpose = "rent" | "sale";
 
 export interface PropertyAddress {
   aptSuiteUnit?: string;
@@ -87,6 +89,7 @@ export interface PublicProperty {
 
 export interface PropertySearchFilters {
   category: PropertyCategory;
+  purpose?: PropertyPurpose;
   title?: string;
   city?: string;
   location?: string;
