@@ -14,6 +14,7 @@ import { AddToFavService } from "../addToFav/favorites.service";
 import { DeletedImagesService } from "../../deletedImages/deletedImages.service";
 import { PropertyFilters } from "./utils/property-filter.util";
 import {
+  buildCanonicalListingBaseFilter,
   buildMongoFilter,
   buildMinimalAddressQuery,
   buildNormalizedContainsRegex,
@@ -38,6 +39,13 @@ import {
   normalizeAddressSearch,
   normalizeAreaSearch,
 } from "../../common/utils/normalize.util";
+
+interface PopularLocationsParams {
+  city?: string;
+  propertyType?: string;
+  purpose?: "rent" | "sale";
+  limit?: number;
+}
 
 @Injectable()
 export class PropertyService {
@@ -684,6 +692,234 @@ export class PropertyService {
     }
 
     return suggestions;
+  }
+
+  async getPopularLocations({
+    city,
+    propertyType,
+    purpose = "rent",
+    limit = 8,
+  }: PopularLocationsParams) {
+    const cleanedCity = cleanDisplayValue(city);
+    const cleanedPropertyType = cleanDisplayValue(propertyType)?.toLowerCase();
+    if (
+      cleanedPropertyType &&
+      !["property", "home", "apartment", "hostel", "shop", "office"].includes(
+        cleanedPropertyType,
+      )
+    ) {
+      throw new BadRequestException("propertyType is invalid");
+    }
+
+    const requestedPurpose = purpose === "sale" ? "sale" : "rent";
+    const effectiveLimit = Math.min(Math.max(Number(limit) || 8, 1), 24);
+    const categorySegmentMap: Record<string, string> = {
+      home: "houses",
+      apartment: "apartments",
+      hostel: "hostels",
+      shop: "shops",
+      office: "offices",
+      property: "properties",
+    };
+    const slugifyLocationValue = (value: string) =>
+      value
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/[\s_-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+    const match: Record<string, any> = buildCanonicalListingBaseFilter({
+      city: cleanedCity,
+      hostOption:
+        cleanedPropertyType && cleanedPropertyType !== "property"
+          ? cleanedPropertyType
+          : undefined,
+      purpose: requestedPurpose,
+    });
+
+    const rawGroups = await this.propertyModel.aggregate([
+      { $match: match },
+      { $unwind: "$address" },
+      {
+        $project: {
+          cityCandidate: "$address.city",
+          areaCandidate: {
+            $ifNull: ["$area", "$location"],
+          },
+          hostOption: 1,
+        },
+      },
+      {
+        $match: {
+          cityCandidate: { $type: "string", $ne: "" },
+          areaCandidate: { $type: "string", $ne: "" },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            city: "$cityCandidate",
+            area: "$areaCandidate",
+          },
+          listingCount: { $sum: 1 },
+        },
+      },
+      { $sort: { listingCount: -1, "_id.city": 1, "_id.area": 1 } },
+      { $limit: cleanedCity ? effectiveLimit * 4 : effectiveLimit * 24 },
+    ]);
+
+    const groupedAreas = rawGroups.reduce<
+      Array<{
+        city: string;
+        normalizedCity: string;
+        area: string;
+        normalizedArea: string;
+        listingCount: number;
+      }>
+    >(
+      (
+        acc,
+        entry: { _id: { city: string; area: string }; listingCount: number },
+      ) => {
+        const canonicalCity = cleanDisplayValue(entry._id.city);
+        const normalizedCity = normalizeAddressSearch(canonicalCity);
+        const canonicalArea = formatCanonicalArea(entry._id.area);
+        const normalizedArea = normalizeAreaSearch(canonicalArea);
+
+        if (!canonicalCity || !normalizedCity || !canonicalArea || !normalizedArea) {
+          return acc;
+        }
+
+        const displayCity =
+          cleanedCity &&
+          normalizedCity === normalizeAddressSearch(cleanedCity)
+            ? cleanedCity
+            : canonicalCity;
+
+        const existing = acc.find(
+          (candidate) =>
+            candidate.normalizedCity === normalizedCity &&
+            candidate.normalizedArea === normalizedArea,
+        );
+
+        if (existing) {
+          existing.listingCount += entry.listingCount;
+          return acc;
+        }
+
+        acc.push({
+          city: displayCity,
+          normalizedCity,
+          area: canonicalArea,
+          normalizedArea,
+          listingCount: entry.listingCount,
+        });
+        return acc;
+      },
+      [],
+    );
+
+    groupedAreas.sort((left, right) => {
+      if (left.normalizedCity !== right.normalizedCity) {
+        return left.city.localeCompare(right.city);
+      }
+
+      if (right.listingCount !== left.listingCount) {
+        return right.listingCount - left.listingCount;
+      }
+
+      return left.area.localeCompare(right.area);
+    });
+
+    const categorySegment =
+      categorySegmentMap[cleanedPropertyType || "property"] ||
+      categorySegmentMap.property;
+    const propertyTypeLabel = (cleanedPropertyType || "property") as
+      | "home"
+      | "apartment"
+      | "hostel"
+      | "shop"
+      | "office"
+      | "property";
+
+    if (cleanedCity) {
+      return groupedAreas
+        .filter(
+          (entry) =>
+            entry.normalizedCity === normalizeAddressSearch(cleanedCity),
+        )
+        .slice(0, effectiveLimit)
+        .map((entry) => ({
+          area: entry.area,
+          city: entry.city,
+          propertyType: propertyTypeLabel,
+          count: entry.listingCount,
+          listingCount: entry.listingCount,
+          slug: `${categorySegment}-for-${requestedPurpose}-in-${slugifyLocationValue(entry.area)}-${slugifyLocationValue(entry.city)}`,
+        }));
+    }
+
+    const groupedByCity = groupedAreas.reduce<
+      Array<{
+        city: string;
+        normalizedCity: string;
+        locations: Array<{
+          area: string;
+          city: string;
+          propertyType:
+            | "home"
+            | "apartment"
+            | "hostel"
+            | "shop"
+            | "office"
+            | "property";
+          count: number;
+          listingCount: number;
+          slug: string;
+        }>;
+      }>
+    >((acc, entry) => {
+      const existingCity = acc.find(
+        (candidate) => candidate.normalizedCity === entry.normalizedCity,
+      );
+      const location = {
+        area: entry.area,
+        city: entry.city,
+        propertyType: propertyTypeLabel,
+        count: entry.listingCount,
+        listingCount: entry.listingCount,
+        slug: `${categorySegment}-for-${requestedPurpose}-in-${slugifyLocationValue(entry.area)}-${slugifyLocationValue(entry.city)}`,
+      };
+
+      if (existingCity) {
+        existingCity.locations.push(location);
+        return acc;
+      }
+
+      acc.push({
+        city: entry.city,
+        normalizedCity: entry.normalizedCity,
+        locations: [location],
+      });
+      return acc;
+    }, []);
+
+    return groupedByCity
+      .map((group) => ({
+        city: group.city,
+        locations: group.locations
+          .sort((left, right) => {
+            if (right.count !== left.count) {
+              return right.count - left.count;
+            }
+
+            return left.area.localeCompare(right.area);
+          })
+          .slice(0, effectiveLimit),
+      }))
+      .sort((left, right) => left.city.localeCompare(right.city));
   }
 
   async findMyProperties(

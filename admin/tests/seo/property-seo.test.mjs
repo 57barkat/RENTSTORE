@@ -21,6 +21,7 @@ const run = () => {
     propertyType: "house",
     purpose: "rent",
     city: "Islamabad",
+    area: null,
     canonicalSegment: "houses-for-rent-in-islamabad",
   });
 
@@ -29,31 +30,53 @@ const run = () => {
     propertyType: "apartment",
     purpose: "sale",
     city: "Lahore",
+    area: null,
     canonicalSegment: "apartments-for-sale-in-lahore",
   });
 
-  assert.deepEqual(parseSeoListingSlug("hostels-for-rent-in-islamabad"), {
+  assert.deepEqual(parseSeoListingSlug("apartments-for-rent-in-e-11-1-islamabad"), {
+    category: "apartment",
+    propertyType: "apartment",
+    purpose: "rent",
+    city: "Islamabad",
+    area: "E-11-1",
+    canonicalSegment: "apartments-for-rent-in-e-11-1-islamabad",
+  });
+
+  assert.deepEqual(parseSeoListingSlug("houses-for-rent-in-g-13-islamabad"), {
+    category: "home",
+    propertyType: "house",
+    purpose: "rent",
+    city: "Islamabad",
+    area: "G-13",
+    canonicalSegment: "houses-for-rent-in-g-13-islamabad",
+  });
+
+  assert.deepEqual(parseSeoListingSlug("hostels-for-rent-in-g-9-islamabad"), {
     category: "hostel",
     propertyType: "hostel",
     purpose: "rent",
     city: "Islamabad",
-    canonicalSegment: "hostels-for-rent-in-islamabad",
+    area: "G-9",
+    canonicalSegment: "hostels-for-rent-in-g-9-islamabad",
   });
 
-  assert.deepEqual(parseSeoListingSlug("shops-for-rent-in-rawalpindi"), {
+  assert.deepEqual(parseSeoListingSlug("shops-for-rent-in-saddar-rawalpindi"), {
     category: "shop",
     propertyType: "shop",
     purpose: "rent",
     city: "Rawalpindi",
-    canonicalSegment: "shops-for-rent-in-rawalpindi",
+    area: "Saddar",
+    canonicalSegment: "shops-for-rent-in-saddar-rawalpindi",
   });
 
-  assert.deepEqual(parseSeoListingSlug("offices-for-rent-in-lahore"), {
+  assert.deepEqual(parseSeoListingSlug("offices-for-rent-in-blue-area-islamabad"), {
     category: "office",
     propertyType: "office",
     purpose: "rent",
-    city: "Lahore",
-    canonicalSegment: "offices-for-rent-in-lahore",
+    city: "Islamabad",
+    area: "Blue Area",
+    canonicalSegment: "offices-for-rent-in-blue-area-islamabad",
   });
 
   assert.equal(
@@ -63,6 +86,16 @@ const run = () => {
       city: "Rawalpindi",
     }),
     "properties-for-rent-in-rawalpindi",
+  );
+
+  assert.equal(
+    buildSeoListingSlug({
+      category: "apartment",
+      purpose: "rent",
+      city: "Islamabad",
+      area: "E-11-1",
+    }),
+    "apartments-for-rent-in-e-11-1-islamabad",
   );
 
   assert.equal(
@@ -149,17 +182,17 @@ const run = () => {
 
   assert.equal(getPublicCategoryFromPath("/houses"), "home");
   assert.equal(
-    getPublicCategoryFromPath("/houses-for-rent-in-islamabad"),
+    getPublicCategoryFromPath("/houses-for-rent-in-g-13-islamabad"),
     "home",
   );
   assert.equal(getPublicCategoryFromPath("/shops"), "shop");
   assert.equal(
-    getPublicCategoryFromPath("/shops-for-rent-in-islamabad"),
+    getPublicCategoryFromPath("/shops-for-rent-in-saddar-rawalpindi"),
     "shop",
   );
   assert.equal(getPublicCategoryFromPath("/offices"), "office");
   assert.equal(
-    getPublicCategoryFromPath("/offices-for-rent-in-islamabad"),
+    getPublicCategoryFromPath("/offices-for-rent-in-blue-area-islamabad"),
     "office",
   );
   assert.deepEqual(parseSeoListingSlug("houses-for-rent-in-lahore"), {
@@ -167,6 +200,7 @@ const run = () => {
     propertyType: "house",
     purpose: "rent",
     city: "Lahore",
+    area: null,
     canonicalSegment: "houses-for-rent-in-lahore",
   });
   assert.deepEqual(parseSeoListingSlug("apartments-for-rent-in-rawalpindi"), {
@@ -174,6 +208,7 @@ const run = () => {
     propertyType: "apartment",
     purpose: "rent",
     city: "Rawalpindi",
+    area: null,
     canonicalSegment: "apartments-for-rent-in-rawalpindi",
   });
   assert.deepEqual(parseSeoListingSlug("shops-for-rent-in-karachi"), {
@@ -181,6 +216,7 @@ const run = () => {
     propertyType: "shop",
     purpose: "rent",
     city: "Karachi",
+    area: null,
     canonicalSegment: "shops-for-rent-in-karachi",
   });
   assert.deepEqual(parseSeoListingSlug("offices-for-rent-in-peshawar"), {
@@ -188,6 +224,7 @@ const run = () => {
     propertyType: "office",
     purpose: "rent",
     city: "Peshawar",
+    area: null,
     canonicalSegment: "offices-for-rent-in-peshawar",
   });
   assert.deepEqual(parseSeoListingSlug("hostels-for-rent-in-peshawar"), {
@@ -195,6 +232,7 @@ const run = () => {
     propertyType: "hostel",
     purpose: "rent",
     city: "Peshawar",
+    area: null,
     canonicalSegment: "hostels-for-rent-in-peshawar",
   });
 
@@ -212,8 +250,23 @@ const run = () => {
 
   assert.ok(buildQueryMatch, "buildPropertySearchQuery should be present");
   assert.match(buildQueryMatch[1], /params\.set\("hostOption", filters\.category\)/);
-  assert.match(buildQueryMatch[1], /params\.set\("addressQuery", addressQuery\)/);
-  assert.doesNotMatch(buildQueryMatch[1], /params\.set\("city", filters\.city\)/);
+  assert.match(buildQueryMatch[1], /params\.set\("city", filters\.city\)/);
+  assert.match(buildQueryMatch[1], /params\.set\("area", filters\.location\)/);
+  assert.doesNotMatch(buildQueryMatch[1], /params\.set\("addressQuery", addressQuery\)/);
+
+  const categoryPageSource = readFileSync(
+    new URL("../../app/(public)/[category]/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(categoryPageSource, /filters\.location = seoRoute\.area \|\| "";/);
+  assert.match(categoryPageSource, /Area: \{filters\.location\}/);
+
+  const hookSource = readFileSync(
+    new URL("../../app/hooks/usePublicProperties.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(hookSource, /nextFilters\.location = seoRoute\.area \|\| "";/);
+  assert.match(hookSource, /omitLocation: Boolean\(nextSeoRoute\)/);
 
   const legacyDetailRouteSource = readFileSync(
     new URL("../../app/(public)/[category]/[city]/[location]/[id]/page.tsx", import.meta.url),
@@ -227,6 +280,13 @@ const run = () => {
   );
   assert.match(propertyDetailContentSource, /const title = getPropertyTitle\(property\);/);
   assert.match(propertyDetailContentSource, /\{title\}/);
+
+  const popularLocationsSource = readFileSync(
+    new URL("../../app/components/properties/PopularLocationsSection.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(popularLocationsSource, /SEO/);
+  assert.match(popularLocationsSource, /View \{browseLabel\} in \{item\.area\}/);
 
   process.stdout.write("property-seo tests passed\n");
 };

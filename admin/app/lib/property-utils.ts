@@ -13,6 +13,7 @@ import {
   buildSeoListingSlug,
   canBuildSeoListingSlug,
   getSeoPropertyTypeForCategory,
+  normalizeSeoArea,
   normalizePurpose,
   normalizeSeoCity,
 } from "@/app/lib/property-seo";
@@ -159,10 +160,12 @@ export const parsePropertySearchParams = (
     purpose: (purposeValue || "rent") as PropertyPurpose,
     title: toSingleValue(searchParams.title) || "",
     city: normalizeSeoCity(toSingleValue(searchParams.city) || ""),
-    location:
+    location: normalizeSeoArea(
+      toSingleValue(searchParams.area) ||
       toSingleValue(searchParams.location) ||
-      toSingleValue(searchParams.addressQuery) ||
-      "",
+        toSingleValue(searchParams.addressQuery) ||
+        "",
+    ),
     minRent:
       toPositiveNumber(toSingleValue(searchParams.minRent)) ||
       toPositiveNumber(toSingleValue(searchParams.minPrice)),
@@ -196,10 +199,6 @@ export const buildPropertySearchQuery = (
   filters: PropertySearchFilters,
 ): string => {
   const params = new URLSearchParams();
-  const addressQuery = [filters.location, filters.city]
-    .map((value) => (value || "").trim())
-    .filter(Boolean)
-    .join(", ");
 
   if (filters.category !== "property") {
     params.set("hostOption", filters.category);
@@ -216,8 +215,12 @@ export const buildPropertySearchQuery = (
     params.set("title", filters.title);
   }
 
-  if (addressQuery) {
-    params.set("addressQuery", addressQuery);
+  if (filters.city) {
+    params.set("city", filters.city);
+  }
+
+  if (filters.location) {
+    params.set("area", filters.location);
   }
 
   if (filters.minRent !== "" && filters.minRent !== undefined) {
@@ -256,6 +259,7 @@ export const buildPropertyBrowserQuery = (
   options?: {
     omitCity?: boolean;
     omitPurpose?: boolean;
+    omitLocation?: boolean;
   },
 ): string => {
   const params = new URLSearchParams();
@@ -272,7 +276,7 @@ export const buildPropertyBrowserQuery = (
     params.set("title", filters.title);
   }
 
-  if (filters.location) {
+  if (filters.location && !options?.omitLocation) {
     params.set("location", filters.location);
   }
 
@@ -321,6 +325,7 @@ export const buildSearchHref = (
   options?: {
     omitCity?: boolean;
     omitPurpose?: boolean;
+    omitLocation?: boolean;
   },
 ): string => {
   const query = buildPropertyBrowserQuery(filters, options);
@@ -334,6 +339,7 @@ export const canUseSeoListingPath = (
     category: filters.category,
     purpose: filters.purpose || "rent",
     city: filters.city,
+    area: filters.location,
   });
 
 export const buildListingPath = (
@@ -347,6 +353,7 @@ export const buildListingPath = (
       category: filters.category,
       purpose: filters.purpose || "rent",
       city: filters.city,
+      area: filters.location,
       propertyType: getSeoPropertyTypeForCategory(filters.category) || undefined,
     });
 
@@ -631,10 +638,10 @@ export const buildPropertyHref = (property: PublicProperty): string => {
 export const buildListingTitle = (filters: PropertySearchFilters): string => {
   const categoryLabel = getCategoryLabel(filters.category, true);
   const city = filters.city || "Islamabad";
-  const location = filters.location ? ` in ${filters.location}` : "";
+  const location = filters.location ? `${filters.location} ` : "";
   const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
 
-  return `${categoryLabel} for ${purposeLabel} in ${city}${location}`;
+  return `${categoryLabel} for ${purposeLabel} in ${location}${city}`;
 };
 
 export const buildListingDescription = (
@@ -650,10 +657,12 @@ export const buildListingDescription = (
   const city = filters.city || "Islamabad";
   const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
   const location = filters.location
-    ? `near ${filters.location}`
+    ? `in ${filters.location}, ${city}`
     : "across prime locations";
 
-  return `${resultPrefix} for ${category} for ${purposeLabel} in ${city} ${location}. Find the right match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`;
+  return filters.location
+    ? `${resultPrefix} for ${category} for ${purposeLabel} ${location}. Find the right match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`
+    : `${resultPrefix} for ${category} for ${purposeLabel} in ${city} ${location}. Find the right match by filtering for price, amenities, and specific neighborhoods with our up-to-date inventory.`;
 };
 
 export const buildPropertyMetadataTitle = (

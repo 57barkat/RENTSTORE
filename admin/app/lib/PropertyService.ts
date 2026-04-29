@@ -3,6 +3,8 @@ import "server-only";
 import { cache } from "react";
 
 import type {
+  PopularLocationCityGroup,
+  PopularLocationSummary,
   PropertySearchFilters,
   PropertySearchResponse,
   PublicProperty,
@@ -137,6 +139,69 @@ const getPropertyUploaderProfileInternal = async (
   );
 };
 
+const getPopularLocationsInternal = async (input: {
+  city?: string;
+  propertyType?: string;
+  type?: string;
+  purpose?: "rent" | "sale";
+  limit?: number;
+}): Promise<PopularLocationSummary[]> => {
+  const params = new URLSearchParams();
+
+  if (input.city) {
+    params.set("city", input.city);
+  }
+
+  if (input.propertyType) {
+    params.set("propertyType", input.propertyType);
+  }
+
+  if (input.type) {
+    params.set("type", input.type);
+  }
+
+  if (input.purpose) {
+    params.set("purpose", input.purpose);
+  }
+
+  if (input.limit) {
+    params.set("limit", String(input.limit));
+  }
+
+  return requestJson<PopularLocationSummary[]>(
+    `/seo/popular-locations?${params.toString()}`,
+  );
+};
+
+const getPopularLocationsOverviewInternal = async (input: {
+  propertyType?: string;
+  type?: string;
+  purpose?: "rent" | "sale";
+  limit?: number;
+}): Promise<PopularLocationCityGroup[]> => {
+  const params = new URLSearchParams();
+
+  if (input.propertyType) {
+    params.set("propertyType", input.propertyType);
+  }
+
+  if (input.type) {
+    params.set("type", input.type);
+  }
+
+  if (input.purpose) {
+    params.set("purpose", input.purpose);
+  }
+
+  if (input.limit) {
+    params.set("limit", String(input.limit));
+  }
+
+  return requestJson<PopularLocationCityGroup[]>(
+    `/seo/popular-locations?${params.toString()}`,
+  );
+};
+
 const searchPropertiesCached = cache(async (serializedFilters: string) => {
   return searchPropertiesInternal(
     JSON.parse(serializedFilters) as PropertySearchFilters,
@@ -146,6 +211,31 @@ const searchPropertiesCached = cache(async (serializedFilters: string) => {
 const getPropertyByIdCached = cache(async (propertyId: string) => {
   return getPropertyByIdInternal(propertyId);
 });
+
+const getPopularLocationsCached = cache(
+  async (serializedInput: string) =>
+    getPopularLocationsInternal(
+      JSON.parse(serializedInput) as {
+        city?: string;
+        propertyType?: string;
+        type?: string;
+        purpose?: "rent" | "sale";
+        limit?: number;
+      },
+    ),
+);
+
+const getPopularLocationsOverviewCached = cache(
+  async (serializedInput: string) =>
+    getPopularLocationsOverviewInternal(
+      JSON.parse(serializedInput) as {
+        propertyType?: string;
+        type?: string;
+        purpose?: "rent" | "sale";
+        limit?: number;
+      },
+    ),
+);
 
 export const PropertyService = {
   async searchProperties(
@@ -196,5 +286,24 @@ export const PropertyService = {
     } catch {
       return null;
     }
+  },
+
+  async getPopularLocations(input: {
+    city?: string;
+    propertyType?: string;
+    type?: string;
+    purpose?: "rent" | "sale";
+    limit?: number;
+  }): Promise<PopularLocationSummary[]> {
+    return getPopularLocationsCached(JSON.stringify(input));
+  },
+
+  async getPopularLocationsOverview(input: {
+    propertyType?: string;
+    type?: string;
+    purpose?: "rent" | "sale";
+    limit?: number;
+  }): Promise<PopularLocationCityGroup[]> {
+    return getPopularLocationsOverviewCached(JSON.stringify(input));
   },
 };

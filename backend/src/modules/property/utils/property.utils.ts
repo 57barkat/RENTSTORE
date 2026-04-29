@@ -181,11 +181,64 @@ export const buildNormalizedPrefixRegex = (value?: string | null) =>
 export const buildNormalizedContainsRegex = (value?: string | null) =>
   buildContainsRegex(value);
 
+const buildRentPurposeCondition = () => ({
+  $or: [
+    { monthlyRent: { $gt: 0 } },
+    { dailyRent: { $gt: 0 } },
+    { weeklyRent: { $gt: 0 } },
+  ],
+});
+
+export const buildCanonicalListingBaseFilter = ({
+  city,
+  hostOption,
+  purpose,
+  userId,
+}: {
+  city?: string;
+  hostOption?: string;
+  purpose?: string;
+  userId?: string;
+}) => {
+  const mongoFilter: any = {
+    status: true,
+    isApproved: true,
+    moderationStatus: "ACTIVE",
+  };
+
+  if (userId) {
+    mongoFilter.ownerId = { $ne: userId };
+  }
+
+  if (hostOption) {
+    mongoFilter.hostOption = hostOption;
+  }
+
+  const andConditions: any[] = [];
+  const cleanedCity = city?.trim();
+  if (cleanedCity) {
+    andConditions.push({
+      "address.city": { $regex: `^${escapeRegex(cleanedCity)}$`, $options: "i" },
+    });
+  }
+
+  if (purpose === "rent") {
+    andConditions.push(buildRentPurposeCondition());
+  }
+
+  if (andConditions.length > 0) {
+    mongoFilter.$and = andConditions;
+  }
+
+  return mongoFilter;
+};
+
 export const buildMongoFilter = (filters: any, userId?: string) => {
   const {
     title,
     location,
     city,
+    purpose,
     addressQuery,
     minRent,
     maxRent,
@@ -209,17 +262,16 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     Persons,
   } = filters;
 
-  const mongoFilter: any = {
-    status: true,
-    isApproved: true,
-    moderationStatus: "ACTIVE",
-  };
-
-  if (userId) {
-    mongoFilter.ownerId = { $ne: userId };
-  }
-
-  const andConditions: any[] = [];
+  const mongoFilter: any = buildCanonicalListingBaseFilter({
+    city,
+    hostOption,
+    purpose,
+    userId,
+  });
+  const andConditions: any[] = Array.isArray(mongoFilter.$and)
+    ? [...mongoFilter.$and]
+    : [];
+  delete mongoFilter.$and;
 
   // 1. SMART SEARCH (Logic for addressQuery or area)
   if (title) {
@@ -269,14 +321,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     andConditions.push({ $or: searchConditions });
   }
 
-  // 2. City
-  if (city) {
-    andConditions.push({
-      "address.city": { $regex: `^${escapeRegex(city)}$`, $options: "i" },
-    });
-  }
-
-  // 3. Rent Range (Multi-field support)
+  // 2. Rent Range (Multi-field support)
   if (minRent !== undefined || maxRent !== undefined) {
     const priceQuery: any = {};
     if (minRent !== undefined) priceQuery.$gte = Number(minRent);
@@ -291,7 +336,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     });
   }
 
-  // 4. PROPERTY SIZE (NEW)
+  // 3. PROPERTY SIZE (NEW)
   if (minSize !== undefined || maxSize !== undefined) {
     const sizeValueQuery: any = {};
     if (minSize !== undefined) sizeValueQuery.$gte = Number(minSize);
@@ -305,12 +350,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     andConditions.push({ "size.unit": sizeUnit });
   }
 
-  // 5. Host options
-  if (hostOption) {
-    mongoFilter.hostOption = hostOption;
-  }
-
-  // 6. Hostel type mapping
+  // 4. Hostel type mapping
   if (hostelType) {
     const mapping: Record<string, string[]> = {
       female: ["female", "girls"],
@@ -320,13 +360,13 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     mongoFilter.hostelType = { $in: mapping[hostelType] };
   }
 
-  // 7. Arrays (Amenities, Bills, etc.)
+  // 5. Arrays (Amenities, Bills, etc.)
   if (amenities?.length) mongoFilter.amenities = { $all: amenities };
   if (bills?.length) mongoFilter.ALL_BILLS = { $all: bills };
   if (mealPlan?.length) mongoFilter.mealPlan = { $all: mealPlan };
   if (rules?.length) mongoFilter.rules = { $all: rules };
 
-  // 8. Capacity
+  // 6. Capacity
   if (bedrooms !== undefined && bedrooms !== 0)
     mongoFilter["capacityState.bedrooms"] = Number(bedrooms);
   const guests = persons ?? Persons;
@@ -337,7 +377,7 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
   if (floorLevel !== undefined)
     mongoFilter["capacityState.floorLevel"] = Number(floorLevel);
 
-  // 9. Geospatial
+  // 7. Geospatial
   if (lat !== undefined && lng !== undefined && radiusKm !== undefined) {
     mongoFilter.locationGeo = {
       $near: {

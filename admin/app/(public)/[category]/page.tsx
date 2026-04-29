@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Search } from "lucide-react";
-
 import FilterSidebar from "@/app/components/properties/FilterSidebar";
+import PopularLocationsSection from "@/app/components/properties/PopularLocationsSection";
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyModal from "@/app/components/properties/PropertyModal";
 import { PropertyService } from "@/app/lib/PropertyService";
 import type {
+  PopularLocationSummary,
   PropertySearchFilters,
   PropertySearchResponse,
 } from "@/app/lib/property-types";
@@ -47,7 +48,8 @@ const getCategoryRouteContext = async (
   const searchParams = await searchParamsPromise;
   const legacyAliasPath = getLegacyCategoryAliasPath(params.category);
   const seoRoute = parseSeoListingSlug(params.category);
-  const category = seoRoute?.category || normalizeCategorySegment(params.category);
+  const category =
+    seoRoute?.category || normalizeCategorySegment(params.category);
 
   if (!category) {
     notFound();
@@ -56,6 +58,7 @@ const getCategoryRouteContext = async (
   const filters = parsePropertySearchParams(category, searchParams);
   if (seoRoute) {
     filters.city = seoRoute.city;
+    filters.location = seoRoute.area || "";
     filters.purpose = seoRoute.purpose;
   }
 
@@ -66,6 +69,7 @@ const getCategoryRouteContext = async (
   const canonicalQuery = buildPropertyBrowserQuery(filters, {
     omitCity: canonicalPath !== `/${canonicalCategory}`,
     omitPurpose: canonicalPath !== `/${canonicalCategory}`,
+    omitLocation: canonicalPath !== `/${canonicalCategory}`,
   });
 
   return {
@@ -84,10 +88,8 @@ export async function generateMetadata({
   params,
   searchParams,
 }: PageProps): Promise<Metadata> {
-  const { canonicalPath, canonicalQuery, filters } = await getCategoryRouteContext(
-    params,
-    searchParams,
-  );
+  const { canonicalPath, canonicalQuery, filters } =
+    await getCategoryRouteContext(params, searchParams);
   const title = buildListingTitle(filters);
   const description = buildListingDescription(filters);
   const canonicalUrl = toAbsoluteUrl(
@@ -124,6 +126,7 @@ const buildPreviewHref = (
     buildPropertyBrowserQuery(filters, {
       omitCity: isSeoPath,
       omitPurpose: isSeoPath,
+      omitLocation: isSeoPath,
     }),
   );
   params.set("preview", propertyId);
@@ -136,15 +139,37 @@ const buildPaginationHref = (
   page: number,
 ) => {
   const isSeoPath = Boolean(parseSeoListingSlug(pathname.replace(/^\//, "")));
-  const query = buildPropertyBrowserQuery({
-    ...filters,
-    page,
-  }, {
-    omitCity: isSeoPath,
-    omitPurpose: isSeoPath,
-  });
+  const query = buildPropertyBrowserQuery(
+    {
+      ...filters,
+      page,
+    },
+    {
+      omitCity: isSeoPath,
+      omitPurpose: isSeoPath,
+      omitLocation: isSeoPath,
+    },
+  );
 
   return `${pathname}?${query}`;
+};
+
+const resolvePopularLocationsCity = (
+  filters: PropertySearchFilters,
+  response: PropertySearchResponse,
+) => {
+  const directCity = (filters.city || "").trim();
+  if (directCity) {
+    return directCity;
+  }
+
+  const firstPropertyCity = response.data
+    .flatMap((property) =>
+      Array.isArray(property.address) ? property.address : [property.address],
+    )
+    .find((address) => address?.city)?.city;
+
+  return firstPropertyCity?.trim() || "";
 };
 
 export default async function CategoryPage({
@@ -181,6 +206,7 @@ export default async function CategoryPage({
   }
 
   let fetchError: string | null = null;
+  let popularLocations: PopularLocationSummary[] = [];
   let response: PropertySearchResponse = {
     data: [],
     total: 0,
@@ -204,6 +230,20 @@ export default async function CategoryPage({
       error instanceof Error
         ? error.message
         : "Unable to load property listings right now.";
+  }
+
+  try {
+    const popularLocationsCity = resolvePopularLocationsCity(filters, response);
+    if (popularLocationsCity) {
+      popularLocations = await PropertyService.getPopularLocations({
+        city: popularLocationsCity,
+        propertyType: category,
+        purpose: filters.purpose || "rent",
+        limit: 9,
+      });
+    }
+  } catch {
+    popularLocations = [];
   }
 
   const pathname = canonicalPath;
@@ -311,7 +351,7 @@ export default async function CategoryPage({
                     )}
                     {filters.location && (
                       <span className="rounded-full bg-[var(--admin-surface)] px-3 py-2">
-                        Location: {filters.location}
+                        Area: {filters.location}
                       </span>
                     )}
                     {filters.hostelType && (
@@ -327,7 +367,10 @@ export default async function CategoryPage({
             {response.data.length === 0 ? (
               <div className="rounded-[2rem] border border-dashed border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_76%,transparent)] px-6 py-16 text-center shadow-inner">
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--admin-surface)]">
-                  <Search className="text-[var(--admin-placeholder)]" size={32} />
+                  <Search
+                    className="text-[var(--admin-placeholder)]"
+                    size={32}
+                  />
                 </div>
                 <h2 className="text-2xl font-semibold text-[var(--admin-text)]">
                   No properties matched these filters
@@ -406,6 +449,13 @@ export default async function CategoryPage({
                 </Link>
               </nav>
             )}
+
+            <PopularLocationsSection
+              title={`Most Popular Locations for ${getCategoryLabel(category, true)}`}
+              itemLabelPrefix={`${getCategoryLabel(category, true)} for ${filters.purpose === "sale" ? "sale" : "rent"}`}
+              browseLabel={getCategoryLabel(category, true).toLowerCase()}
+              items={popularLocations}
+            />
           </section>
         </div>
       </section>

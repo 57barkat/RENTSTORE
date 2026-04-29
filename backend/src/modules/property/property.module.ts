@@ -4,6 +4,7 @@ import { PropertyService } from "./property.service";
 import { PropertyViewTrackerService } from "./property-view-tracker.service";
 import { PropertyImpressionTrackerService } from "./property-impression-tracker.service";
 import { PropertyController } from "./property.controller";
+import { SeoController } from "./seo.controller";
 import { Property, PropertySchema } from "./property.schema";
 import { CloudinaryModule } from "../../services/Cloudinary Service/cloudinary.module";
 import { AuthModule } from "../../services/auth.module";
@@ -27,7 +28,7 @@ import { SubscriptionCleanupService } from "./cronjobs/property.cron";
     DeletedImagesModule,
     UserModule,
   ],
-  controllers: [PropertyController],
+  controllers: [PropertyController, SeoController],
   providers: [
     PropertyService,
     PropertyViewTrackerService,

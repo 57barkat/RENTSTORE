@@ -1,6 +1,18 @@
 export const DEFAULT_LISTING_CITY = "Islamabad";
 export const DEFAULT_LISTING_PURPOSE = "rent";
 export const PROPERTY_DETAIL_SLUG_MAX_LENGTH = 70;
+export const KNOWN_SEO_CITIES = [
+  "Islamabad",
+  "Lahore",
+  "Karachi",
+  "Rawalpindi",
+  "Peshawar",
+  "Multan",
+  "Faisalabad",
+  "Quetta",
+  "Sialkot",
+  "Gujranwala",
+];
 
 const PURPOSE_VALUES = new Set(["rent", "sale"]);
 
@@ -163,6 +175,15 @@ const normalizeDisplayCity = (value) => {
     return "";
   }
 
+  const slug = slugifyListingValue(value);
+  const knownCity = KNOWN_SEO_CITIES.find(
+    (candidate) => slugifyListingValue(candidate) === slug,
+  );
+
+  if (knownCity) {
+    return knownCity;
+  }
+
   return value
     .trim()
     .replace(/[-_]+/g, " ")
@@ -172,21 +193,27 @@ const normalizeDisplayCity = (value) => {
     .join(" ");
 };
 
-const normalizeDisplayLocation = (value) => {
+const normalizeDisplayArea = (value) => {
   const normalized = normalizePropertyDetailText(value || "");
 
   if (!normalized) {
     return "";
   }
 
-  return normalized
+  const compact = normalizeSectorIdentifiers(normalized).replace(/\s+/g, " ").trim();
+
+  if (/^[a-z]+-\d+(?:-[a-z0-9]+)?$/i.test(compact)) {
+    return compact.toUpperCase();
+  }
+
+  return compact
     .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
     .split(" ")
     .map((word) => titleCaseWord(word))
     .join(" ");
 };
+
+const normalizeDisplayLocation = normalizeDisplayArea;
 
 const buildPropertyDetailLocationSlug = (value) =>
   slugifyListingValue(normalizePropertyDetailText(value || ""));
@@ -372,9 +399,16 @@ export const normalizePurpose = (purpose) => {
 export const normalizeSeoCity = (value) =>
   normalizeDisplayCity(value || DEFAULT_LISTING_CITY);
 
+export const normalizeSeoArea = (value) => normalizeDisplayArea(value || "");
+
+const KNOWN_SEO_CITY_SEGMENTS = KNOWN_SEO_CITIES.map((city) => ({
+  city,
+  slug: slugifyListingValue(city),
+})).sort((left, right) => right.slug.length - left.slug.length);
+
 /**
- * @param {{category?: string, purpose?: string, city?: string, propertyType?: string}} input
- * @returns {{ propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property", purpose: "rent"|"sale", city: string } | null}
+ * @param {{category?: string, purpose?: string, city?: string, area?: string, propertyType?: string}} input
+ * @returns {{ propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property", purpose: "rent"|"sale", city: string, area: string } | null}
  */
 export const getSeoListingContext = (input) => {
   const propertyType =
@@ -384,6 +418,7 @@ export const getSeoListingContext = (input) => {
     normalizePurpose(input?.purpose || DEFAULT_LISTING_PURPOSE) ||
     DEFAULT_LISTING_PURPOSE;
   const city = normalizeSeoCity(input?.city || DEFAULT_LISTING_CITY);
+  const area = normalizeSeoArea(input?.area || "");
 
   if (!propertyType || !purpose || !city) {
     return null;
@@ -393,11 +428,12 @@ export const getSeoListingContext = (input) => {
     propertyType,
     purpose,
     city,
+    area,
   };
 };
 
 /**
- * @param {{category?: string, purpose?: string, city?: string, propertyType?: string}} input
+ * @param {{category?: string, purpose?: string, city?: string, area?: string, propertyType?: string}} input
  * @returns {string|null}
  */
 export const buildSeoListingSlug = (input) => {
@@ -407,18 +443,23 @@ export const buildSeoListingSlug = (input) => {
     return null;
   }
 
-  return `${PROPERTY_TYPE_SEGMENTS[seoContext.propertyType]}-for-${seoContext.purpose}-in-${slugifyListingValue(seoContext.city)}`;
+  const locationSlugParts = [
+    seoContext.area ? slugifyListingValue(seoContext.area) : "",
+    slugifyListingValue(seoContext.city),
+  ].filter(Boolean);
+
+  return `${PROPERTY_TYPE_SEGMENTS[seoContext.propertyType]}-for-${seoContext.purpose}-in-${locationSlugParts.join("-")}`;
 };
 
 /**
- * @param {{category?: string, purpose?: string, city?: string, propertyType?: string}} input
+ * @param {{category?: string, purpose?: string, city?: string, area?: string, propertyType?: string}} input
  * @returns {boolean}
  */
 export const canBuildSeoListingSlug = (input) => Boolean(buildSeoListingSlug(input));
 
 /**
  * @param {string} segment
- * @returns {{ category: "home"|"apartment"|"hostel"|"shop"|"office"|"property", propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property", purpose: "rent"|"sale", city: string, canonicalSegment: string } | null}
+ * @returns {{ category: "home"|"apartment"|"hostel"|"shop"|"office"|"property", propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property", purpose: "rent"|"sale", city: string, area: string | null, canonicalSegment: string } | null}
  */
 export const parseSeoListingSlug = (segment) => {
   if (!segment) {
@@ -426,19 +467,32 @@ export const parseSeoListingSlug = (segment) => {
   }
 
   const normalizedSegment = segment.trim().toLowerCase();
-  const match = normalizedSegment.match(
-    /^([a-z-]+)-for-(rent|sale)-in-([a-z0-9-]+)$/i,
-  );
+  const match = normalizedSegment.match(/^([a-z-]+)-for-(rent|sale)-in-(.+)$/i);
 
   if (!match) {
     return null;
   }
 
-  const [, propertyTypeSegment, purposeSegment, citySegment] = match;
+  const [, propertyTypeSegment, purposeSegment, locationSegment] = match;
   const propertyType = normalizeSeoPropertyType(propertyTypeSegment);
   const purpose = normalizePurpose(purposeSegment);
   const category = getCategoryForSeoPropertyType(propertyTypeSegment);
-  const city = normalizeDisplayCity(citySegment);
+
+  const cityMatch = KNOWN_SEO_CITY_SEGMENTS.find(
+    ({ slug }) =>
+      locationSegment === slug || locationSegment.endsWith(`-${slug}`),
+  );
+
+  if (!cityMatch) {
+    return null;
+  }
+
+  const city = cityMatch.city;
+  const areaSegment =
+    locationSegment === cityMatch.slug
+      ? ""
+      : locationSegment.slice(0, -(cityMatch.slug.length + 1));
+  const area = areaSegment ? normalizeSeoArea(areaSegment) : "";
 
   if (!propertyType || !purpose || !category || !city) {
     return null;
@@ -448,6 +502,7 @@ export const parseSeoListingSlug = (segment) => {
     propertyType,
     purpose,
     city,
+    area,
   });
 
   if (!canonicalSegment) {
@@ -459,12 +514,13 @@ export const parseSeoListingSlug = (segment) => {
     propertyType,
     purpose,
     city,
+    area: area || null,
     canonicalSegment,
   };
 };
 
 /**
- * @param {{ category: string, city?: string, purpose?: string }} input
+ * @param {{ category: string, city?: string, area?: string, purpose?: string }} input
  * @returns {string|null}
  */
 export const buildLegacyListingRedirectPath = (input) => {
@@ -472,6 +528,7 @@ export const buildLegacyListingRedirectPath = (input) => {
     category: input.category,
     purpose: input.purpose || DEFAULT_LISTING_PURPOSE,
     city: input.city || DEFAULT_LISTING_CITY,
+    area: input.area,
   });
 
   return segment ? `/${segment}` : null;

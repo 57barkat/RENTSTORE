@@ -114,6 +114,20 @@ export interface PropertySearchResponse {
   message?: string;
 }
 
+export interface PopularLocationSummary {
+  area: string;
+  city: string;
+  propertyType: PropertyCategory;
+  count: number;
+  listingCount: number;
+  slug: string;
+}
+
+export interface PopularLocationCityGroup {
+  city: string;
+  locations: PopularLocationSummary[];
+}
+
 export interface UploaderProfileResponse {
   uploader: {
     _id?: string;

@@ -30,6 +30,7 @@ export const useProperties = (category: PropertyCategory) => {
 
       if (seoRoute) {
         nextFilters.city = seoRoute.city;
+        nextFilters.location = seoRoute.area || "";
         nextFilters.purpose = seoRoute.purpose;
       }
 
@@ -47,6 +48,7 @@ export const useProperties = (category: PropertyCategory) => {
       const query = buildPropertyBrowserQuery(nextFilters, {
         omitCity: Boolean(nextSeoRoute),
         omitPurpose: Boolean(nextSeoRoute),
+        omitLocation: Boolean(nextSeoRoute),
       });
       router.push(query ? `${nextPath}?${query}` : nextPath, { scroll: false });
     },
