@@ -254,6 +254,13 @@ const run = () => {
   assert.match(buildQueryMatch[1], /params\.set\("area", filters\.location\)/);
   assert.doesNotMatch(buildQueryMatch[1], /params\.set\("addressQuery", addressQuery\)/);
 
+  const parseParamsMatch = propertyUtilsSource.match(
+    /export const parsePropertySearchParams = \([\s\S]*?return \{([\s\S]*?)\n  \};\n\};/,
+  );
+  assert.ok(parseParamsMatch, "parsePropertySearchParams should be present");
+  assert.match(propertyUtilsSource, /const cityValue = toSingleValue\(searchParams\.city\) \|\| "";/);
+  assert.match(parseParamsMatch[1], /city: cityValue \? normalizeSeoCity\(cityValue\) : "",/);
+
   const categoryPageSource = readFileSync(
     new URL("../../app/(public)/[category]/page.tsx", import.meta.url),
     "utf8",
@@ -267,6 +274,13 @@ const run = () => {
   );
   assert.match(hookSource, /nextFilters\.location = seoRoute\.area \|\| "";/);
   assert.match(hookSource, /omitLocation: Boolean\(nextSeoRoute\)/);
+
+  const routeConstantsSource = readFileSync(
+    new URL("../../app/lib/route-constants.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(routeConstantsSource, /PUBLIC_CATEGORY_ROUTE_MAP\.office\.legacyHref/);
+  assert.match(routeConstantsSource, /PUBLIC_CATEGORY_ROUTE_MAP\.office\.category/);
 
   const legacyDetailRouteSource = readFileSync(
     new URL("../../app/(public)/[category]/[city]/[location]/[id]/page.tsx", import.meta.url),

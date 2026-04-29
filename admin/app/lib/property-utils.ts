@@ -151,6 +151,7 @@ export const parsePropertySearchParams = (
 ): PropertySearchFilters => {
   const hostelTypeValue = toSingleValue(searchParams.hostelType) || "";
   const sortValue = toSingleValue(searchParams.sortBy) || "newest";
+  const cityValue = toSingleValue(searchParams.city) || "";
   const purposeValue = normalizePurpose(
     toSingleValue(searchParams.purpose) || "rent",
   );
@@ -159,7 +160,7 @@ export const parsePropertySearchParams = (
     category,
     purpose: (purposeValue || "rent") as PropertyPurpose,
     title: toSingleValue(searchParams.title) || "",
-    city: normalizeSeoCity(toSingleValue(searchParams.city) || ""),
+    city: cityValue ? normalizeSeoCity(cityValue) : "",
     location: normalizeSeoArea(
       toSingleValue(searchParams.area) ||
       toSingleValue(searchParams.location) ||

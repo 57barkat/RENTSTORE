@@ -181,6 +181,26 @@ export const buildNormalizedPrefixRegex = (value?: string | null) =>
 export const buildNormalizedContainsRegex = (value?: string | null) =>
   buildContainsRegex(value);
 
+const buildCityFilterCondition = (city: string) => {
+  const exactCityRegex = {
+    $regex: `^${escapeRegex(city)}$`,
+    $options: "i",
+  };
+  const readableCityRegex = {
+    $regex: escapeRegex(city),
+    $options: "i",
+  };
+
+  return {
+    $or: [
+      { "address.city": exactCityRegex },
+      { "address.city": readableCityRegex },
+      { location: readableCityRegex },
+      { addressQuery: readableCityRegex },
+    ],
+  };
+};
+
 const buildRentPurposeCondition = () => ({
   $or: [
     { monthlyRent: { $gt: 0 } },
@@ -217,9 +237,7 @@ export const buildCanonicalListingBaseFilter = ({
   const andConditions: any[] = [];
   const cleanedCity = city?.trim();
   if (cleanedCity) {
-    andConditions.push({
-      "address.city": { $regex: `^${escapeRegex(cleanedCity)}$`, $options: "i" },
-    });
+    andConditions.push(buildCityFilterCondition(cleanedCity));
   }
 
   if (purpose === "rent") {

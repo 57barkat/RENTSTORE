@@ -23,13 +23,35 @@ describe("property search canonical filters", () => {
     expect(Array.isArray(filter.$and)).toBe(true);
 
     const cityCondition = filter.$and.find(
-      (condition: Record<string, any>) => condition["address.city"],
+      (condition: Record<string, any>) => Array.isArray(condition.$or),
     );
     expect(cityCondition).toEqual({
-      "address.city": {
-        $regex: "^ISLAMABAD$",
-        $options: "i",
-      },
+      $or: [
+        {
+          "address.city": {
+            $regex: "^ISLAMABAD$",
+            $options: "i",
+          },
+        },
+        {
+          "address.city": {
+            $regex: "ISLAMABAD",
+            $options: "i",
+          },
+        },
+        {
+          location: {
+            $regex: "ISLAMABAD",
+            $options: "i",
+          },
+        },
+        {
+          addressQuery: {
+            $regex: "ISLAMABAD",
+            $options: "i",
+          },
+        },
+      ],
     });
 
     const rentCondition = filter.$and.find(
@@ -51,6 +73,43 @@ describe("property search canonical filters", () => {
         condition.$or.some((entry: Record<string, any>) => entry.area instanceof RegExp),
     );
     expect(areaSearchCondition).toBeDefined();
+  });
+
+  it("matches legacy polluted office city values that still contain the requested city", () => {
+    const filter = buildMongoFilter({
+      city: "Islamabad",
+      hostOption: "office",
+      purpose: "rent",
+    });
+
+    expect(filter.$and).toContainEqual({
+      $or: [
+        {
+          "address.city": {
+            $regex: "^Islamabad$",
+            $options: "i",
+          },
+        },
+        {
+          "address.city": {
+            $regex: "Islamabad",
+            $options: "i",
+          },
+        },
+        {
+          location: {
+            $regex: "Islamabad",
+            $options: "i",
+          },
+        },
+        {
+          addressQuery: {
+            $regex: "Islamabad",
+            $options: "i",
+          },
+        },
+      ],
+    });
   });
 
   it("uses the same canonical base filter for popular locations and canonicalizes sector slugs", async () => {
