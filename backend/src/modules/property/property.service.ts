@@ -1482,6 +1482,56 @@ export class PropertyService {
     return property.save();
   }
 
+  async adminUpdateProperty(id: string, dto: Partial<CreatePropertyDto>) {
+    const property = await this.propertyModel.findById(id);
+    if (!property) throw new NotFoundException("Property not found");
+
+    if (dto._id) delete dto._id;
+    if (dto.defaultRentType !== undefined) {
+      dto.defaultRentType = normalizeDefaultRentType(dto);
+    }
+
+    Object.assign(property, dto);
+
+    if (dto.lat !== undefined && dto.lng !== undefined) {
+      property.locationGeo = { type: "Point", coordinates: [dto.lng, dto.lat] };
+    }
+
+    Object.assign(
+      property,
+      preparePropertySearchFields({
+        ...(property.toObject() as unknown as Partial<CreatePropertyDto>),
+        ...dto,
+      }),
+    );
+
+    const validation = validatePropertyPayload(
+      property.toObject() as unknown as Partial<CreatePropertyDto>,
+    );
+
+    if (validation.fieldErrors.defaultRentType) {
+      throw new BadRequestException({
+        message: "The selected default rent type is invalid.",
+        error: "VALIDATION_FAILED",
+        fieldErrors: validation.fieldErrors,
+      });
+    }
+
+    if (!validation.valid) {
+      property.status = false;
+    } else if (dto.status !== undefined) {
+      if (dto.status && !property.isApproved) {
+        throw new BadRequestException(
+          "This property must be approved before it can be activated.",
+        );
+      }
+
+      property.status = dto.status;
+    }
+
+    return property.save();
+  }
+
   async updatePropertyVisibility(
     propertyId: string,
     userId: string,

@@ -557,6 +557,15 @@ export class PropertyController {
     );
   }
 
+  @Patch("admin/update/:id")
+  @SetMetadata("roles", ["admin"])
+  async adminUpdateProperty(
+    @Param("id") id: string,
+    @Body() dto: Partial<CreatePropertyDto>,
+  ) {
+    return this.propertyService.adminUpdateProperty(id, dto);
+  }
+
   @Patch("admin/approve/:id")
   @SetMetadata("roles", ["admin"])
   async approve(@Param("id") id: string) {

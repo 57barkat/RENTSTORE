@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import apiClient from "@/app/lib/api-client";
 
 export const useAdminPropertyDetails = () => {
@@ -6,7 +6,7 @@ export const useAdminPropertyDetails = () => {
   const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const handleViewDetails = async (id: string) => {
+  const loadPropertyDetails = useCallback(async (id: string) => {
     try {
       setLoadingDetails(true);
       const [propertyResponse, uploaderSummaryResponse] = await Promise.all([
@@ -22,7 +22,22 @@ export const useAdminPropertyDetails = () => {
     } finally {
       setLoadingDetails(false);
     }
-  };
+  }, []);
+
+  const handleViewDetails = useCallback(
+    async (id: string) => {
+      await loadPropertyDetails(id);
+    },
+    [loadPropertyDetails],
+  );
+
+  const refreshSelectedProperty = useCallback(async () => {
+    if (!selectedProperty?._id) {
+      return;
+    }
+
+    await loadPropertyDetails(selectedProperty._id);
+  }, [loadPropertyDetails, selectedProperty?._id]);
 
   const clearSelectedProperty = () => {
     setSelectedProperty(null);
@@ -32,6 +47,7 @@ export const useAdminPropertyDetails = () => {
     selectedProperty,
     loadingDetails,
     handleViewDetails,
+    refreshSelectedProperty,
     clearSelectedProperty,
   };
 };

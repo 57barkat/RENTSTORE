@@ -80,7 +80,7 @@ export default function PropertiesScreen({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMutation, setActiveMutation] = useState<{
     propertyId: string;
-    action: "approve" | "delete";
+    action: "approve" | "delete" | "save";
   } | null>(null);
   const itemsPerPage = initialResponse.limit || 6;
 
@@ -88,6 +88,7 @@ export default function PropertiesScreen({
     selectedProperty,
     loadingDetails,
     handleViewDetails,
+    refreshSelectedProperty,
     clearSelectedProperty,
   } = useAdminPropertyDetails();
 
@@ -207,13 +208,36 @@ export default function PropertiesScreen({
     }
   };
 
+  const handleSave = async (id: string, payload: Record<string, unknown>) => {
+    setActiveMutation({ propertyId: id, action: "save" });
+    try {
+      await apiClient.patch(`/properties/admin/update/${id}`, payload);
+      await Promise.all([refreshCurrentPage(), refreshSelectedProperty()]);
+    } catch (error: unknown) {
+      const maybeError = error as {
+        response?: { data?: { message?: string } };
+        data?: { message?: string };
+      };
+      const message =
+        maybeError.response?.data?.message ||
+        maybeError.data?.message ||
+        "Property update failed";
+      alert(message);
+      throw error;
+    } finally {
+      setActiveMutation(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {selectedProperty && (
         <PropertyReviewDrawer
+          key={selectedProperty._id}
           property={selectedProperty}
           loading={loadingDetails}
           onClose={clearSelectedProperty}
+          onSave={handleSave}
           onApprove={handleApprove}
           onDelete={handleDelete}
           isSubmitting={Boolean(activeMutation)}
