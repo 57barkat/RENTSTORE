@@ -10,7 +10,7 @@ import {
   extractPropertyId,
   getPropertyCategory,
 } from "@/app/lib/property-utils";
-import { getCategoryForSeoPropertyType, parsePropertyDetailSlug } from "@/app/lib/property-seo";
+import { parsePropertyDetailSlug } from "@/app/lib/property-seo";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
 
 export interface ResolvedPropertyDetail {
@@ -19,81 +19,49 @@ export interface ResolvedPropertyDetail {
   canonicalHref: string;
 }
 
-const findPropertyFromShortSlug = async (
-  routeValue: string,
-  parsedSlug: NonNullable<ReturnType<typeof parsePropertyDetailSlug>>,
-): Promise<PublicProperty | null> => {
-  const normalizedRouteValue = routeValue.toLowerCase();
-  const category =
-    getCategoryForSeoPropertyType(parsedSlug.propertyType || "property") || "property";
-  const candidateFilters = [
-    {
-      category,
-      purpose: parsedSlug.purpose || "rent",
-      location: parsedSlug.locationHint || "",
-      city: "",
-      page: 1,
-      limit: 100,
-      sortBy: "newest" as const,
-    },
-    {
-      category,
-      purpose: parsedSlug.purpose || "rent",
-      location: "",
-      city: "",
-      page: 1,
-      limit: 100,
-      sortBy: "newest" as const,
-    },
-  ];
-
-  for (const filters of candidateFilters) {
-    const response = await PropertyService.searchProperties(filters);
-    const canonicalMatch = response.data.find(
-      (candidate) => buildPropertyHref(candidate).replace(/^\//, "").toLowerCase() === normalizedRouteValue,
-    );
-
-    if (canonicalMatch) {
-      return canonicalMatch;
-    }
-
-    const prefixMatch = response.data.find((candidate) =>
-      candidate._id.toLowerCase().startsWith(parsedSlug.propertyId.toLowerCase()),
-    );
-
-    if (prefixMatch) {
-      return prefixMatch;
-    }
-  }
-
-  return null;
-};
-
 export const resolvePropertyDetail = async (
   routeValue: string,
 ): Promise<ResolvedPropertyDetail> => {
   const parsedSlug = parsePropertyDetailSlug(routeValue);
   const propertyId = parsedSlug?.propertyId || extractPropertyId(routeValue);
 
+  console.log("[property-detail-debug] resolving property detail", {
+    routeValue,
+    parsedSlug,
+    extractedPropertyId: propertyId,
+  });
+
   if (!propertyId) {
+    console.log("[property-detail-debug] missing property id", { routeValue });
     notFound();
   }
 
-  const property =
-    parsedSlug?.isShortId && propertyId.length === 6
-      ? await findPropertyFromShortSlug(routeValue, parsedSlug)
-      : await PropertyService.getPropertyByRouteId(propertyId);
+  const property = await PropertyService.getPropertyByRouteId(propertyId);
 
   if (!property) {
+    console.log("[property-detail-debug] property not found", {
+      routeValue,
+      propertyId,
+      parsedSlug,
+    });
     notFound();
   }
 
   const category = getPropertyCategory(property);
+  const canonicalHref = buildPropertyHref(property);
+
+  console.log("[property-detail-debug] property resolved", {
+    routeValue,
+    propertyId,
+    resolvedId: property._id,
+    category,
+    canonicalHref,
+  });
 
   return {
     category,
     property,
-    canonicalHref: buildPropertyHref(property),
+    canonicalHref,
   };
 };
 

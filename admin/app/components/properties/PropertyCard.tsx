@@ -71,6 +71,13 @@ const MobileActionButton = ({
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const detailHref = buildPropertyHref(property);
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[property-detail-debug] property card href", {
+      id: property._id,
+      title: getPropertyTitle(property),
+      detailHref,
+    });
+  }
   const coverImage = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
   const isFeatured = Boolean(property.featured);
   const isBoosted = Boolean(property.boosted || property.isBoosted);

@@ -339,10 +339,6 @@ export const validateAdminPropertyForm = (
     errors.defaultRentType = `Add a valid ${form.defaultRentType} rent before setting it as the default display rent.`;
   }
 
-  if (form.safetyDetailsData.safetyDetails.length === 0) {
-    errors.safetyDetails = "Select at least one safety detail.";
-  }
-
   if (
     form.safetyDetailsData.safetyDetails.includes("exterior_camera") &&
     !form.safetyDetailsData.cameraDescription.trim()

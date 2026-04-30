@@ -5,7 +5,6 @@ describe("signupValidationSchema", () => {
     name: "Test User",
     email: "user@example.com",
     password: "password123",
-    confirmPassword: "",
     phone: "03123456789",
     cnic: "1234512345671",
     agencyName: "",

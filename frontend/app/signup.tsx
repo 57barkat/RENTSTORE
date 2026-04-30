@@ -85,7 +85,6 @@ export default function SignUpScreen() {
     name: "",
     email: "",
     password: "",
-    confirmPassword: "",
     phone: "",
     cnic: "",
     agencyName: "",

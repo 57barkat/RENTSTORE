@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { notFound, permanentRedirect } from "next/navigation";
 import { Search } from "lucide-react";
 import FilterSidebar from "@/app/components/properties/FilterSidebar";
@@ -281,10 +282,13 @@ export default async function CategoryPage({
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
-      <script
+      <Script
+        id={`category-jsonld-${category}-${currentPage}`}
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializedJsonLd }}
-      />
+        strategy="beforeInteractive"
+      >
+        {serializedJsonLd}
+      </Script>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-10 grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">

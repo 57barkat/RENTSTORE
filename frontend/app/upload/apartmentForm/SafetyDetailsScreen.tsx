@@ -9,10 +9,7 @@ import { CameraModal } from "@/components/UploadPropertyComponents/CameraModal";
 import { Colors } from "@/constants/Colors";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { FormContext } from "@/contextStore/FormContext";
-import {
-  PROPERTY_UPLOAD_TOTAL_STEPS,
-  buildDisabledReason,
-} from "@/utils/propertyTypes";
+import { PROPERTY_UPLOAD_TOTAL_STEPS } from "@/utils/propertyTypes";
 
 export interface SafetyDetailsData {
   safetyDetails: string[];
@@ -95,19 +92,12 @@ const ApartmentSafetyDetailsScreen: FC = () => {
     updateForm("safetyDetailsData", finalData);
     router.push("/upload/apartmentForm/FinalAddressDetailsScreen");
   };
-  const isNextDisabled = checkedDetails.size === 0;
-
   return (
     <StepContainer
       title="Share apartment safety details"
       onNext={handleNext}
-      isNextDisabled={isNextDisabled}
+      isNextDisabled={false}
       progress={96}
-      nextDisabledReason={buildDisabledReason([
-        isNextDisabled
-          ? "Select at least one safety detail before continuing."
-          : undefined,
-      ])}
       stepNumber={10}
       totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
@@ -115,17 +105,6 @@ const ApartmentSafetyDetailsScreen: FC = () => {
         <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
           Does your apartment have any of these?
         </Text>
-        {isNextDisabled ? (
-          <Text
-            style={{
-              color: currentTheme.error,
-              marginBottom: 14,
-              fontWeight: "600",
-            }}
-          >
-            Pick at least one safety detail to continue.
-          </Text>
-        ) : null}
 
         {SAFETY_DETAILS.map((detail) => (
           <CheckboxItem

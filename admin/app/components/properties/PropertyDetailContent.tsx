@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import Script from "next/script";
 
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
@@ -149,10 +150,13 @@ export default async function PropertyDetailContent({
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,_var(--admin-surface)_0%,_var(--admin-card)_28%,_var(--admin-background)_100%)]">
-      <script
+      <Script
+        id={`property-jsonld-${property._id}`}
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializedJsonLd }}
-      />
+        strategy="beforeInteractive"
+      >
+        {serializedJsonLd}
+      </Script>
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-[var(--admin-muted)]">

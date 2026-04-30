@@ -160,7 +160,6 @@ describe("SignUpScreen", () => {
         agencyLicense: "",
         agencyName: "",
         cnic: "1234512345671",
-        confirmPassword: "",
         email: "user@example.com",
         name: "Test User",
         password: "password123",

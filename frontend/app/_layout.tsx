@@ -212,7 +212,7 @@ const AppContent = () => {
         <Stack.Screen
           name="property/View/[property]"
           options={{
-            headerShown: false,
+            headerShown: true,
             animation: "slide_from_right",
           }}
         />

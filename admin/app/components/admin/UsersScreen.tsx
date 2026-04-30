@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   Trash2,
@@ -287,6 +287,7 @@ export default function UsersScreen({
     null,
   );
   const [updateLoading, setUpdateLoading] = useState(false);
+  const hasSkippedInitialFetch = useRef(false);
 
   const fetchUsers = useCallback(
     async (currentSearch: string, currentPage: number) => {
@@ -323,10 +324,15 @@ export default function UsersScreen({
 
   useEffect(() => {
     if (page === 1 && search === "") {
+      if (!hasSkippedInitialFetch.current) {
+        hasSkippedInitialFetch.current = true;
+      } else {
+        void fetchUsers(search, page);
+      }
       return;
     }
 
-    fetchUsers(search, page);
+    void fetchUsers(search, page);
   }, [fetchUsers, page, search]);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {

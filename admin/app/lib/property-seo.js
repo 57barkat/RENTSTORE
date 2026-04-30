@@ -552,9 +552,8 @@ export const buildPropertyDetailSlug = (input) => {
   });
   const sizeSegment = buildPropertySizeSlug(input?.sizeValue, input?.sizeUnit);
   const propertyId = String(input?.propertyId || "").trim().toLowerCase();
-  const shortId = propertyId.slice(0, 6);
 
-  if (!propertyType || !city || shortId.length < 6) {
+  if (!propertyType || !city || propertyId.length !== 24) {
     return null;
   }
 
@@ -563,12 +562,12 @@ export const buildPropertyDetailSlug = (input) => {
   );
   const slugBase = truncateSlugValue(phraseParts.join("-"));
 
-  return `${slugBase}-${shortId}`;
+  return `${slugBase}-${propertyId}`;
 };
 
 /**
  * @param {string} segment
- * @returns {{ propertyId: string, slugBody: string, isShortId: boolean, propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property"|null, purpose: "rent"|"sale"|null, locationHint: string } | null}
+ * @returns {{ propertyId: string, slugBody: string, propertyType: "house"|"apartment"|"hostel"|"shop"|"office"|"property"|null, purpose: "rent"|"sale"|null, locationHint: string } | null}
  */
 export const parsePropertyDetailSlug = (segment) => {
   if (!segment) {
@@ -577,7 +576,7 @@ export const parsePropertyDetailSlug = (segment) => {
 
   const normalizedSegment = String(segment).trim().toLowerCase();
   const match = normalizedSegment.match(
-    /^(.*?)-for-(rent|sale)-in-(.+)-([a-f0-9]{24}|[a-f0-9]{6})$/i,
+    /^(.*?)-for-(rent|sale)-in-(.+)-([a-f0-9]{24})$/i,
   );
 
   if (!match) {
@@ -606,7 +605,6 @@ export const parsePropertyDetailSlug = (segment) => {
   return {
     slugBody: `${descriptorSegment}-for-${purposeSegment}-in-${rawLocationHint}`,
     propertyId,
-    isShortId: propertyId.length === 6,
     propertyType,
     purpose: normalizePurpose(purposeSegment),
     locationHint: normalizeDisplayLocation(locationHint),

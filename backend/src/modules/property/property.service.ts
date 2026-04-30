@@ -397,9 +397,13 @@ export class PropertyService {
 
     if (dto._id) {
       const draftObjectId = new Types.ObjectId(dto._id);
-      const existingDraft = await this.propertyDraftModel.findById(draftObjectId);
+      const existingDraft =
+        await this.propertyDraftModel.findById(draftObjectId);
 
-      if (existingDraft && existingDraft.ownerId.toString() !== userId.toString()) {
+      if (
+        existingDraft &&
+        existingDraft.ownerId.toString() !== userId.toString()
+      ) {
         throw new UnauthorizedException("Not allowed to update this draft");
       }
 
@@ -788,13 +792,17 @@ export class PropertyService {
         const canonicalArea = formatCanonicalArea(entry._id.area);
         const normalizedArea = normalizeAreaSearch(canonicalArea);
 
-        if (!canonicalCity || !normalizedCity || !canonicalArea || !normalizedArea) {
+        if (
+          !canonicalCity ||
+          !normalizedCity ||
+          !canonicalArea ||
+          !normalizedArea
+        ) {
           return acc;
         }
 
         const displayCity =
-          cleanedCity &&
-          normalizedCity === normalizeAddressSearch(cleanedCity)
+          cleanedCity && normalizedCity === normalizeAddressSearch(cleanedCity)
             ? cleanedCity
             : canonicalCity;
 
@@ -1085,8 +1093,7 @@ export class PropertyService {
 
     const isAdmin = userRole === "admin";
     const isOwner =
-      !!userId &&
-      visibilitySnapshot.ownerId?.toString() === userId.toString();
+      !!userId && visibilitySnapshot.ownerId?.toString() === userId.toString();
     const isPubliclyVisible =
       visibilitySnapshot.status === true &&
       visibilitySnapshot.isApproved === true &&
@@ -1167,7 +1174,7 @@ export class PropertyService {
     property.chat = !isPropertyOwner && !!userId;
 
     void this.propertyViewTracker.queueView(propertyId);
-
+    console.log(property, "property");
     return property;
   }
 
