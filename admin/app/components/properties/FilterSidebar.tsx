@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useEffect, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { ChevronDown } from "lucide-react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";
 import type { PropertyCategory, SizeUnit } from "@/app/lib/property-types";
@@ -11,7 +18,18 @@ interface FilterSidebarProps {
 }
 
 const AMENITIES = ["WiFi", "AC", "Parking", "Laundry", "Gym"];
-const SIZE_UNITS = ["Marla", "Kanal", "Sq. Ft."] as const;
+const SIZE_UNITS = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."] as const;
+const CATEGORY_OPTIONS: Array<{
+  label: string;
+  value: PropertyCategory;
+}> = [
+  { label: "All categories", value: "property" },
+  { label: "Houses", value: "home" },
+  { label: "Apartments", value: "apartment" },
+  { label: "Hostels", value: "hostel" },
+  { label: "Shops", value: "shop" },
+  { label: "Offices", value: "office" },
+];
 
 const FilterSidebarComponent = ({
   category,
@@ -19,6 +37,10 @@ const FilterSidebarComponent = ({
 }: FilterSidebarProps) => {
   const { filters, updateFilters, resetFilters } = useProperties(category);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const minRentRef = useRef<HTMLInputElement>(null);
+  const maxRentRef = useRef<HTMLInputElement>(null);
+  const minSizeRef = useRef<HTMLInputElement>(null);
+  const maxSizeRef = useRef<HTMLInputElement>(null);
 
   const showSizeFilters =
     category === "property" ||
@@ -36,18 +58,27 @@ const FilterSidebarComponent = ({
     };
   }, [mobileOpen]);
 
-  const commitPriceFilter = (key: "minRent" | "maxRent", rawValue: string) => {
+  const parseDraftNumber = (rawValue: string) => {
     const trimmed = rawValue.trim();
+    return trimmed ? Number(trimmed) : "";
+  };
+
+  const applyRangeFilters = () => {
     updateFilters({
-      [key]: trimmed ? Number(trimmed) : "",
+      minRent: parseDraftNumber(minRentRef.current?.value || ""),
+      maxRent: parseDraftNumber(maxRentRef.current?.value || ""),
+      minSize: parseDraftNumber(minSizeRef.current?.value || ""),
+      maxSize: parseDraftNumber(maxSizeRef.current?.value || ""),
     });
   };
 
-  const commitSizeFilter = (key: "minSize" | "maxSize", rawValue: string) => {
-    const trimmed = rawValue.trim();
-    updateFilters({
-      [key]: trimmed ? Number(trimmed) : "",
-    });
+  const handleRangeKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    applyRangeFilters();
   };
 
   const sidebarContent = (
@@ -74,6 +105,39 @@ const FilterSidebarComponent = ({
       </div>
 
       <div className="space-y-5">
+        {category === "property" && (
+          <div className="rounded-[1.75rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-4">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+              Category
+            </label>
+            <p className="mb-3 text-sm text-[var(--admin-muted)]">
+              Choose a property type or keep all categories selected.
+            </p>
+            <div className="relative">
+              <select
+                aria-label="Property category"
+                value={filters.category}
+                onChange={(event) =>
+                  updateFilters({
+                    category: event.target.value as PropertyCategory,
+                  })
+                }
+                className="admin-input w-full appearance-none rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 pr-11 text-sm font-medium text-[var(--admin-text)] shadow-none"
+              >
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
+              />
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
             Title
@@ -145,6 +209,7 @@ const FilterSidebarComponent = ({
               Min rent
             </label>
             <input
+              ref={minRentRef}
               type="number"
               min={0}
               inputMode="numeric"
@@ -154,19 +219,7 @@ const FilterSidebarComponent = ({
                   ? ""
                   : String(filters.minRent)
               }
-              onBlur={(event) =>
-                commitPriceFilter("minRent", event.currentTarget.value)
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  commitPriceFilter(
-                    "minRent",
-                    (event.currentTarget as HTMLInputElement).value,
-                  );
-                  (event.currentTarget as HTMLInputElement).blur();
-                }
-              }}
+              onKeyDown={handleRangeKeyDown}
               className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
             />
           </div>
@@ -175,6 +228,7 @@ const FilterSidebarComponent = ({
               Max rent
             </label>
             <input
+              ref={maxRentRef}
               type="number"
               min={0}
               inputMode="numeric"
@@ -184,19 +238,7 @@ const FilterSidebarComponent = ({
                   ? ""
                   : String(filters.maxRent)
               }
-              onBlur={(event) =>
-                commitPriceFilter("maxRent", event.currentTarget.value)
-              }
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  commitPriceFilter(
-                    "maxRent",
-                    (event.currentTarget as HTMLInputElement).value,
-                  );
-                  (event.currentTarget as HTMLInputElement).blur();
-                }
-              }}
+              onKeyDown={handleRangeKeyDown}
               className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
             />
           </div>
@@ -210,6 +252,7 @@ const FilterSidebarComponent = ({
                   Min size
                 </label>
                 <input
+                  ref={minSizeRef}
                   type="number"
                   min={0}
                   inputMode="numeric"
@@ -219,19 +262,7 @@ const FilterSidebarComponent = ({
                       ? ""
                       : String(filters.minSize)
                   }
-                  onBlur={(event) =>
-                    commitSizeFilter("minSize", event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      commitSizeFilter(
-                        "minSize",
-                        (event.currentTarget as HTMLInputElement).value,
-                      );
-                      (event.currentTarget as HTMLInputElement).blur();
-                    }
-                  }}
+                  onKeyDown={handleRangeKeyDown}
                   className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 />
               </div>
@@ -240,6 +271,7 @@ const FilterSidebarComponent = ({
                   Max size
                 </label>
                 <input
+                  ref={maxSizeRef}
                   type="number"
                   min={0}
                   inputMode="numeric"
@@ -249,19 +281,7 @@ const FilterSidebarComponent = ({
                       ? ""
                       : String(filters.maxSize)
                   }
-                  onBlur={(event) =>
-                    commitSizeFilter("maxSize", event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      commitSizeFilter(
-                        "maxSize",
-                        (event.currentTarget as HTMLInputElement).value,
-                      );
-                      (event.currentTarget as HTMLInputElement).blur();
-                    }
-                  }}
+                  onKeyDown={handleRangeKeyDown}
                   className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
                 />
               </div>
@@ -291,6 +311,14 @@ const FilterSidebarComponent = ({
             </div>
           </>
         )}
+
+        <button
+          type="button"
+          onClick={applyRangeFilters}
+          className="admin-button-primary w-full rounded-2xl px-4 py-3 text-sm font-medium"
+        >
+          Apply filters
+        </button>
 
         {/* Sort */}
         <div>

@@ -1,12 +1,20 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ArrowUpRight, Eye, MapPin } from "lucide-react";
+import {
+  ArrowUpRight,
+  Bath,
+  BedDouble,
+  Eye,
+  Heart,
+  MapPin,
+  SquareDashedBottom,
+} from "lucide-react";
 
-import BasePropertyCard from "@/app/components/properties/BasePropertyCard";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   DEFAULT_PROPERTY_IMAGE,
   buildPropertyHref,
+  getCategoryLabel,
+  getPropertyCategory,
   getPropertyCity,
   getPropertyLocation,
   getPropertyPriceDisplay,
@@ -18,147 +26,164 @@ interface PropertyCardProps {
   previewHref?: string;
 }
 
-interface ActionLinkProps {
-  href: string;
-  label: string;
-  scroll?: boolean;
-  children: ReactNode;
-}
+const buildStatItems = (property: PublicProperty) => {
+  const items: Array<{ key: string; label: string; value: string }> = [];
 
-const ActionLink = ({ href, label, scroll, children }: ActionLinkProps) => {
-  return (
-    <div className="group/action relative">
-      <Link
-        href={href}
-        scroll={scroll}
-        aria-label={label}
-        title={label}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[rgba(255,255,255,0.96)] text-[var(--admin-text)] shadow-[0_18px_40px_-26px_var(--admin-shadow)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[var(--admin-primary)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
-      >
-        {children}
-      </Link>
-      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 -translate-x-1/2 rounded-full bg-[var(--admin-text)] px-3 py-1 text-[11px] font-medium text-[var(--admin-background)] opacity-0 shadow-lg transition group-hover/action:opacity-100">
-        {label}
-      </span>
-    </div>
-  );
-};
+  if (property.capacityState?.bedrooms || property.capacityState?.beds) {
+    items.push({
+      key: "beds",
+      label: "Beds",
+      value: String(
+        property.capacityState?.bedrooms || property.capacityState?.beds,
+      ),
+    });
+  }
 
-interface MobileActionButtonProps {
-  href: string;
-  label: string;
-  scroll?: boolean;
-  children: ReactNode;
-}
+  if (property.capacityState?.bathrooms) {
+    items.push({
+      key: "baths",
+      label: "Baths",
+      value: String(property.capacityState.bathrooms),
+    });
+  }
 
-const MobileActionButton = ({
-  href,
-  label,
-  scroll,
-  children,
-}: MobileActionButtonProps) => {
-  return (
-    <Link
-      href={href}
-      scroll={scroll}
-      className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--admin-border)] bg-[var(--admin-card)] px-4 py-2.5 text-sm font-medium text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-    >
-      {children}
-      <span>{label}</span>
-    </Link>
-  );
+  if (property.size?.value && property.size?.unit) {
+    items.push({
+      key: "size",
+      label: property.size.unit,
+      value: `${property.size.value} ${property.size.unit}`,
+    });
+  }
+
+  return items.slice(0, 3);
 };
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const detailHref = buildPropertyHref(property);
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[property-detail-debug] property card href", {
-      id: property._id,
-      title: getPropertyTitle(property),
-      detailHref,
-    });
-  }
   const coverImage = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
+  const title = getPropertyTitle(property);
   const isFeatured = Boolean(property.featured);
   const isBoosted = Boolean(property.boosted || property.isBoosted);
-  const addressLabel = [
-    getPropertyLocation(property),
-    getPropertyCity(property),
-  ]
+  const categoryLabel = getCategoryLabel(
+    getPropertyCategory(property),
+  ).toUpperCase();
+  const cityLabel = getPropertyCity(property);
+  const locationLabel = [getPropertyLocation(property), cityLabel]
     .filter(Boolean)
     .join(", ");
+  const statItems = buildStatItems(property);
 
   return (
-    <BasePropertyCard
-      image={coverImage}
-      title={getPropertyTitle(property)}
-      className={`${
-        isFeatured
-          ? "border-[var(--admin-accent)] shadow-[0_0_0_1px_var(--admin-accent-soft),0_18px_38px_var(--admin-accent-soft)] hover:shadow-[0_0_0_1px_var(--admin-accent),0_24px_46px_var(--admin-accent-soft)]"
-          : "border-[var(--admin-border)]"
-      }`}
-      badges={
-        <>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-white shadow-[0_18px_36px_-30px_var(--admin-shadow)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-32px_var(--admin-shadow)]">
+      <div className="relative aspect-[16/11] overflow-hidden bg-[var(--admin-card)]">
+        <Link href={detailHref} aria-label={title}>
+          <img
+            src={coverImage}
+            alt={title}
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          />
+        </Link>
+
+        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.28)] via-transparent to-transparent" />
+
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           {isFeatured && (
-            <span className="admin-badge-featured rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg shadow-[rgba(245,159,11,0.18)]">
+            <span className="rounded-full bg-[var(--admin-accent)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
               Featured
             </span>
           )}
           {isBoosted && (
-            <span className="admin-badge-info rounded-full px-3 py-1 text-[11px] font-semibold shadow-lg shadow-[var(--admin-info-soft)]">
+            <span className="rounded-full bg-[var(--admin-secondary)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
               Boosted
             </span>
           )}
-        </>
-      }
-      overlay={
-        <div className="hidden items-center gap-2 opacity-0 transition duration-200 md:flex md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-          {previewHref && (
-            <ActionLink href={previewHref} scroll={false} label="Quick View">
-              <Eye size={18} />
-            </ActionLink>
-          )}
-          <ActionLink href={detailHref} label="View Full Details">
-            <ArrowUpRight size={18} />
-          </ActionLink>
         </div>
-      }
-      titleHref={
-        <Link
-          href={detailHref}
-          className="block text-lg font-semibold tracking-tight text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
-        >
-          <span className="line-clamp-1">{getPropertyTitle(property)}</span>
-        </Link>
-      }
-      meta={
-        <p className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">
-          {getPropertyPriceDisplay(property)}
-        </p>
-      }
-      summary={
-        <p className="flex items-center gap-2 text-sm text-[var(--admin-muted)]">
-          <MapPin size={15} className="shrink-0 text-[var(--admin-primary)]" />
-          <span className="line-clamp-1">{addressLabel}</span>
-        </p>
-      }
-      actions={
-        <div className="flex gap-3 pt-1 md:hidden">
+
+        <div className="absolute right-3 top-3 flex items-center gap-2">
           {previewHref && (
-            <MobileActionButton
+            <Link
               href={previewHref}
               scroll={false}
-              label="Quick View"
+              aria-label="Quick view"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/50 bg-white/85 text-[var(--admin-text)] shadow-sm backdrop-blur transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
             >
-              <Eye size={16} />
-            </MobileActionButton>
+              <Eye size={15} />
+            </Link>
           )}
-          <MobileActionButton href={detailHref} label="View Details">
-            <ArrowUpRight size={16} />
-          </MobileActionButton>
         </div>
-      }
-    />
+
+        <div className="absolute bottom-3 left-3">
+          <span className="inline-flex items-center rounded-xl bg-[var(--admin-primary)] px-3.5 py-2 text-sm font-bold text-white shadow-[0_14px_28px_-18px_var(--admin-primary)]">
+            {getPropertyPriceDisplay(property)}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--admin-secondary)]">
+            {categoryLabel}
+          </span>
+          {cityLabel && (
+            <span className="truncate text-[11px] font-medium text-[var(--admin-muted)]">
+              {cityLabel}
+            </span>
+          )}
+        </div>
+
+        <Link
+          href={detailHref}
+          className="mt-2 line-clamp-2 min-h-[2.5rem] text-base font-bold leading-tight tracking-tight text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
+        >
+          {title}
+        </Link>
+
+        {locationLabel && (
+          <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-[var(--admin-muted)]">
+            <MapPin
+              size={13}
+              className="mt-0.5 shrink-0 text-[var(--admin-primary)]"
+            />
+            <span className="line-clamp-1">{locationLabel}</span>
+          </p>
+        )}
+
+        {statItems.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--admin-border)] pt-3 text-xs text-[var(--admin-muted)]">
+            {statItems.map((item) => (
+              <div key={item.key} className="flex min-w-0 items-center gap-1.5">
+                {item.key === "beds" && (
+                  <BedDouble
+                    size={14}
+                    className="text-[var(--admin-primary)]"
+                  />
+                )}
+                {item.key === "baths" && (
+                  <Bath size={14} className="text-[var(--admin-primary)]" />
+                )}
+                {item.key === "size" && (
+                  <SquareDashedBottom
+                    size={14}
+                    className="text-[var(--admin-primary)]"
+                  />
+                )}
+                <span className="truncate font-medium">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-center justify-end pt-4">
+          <Link
+            href={detailHref}
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-[var(--admin-primary)] transition hover:underline"
+          >
+            View Details
+            <ArrowUpRight size={14} />
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 };
 

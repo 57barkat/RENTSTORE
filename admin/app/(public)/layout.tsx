@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import PublicFooter from "@/app/components/public/PublicFooter";
 import PublicHeader from "@/app/components/public/PublicHeader";
 
 export const metadata: Metadata = {
@@ -21,13 +22,14 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[var(--admin-background)] text-[var(--admin-text)]">
+    <div className="min-h-screen bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] text-[var(--admin-text)]">
       <PublicHeader />
       <main className="flex flex-1 flex-col">
         <div className="mx-auto flex w-full max-w-full flex-1 flex-col">
           {children}
         </div>
       </main>
+      <PublicFooter />
     </div>
   );
 }

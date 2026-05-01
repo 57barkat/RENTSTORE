@@ -41,8 +41,13 @@ export const useProperties = (category: PropertyCategory) => {
 
   const pushFilters = useCallback(
     (nextFilters: PropertySearchFilters) => {
+      const shouldStayOnRoot =
+        pathname === "/" && nextFilters.category === "property";
       const nextPath = buildListingPath(nextFilters, {
-        preferSeo: Boolean(seoRoute) || Boolean(nextFilters.city),
+        preferSeo:
+          !shouldStayOnRoot &&
+          (Boolean(seoRoute) || Boolean(nextFilters.city)),
+        rootForProperty: shouldStayOnRoot,
       });
       const nextSeoRoute = parseSeoListingSlug(nextPath.replace(/^\//, ""));
       const query = buildPropertyBrowserQuery(nextFilters, {
@@ -52,7 +57,7 @@ export const useProperties = (category: PropertyCategory) => {
       });
       router.push(query ? `${nextPath}?${query}` : nextPath, { scroll: false });
     },
-    [router, seoRoute],
+    [pathname, router, seoRoute],
   );
 
   const updateFilters = useCallback(

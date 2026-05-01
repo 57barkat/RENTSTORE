@@ -52,7 +52,7 @@ const SORT_VALUES: PropertySort[] = [
 
 const HOSTEL_VALUES: HostelType[] = ["male", "female", "mixed"];
 
-const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft."];
+const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
 
 export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.svg";
 
@@ -163,7 +163,7 @@ export const parsePropertySearchParams = (
     city: cityValue ? normalizeSeoCity(cityValue) : "",
     location: normalizeSeoArea(
       toSingleValue(searchParams.area) ||
-      toSingleValue(searchParams.location) ||
+        toSingleValue(searchParams.location) ||
         toSingleValue(searchParams.addressQuery) ||
         "",
     ),
@@ -333,9 +333,7 @@ export const buildSearchHref = (
   return query ? `${pathname}?${query}` : pathname;
 };
 
-export const canUseSeoListingPath = (
-  filters: PropertySearchFilters,
-): boolean =>
+export const canUseSeoListingPath = (filters: PropertySearchFilters): boolean =>
   canBuildSeoListingSlug({
     category: filters.category,
     purpose: filters.purpose || "rent",
@@ -347,15 +345,21 @@ export const buildListingPath = (
   filters: PropertySearchFilters,
   options?: {
     preferSeo?: boolean;
+    rootForProperty?: boolean;
   },
 ): string => {
+  if (options?.rootForProperty && filters.category === "property") {
+    return "/";
+  }
+
   if (options?.preferSeo && canUseSeoListingPath(filters)) {
     const seoSegment = buildSeoListingSlug({
       category: filters.category,
       purpose: filters.purpose || "rent",
       city: filters.city,
       area: filters.location,
-      propertyType: getSeoPropertyTypeForCategory(filters.category) || undefined,
+      propertyType:
+        getSeoPropertyTypeForCategory(filters.category) || undefined,
     });
 
     if (seoSegment) {
@@ -399,7 +403,10 @@ export const getPropertyLocation = (property: PublicProperty): string => {
 export const getPropertyPurpose = (
   property: PublicProperty,
 ): PropertyPurpose => {
-  return property.defaultRentType || property.monthlyRent || property.weeklyRent || property.dailyRent
+  return property.defaultRentType ||
+    property.monthlyRent ||
+    property.weeklyRent ||
+    property.dailyRent
     ? "rent"
     : "sale";
 };
@@ -615,7 +622,8 @@ export const buildPropertyHref = (property: PublicProperty): string => {
   const normalizedCategory = getPropertyCategory(property);
   const propertyHrefSlug = buildPropertyDetailSlug({
     title: getPropertyTitle(property),
-    propertyType: getSeoPropertyTypeForCategory(normalizedCategory) || undefined,
+    propertyType:
+      getSeoPropertyTypeForCategory(normalizedCategory) || undefined,
     purpose: getPropertyPurpose(property),
     area: getPropertyLocation(property),
     city: getPropertyCity(property),
@@ -637,18 +645,58 @@ export const buildPropertyHref = (property: PublicProperty): string => {
 };
 
 export const buildListingTitle = (filters: PropertySearchFilters): string => {
+  const purposeLabel = filters.purpose === "sale" ? "Sale" : "Rent";
   const categoryLabel = getCategoryLabel(filters.category, true);
+
+  if (filters.category === "property") {
+    if (filters.location && filters.city) {
+      return `Properties for ${purposeLabel} in ${filters.location}, ${filters.city}`;
+    }
+
+    if (filters.location) {
+      return `Properties for ${purposeLabel} in ${filters.location}`;
+    }
+
+    if (filters.city) {
+      return `Properties for ${purposeLabel} in ${filters.city}`;
+    }
+
+    return `Properties for ${purposeLabel} in Pakistan`;
+  }
+
   const city = filters.city || "Islamabad";
   const location = filters.location ? `${filters.location} ` : "";
-  const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
+  const purposeSuffix = filters.purpose === "sale" ? "sale" : "rent";
 
-  return `${categoryLabel} for ${purposeLabel} in ${location}${city}`;
+  return `${categoryLabel} for ${purposeSuffix} in ${location}${city}`;
 };
 
 export const buildListingDescription = (
   filters: PropertySearchFilters,
   totalResults?: number,
 ): string => {
+  if (filters.category === "property") {
+    if (!filters.city && !filters.location) {
+      return "Browse houses, apartments, hostels, shops and offices for rent across Pakistan.";
+    }
+
+    const resultPrefix =
+      typeof totalResults === "number"
+        ? `${totalResults} ${totalResults === 1 ? "listing" : "listings"}`
+        : "Verified listings";
+    const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
+
+    if (filters.location && filters.city) {
+      return `${resultPrefix} for ${purposeLabel} in ${filters.location}, ${filters.city} across houses, apartments, hostels, shops, and offices. Narrow results by price, size, and amenities to find the right fit faster.`;
+    }
+
+    if (filters.city) {
+      return `${resultPrefix} for ${purposeLabel} in ${filters.city} across houses, apartments, hostels, shops, and offices. Narrow results by price, size, and amenities to find the right fit faster.`;
+    }
+
+    return `${resultPrefix} across houses, apartments, hostels, shops, and offices for ${purposeLabel}. Narrow results by price, size, and amenities to find the right fit faster.`;
+  }
+
   const resultPrefix =
     typeof totalResults === "number"
       ? `${totalResults} ${totalResults === 1 ? "listing" : "listings"}`

@@ -29,7 +29,7 @@ interface PendingPropertyCardProps {
   onApprove: (id: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   isProcessing?: boolean;
-  activeAction?: "approve" | "delete" | null;
+  activeAction?: "approve" | "delete" | "save" | null;
 }
 
 export default function PendingPropertyCard({
