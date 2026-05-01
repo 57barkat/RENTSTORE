@@ -1080,7 +1080,7 @@ export class PropertyService {
     if (!Types.ObjectId.isValid(propertyId)) {
       throw new BadRequestException("Invalid property id");
     }
-
+    console.log(propertyId, "propertyId");
     const objectId = new Types.ObjectId(propertyId);
     const visibilitySnapshot = await this.propertyModel
       .findById(objectId)

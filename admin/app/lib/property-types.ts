@@ -7,7 +7,14 @@ export type PropertyCategory =
   | "office";
 export type PropertySort = "newest" | "price_asc" | "price_desc" | "popular";
 export type HostelType = "male" | "female" | "mixed";
-export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft.";
+export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft." | "Sq. Yd.";
+
+export const PROPERTY_SIZE_UNITS: SizeUnit[] = [
+  "Marla",
+  "Kanal",
+  "Sq. Ft.",
+  "Sq. Yd.",
+];
 export type PropertyPurpose = "rent" | "sale";
 
 export interface PropertyAddress {

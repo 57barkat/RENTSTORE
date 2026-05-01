@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   X,
   MapPin,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { getAvatarPlaceholder } from "@/app/lib/avatar";
+import { PROPERTY_SIZE_UNITS } from "@/app/lib/property-types";
 
 interface PropertyReviewOwner {
   _id?: string;
@@ -263,6 +264,37 @@ export default function PropertyReviewDrawer({
       .filter(Boolean)
       .join(", ");
   }, [property?.address]);
+  const propertySizeLabel = [form?.sizeValue?.trim(), form?.sizeUnit?.trim()]
+    .filter(Boolean)
+    .join(" ");
+
+  useEffect(() => {
+    console.log("[admin-property-review] drawer property payload", {
+      propertyId: property?._id,
+      hostOption: property?.hostOption,
+      rawSize: property?.size,
+      location: property?.location,
+      area: property?.area,
+      address: property?.address,
+    });
+  }, [
+    property?._id,
+    property?.hostOption,
+    property?.size,
+    property?.location,
+    property?.area,
+    property?.address,
+  ]);
+
+  useEffect(() => {
+    console.log("[admin-property-review] drawer form state", {
+      propertyId: property?._id,
+      sizeValue: form?.sizeValue,
+      sizeUnit: form?.sizeUnit,
+      propertySizeLabel,
+      isEditing,
+    });
+  }, [form?.sizeUnit, form?.sizeValue, isEditing, property?._id, propertySizeLabel]);
 
   if (!property) return null;
 
@@ -464,22 +496,47 @@ export default function PropertyReviewDrawer({
                 disabled={!isEditing}
               />
             </Field>
-            <Field label="Property Size">
-              <input
-                className={inputClassName}
-                value={form.sizeValue}
-                onChange={(event) => setField("sizeValue", event.target.value)}
-                disabled={!isEditing}
-              />
-            </Field>
-            <Field label="Size Unit">
-              <input
-                className={inputClassName}
-                value={form.sizeUnit}
-                onChange={(event) => setField("sizeUnit", event.target.value)}
-                disabled={!isEditing}
-              />
-            </Field>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/20 p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  Property Size
+                </h4>
+                {!isEditing && (
+                  <p className="mt-2 text-lg font-black text-foreground">
+                    {propertySizeLabel || "No size saved"}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Size Value">
+                <input
+                  className={inputClassName}
+                  value={form.sizeValue}
+                  onChange={(event) => setField("sizeValue", event.target.value)}
+                  disabled={!isEditing}
+                />
+              </Field>
+              <Field label="Size Unit">
+                <select
+                  className={inputClassName}
+                  value={form.sizeUnit}
+                  onChange={(event) => setField("sizeUnit", event.target.value)}
+                  disabled={!isEditing}
+                >
+                  <option value="">Select unit</option>
+                  {PROPERTY_SIZE_UNITS.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
