@@ -467,31 +467,27 @@ export default async function PropertyDetailContent({
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-3">
-                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                      Total
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                      {uploaderProfile.stats.totalProperties}
-                    </p>
-                  </div>
-                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                      Houses
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                      {uploaderProfile.stats.homes}
-                    </p>
-                  </div>
-                  <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                      Shops
-                    </p>
-                    <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                      {uploaderProfile.stats.shops}
-                    </p>
-                  </div>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {[
+                    ["Total", uploaderProfile.stats.totalProperties],
+                    ["Houses", uploaderProfile.stats.homes],
+                    ["Apartments", uploaderProfile.stats.apartments],
+                    ["Hostels", uploaderProfile.stats.hostels],
+                    ["Shops", uploaderProfile.stats.shops],
+                    ["Offices", uploaderProfile.stats.offices],
+                  ].map(([label, value]) => (
+                    <div
+                      key={String(label)}
+                      className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                        {label}
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
+                        {value}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

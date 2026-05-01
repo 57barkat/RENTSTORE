@@ -13,8 +13,6 @@ import {
   Calendar,
   ExternalLink,
   BadgeCheck,
-  Building2,
-  Store,
   Pencil,
   Save,
 } from "lucide-react";
@@ -248,6 +246,14 @@ export default function PropertyReviewDrawer({
   const uploaderPlan =
     property?.uploaderSummary?.uploader?.planLabel || "Free Member";
   const safetyDetails = property?.safetyDetailsData?.safetyDetails ?? [];
+  const uploaderStatCards = [
+    { label: "Total", value: uploaderStats?.totalProperties ?? 0 },
+    { label: "Houses", value: uploaderStats?.homes ?? 0 },
+    { label: "Apartments", value: uploaderStats?.apartments ?? 0 },
+    { label: "Hostels", value: uploaderStats?.hostels ?? 0 },
+    { label: "Shops", value: uploaderStats?.shops ?? 0 },
+    { label: "Offices", value: uploaderStats?.offices ?? 0 },
+  ];
 
   const createdAtLabel = property?.createdAt
     ? new Date(property.createdAt).toLocaleDateString()
@@ -635,33 +641,20 @@ export default function PropertyReviewDrawer({
                 <ExternalLink className="h-4 w-4 text-primary opacity-0 transition-opacity group-hover:opacity-100" />
               </a>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
-                    Total
-                  </p>
-                  <p className="mt-1 text-lg font-black text-foreground">
-                    {uploaderStats?.totalProperties ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">
-                    <Building2 className="h-3 w-3" />
-                    Houses
-                  </p>
-                  <p className="mt-1 text-lg font-black text-foreground">
-                    {uploaderStats?.homes ?? 0}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <p className="flex items-center gap-1 text-[10px] font-bold uppercase text-muted-foreground">
-                    <Store className="h-3 w-3" />
-                    Shops
-                  </p>
-                  <p className="mt-1 text-lg font-black text-foreground">
-                    {uploaderStats?.shops ?? 0}
-                  </p>
-                </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {uploaderStatCards.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border border-border bg-muted/30 p-3"
+                  >
+                    <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-lg font-black text-foreground">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

@@ -19,6 +19,15 @@ import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export const options = { headerShown: false };
 
+const uploaderStatItems = [
+  { key: "total", valueKey: "totalProperties", icon: "grid-outline" as const },
+  { key: "houses", valueKey: "homes", icon: "home-outline" as const },
+  { key: "apartments", valueKey: "apartments", icon: "business-outline" as const },
+  { key: "hostels", valueKey: "hostels", icon: "bed-outline" as const },
+  { key: "shops", valueKey: "shops", icon: "storefront-outline" as const },
+  { key: "offices", valueKey: "offices", icon: "briefcase-outline" as const },
+] as const;
+
 export default function UploaderProfileScreen() {
   const router = useRouter();
   const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
@@ -43,6 +52,14 @@ export default function UploaderProfileScreen() {
   const uploader = data?.uploader;
   const stats = data?.stats;
   const listings = data?.listings || [];
+  const statValues = {
+    totalProperties: stats?.totalProperties ?? 0,
+    homes: stats?.homes ?? 0,
+    apartments: stats?.apartments ?? 0,
+    hostels: stats?.hostels ?? 0,
+    shops: stats?.shops ?? 0,
+    offices: stats?.offices ?? 0,
+  };
 
   if (error) {
     return (
@@ -144,23 +161,28 @@ export default function UploaderProfileScreen() {
       </View>
 
       <View style={styles.statsRow}>
-        {[
-          ["Total", stats?.totalProperties ?? 0],
-          ["Houses", stats?.homes ?? 0],
-          ["Shops", stats?.shops ?? 0],
-        ].map(([label, value]) => (
+        {uploaderStatItems.map((item) => (
           <View
-            key={String(label)}
+            key={item.key}
             style={[
               styles.statCard,
               { backgroundColor: currentTheme.card, borderColor: currentTheme.border },
             ]}
           >
-            <Text style={[styles.statLabel, { color: currentTheme.secondary }]}>
-              {label}
-            </Text>
+            <View
+              style={[
+                styles.statIconWrap,
+                { backgroundColor: `${currentTheme.primary}12` },
+              ]}
+            >
+              <Ionicons
+                name={item.icon}
+                size={18}
+                color={currentTheme.primary}
+              />
+            </View>
             <Text style={[styles.statValue, { color: currentTheme.text }]}>
-              {value}
+              {statValues[item.valueKey]}
             </Text>
           </View>
         ))}
@@ -286,21 +308,27 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   statCard: {
-    flex: 1,
+    width: "31%",
     borderWidth: 1,
     borderRadius: 18,
     padding: 14,
+    alignItems: "center",
   },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: "700",
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statValue: {
     fontSize: 22,
     fontWeight: "800",
-    marginTop: 8,
+    marginTop: 10,
   },
   listingsSection: {
     gap: 12,

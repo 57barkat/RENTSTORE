@@ -149,6 +149,20 @@ export default function SignInScreen() {
                 { backgroundColor: currentTheme.background },
               ]}
             >
+              <View style={styles.topActionRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.closeButton,
+                    { backgroundColor: currentTheme.card },
+                  ]}
+                  onPress={() => router.replace("/homePage")}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close sign in"
+                >
+                  <Feather name="x" size={20} color={currentTheme.text} />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.headerSection}>
                 <Text style={[styles.title, { color: currentTheme.text }]}>
                   Welcome Back
@@ -312,6 +326,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingTop: 40,
     paddingBottom: Platform.OS === "ios" ? 40 : 30,
+  },
+  topActionRow: {
+    alignItems: "flex-end",
+    marginBottom: 12,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerSection: { marginBottom: 25 },
   title: { fontSize: 28, fontWeight: "800" },

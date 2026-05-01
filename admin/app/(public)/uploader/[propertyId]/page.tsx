@@ -57,31 +57,27 @@ export default async function UploaderPage({ params }: UploaderPageProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 md:min-w-[320px]">
-              <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Total
-                </p>
-                <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                  {profile.stats.totalProperties}
-                </p>
-              </div>
-              <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Houses
-                </p>
-                <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                  {profile.stats.homes}
-                </p>
-              </div>
-              <div className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Shops
-                </p>
-                <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
-                  {profile.stats.shops}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-3 md:min-w-[320px] md:grid-cols-3">
+              {[
+                ["Total", profile.stats.totalProperties],
+                ["Houses", profile.stats.homes],
+                ["Apartments", profile.stats.apartments],
+                ["Hostels", profile.stats.hostels],
+                ["Shops", profile.stats.shops],
+                ["Offices", profile.stats.offices],
+              ].map(([label, value]) => (
+                <div
+                  key={String(label)}
+                  className="rounded-[1.25rem] bg-[var(--admin-card)] px-4 py-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                    {label}
+                  </p>
+                  <p className="mt-2 text-xl font-semibold text-[var(--admin-text)]">
+                    {value}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

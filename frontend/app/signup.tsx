@@ -138,15 +138,29 @@ export default function SignUpScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoRow}>
-              <MaterialCommunityIcons
-                name="home-variant"
-                size={28}
-                color="#0EA5E9"
-              />
-              <Text style={[styles.logoText, { color: currentTheme.text }]}>
-                AnganStay
-              </Text>
+            <View style={styles.headerTopRow}>
+              <View style={styles.logoRow}>
+                <MaterialCommunityIcons
+                  name="home-variant"
+                  size={28}
+                  color="#0EA5E9"
+                />
+                <Text style={[styles.logoText, { color: currentTheme.text }]}>
+                  AnganStay
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: currentTheme.card },
+                ]}
+                onPress={() => router.replace("/homePage")}
+                accessibilityRole="button"
+                accessibilityLabel="Close sign up"
+              >
+                <Feather name="x" size={20} color={currentTheme.text} />
+              </TouchableOpacity>
             </View>
 
             <Text style={[styles.title, { color: currentTheme.text }]}>
@@ -481,11 +495,23 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 40 },
   header: { marginBottom: 25, marginTop: 10 },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 15,
+  },
   logoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 15,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   logoText: { fontSize: 22, fontWeight: "800" },
   title: { fontSize: 28, fontWeight: "800" },
