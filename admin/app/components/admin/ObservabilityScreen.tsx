@@ -108,20 +108,33 @@ const formatLatency = (value: number | null | undefined) => {
 };
 
 const formatTimestampLabel = (timestamp: string) => {
-  return new Date(timestamp).toLocaleTimeString([], {
+  return new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
-  });
+    hour12: false,
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
 };
 
 const buildChartTooltipLabel = (timestamp: string) => {
-  return new Date(timestamp).toLocaleString([], {
+  return new Intl.DateTimeFormat("en-GB", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  });
+    hour12: false,
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
 };
+
+const formatObservedTime = (timestamp: string) =>
+  new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
 
 async function fetchObservabilityPayload(): Promise<ObservabilityPayload> {
   const [summary, requests, errors, latency, routes, health] = await Promise.all([
@@ -361,7 +374,7 @@ export default function ObservabilityScreen({
 
         <div className="flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-[var(--admin-primary-soft)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
-            Updated {new Date(data.summary.lastUpdated).toLocaleTimeString()}
+            Updated {formatObservedTime(data.summary.lastUpdated)}
           </span>
           <button
             type="button"
@@ -418,7 +431,7 @@ export default function ObservabilityScreen({
         />
         <SummaryCard
           title="Last updated"
-          value={new Date(data.summary.lastUpdated).toLocaleTimeString()}
+          value={formatObservedTime(data.summary.lastUpdated)}
           subtitle="Dashboard payload timestamp"
           icon={<RefreshCw className="h-5 w-5" />}
           tone="success"

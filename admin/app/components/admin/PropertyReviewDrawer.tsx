@@ -69,6 +69,10 @@ interface PropertyReviewData {
   hostelType?: string;
   location?: string;
   area?: string;
+  size?: {
+    value?: number;
+    unit?: string;
+  };
   capacityState?: {
     bedrooms?: number;
     beds?: number;
@@ -103,6 +107,8 @@ interface EditablePropertyForm {
   weeklyRent: string;
   defaultRentType: "daily" | "weekly" | "monthly";
   SecuritybasePrice: string;
+  sizeValue: string;
+  sizeUnit: string;
   apartmentType: string;
   hostelType: string;
   bedrooms: string;
@@ -174,6 +180,8 @@ const buildInitialForm = (property: PropertyReviewData): EditablePropertyForm =>
     SecuritybasePrice: property.SecuritybasePrice
       ? String(property.SecuritybasePrice)
       : "",
+    sizeValue: property.size?.value ? String(property.size.value) : "",
+    sizeUnit: property.size?.unit || "",
     apartmentType: property.apartmentType || "",
     hostelType: property.hostelType || "",
     bedrooms: property.capacityState?.bedrooms
@@ -284,6 +292,10 @@ export default function PropertyReviewDrawer({
       weeklyRent: toNumberOrUndefined(form.weeklyRent),
       defaultRentType: form.defaultRentType,
       SecuritybasePrice: toNumberOrUndefined(form.SecuritybasePrice),
+      size: {
+        value: toNumberOrUndefined(form.sizeValue),
+        unit: form.sizeUnit.trim() || undefined,
+      },
       apartmentType: form.apartmentType.trim() || undefined,
       hostelType: form.hostelType.trim() || undefined,
       status: property.isApproved ? form.status : false,
@@ -449,6 +461,22 @@ export default function PropertyReviewDrawer({
                 onChange={(event) =>
                   setField("SecuritybasePrice", event.target.value)
                 }
+                disabled={!isEditing}
+              />
+            </Field>
+            <Field label="Property Size">
+              <input
+                className={inputClassName}
+                value={form.sizeValue}
+                onChange={(event) => setField("sizeValue", event.target.value)}
+                disabled={!isEditing}
+              />
+            </Field>
+            <Field label="Size Unit">
+              <input
+                className={inputClassName}
+                value={form.sizeUnit}
+                onChange={(event) => setField("sizeUnit", event.target.value)}
                 disabled={!isEditing}
               />
             </Field>
