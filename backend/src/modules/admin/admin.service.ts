@@ -3,6 +3,11 @@ import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 import { User, UserDocument } from "../user/user.entity";
 import { Property, PropertyDocument } from "../property/property.schema";
+import {
+  buildDashboardActivityBuckets,
+  getDashboardActivityWindow,
+  normalizeDashboardActivityRange,
+} from "./admin-dashboard-range.util";
 
 @Injectable()
 export class AdminService {
@@ -11,14 +16,13 @@ export class AdminService {
     @InjectModel(Property.name) private propertyModel: Model<PropertyDocument>,
   ) {}
 
-  async getDashboardStats() {
+  async getDashboardStats(range?: string) {
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-    // For the chart: Last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const activityRange = normalizeDashboardActivityRange(range);
+    const activityWindow = getDashboardActivityWindow(activityRange, now);
+    const activityBuckets = buildDashboardActivityBuckets(activityRange, now);
 
     const [
       totalUsers,
@@ -39,12 +43,24 @@ export class AdminService {
       this.propertyModel.countDocuments({
         createdAt: { $gte: startOfLastMonth, $lt: startOfCurrentMonth },
       }),
-      // Aggregation for Daily Property Trends
       this.propertyModel.aggregate([
-        { $match: { createdAt: { $gte: sevenDaysAgo } } },
+        {
+          $match: {
+            createdAt: {
+              $gte: activityWindow.start,
+              $lte: activityWindow.end,
+            },
+          },
+        },
         {
           $group: {
-            _id: { $dayOfWeek: "$createdAt" }, // Returns 1 (Sun) to 7 (Sat)
+            _id: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt",
+                timezone: "UTC",
+              },
+            },
             count: { $sum: 1 },
           },
         },
@@ -52,12 +68,11 @@ export class AdminService {
       ]),
     ]);
 
-    // Format Trend Chart Data to ensure all days are present
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const formattedTrends = days.map((day, index) => {
-      const found = propertyTrendsRaw.find((item) => item._id === index + 1);
+    const formattedTrends = activityBuckets.map((bucket) => {
+      const found = propertyTrendsRaw.find((item) => item._id === bucket.key);
       return {
-        name: day,
+        name: bucket.name,
+        fullLabel: bucket.fullLabel,
         uploads: found ? found.count : 0,
       };
     });

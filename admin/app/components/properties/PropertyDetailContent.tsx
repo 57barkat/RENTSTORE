@@ -535,37 +535,36 @@ export default async function PropertyDetailContent({
                   </div>
                 )}
               </dl>
-            </section>
+              {host && (
+                <div className="mt-5 border-t border-[var(--admin-border)] pt-5">
+                  <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
+                    Property Manager
+                  </h2>
 
-            {host && (
-              <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_18px_40px_-34px_var(--admin-shadow)]">
-                <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                  Property Manager
-                </h2>
-
-                <div className="mt-4 flex items-center gap-4 rounded-2xl border border-[var(--admin-border)] bg-[#f8fafc] p-4">
-                  <img
-                    src={host.profileImage || DEFAULT_PROPERTY_IMAGE}
-                    alt={host.name || "Host"}
-                    className="h-14 w-14 rounded-full object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-black text-[var(--admin-text)]">
-                      {host.name || "Property host"}
-                    </p>
-                    <p className="truncate text-sm text-[var(--admin-muted)]">
-                      {uploaderProfile?.uploader?.planLabel ||
-                        "Listing manager"}
-                    </p>
-                    {contactPhone && (
-                      <p className="mt-1 text-sm font-bold text-[var(--admin-primary)]">
-                        {contactPhone}
+                  <div className="mt-4 flex items-center gap-4 rounded-2xl border border-[var(--admin-border)] bg-[#f8fafc] p-4">
+                    <img
+                      src={host.profileImage || DEFAULT_PROPERTY_IMAGE}
+                      alt={host.name || "Host"}
+                      className="h-14 w-14 rounded-full object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-black text-[var(--admin-text)]">
+                        {host.name || "Property host"}
                       </p>
-                    )}
+                      <p className="truncate text-sm text-[var(--admin-muted)]">
+                        {uploaderProfile?.uploader?.planLabel ||
+                          "Listing manager"}
+                      </p>
+                      {contactPhone && (
+                        <p className="mt-1 text-sm font-bold text-[var(--admin-primary)]">
+                          {contactPhone}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </section>
-            )}
+              )}
+            </section>
 
             {trustItems.length > 0 && (
               <section className="rounded-[1.5rem] border border-[rgba(5,150,105,0.18)] bg-[rgba(5,150,105,0.08)] p-5 shadow-[0_16px_30px_-28px_var(--admin-secondary)]">

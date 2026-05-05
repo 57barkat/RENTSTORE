@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -12,14 +13,39 @@ import {
 } from "recharts";
 
 interface PropertyTrendsProps {
-  data: { name: string; uploads: number }[];
+  data: { name: string; fullLabel: string; uploads: number }[];
+  selectedRange: 7 | 30;
 }
 
-export default function PropertyTrends({ data }: PropertyTrendsProps) {
+export default function PropertyTrends({
+  data,
+  selectedRange,
+}: PropertyTrendsProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const totalUploads = useMemo(
     () => data.reduce((acc, curr) => acc + (curr.uploads || 0), 0),
     [data],
   );
+  const xAxisInterval = selectedRange === 30 ? 4 : 0;
+  const barSize = selectedRange === 30 ? 14 : 28;
+
+  const handleRangeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextRange = event.target.value === "30" ? "30" : "7";
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (nextRange === "7") {
+      nextParams.delete("range");
+    } else {
+      nextParams.set("range", nextRange);
+    }
+
+    const nextQuery = nextParams.toString();
+    router.push(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  };
 
   return (
     <div className="admin-surface flex-1 rounded-[2.5rem] p-6 transition-all duration-300 hover:shadow-md">
@@ -39,9 +65,14 @@ export default function PropertyTrends({ data }: PropertyTrendsProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <select className="admin-input appearance-none rounded-xl px-4 py-2 text-xs font-bold">
-            <option>Last 7 Days</option>
-            <option>Last 30 Days</option>
+          <select
+            value={String(selectedRange)}
+            onChange={handleRangeChange}
+            className="admin-input appearance-none rounded-xl px-4 py-2 text-xs font-bold"
+            aria-label="Upload activity range"
+          >
+            <option value="7">Last 7 Days</option>
+            <option value="30">Last 30 Days</option>
           </select>
         </div>
       </div>
@@ -86,6 +117,7 @@ export default function PropertyTrends({ data }: PropertyTrendsProps) {
               dataKey="name"
               axisLine={false}
               tickLine={false}
+              interval={xAxisInterval}
               tick={{
                 fill: "var(--chart-text)",
                 fontSize: 10,
@@ -126,11 +158,18 @@ export default function PropertyTrends({ data }: PropertyTrendsProps) {
                 textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
+              labelFormatter={(label, payload) => {
+                const point = payload?.[0]?.payload as
+                  | { fullLabel?: string }
+                  | undefined;
+                return point?.fullLabel || label;
+              }}
               formatter={(
                 value: string | number | (string | number)[] | undefined,
               ) => {
-                if (typeof value === "undefined")
-                  return ["0 Uploads", "Activity"];
+                if (typeof value === "undefined") {
+                   return ["0 Uploads", "Activity"];
+                }
                 const displayValue = Array.isArray(value) ? value[0] : value;
                 return [`${displayValue} Uploads`, "Activity"] as [
                   string,
@@ -143,11 +182,11 @@ export default function PropertyTrends({ data }: PropertyTrendsProps) {
               dataKey="uploads"
               fill="url(#barGradient)"
               radius={[8, 8, 8, 8]}
-              barSize={28}
+              barSize={barSize}
               animationDuration={1800}
               filter="url(#shadow)"
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
                   className="hover:opacity-80 hover:brightness-110 transition-all duration-300 cursor-pointer"

@@ -12,13 +12,15 @@ export interface DashboardData {
     pendingProperties: number;
     blockedUsers: number;
   };
-  trends: { name: string; uploads: number }[];
+  trends: { name: string; fullLabel: string; uploads: number }[];
 }
 
 export default function DashboardScreen({
   initialData,
+  selectedRange,
 }: {
   initialData: DashboardData;
+  selectedRange: 7 | 30;
 }) {
   const { overview, trends } = initialData;
 
@@ -70,7 +72,7 @@ export default function DashboardScreen({
       </div>
 
       <div className="flex flex-col gap-6 xl:flex-row">
-        <PropertyTrends data={trends} />
+        <PropertyTrends data={trends} selectedRange={selectedRange} />
         <ContentStatus overview={overview} />
       </div>
     </div>
