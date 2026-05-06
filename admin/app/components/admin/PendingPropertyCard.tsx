@@ -6,6 +6,13 @@ import { CheckCircle, Eye, MapPin, Trash2 } from "lucide-react";
 import BasePropertyCard from "@/app/components/properties/BasePropertyCard";
 import { getAvatarPlaceholder } from "@/app/lib/avatar";
 import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
+import {
+  formatPromotionDate,
+  getCtr,
+  getPromotionStatusLabel,
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/app/lib/promotion";
 
 interface PendingProperty {
   _id: string;
@@ -21,6 +28,16 @@ interface PendingProperty {
     profileImage?: string;
   };
   photos: string[];
+  featured?: boolean;
+  featuredUntil?: string;
+  isBoosted?: boolean;
+  boostedUntil?: string;
+  sortWeight?: number;
+  impressions?: number;
+  views?: number;
+  promotedImpressions?: number;
+  ctr?: number;
+  promotionStatusLabel?: string;
 }
 
 interface PendingPropertyCardProps {
@@ -43,6 +60,16 @@ export default function PendingPropertyCard({
   const categoryLabel = property.hostOption
     ? property.hostOption.charAt(0).toUpperCase() + property.hostOption.slice(1)
     : "Property";
+  const isFeatured = isActiveFeaturedPromotion(property);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
+  const ctr = property.ctr ?? getCtr(property);
+  const promotionStatusLabel =
+    property.promotionStatusLabel || getPromotionStatusLabel(property);
+  const activePromotionUntil = isFeatured
+    ? formatPromotionDate(property.featuredUntil)
+    : isBoosted
+      ? formatPromotionDate(property.boostedUntil)
+      : null;
 
   return (
     <BasePropertyCard
@@ -70,6 +97,19 @@ export default function PendingPropertyCard({
           >
             {property.status ? "Active" : "Inactive"}
           </span>
+          <span className="rounded border border-border bg-card px-2 py-1 text-[9px] font-black uppercase tracking-widest text-foreground shadow-lg">
+            {promotionStatusLabel}
+          </span>
+          {isFeatured && (
+            <span className="rounded bg-[var(--admin-accent)] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
+              Featured
+            </span>
+          )}
+          {!isFeatured && isBoosted && (
+            <span className="rounded bg-[var(--admin-secondary)] px-2 py-1 text-[9px] font-black uppercase tracking-widest text-white shadow-lg">
+              Boosted
+            </span>
+          )}
         </div>
       }
       overlay={
@@ -88,40 +128,86 @@ export default function PendingPropertyCard({
         </p>
       }
       summary={
-        <div className="flex items-center justify-between border-y border-border/50 py-3">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 overflow-hidden rounded-full border border-border bg-accent">
-              {property.ownerId?.profileImage ? (
-                <img
-                  src={property.ownerId.profileImage}
-                  alt={property.ownerId.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <img
-                  src={getAvatarPlaceholder(property.ownerId?.name || "Owner")}
-                  alt={property.ownerId?.name || "Owner"}
-                  className="h-full w-full object-cover"
-                />
-              )}
+        <div className="space-y-3 border-y border-border/50 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 overflow-hidden rounded-full border border-border bg-accent">
+                {property.ownerId?.profileImage ? (
+                  <img
+                    src={property.ownerId.profileImage}
+                    alt={property.ownerId.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={getAvatarPlaceholder(property.ownerId?.name || "Owner")}
+                    alt={property.ownerId?.name || "Owner"}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">
+                  Owner
+                </p>
+                <p className="text-[11px] font-semibold">
+                  {property.ownerId?.name}
+                </p>
+              </div>
             </div>
-            <div>
+            <div className="text-right">
               <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">
-                Owner
+                Rent
               </p>
-              <p className="text-[11px] font-semibold">
-                {property.ownerId?.name}
+              <p className="text-sm font-black text-primary">
+                Rs.{" "}
+                {property.monthlyRent?.toLocaleString?.() || property.monthlyRent}
               </p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold uppercase tracking-tighter text-muted-foreground">
-              Rent
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <p className="font-semibold text-muted-foreground">Sort Weight</p>
+            <p className="text-right font-black text-foreground">
+              {property.sortWeight ?? 1}
             </p>
-            <p className="text-sm font-black text-primary">
-              Rs.{" "}
-              {property.monthlyRent?.toLocaleString?.() || property.monthlyRent}
+            <p className="font-semibold text-muted-foreground">Views</p>
+            <p className="text-right font-black text-foreground">
+              {property.views ?? 0}
             </p>
+            <p className="font-semibold text-muted-foreground">Impressions</p>
+            <p className="text-right font-black text-foreground">
+              {property.impressions ?? 0}
+            </p>
+            <p className="font-semibold text-muted-foreground">CTR</p>
+            <p className="text-right font-black text-foreground">
+              {ctr.toFixed(1)}%
+            </p>
+            <p className="font-semibold text-muted-foreground">
+              Promoted Impr.
+            </p>
+            <p className="text-right font-black text-foreground">
+              {property.promotedImpressions ?? 0}
+            </p>
+            <p className="font-semibold text-muted-foreground">Featured Until</p>
+            <p className="text-right font-black text-foreground">
+              {property.featuredUntil
+                ? formatPromotionDate(property.featuredUntil)
+                : "Not set"}
+            </p>
+            <p className="font-semibold text-muted-foreground">Boosted Until</p>
+            <p className="text-right font-black text-foreground">
+              {property.boostedUntil
+                ? formatPromotionDate(property.boostedUntil)
+                : "Not set"}
+            </p>
+            {activePromotionUntil && (
+              <>
+                <p className="font-semibold text-muted-foreground">Active Until</p>
+                <p className="text-right font-black text-foreground">
+                  {activePromotionUntil}
+                </p>
+              </>
+            )}
           </div>
         </div>
       }

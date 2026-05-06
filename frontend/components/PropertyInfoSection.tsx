@@ -11,6 +11,10 @@ import { FontSize } from "@/constants/Typography";
 import { StatItem } from "@/components/Properties/PropertyStats";
 import { Badge } from "@/components/Properties/PropertyBadge";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
+import {
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/utils/properties/promotion";
 
 export default function PropertyInfoSection({
   property,
@@ -26,6 +30,13 @@ export default function PropertyInfoSection({
     : property.location;
 
   const priceInfo = getPriceDisplay(property);
+  const isFeatured = isActiveFeaturedPromotion(property);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
+  const listingTag = isFeatured
+    ? "FEATURED"
+    : isBoosted
+      ? "BOOSTED"
+      : "VERIFIED";
 
   return (
     <View style={styles.container}>
@@ -33,8 +44,7 @@ export default function PropertyInfoSection({
       <View style={styles.headerRow}>
         <View style={styles.titleWrapper}>
           <Text style={[styles.tagline, { color: theme.primary }]}>
-            {property.hostOption?.toUpperCase()} •{" "}
-            {property.featured ? "FEATURED" : "VERIFIED"}
+            {property.hostOption?.toUpperCase()} - {listingTag}
           </Text>
           <Text
             style={[

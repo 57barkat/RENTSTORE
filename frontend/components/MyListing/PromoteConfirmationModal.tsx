@@ -114,8 +114,11 @@ const PromoteConfirmationModal = ({
           >
             <Text style={[styles.infoText, { color: currentTheme.secondary }]}>
               {selectedType === "boost"
-                ? "Moves your property to the top of search results."
-                : "Highlights your property with a premium badge (10x views)."}
+                ? "Boosted listings receive secondary priority in matching search results for 15 days."
+                : "Featured listings receive top priority in matching search results for 15 days."}
+            </Text>
+            <Text style={[styles.infoSubtext, { color: currentTheme.muted }]}>
+              Priority applies only when your property matches the visitor&apos;s search filters.
             </Text>
           </View>
 
@@ -211,7 +214,13 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 12,
     textAlign: "center",
-    fontStyle: "italic",
+    fontWeight: "700",
+  },
+  infoSubtext: {
+    marginTop: 8,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: "center",
   },
   buttons: { flexDirection: "row", gap: 12 },
   cancelBtn: { flex: 1, paddingVertical: 14, alignItems: "center" },

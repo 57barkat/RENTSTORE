@@ -11,6 +11,10 @@ import {
 
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/app/lib/promotion";
+import {
   DEFAULT_PROPERTY_IMAGE,
   buildPropertyHref,
   getCategoryLabel,
@@ -62,8 +66,8 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const detailHref = buildPropertyHref(property);
   const coverImage = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
   const title = getPropertyTitle(property);
-  const isFeatured = Boolean(property.featured);
-  const isBoosted = Boolean(property.boosted || property.isBoosted);
+  const isFeatured = isActiveFeaturedPromotion(property);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
   const categoryLabel = getCategoryLabel(
     getPropertyCategory(property),
   ).toUpperCase();

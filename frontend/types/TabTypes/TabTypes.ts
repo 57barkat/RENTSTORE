@@ -8,8 +8,18 @@ interface PropertyItem {
   defaultRentType?: "daily" | "weekly" | "monthly";
   photos?: string[];
   featured?: boolean;
+  featuredUntil?: string;
+  isBoosted?: boolean;
+  boostedUntil?: string;
   isFav?: boolean;
   views?: number;
+  impressions?: number;
+  promotedImpressions?: number;
+  featuredImpressions?: number;
+  boostedImpressions?: number;
+  normalImpressions?: number;
+  ctr?: number;
+  promotionStatusLabel?: string;
 }
 
 interface PropertyCardProps {
@@ -27,10 +37,19 @@ interface PropertyCardProps {
   image?: string;
   photos?: string[];
   featured?: boolean;
+  featuredUntil?: string;
   isBoosted?: boolean;
+  boostedUntil?: string;
   sortWeight?: number;
   isFav?: boolean;
   views: number;
+  impressions?: number;
+  promotedImpressions?: number;
+  featuredImpressions?: number;
+  boostedImpressions?: number;
+  normalImpressions?: number;
+  ctr?: number;
+  promotionStatusLabel?: string;
   onFavPress?: (id: string) => void;
 }
 

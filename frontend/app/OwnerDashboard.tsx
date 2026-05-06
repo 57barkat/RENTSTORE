@@ -28,6 +28,15 @@ type Listing = {
   thumbnail: string;
   ctr: number;
   sortWeight: number;
+  featured?: boolean;
+  featuredUntil?: string;
+  isBoosted?: boolean;
+  boostedUntil?: string;
+  featuredImpressions?: number;
+  boostedImpressions?: number;
+  normalImpressions?: number;
+  promotedImpressions?: number;
+  promotionStatusLabel?: string;
 };
 
 const OwnerDashboard = () => {
@@ -55,14 +64,6 @@ const OwnerDashboard = () => {
   const sortedListings = useMemo(() => {
     return [...listings].sort((a, b) => b.sortWeight - a.sortWeight);
   }, [listings]);
-
-  const successRate = useMemo(() => {
-    if (!totals?.totalProperties) return 0;
-    return Math.min(
-      100,
-      ((totals?.activeListings ?? 0) / totals.totalProperties) * 100,
-    );
-  }, [totals]);
 
   const chartData = useMemo(() => {
     const top = sortedListings.slice(0, 6);
@@ -128,6 +129,9 @@ const OwnerDashboard = () => {
             <Text style={[styles.header, { color: currentTheme.text }]}>
               Analytics
             </Text>
+            <Text style={[styles.explainer, { color: currentTheme.muted }]}>
+              Featured/Boosted listings receive priority in matching search results. Filters still apply.
+            </Text>
           </View>
         </View>
 
@@ -157,10 +161,18 @@ const OwnerDashboard = () => {
             isDark={isDark}
           />
           <StatCard
-            title="Success Rate"
-            value={`${successRate.toFixed(1)}%`}
-            icon="check-decagram-outline"
+            title="Average CTR"
+            value={`${Number(totals?.averageCTR || 0).toFixed(1)}%`}
+            icon="percent-outline"
             color="#10B981"
+            currentTheme={currentTheme}
+            isDark={isDark}
+          />
+          <StatCard
+            title="Promoted Impressions"
+            value={formatNum(totals?.totalPromotedImpressions)}
+            icon="bullhorn-outline"
+            color="#F59E0B"
             currentTheme={currentTheme}
             isDark={isDark}
           />
@@ -276,6 +288,30 @@ const OwnerDashboard = () => {
                         {item.ctr.toFixed(1)}% CTR
                       </Text>
                     </View>
+                    <Text
+                      style={{
+                        color: currentTheme.muted,
+                        fontSize: 11,
+                        marginTop: 6,
+                      }}
+                    >
+                      {item.promotionStatusLabel || "Normal"} • {item.impressions ?? 0} impressions •{" "}
+                      {item.promotedImpressions ?? 0} promoted
+                    </Text>
+                    {(item.featuredUntil || item.boostedUntil) && (
+                      <Text
+                        style={{
+                          color: currentTheme.muted,
+                          fontSize: 11,
+                          marginTop: 4,
+                        }}
+                      >
+                        Active until{" "}
+                        {new Date(
+                          item.featuredUntil || item.boostedUntil || "",
+                        ).toLocaleDateString()}
+                      </Text>
+                    )}
                   </View>
                   <MaterialCommunityIcons
                     name="chevron-right"
@@ -375,6 +411,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   header: { fontSize: 28, fontWeight: "800" },
+  explainer: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    maxWidth: 320,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

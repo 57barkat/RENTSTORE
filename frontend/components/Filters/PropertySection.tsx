@@ -14,6 +14,10 @@ import { Colors } from "@/constants/Colors";
 import { PropertySectionProps } from "@/types/TabTypes/TabTypes";
 import { Ionicons } from "@expo/vector-icons";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
+import {
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/utils/properties/promotion";
 
 const WINDOW_WIDTH = Dimensions.get("window").width;
 const ITEM_WIDTH = WINDOW_WIDTH * 0.7;
@@ -71,8 +75,8 @@ export const PropertySection: React.FC<
           decelerationRate="fast"
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
-            const isFeatured = item.featured === true || item.sortWeight === 3;
-            const isBoosted = item.isBoosted === true || item.sortWeight === 2;
+            const isFeatured = isActiveFeaturedPromotion(item);
+            const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
             const priceInfo = getPriceDisplay(item);
 
             return (
@@ -120,7 +124,7 @@ export const PropertySection: React.FC<
                         ]}
                       >
                         <Ionicons name="flash" size={10} color="#FFF" />
-                        <Text style={styles.tagText}>FEATURED AD</Text>
+                        <Text style={styles.tagText}>FEATURED</Text>
                       </View>
                     ) : isBoosted ? (
                       <View

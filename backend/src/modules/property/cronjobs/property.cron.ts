@@ -71,34 +71,42 @@ export class SubscriptionCleanupService {
         );
       }
 
-      // Cleanup Featured Ads
       await this.propertyModel.updateMany(
-        { featured: true, featuredUntil: { $lt: now } },
+        { featured: true, featuredUntil: { $ne: null, $lt: now } },
+        { $set: { featured: false, featuredUntil: null } },
+      );
+      await this.propertyModel.updateMany(
+        { isBoosted: true, boostedUntil: { $ne: null, $lt: now } },
+        { $set: { isBoosted: false, boostedUntil: null } },
+      );
+      await this.propertyModel.updateMany(
         {
-          $set: {
-            featured: false,
-            featuredUntil: null,
-          },
+          $or: [
+            { featured: true },
+            { isBoosted: true },
+            { sortWeight: { $in: [2, 3] } },
+            { featuredUntil: { $ne: null } },
+            { boostedUntil: { $ne: null } },
+          ],
         },
+        [
+          {
+            $set: {
+              sortWeight: {
+                $cond: [
+                  { $eq: ["$featured", true] },
+                  3,
+                  {
+                    $cond: [{ $eq: ["$isBoosted", true] }, 2, 1],
+                  },
+                ],
+              },
+            },
+          },
+        ],
       );
 
-      // Batch Update Sort Weights
-      await Promise.all([
-        this.propertyModel.updateMany(
-          { featured: true },
-          { $set: { sortWeight: 3 } },
-        ),
-        this.propertyModel.updateMany(
-          { featured: false, isBoosted: true },
-          { $set: { sortWeight: 2 } },
-        ),
-        this.propertyModel.updateMany(
-          { featured: false, isBoosted: false },
-          { $set: { sortWeight: 1 } },
-        ),
-      ]);
-
-      this.logger.log("Recalculated all property sortWeights.");
+      this.logger.log("Recalculated active promotion sort weights.");
     } catch (error) {
       this.logger.error("Error during cleanup cron job", error);
     }

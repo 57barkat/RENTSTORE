@@ -24,6 +24,10 @@ import {
   processPhotos,
   validateAndDeductCredits,
 } from "./utils/property.utils";
+import { interleavePromotedBuckets } from "./utils/property-ranking.util";
+import {
+  resolvePromotionWeight,
+} from "./utils/property-promotion.util";
 import {
   normalizeDefaultRentType,
   validatePropertyPayload,
@@ -47,6 +51,8 @@ interface PopularLocationsParams {
   limit?: number;
 }
 
+type PublicSortOption = "newest" | "price_asc" | "price_desc" | "popular";
+
 @Injectable()
 export class PropertyService {
   constructor(
@@ -60,6 +66,90 @@ export class PropertyService {
     private readonly propertyImpressionTracker: PropertyImpressionTrackerService,
     private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
+
+  private getPublicListingSort(sortBy?: PublicSortOption) {
+    if (sortBy === "price_asc") {
+      return { monthlyRent: 1, createdAt: -1, _id: -1 } as const;
+    }
+
+    if (sortBy === "price_desc") {
+      return { monthlyRent: -1, createdAt: -1, _id: -1 } as const;
+    }
+
+    if (sortBy === "popular") {
+      return { views: -1, createdAt: -1, _id: -1 } as const;
+    }
+
+    return { createdAt: -1, _id: -1 } as const;
+  }
+
+  private normalizePromotionState(
+    property: Pick<
+      Property,
+      "featured" | "featuredUntil" | "isBoosted" | "boostedUntil" | "sortWeight"
+    >,
+    now: Date = new Date(),
+  ) {
+    if (!property.featured) {
+      property.featuredUntil = undefined;
+    }
+
+    if (!property.isBoosted) {
+      property.boostedUntil = undefined;
+    }
+
+    property.sortWeight = resolvePromotionWeight(
+      {
+        featured: property.featured,
+        featuredUntil: property.featuredUntil,
+        isBoosted: property.isBoosted,
+        boostedUntil: property.boostedUntil,
+        sortWeight: 1,
+      },
+      now,
+    );
+
+    return property;
+  }
+
+  async resetExpiredPromotions(now: Date = new Date()) {
+    await this.propertyModel.updateMany(
+      { featured: true, featuredUntil: { $ne: null, $lt: now } },
+      { $set: { featured: false, featuredUntil: null } },
+    );
+
+    await this.propertyModel.updateMany(
+      { isBoosted: true, boostedUntil: { $ne: null, $lt: now } },
+      { $set: { isBoosted: false, boostedUntil: null } },
+    );
+
+    await this.propertyModel.updateMany(
+      {
+        $or: [
+          { featured: true },
+          { isBoosted: true },
+          { sortWeight: { $in: [2, 3] } },
+          { featuredUntil: { $ne: null } },
+          { boostedUntil: { $ne: null } },
+        ],
+      },
+      [
+        {
+          $set: {
+            sortWeight: {
+              $cond: [
+                { $eq: ["$featured", true] },
+                3,
+                {
+                  $cond: [{ $eq: ["$isBoosted", true] }, 2, 1],
+                },
+              ],
+            },
+          },
+        },
+      ],
+    );
+  }
 
   async uploadFilesToCloudinary(
     files: Express.Multer.File[],
@@ -293,7 +383,8 @@ export class PropertyService {
           }
 
           property.isBoosted = true;
-          property.sortWeight = 2;
+          property.boostedUntil = expirationDate;
+          property.sortWeight = property.featured ? 3 : 2;
           user.prioritySlotCredits = slots - 1;
         }
 
@@ -438,33 +529,11 @@ export class PropertyService {
     return drafts;
   }
   async incrementViews(propertyId: string) {
-    return await this.propertyModel
-      .findByIdAndUpdate(propertyId, { $inc: { views: 1 } }, { new: true })
-      .exec();
+    void this.propertyViewTracker.queueView(propertyId);
+    return { success: true };
   }
   async findAll(page = 1, limit = 10, ownerId?: string) {
-    const filter: any = { status: true, isApproved: true };
-    if (ownerId) filter.ownerId = ownerId;
-
-    const skip = (page - 1) * limit;
-
-    const [properties, total] = await Promise.all([
-      this.propertyModel
-        .find(filter)
-        .sort({ featured: -1, _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.propertyModel.countDocuments(filter).exec(),
-    ]);
-
-    return {
-      data: properties,
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    };
+    return this.findFiltered(page, limit, {}, ownerId);
   }
   async findFiltered(
     page = 1,
@@ -472,11 +541,9 @@ export class PropertyService {
     filters: any,
     userId?: string,
   ): Promise<any> {
+    await this.resetExpiredPromotions();
+
     const mongoFilter = buildMongoFilter(filters, userId);
-    console.log(
-      "Constructed Mongo Filter:",
-      JSON.stringify(mongoFilter, null, 2),
-    );
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
     mongoFilter.moderationStatus = "ACTIVE";
@@ -487,41 +554,29 @@ export class PropertyService {
     const skip = (currentPage - 1) * adjustedLimit;
     const maxNeeded = skip + adjustedLimit;
 
-    // 4. Sorting Logic
-    let secondarySort: any = { createdAt: -1 };
-    if (filters.sortBy === "price_asc") secondarySort = { monthlyRent: 1 };
-    else if (filters.sortBy === "price_desc")
-      secondarySort = { monthlyRent: -1 };
-    else if (filters.sortBy === "newest") secondarySort = { createdAt: -1 };
-    else if (filters.sortBy === "popular") secondarySort = { views: -1 };
+    const finalSort = this.getPublicListingSort(filters.sortBy) as unknown as Record<
+      string,
+      1 | -1
+    >;
 
-    const finalSort = { ...secondarySort, _id: -1 };
-    const featuredIds: string[] = [];
-
-    const mainFilter = {
-      ...mongoFilter,
-      _id: { $nin: featuredIds },
-    };
-
-    // 5. Aggregate with Facets for Interleaving
     const results = await this.propertyModel.aggregate([
-      { $match: mainFilter },
+      { $match: mongoFilter },
       {
         $facet: {
           weight3: [
             { $match: { sortWeight: 3 } },
             { $sort: finalSort },
-            { $limit: maxNeeded * 2 },
+            { $limit: maxNeeded },
           ],
           weight2: [
             { $match: { sortWeight: 2 } },
             { $sort: finalSort },
-            { $limit: maxNeeded * 2 },
+            { $limit: maxNeeded },
           ],
           weight1: [
             { $match: { sortWeight: 1 } },
             { $sort: finalSort },
-            { $limit: maxNeeded * 2 },
+            { $limit: maxNeeded },
           ],
           totalCount: [{ $count: "count" }],
         },
@@ -534,41 +589,14 @@ export class PropertyService {
     const w1Data = results[0].weight1 || [];
     const total = results[0].totalCount[0]?.count || 0;
 
-    // 6. Pointer-Based Interleaving (O(N))
-    const interleavedData: any[] = [];
-    let w3Idx = 0,
-      w2Idx = 0,
-      w1Idx = 0;
-
-    while (
-      interleavedData.length < maxNeeded &&
-      (w3Idx < w3Data.length || w2Idx < w2Data.length || w1Idx < w1Data.length)
-    ) {
-      // Step A: Weight 3 (Premium) - Up to 4 slots
-      for (
-        let i = 0;
-        i < 4 && interleavedData.length < maxNeeded && w3Idx < w3Data.length;
-        i++
-      ) {
-        interleavedData.push(w3Data[w3Idx++]);
-      }
-      // Step B: Weight 2 (Enhanced) - Up to 3 slots
-      for (
-        let i = 0;
-        i < 3 && interleavedData.length < maxNeeded && w2Idx < w2Data.length;
-        i++
-      ) {
-        interleavedData.push(w2Data[w2Idx++]);
-      }
-      // Step C: Weight 1 (Standard) - Up to 3 slots
-      for (
-        let i = 0;
-        i < 3 && interleavedData.length < maxNeeded && w1Idx < w1Data.length;
-        i++
-      ) {
-        interleavedData.push(w1Data[w1Idx++]);
-      }
-    }
+    const interleavedData = interleavePromotedBuckets(
+      {
+        featured: w3Data,
+        boosted: w2Data,
+        normal: w1Data,
+      },
+      maxNeeded,
+    );
 
     // 7. Final Slice for the specific page
     const paginatedData = interleavedData.slice(skip, skip + adjustedLimit);
@@ -580,9 +608,17 @@ export class PropertyService {
     });
 
     // 9. Track Impressions (Non-blocking)
-    const propertyIds = populatedMainData.map((p: any) => p._id.toString());
-    if (propertyIds.length > 0) {
-      void this.propertyImpressionTracker.queueImpressions(propertyIds);
+    if (populatedMainData.length > 0) {
+      void this.propertyImpressionTracker.queueImpressions(
+        populatedMainData.map((property) => ({
+          _id: String(property._id),
+          sortWeight: property.sortWeight,
+          featured: property.featured,
+          featuredUntil: property.featuredUntil,
+          isBoosted: property.isBoosted,
+          boostedUntil: property.boostedUntil,
+        })),
+      );
     }
 
     // 10. Return formatted response
@@ -946,6 +982,8 @@ export class PropertyService {
       maxRent?: number;
     },
   ) {
+    await this.resetExpiredPromotions();
+
     const filter: FilterQuery<any> = {
       ownerId: userId,
     };
@@ -1040,10 +1078,11 @@ export class PropertyService {
       filter.isApproved = false;
     }
 
-    let sortOption: any = { createdAt: -1 };
+    let sortOption: any = { createdAt: -1, _id: -1 };
     if (sort === "oldest") sortOption = { createdAt: 1 };
-    if (sort === "priceLow") sortOption = { monthlyRent: 1, createdAt: -1 };
-    if (sort === "priceHigh") sortOption = { monthlyRent: -1, createdAt: -1 };
+    if (sort === "priceLow") sortOption = { monthlyRent: 1, createdAt: -1, _id: -1 };
+    if (sort === "priceHigh")
+      sortOption = { monthlyRent: -1, createdAt: -1, _id: -1 };
 
     const skip = (page - 1) * limit;
 
@@ -1077,6 +1116,8 @@ export class PropertyService {
     userId?: string,
     userRole?: string,
   ) {
+    await this.resetExpiredPromotions();
+
     if (!Types.ObjectId.isValid(propertyId)) {
       throw new BadRequestException("Invalid property id");
     }
@@ -1302,7 +1343,7 @@ export class PropertyService {
             { moderationStatus: null },
           ],
         })
-        .sort({ featured: -1, sortWeight: -1, createdAt: -1 })
+        .sort({ sortWeight: -1, createdAt: -1, _id: -1 })
         .limit(20)
         .lean(),
     ]);
@@ -1316,9 +1357,16 @@ export class PropertyService {
   }
 
   async getFeaturedProperties(userId?: string) {
+    await this.resetExpiredPromotions();
+
     const data = (await this.propertyModel
-      .find({ status: true, isApproved: true })
-      .sort({ views: -1 })
+      .find({
+        status: true,
+        isApproved: true,
+        moderationStatus: "ACTIVE",
+        sortWeight: { $gte: 2 },
+      })
+      .sort({ sortWeight: -1, views: -1, createdAt: -1, _id: -1 })
       .limit(5)
       .populate("ownerId", "name email")
       .lean()) as unknown as PropertyWithFav[];
@@ -1331,14 +1379,25 @@ export class PropertyService {
     return data;
   }
   async getOwnerDashboard(ownerId: string, page = 1, limit = 10) {
+    await this.resetExpiredPromotions();
+
     const skip = (Number(page) - 1) * Number(limit);
     const pageSize = Number(limit);
+    const ownerObjectId = Types.ObjectId.isValid(ownerId)
+      ? new Types.ObjectId(ownerId)
+      : ownerId;
+    const ownerIdCandidates =
+      ownerObjectId instanceof Types.ObjectId
+        ? [ownerObjectId, ownerObjectId.toString()]
+        : [ownerId];
 
     const stats = await this.propertyModel.aggregate([
-      // 1. Filter by owner
-      { $match: { ownerId: ownerId } },
+      {
+        $match: {
+          ownerId: { $in: ownerIdCandidates },
+        },
+      },
 
-      // 2. Multi-stage processing using Facets
       {
         $facet: {
           totalStats: [
@@ -1348,23 +1407,57 @@ export class PropertyService {
                 totalProperties: { $sum: 1 },
                 totalViews: { $sum: "$views" },
                 totalImpressions: { $sum: { $ifNull: ["$impressions", 0] } },
+                totalPromotedImpressions: {
+                  $sum: { $ifNull: ["$promotedImpressions", 0] },
+                },
                 activeListings: {
                   $sum: { $cond: [{ $eq: ["$status", true] }, 1, 0] },
                 },
               },
             },
+            {
+              $project: {
+                _id: 0,
+                totalProperties: 1,
+                activeListings: 1,
+                totalViews: 1,
+                totalImpressions: 1,
+                totalPromotedImpressions: 1,
+                averageCTR: {
+                  $cond: [
+                    { $gt: ["$totalImpressions", 0] },
+                    {
+                      $multiply: [
+                        { $divide: ["$totalViews", "$totalImpressions"] },
+                        100,
+                      ],
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
           ],
           perPropertyStats: [
-            { $sort: { views: -1 } },
+            { $sort: { createdAt: -1, _id: -1 } },
             { $skip: skip },
             { $limit: pageSize },
             {
               $project: {
+                _id: 1,
                 title: 1,
+                status: 1,
+                sortWeight: 1,
+                featured: 1,
+                featuredUntil: 1,
+                isBoosted: 1,
+                boostedUntil: 1,
                 views: 1,
                 impressions: { $ifNull: ["$impressions", 0] },
-                sortWeight: 1,
-                status: 1,
+                featuredImpressions: { $ifNull: ["$featuredImpressions", 0] },
+                boostedImpressions: { $ifNull: ["$boostedImpressions", 0] },
+                normalImpressions: { $ifNull: ["$normalImpressions", 0] },
+                promotedImpressions: { $ifNull: ["$promotedImpressions", 0] },
                 thumbnail: { $arrayElemAt: ["$photos", 0] },
                 ctr: {
                   $cond: [
@@ -1380,13 +1473,56 @@ export class PropertyService {
                     0,
                   ],
                 },
+                promotionStatusLabel: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $eq: ["$featured", true] },
+                        {
+                          $or: [
+                            { $eq: ["$featuredUntil", null] },
+                            { $gte: ["$featuredUntil", "$$NOW"] },
+                          ],
+                        },
+                      ],
+                    },
+                    "Featured Active",
+                    {
+                      $cond: [
+                        {
+                          $and: [
+                            { $eq: ["$isBoosted", true] },
+                            {
+                              $or: [
+                                { $eq: ["$boostedUntil", null] },
+                                { $gte: ["$boostedUntil", "$$NOW"] },
+                              ],
+                            },
+                          ],
+                        },
+                        "Boosted Active",
+                        {
+                          $cond: [
+                            {
+                              $or: [
+                                { $eq: ["$featured", true] },
+                                { $eq: ["$isBoosted", true] },
+                              ],
+                            },
+                            "Expired",
+                            "Normal",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
               },
             },
           ],
         },
       },
 
-      // 3. Final formatting to clean up facet arrays
       {
         $project: {
           totals: { $arrayElemAt: ["$totalStats", 0] },
@@ -1395,13 +1531,14 @@ export class PropertyService {
       },
     ]);
 
-    // 4. Handle Empty Results
     const result = stats[0] || {
       totals: {
         totalProperties: 0,
         totalViews: 0,
         totalImpressions: 0,
+        totalPromotedImpressions: 0,
         activeListings: 0,
+        averageCTR: 0,
       },
       properties: [],
     };
@@ -1490,6 +1627,14 @@ export class PropertyService {
       dto.defaultRentType = normalizeDefaultRentType(dto);
     }
 
+    if (dto.featured === false) {
+      dto.featuredUntil = undefined;
+    }
+
+    if (dto.isBoosted === false) {
+      dto.boostedUntil = undefined;
+    }
+
     Object.assign(property, dto);
 
     if (dto.lat !== undefined && dto.lng !== undefined) {
@@ -1527,6 +1672,8 @@ export class PropertyService {
 
       property.status = dto.status;
     }
+
+    this.normalizePromotionState(property);
 
     return property.save();
   }
@@ -1676,6 +1823,8 @@ export class PropertyService {
       listingStatus?: "all" | "active" | "inactive";
     },
   ) {
+    await this.resetExpiredPromotions();
+
     const skip = (page - 1) * limit;
     const match: Record<string, any> = {};
 
@@ -1717,7 +1866,7 @@ export class PropertyService {
 
     const [result] = await this.propertyModel.aggregate([
       { $match: match },
-      { $sort: { createdAt: -1 } },
+      { $sort: { sortWeight: -1, createdAt: -1, _id: -1 } },
       {
         $facet: {
           metadata: [{ $count: "total" }],

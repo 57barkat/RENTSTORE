@@ -206,6 +206,34 @@ export class CreatePropertyDto {
   @IsBoolean()
   isBoosted?: boolean;
 
+  @IsOptional()
+  @IsDateString()
+  boostedUntil?: string;
+
+  @IsOptional()
+  @IsNumber()
+  views?: number;
+
+  @IsOptional()
+  @IsNumber()
+  impressions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  featuredImpressions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  boostedImpressions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  normalImpressions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  promotedImpressions?: number;
+
   // --- Statistics ---
   @IsOptional() @IsNumber() reportCount?: number;
   @IsOptional() @IsNumber() strikeCount?: number;

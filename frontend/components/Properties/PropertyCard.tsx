@@ -2,10 +2,14 @@ import React from "react";
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
+import {
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/utils/properties/promotion";
 
 export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => {
-  const isFeatured = item.featured === true || item.sortWeight === 3;
-  const isBoosted = item.sortWeight === 2;
+  const isFeatured = isActiveFeaturedPromotion(item);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
   const priceInfo = getPriceDisplay(item);
   return (
     <TouchableOpacity
@@ -50,7 +54,7 @@ export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => {
               ]}
             >
               <Ionicons name="flash" size={10} color="#FFF" />
-              <Text style={styles.tagText}>FEATURED AD</Text>
+              <Text style={styles.tagText}>FEATURED</Text>
             </View>
           ) : isBoosted ? (
             <View style={[styles.tag, { backgroundColor: theme.secondary }]}>

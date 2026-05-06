@@ -11,6 +11,13 @@ import {
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { FontSize } from "@/constants/Typography";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
+import {
+  getPromotionExpiryText,
+  getPromotionLabel,
+  getPromotionTimeLeft,
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/utils/properties/promotion";
 
 const PropertyCard = ({
   item,
@@ -24,20 +31,23 @@ const PropertyCard = ({
   isPromoting,
   isUpdatingVisibility,
 }: any): React.ReactNode => {
-  const getFeaturedTimeLeft = (expiryDate: string) => {
-    if (!expiryDate) return null;
-    const now = new Date().getTime();
-    const end = new Date(expiryDate).getTime();
-    const diff = end - now;
-    if (diff <= 0) return null;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    return days > 0 ? `${days}d ${hours}h left` : `${hours}h left`;
-  };
-
-  const timeLeft = getFeaturedTimeLeft(item.featuredUntil);
+  const isFeatured = isActiveFeaturedPromotion(item);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
+  const timeLeft = getPromotionTimeLeft(
+    isFeatured ? item.featuredUntil : item.boostedUntil,
+  );
   const priceInfo = getPriceDisplay(item);
   const previewImage = item.photos?.[0];
+  const ctr =
+    item.ctr ??
+    ((item.impressions || 0) > 0
+      ? ((item.views || 0) / Math.max(item.impressions || 0, 1)) * 100
+      : 0);
+  const promotionStatusLabel =
+    item.promotionStatusLabel || getPromotionLabel(item);
+  const activePromotionExpiry = getPromotionExpiryText(
+    isFeatured ? item.featuredUntil : isBoosted ? item.boostedUntil : null,
+  );
 
   const renderCapacity = (iconName: string, value: any, unit: string) => (
     <View style={styles.capacityItem}>
@@ -136,7 +146,7 @@ const PropertyCard = ({
             </Text>
           </View>
 
-          {item.featured && (
+          {isFeatured && (
             <View
               style={[
                 styles.featuredTag,
@@ -145,7 +155,7 @@ const PropertyCard = ({
             >
               <MaterialCommunityIcons name="star" size={10} color="#fff" />
               <Text style={styles.featuredTagText}>
-                FEATURED {timeLeft ? `• ${timeLeft}` : ""}
+                {timeLeft ? `FEATURED ${timeLeft}` : "FEATURED"}
               </Text>
             </View>
           )}
@@ -160,7 +170,7 @@ const PropertyCard = ({
           >
             {item.title}
           </Text>
-          {item.isBoosted && (
+          {isBoosted && (
             <View style={[styles.boostBadge, { backgroundColor: "#FFF9E6" }]}>
               <MaterialCommunityIcons
                 name="rocket-launch"
@@ -216,7 +226,7 @@ const PropertyCard = ({
             <Text style={styles.buttonText}>Edit</Text>
           </TouchableOpacity>
 
-          {!item.featured && !item.isBoosted && item.isApproved && item.status && (
+          {!isFeatured && !isBoosted && item.isApproved && item.status && (
             <TouchableOpacity
               style={[styles.button, { backgroundColor: "#EAB308" }]}
               onPress={onPromote}
@@ -255,6 +265,75 @@ const PropertyCard = ({
           >
             <Text style={styles.buttonText}>Delete</Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.metricsPanel}>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Impressions
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {item.impressions ?? 0}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Views
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {item.views ?? 0}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              CTR
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {ctr.toFixed(1)}%
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Featured Impressions
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {item.featuredImpressions ?? 0}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Boosted Impressions
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {item.boostedImpressions ?? 0}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Promoted Impressions
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {item.promotedImpressions ?? 0}
+            </Text>
+          </View>
+          <View style={styles.metricRow}>
+            <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+              Promotion
+            </Text>
+            <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+              {promotionStatusLabel}
+            </Text>
+          </View>
+          {activePromotionExpiry && (
+            <View style={styles.metricRow}>
+              <Text style={[styles.metricLabel, { color: currentTheme.muted }]}>
+                Active Until
+              </Text>
+              <Text style={[styles.metricValue, { color: currentTheme.text }]}>
+                {activePromotionExpiry}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </Pressable>
@@ -377,6 +456,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     flexWrap: "wrap",
+    marginBottom: 12,
+  },
+  metricsPanel: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#CBD5E1",
+    paddingTop: 12,
+    gap: 6,
+  },
+  metricRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+  },
+  metricLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    flex: 1,
+  },
+  metricValue: {
+    fontSize: 11,
+    fontWeight: "800",
   },
   button: {
     minWidth: "30%",

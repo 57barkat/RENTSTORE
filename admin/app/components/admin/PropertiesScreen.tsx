@@ -24,6 +24,16 @@ interface Property {
     profileImage?: string;
   };
   photos: string[];
+  featured?: boolean;
+  featuredUntil?: string;
+  isBoosted?: boolean;
+  boostedUntil?: string;
+  sortWeight?: number;
+  impressions?: number;
+  views?: number;
+  promotedImpressions?: number;
+  ctr?: number;
+  promotionStatusLabel?: string;
 }
 
 export interface PropertyAdminResponse {

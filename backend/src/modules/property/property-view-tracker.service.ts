@@ -13,6 +13,11 @@ export class PropertyViewTrackerService {
 
   async queueView(propertyId: string) {
     try {
+      if (!Types.ObjectId.isValid(propertyId)) {
+        this.logger.warn(`Skipped invalid property view id: ${propertyId}`);
+        return;
+      }
+
       await this.propertyModel.updateOne(
         { _id: new Types.ObjectId(propertyId) },
         { $inc: { views: 1 } },

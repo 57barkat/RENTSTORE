@@ -59,6 +59,18 @@ interface PropertyReviewData {
   hostOption?: string;
   status?: boolean;
   isApproved?: boolean;
+  featured?: boolean;
+  featuredUntil?: string;
+  isBoosted?: boolean;
+  boostedUntil?: string;
+  sortWeight?: number;
+  views?: number;
+  impressions?: number;
+  featuredImpressions?: number;
+  boostedImpressions?: number;
+  normalImpressions?: number;
+  promotedImpressions?: number;
+  promotionStatusLabel?: string;
   monthlyRent?: number;
   dailyRent?: number;
   weeklyRent?: number;
@@ -124,6 +136,10 @@ interface EditablePropertyForm {
   safetyDetails: string;
   cameraDescription: string;
   status: boolean;
+  featured: boolean;
+  isBoosted: boolean;
+  featuredUntil: string;
+  boostedUntil: string;
 }
 
 interface PropertyReviewDrawerProps {
@@ -203,6 +219,12 @@ const buildInitialForm = (property: PropertyReviewData): EditablePropertyForm =>
     safetyDetails: serializeList(property.safetyDetailsData?.safetyDetails),
     cameraDescription: property.safetyDetailsData?.cameraDescription || "",
     status: Boolean(property.status),
+    featured: Boolean(property.featured),
+    isBoosted: Boolean(property.isBoosted),
+    featuredUntil: property.featuredUntil
+      ? property.featuredUntil.slice(0, 10)
+      : "",
+    boostedUntil: property.boostedUntil ? property.boostedUntil.slice(0, 10) : "",
   };
 };
 
@@ -263,6 +285,11 @@ export default function PropertyReviewDrawer({
     : "Property";
   const approvalLabel = property?.isApproved ? "Approved" : "Pending Approval";
   const listingLabel = property?.status ? "Active" : "Inactive";
+  const promotionLabel = property?.promotionStatusLabel || "Normal";
+  const ctr =
+    property?.impressions && property.impressions > 0
+      ? ((property.views || 0) / property.impressions) * 100
+      : 0;
 
   const addressLabel = useMemo(() => {
     const addr = property?.address?.[0] || {};
@@ -362,6 +389,10 @@ export default function PropertyReviewDrawer({
           ? form.cameraDescription.trim()
           : "",
       },
+      featured: form.featured,
+      isBoosted: form.isBoosted,
+      featuredUntil: form.featuredUntil || undefined,
+      boostedUntil: form.boostedUntil || undefined,
     };
 
     await onSave(property._id, payload);
@@ -386,6 +417,9 @@ export default function PropertyReviewDrawer({
               </span>
               <span className="rounded border border-border bg-card px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">
                 {listingLabel}
+              </span>
+              <span className="rounded border border-border bg-accent px-2 py-0.5 text-[10px] font-black uppercase text-foreground">
+                {promotionLabel}
               </span>
               <span
                 suppressHydrationWarning
@@ -465,6 +499,139 @@ export default function PropertyReviewDrawer({
                 </p>
               )}
             </Field>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/20 p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  Promotion Controls
+                </h4>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Paid promotion only affects matching search results. Filters still apply.
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card px-3 py-2 text-right">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Sort Weight
+                </p>
+                <p className="text-lg font-black text-foreground">
+                  {property.sortWeight ?? 1}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+              <button
+                type="button"
+                disabled={!isEditing}
+                onClick={() => {
+                  setField("featured", true);
+                  setField("isBoosted", true);
+                }}
+                className="rounded-xl border border-[var(--admin-accent)] bg-[var(--admin-accent)]/10 px-4 py-3 text-sm font-black text-[var(--admin-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Mark Featured
+              </button>
+              <button
+                type="button"
+                disabled={!isEditing}
+                onClick={() => {
+                  setField("featured", false);
+                  setField("isBoosted", true);
+                }}
+                className="rounded-xl border border-[var(--admin-secondary)] bg-[var(--admin-secondary)]/10 px-4 py-3 text-sm font-black text-[var(--admin-secondary)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Mark Boosted
+              </button>
+              <button
+                type="button"
+                disabled={!isEditing}
+                onClick={() => {
+                  setField("featured", false);
+                  setField("isBoosted", false);
+                  setField("featuredUntil", "");
+                  setField("boostedUntil", "");
+                }}
+                className="rounded-xl border border-border bg-card px-4 py-3 text-sm font-black text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Reset To Normal
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Featured">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(event) => setField("featured", event.target.checked)}
+                  disabled={!isEditing}
+                  className="h-4 w-4 accent-primary"
+                />
+              </Field>
+              <Field label="Boosted">
+                <input
+                  type="checkbox"
+                  checked={form.isBoosted}
+                  onChange={(event) => setField("isBoosted", event.target.checked)}
+                  disabled={!isEditing}
+                  className="h-4 w-4 accent-primary"
+                />
+              </Field>
+              <Field label="Featured Until">
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={form.featuredUntil}
+                  onChange={(event) => setField("featuredUntil", event.target.value)}
+                  disabled={!isEditing}
+                />
+              </Field>
+              <Field label="Boosted Until">
+                <input
+                  type="date"
+                  className={inputClassName}
+                  value={form.boostedUntil}
+                  onChange={(event) => setField("boostedUntil", event.target.value)}
+                  disabled={!isEditing}
+                />
+              </Field>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Views
+                </p>
+                <p className="mt-1 text-lg font-black text-foreground">
+                  {property.views ?? 0}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Impressions
+                </p>
+                <p className="mt-1 text-lg font-black text-foreground">
+                  {property.impressions ?? 0}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  CTR
+                </p>
+                <p className="mt-1 text-lg font-black text-foreground">
+                  {ctr.toFixed(1)}%
+                </p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Promoted Impressions
+                </p>
+                <p className="mt-1 text-lg font-black text-foreground">
+                  {property.promotedImpressions ?? 0}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

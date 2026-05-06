@@ -81,8 +81,10 @@ export interface PublicProperty {
   owner?: PropertyOwner;
   ownerId?: PropertyOwner | string;
   featured?: boolean;
+  featuredUntil?: string;
   boosted?: boolean;
   isBoosted?: boolean;
+  boostedUntil?: string;
   isApproved?: boolean;
   isVisible?: boolean;
   moderationStatus?: string;
@@ -90,6 +92,12 @@ export interface PublicProperty {
   sortWeight?: number;
   views?: number;
   impressions?: number;
+  featuredImpressions?: number;
+  boostedImpressions?: number;
+  normalImpressions?: number;
+  promotedImpressions?: number;
+  ctr?: number;
+  promotionStatusLabel?: string;
   createdAt?: string;
   updatedAt?: string;
 }

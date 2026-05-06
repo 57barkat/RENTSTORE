@@ -8,6 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 interface GalleryProps {
   galleryImages: string[];
   title: string;
+  isFeatured?: boolean;
+  isBoosted?: boolean;
+  isVerified?: boolean;
 }
 
 const getImageAlt = (title: string, index: number) =>
@@ -16,6 +19,9 @@ const getImageAlt = (title: string, index: number) =>
 export default function PropertyGallery({
   galleryImages,
   title,
+  isFeatured = false,
+  isBoosted = false,
+  isVerified = false,
 }: GalleryProps) {
   const images = useMemo(() => galleryImages.filter(Boolean), [galleryImages]);
 
@@ -24,6 +30,26 @@ export default function PropertyGallery({
 
   const hasImages = images.length > 0;
   const extraPhotosCount = Math.max(0, images.length - 4);
+
+  const renderBadges = () => (
+    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+      {isFeatured && (
+        <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
+          Featured
+        </span>
+      )}
+      {!isFeatured && isBoosted && (
+        <span className="rounded-full bg-[var(--admin-secondary)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-sm">
+          Boosted
+        </span>
+      )}
+      {isVerified && (
+        <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
+          Verified
+        </span>
+      )}
+    </div>
+  );
 
   const openLightbox = (i: number) => {
     if (!hasImages) {
@@ -68,14 +94,7 @@ export default function PropertyGallery({
               className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             />
 
-            <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
-                Featured
-              </span>
-              <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
-                Verified
-              </span>
-            </div>
+            {(isFeatured || isBoosted || isVerified) && renderBadges()}
 
             <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
               <ZoomIn className="text-white" size={32} />
@@ -97,16 +116,7 @@ export default function PropertyGallery({
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
 
-                {i === 0 && (
-                  <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
-                      Featured
-                    </span>
-                    <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
-                      Verified
-                    </span>
-                  </div>
-                )}
+                {i === 0 && (isFeatured || isBoosted || isVerified) && renderBadges()}
 
                 <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
                   <ZoomIn className="text-white" size={32} />
@@ -128,14 +138,7 @@ export default function PropertyGallery({
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               />
 
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
-                  Featured
-                </span>
-                <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
-                  Verified
-                </span>
-              </div>
+              {(isFeatured || isBoosted || isVerified) && renderBadges()}
 
               <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
                 <ZoomIn className="text-white" size={32} />
@@ -175,14 +178,7 @@ export default function PropertyGallery({
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
               />
 
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
-                  Featured
-                </span>
-                <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
-                  Verified
-                </span>
-              </div>
+              {(isFeatured || isBoosted || isVerified) && renderBadges()}
 
               <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
                 <ZoomIn className="text-white" size={32} />

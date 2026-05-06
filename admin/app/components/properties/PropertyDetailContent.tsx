@@ -18,6 +18,13 @@ import {
 
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
+import {
+  formatPromotionDate,
+  getCtr,
+  getPromotionStatusLabel,
+  isActiveBoostedPromotion,
+  isActiveFeaturedPromotion,
+} from "@/app/lib/promotion";
 import { PropertyService } from "@/app/lib/PropertyService";
 import type {
   PropertyCategory,
@@ -181,6 +188,11 @@ export default async function PropertyDetailContent({
   const area = getPropertyLocation(property);
   const categoryLabel = getCategoryLabel(category);
   const categoryPlural = getCategoryLabel(category, true);
+  const isFeatured = isActiveFeaturedPromotion(property);
+  const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
+  const promotionStatusLabel =
+    property.promotionStatusLabel || getPromotionStatusLabel(property);
+  const ctr = getCtr(property);
   const primaryAddress = addressLine || [area, city].filter(Boolean).join(", ");
   const mapQuery = encodeURIComponent(primaryAddress || title);
   const listingFacts = getFactRows(property, category);
@@ -315,9 +327,14 @@ export default async function PropertyDetailContent({
               {[categoryLabel, city, area].filter(Boolean).join(" · ")}
             </span>
 
-            {property.featured && (
+            {isFeatured && (
               <span className="inline-flex rounded-full bg-[var(--admin-accent)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
                 Featured
+              </span>
+            )}
+            {!isFeatured && isBoosted && (
+              <span className="inline-flex rounded-full bg-[var(--admin-secondary)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-sm">
+                Boosted
               </span>
             )}
 
@@ -346,7 +363,13 @@ export default async function PropertyDetailContent({
           </div>
         </div>
 
-        <PropertyGallery galleryImages={galleryImages} title={title} />
+        <PropertyGallery
+          galleryImages={galleryImages}
+          title={title}
+          isFeatured={isFeatured}
+          isBoosted={isBoosted}
+          isVerified={Boolean(property.isApproved)}
+        />
 
         <section className="mt-6 rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-4 shadow-[0_18px_40px_-34px_var(--admin-shadow)] sm:p-5">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -518,6 +541,24 @@ export default async function PropertyDetailContent({
 
               <dl className="mt-5 space-y-4 border-t border-[var(--admin-border)] pt-5 text-sm">
                 <div className="flex items-center justify-between gap-3">
+                  <dt className="text-[var(--admin-muted)]">Promotion</dt>
+                  <dd className="text-right font-bold text-[var(--admin-text)]">
+                    {promotionStatusLabel}
+                  </dd>
+                </div>
+                {(property.featuredUntil || property.boostedUntil) && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-[var(--admin-muted)]">Promotion Until</dt>
+                    <dd className="text-right font-bold text-[var(--admin-text)]">
+                      {isFeatured
+                        ? formatPromotionDate(property.featuredUntil)
+                        : isBoosted
+                          ? formatPromotionDate(property.boostedUntil)
+                          : "Expired"}
+                    </dd>
+                  </div>
+                )}
+                <div className="flex items-center justify-between gap-3">
                   <dt className="flex items-center gap-2 text-[var(--admin-muted)]">
                     <Wallet size={16} />
                     Security Deposit
@@ -623,6 +664,18 @@ export default async function PropertyDetailContent({
                   <dt className="text-[var(--admin-muted)]">Views</dt>
                   <dd className="text-right font-bold text-[var(--admin-text)]">
                     {property.views || 0}
+                  </dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 last:pb-0">
+                  <dt className="text-[var(--admin-muted)]">Impressions</dt>
+                  <dd className="text-right font-bold text-[var(--admin-text)]">
+                    {property.impressions || 0}
+                  </dd>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 last:pb-0">
+                  <dt className="text-[var(--admin-muted)]">CTR</dt>
+                  <dd className="text-right font-bold text-[var(--admin-text)]">
+                    {ctr.toFixed(1)}%
                   </dd>
                 </div>
               </dl>

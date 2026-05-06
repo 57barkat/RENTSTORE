@@ -173,11 +173,26 @@ export class Property extends Document {
   @Prop({ type: Boolean, default: false })
   isBoosted!: boolean;
 
+  @Prop({ type: Date })
+  boostedUntil?: Date;
+
   @Prop({ default: 0 })
   views!: number;
 
   @Prop({ default: 0 })
   impressions!: number;
+
+  @Prop({ default: 0 })
+  featuredImpressions!: number;
+
+  @Prop({ default: 0 })
+  boostedImpressions!: number;
+
+  @Prop({ default: 0 })
+  normalImpressions!: number;
+
+  @Prop({ default: 0 })
+  promotedImpressions!: number;
 
   @Prop({
     type: String,
@@ -205,6 +220,7 @@ PropertySchema.index({
   isApproved: 1,
   sortWeight: -1,
   createdAt: -1,
+  _id: -1,
 });
 
 // 2. PRICE ASC INDEX
@@ -212,7 +228,10 @@ PropertySchema.index({
   moderationStatus: 1,
   status: 1,
   isApproved: 1,
+  sortWeight: -1,
   monthlyRent: 1,
+  createdAt: -1,
+  _id: -1,
 });
 
 // 3. OWNER INDEXES
@@ -230,8 +249,24 @@ PropertySchema.index({
   moderationStatus: 1,
   status: 1,
   isApproved: 1,
+  sortWeight: -1,
   monthlyRent: -1,
+  createdAt: -1,
+  _id: -1,
 });
+
+PropertySchema.index({
+  moderationStatus: 1,
+  status: 1,
+  isApproved: 1,
+  sortWeight: -1,
+  views: -1,
+  createdAt: -1,
+  _id: -1,
+});
+
+PropertySchema.index({ featuredUntil: 1 });
+PropertySchema.index({ boostedUntil: 1 });
 
 // 5. GEO INDEX
 PropertySchema.index({
