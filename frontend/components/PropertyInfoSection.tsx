@@ -6,202 +6,270 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { FontSize } from "@/constants/Typography";
-import { StatItem } from "@/components/Properties/PropertyStats";
-import { Badge } from "@/components/Properties/PropertyBadge";
-import { getPriceDisplay } from "@/utils/properties/formatProperties";
-import {
-  isActiveBoostedPromotion,
-  isActiveFeaturedPromotion,
-} from "@/utils/properties/promotion";
+import { Ionicons } from "@expo/vector-icons";
+import { Colors } from "@/constants/Colors";
+import AmenityChip from "@/components/PropertyDetail/AmenityChip";
+import DetailStatCard from "@/components/PropertyDetail/DetailStatCard";
+import PromotionBadge from "@/components/PropertyDetail/PromotionBadge";
+import type { PropertyDetailData } from "@/types/PropertyDetailScreen.types";
+import { formatPrice } from "@/utils/properties/formatPrice";
+import { getPrimaryRentInfo } from "@/utils/properties/rent";
+
+type ThemeColors = typeof Colors.light;
+
+interface PropertyInfoSectionProps {
+  property: PropertyDetailData;
+  theme: ThemeColors;
+  onNavigate: () => void;
+}
+
+const toReadableLabel = (value: string) =>
+  value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const getDisplayTitle = (property: PropertyDetailData) => {
+  const explicitTitle = property.title?.trim();
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+
+  const baseType = property.hostOption || property.category;
+  if (!baseType) {
+    return "Property";
+  }
+
+  return property.area
+    ? `${toReadableLabel(baseType)} in ${property.area}`
+    : toReadableLabel(baseType);
+};
+
+const getLocationText = (property: PropertyDetailData) => {
+  if (property.addressQuery?.trim()) {
+    return property.addressQuery.trim();
+  }
+
+  const candidates = [
+    property.area,
+    property.location,
+    property.address?.[0]?.city,
+  ]
+    .map((value) => value?.trim())
+    .filter(Boolean) as string[];
+
+  return Array.from(new Set(candidates)).join(", ");
+};
+
+const toPositiveNumber = (value?: number) =>
+  typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
 
 export default function PropertyInfoSection({
   property,
   theme,
   onNavigate,
-}: any) {
+}: PropertyInfoSectionProps) {
   const { width } = useWindowDimensions();
-
-  // Dynamic sizing logic
   const isSmallDevice = width < 380;
-  const fullAddress = property.address?.[0]
-    ? `${property.address[0].street}, ${property.address[0].city}, ${property.address[0].stateTerritory}`
-    : property.location;
-
-  const priceInfo = getPriceDisplay(property);
-  const isFeatured = isActiveFeaturedPromotion(property);
-  const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
-  const listingTag = isFeatured
-    ? "FEATURED"
-    : isBoosted
-      ? "BOOSTED"
-      : "VERIFIED";
+  const primaryRent = getPrimaryRentInfo(property);
+  const title = getDisplayTitle(property);
+  const locationText = getLocationText(property);
+  const hasCoordinates =
+    typeof property.lat === "number" && typeof property.lng === "number";
+  const categoryLabel = property.hostOption
+    ? toReadableLabel(property.hostOption).toUpperCase()
+    : property.category
+      ? toReadableLabel(property.category).toUpperCase()
+      : null;
+  const stats = [
+    toPositiveNumber(property.capacityState?.beds ?? property.capacityState?.bedrooms)
+      ? {
+          key: "beds",
+          icon: "bed-outline" as const,
+          label: "Beds",
+          value: String(
+            property.capacityState?.beds ?? property.capacityState?.bedrooms,
+          ),
+        }
+      : null,
+    toPositiveNumber(property.capacityState?.bathrooms)
+      ? {
+          key: "baths",
+          icon: "water-outline" as const,
+          label: "Baths",
+          value: String(property.capacityState?.bathrooms),
+        }
+      : null,
+    typeof property.capacityState?.floorLevel === "number" &&
+    property.capacityState.floorLevel >= 0
+      ? {
+          key: "floor",
+          icon: "layers-outline" as const,
+          label: "Floor",
+          value:
+            property.capacityState.floorLevel === 0
+              ? "Ground"
+              : String(property.capacityState.floorLevel),
+        }
+      : null,
+    toPositiveNumber(property.size?.value)
+      ? {
+          key: "size",
+          icon: "expand-outline" as const,
+          label: property.size?.unit ? toReadableLabel(property.size.unit) : "Size",
+          value: `${property.size?.value}`,
+        }
+      : null,
+    toPositiveNumber(property.capacityState?.Persons)
+      ? {
+          key: "persons",
+          icon: "people-outline" as const,
+          label: "Persons",
+          value: String(property.capacityState?.Persons),
+        }
+      : null,
+  ].filter(Boolean) as {
+    key: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    label: string;
+    value: string;
+  }[];
+  const amenityItems = (property.amenities || []).map(toReadableLabel);
+  const billItems = (property.ALL_BILLS || []).map(toReadableLabel);
+  const shouldShowAmenities = amenityItems.length > 0 || billItems.length > 0;
 
   return (
     <View style={styles.container}>
-      {/* HEADER SECTION: Title & Price */}
-      <View style={styles.headerRow}>
-        <View style={styles.titleWrapper}>
-          <Text style={[styles.tagline, { color: theme.primary }]}>
-            {property.hostOption?.toUpperCase()} - {listingTag}
-          </Text>
-          <Text
-            style={[
-              styles.title,
-              { color: theme.text, fontSize: isSmallDevice ? 18 : FontSize.xl },
-            ]}
-          >
-            {property.title}
-          </Text>
-        </View>
-        <View style={styles.priceContainer}>
-          <Text
-            style={[
-              styles.priceTag,
-              {
-                color: theme.secondary,
-                fontSize: isSmallDevice ? 18 : FontSize.xl,
-              },
-            ]}
-          >
-            {priceInfo ? `Rs. ${priceInfo.val.toLocaleString()}` : "Price N/A"}
-          </Text>
-          {priceInfo && (
-            <Text style={[styles.priceSub, { color: theme.muted }]}>
-              /{priceInfo.label}
+      <View style={styles.headerBlock}>
+        <View style={styles.metaRow}>
+          <PromotionBadge property={property} theme={theme} />
+          {categoryLabel ? (
+            <Text style={[styles.eyebrow, { color: theme.muted }]}>
+              {categoryLabel}
             </Text>
-          )}
+          ) : null}
         </View>
-      </View>
-
-      {/* LOCATION SECTION */}
-      <View style={styles.locationRow}>
-        <View style={styles.addressWrapper}>
-          <Ionicons name="location-outline" size={18} color={theme.secondary} />
-          <Text
-            style={[styles.locationText, { color: theme.muted }]}
-            numberOfLines={2}
-          >
-            {fullAddress}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={onNavigate}
-          style={[styles.navigateBtn, { borderColor: theme.secondary }]}
-        >
-          <Ionicons name="navigate-outline" size={14} color={theme.secondary} />
-          <Text style={[styles.navigateBtnText, { color: theme.secondary }]}>
-            Navigate
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.statsContainer}>
-        <View
+        <Text
           style={[
-            styles.statWrapper,
-            { backgroundColor: theme.background, borderColor: theme.border },
+            styles.title,
+            { color: theme.primary, fontSize: isSmallDevice ? 24 : 27 },
           ]}
         >
-          <StatItem
-            icon={
-              property.capacityState?.floorLevel === 0 ? "business" : "layers"
-            }
-            label="Floor"
-            value={
-              property.capacityState?.floorLevel === 0
-                ? "Ground"
-                : property.capacityState?.floorLevel
-            }
-            theme={theme}
-          />
-        </View>
-        <View
-          style={[
-            styles.statWrapper,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-        >
-          <StatItem
-            icon="bed-outline"
-            label="Beds"
-            value={property.capacityState?.bedrooms}
-            theme={theme}
-          />
-        </View>
-        <View
-          style={[
-            styles.statWrapper,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-        >
-          <StatItem
-            icon="water-outline"
-            label="Baths"
-            value={property.capacityState?.bathrooms}
-            theme={theme}
-          />
-        </View>
-        <View
-          style={[
-            styles.statWrapper,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-        >
-          <StatItem
-            icon="expand-outline"
-            label={property.size?.unit || "Size"}
-            value={property.size?.value}
-            theme={theme}
-          />
-        </View>
-      </View>
-
-      {/* BILLS SECTION */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-          BILLS INCLUDED
+          {title}
         </Text>
-        <View style={styles.badgeGrid}>
-          {property.ALL_BILLS?.map((bill: string, i: number) => (
-            <View key={i} style={[styles.chip, { borderColor: theme.border }]}>
-              <MaterialCommunityIcons
-                name={
-                  bill === "electricity"
-                    ? "flash"
-                    : bill === "water"
-                      ? "water"
-                      : "fire"
-                }
-                size={14}
-                color={theme.secondary}
+      </View>
+
+      {locationText ? (
+        <View style={styles.locationRow}>
+          <View style={styles.locationWrap}>
+            <Ionicons name="location-outline" size={16} color={theme.muted} />
+            <Text
+              style={[styles.locationText, { color: theme.muted }]}
+              numberOfLines={1}
+            >
+              {locationText}
+            </Text>
+          </View>
+          {hasCoordinates ? (
+            <TouchableOpacity
+              onPress={onNavigate}
+              style={[
+                styles.navigateBtn,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: theme.card,
+                },
+              ]}
+            >
+              <Ionicons name="navigate-outline" size={15} color={theme.primary} />
+              <Text style={[styles.navigateBtnText, { color: theme.primary }]}>
+                Navigate
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      {stats.length > 0 ? (
+        <View style={styles.statsSection}>
+          <View style={styles.statsGrid}>
+            {stats.map((stat) => (
+              <DetailStatCard
+                key={stat.key}
+                icon={stat.icon}
+                label={stat.label}
+                value={stat.value}
+                theme={theme}
               />
-              <Text style={[styles.chipText, { color: theme.text }]}>
-                {bill}
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {primaryRent ? (
+        <View style={styles.priceBlock}>
+          <View style={styles.priceRow}>
+            <Text style={[styles.priceText, { color: theme.primary }]}>
+              {formatPrice(primaryRent.amount, "Price")}
+            </Text>
+            <Text style={[styles.priceSuffix, { color: theme.muted }]}>
+              /{primaryRent.label}
+            </Text>
+          </View>
+          {property.isApproved ? (
+            <View style={styles.verifiedRow}>
+              <Ionicons
+                name="shield-checkmark"
+                size={18}
+                color={theme.success}
+              />
+              <Text style={[styles.verifiedText, { color: theme.success }]}>
+                Verified Property
               </Text>
             </View>
-          ))}
+          ) : null}
         </View>
-      </View>
+      ) : null}
 
-      {/* AMENITIES SECTION */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-          AMENITIES
-        </Text>
-        <View style={styles.badgeGrid}>
-          {property.amenities?.map((item: string, i: number) => (
-            <Badge
-              key={i}
-              text={item.replace("_", " ")}
-              icon="check-circle-outline"
-              theme={theme}
-              type="amenity"
-            />
-          ))}
+      {shouldShowAmenities ? (
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.primary }]}>
+            Amenities
+          </Text>
+
+          {amenityItems.length > 0 ? (
+            <View style={styles.chipsWrap}>
+              {amenityItems.map((amenity) => (
+                <AmenityChip key={`amenity-${amenity}`} label={amenity} theme={theme} />
+              ))}
+            </View>
+          ) : null}
+
+          {billItems.length > 0 ? (
+            <View style={amenityItems.length > 0 ? styles.billsSection : undefined}>
+              <Text style={[styles.subsectionTitle, { color: theme.muted }]}>
+                Included bills
+              </Text>
+              <View style={styles.chipsWrap}>
+                {billItems.map((bill) => (
+                  <AmenityChip
+                    key={`bill-${bill}`}
+                    label={bill}
+                    theme={theme}
+                    accentColor={theme.primary}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
-      </View>
+      ) : null}
     </View>
   );
 }
@@ -209,100 +277,115 @@ export default function PropertyInfoSection({
 const styles = StyleSheet.create({
   container: {
     width: "100%",
+    gap: 22,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 15,
+  headerBlock: {
     gap: 10,
   },
-  titleWrapper: {
-    flex: 1,
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
+    minHeight: 28,
   },
-  tagline: {
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 1,
-    marginBottom: 4,
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   title: {
     fontWeight: "900",
-  },
-  priceContainer: {
-    alignItems: "flex-end",
-    minWidth: "30%",
-  },
-  priceTag: {
-    fontWeight: "900",
-  },
-  priceSub: {
-    fontSize: 10,
+    letterSpacing: -0.35,
+    lineHeight: 32,
   },
   locationRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 25,
+    justifyContent: "space-between",
     gap: 12,
   },
-  addressWrapper: {
+  locationWrap: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
     flex: 1,
   },
   locationText: {
-    fontSize: 12,
-    marginLeft: 4,
+    fontSize: 14,
     fontWeight: "500",
-    flexShrink: 1,
+    flex: 1,
   },
   navigateBtn: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
-  },
-  navigateBtnText: { fontSize: 11, fontWeight: "700" },
-
-  // 2x2 Grid Styling
-  statsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    rowGap: 12, // Vertical space between rows
-    marginBottom: 25,
-  },
-  statWrapper: {
-    width: "48%", // Forces 2 columns
-    padding: 12,
+    gap: 6,
     borderRadius: 12,
     borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
   },
-
-  section: { marginBottom: 20 },
-  sectionLabel: {
-    fontSize: 10,
+  navigateBtnText: {
+    fontSize: 12,
     fontWeight: "800",
-    marginBottom: 10,
-    letterSpacing: 1,
   },
-  badgeGrid: {
+  statsSection: {
+    marginTop: 8,
+  },
+  statsGrid: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  priceBlock: {
+    gap: 10,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
     flexWrap: "wrap",
     gap: 8,
   },
-  chip: {
+  priceText: {
+    fontSize: 34,
+    fontWeight: "900",
+    letterSpacing: -0.9,
+  },
+  priceSuffix: {
+    fontSize: 15,
+    fontWeight: "700",
+    paddingBottom: 4,
+  },
+  verifiedRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 15,
-    borderWidth: 1,
-    gap: 6,
+    gap: 8,
   },
-  chipText: { fontSize: 12, fontWeight: "600" },
+  verifiedText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  sectionCard: {
+    borderRadius: 26,
+    borderWidth: 1,
+    padding: 18,
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  subsectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  chipsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  billsSection: {
+    gap: 12,
+  },
 });

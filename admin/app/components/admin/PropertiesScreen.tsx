@@ -44,6 +44,13 @@ export interface PropertyAdminResponse {
   totalPages: number;
 }
 
+type AdminSortMode =
+  | "newest"
+  | "oldest"
+  | "featured"
+  | "boosted"
+  | "mostViewed";
+
 const CATEGORY_FILTERS: Array<{ label: string; value: PropertyCategory | "all" }> = [
   { label: "All", value: "all" },
   { label: "Homes", value: "home" },
@@ -71,6 +78,14 @@ const LISTING_FILTERS: Array<{
   { label: "Inactive", value: "inactive" },
 ];
 
+const SORT_OPTIONS: Array<{ label: string; value: AdminSortMode }> = [
+  { label: "Newest First", value: "newest" },
+  { label: "Oldest First", value: "oldest" },
+  { label: "Featured First", value: "featured" },
+  { label: "Boosted First", value: "boosted" },
+  { label: "Most Viewed", value: "mostViewed" },
+];
+
 export default function PropertiesScreen({
   initialResponse,
 }: {
@@ -86,6 +101,7 @@ export default function PropertiesScreen({
   const [selectedCategory, setSelectedCategory] = useState<PropertyCategory | "all">("all");
   const [approvalStatus, setApprovalStatus] = useState<"all" | "pending" | "approved">("all");
   const [listingStatus, setListingStatus] = useState<"all" | "active" | "inactive">("all");
+  const [sortBy, setSortBy] = useState<AdminSortMode>("newest");
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMutation, setActiveMutation] = useState<{
@@ -114,6 +130,7 @@ export default function PropertiesScreen({
             q: searchQuery || undefined,
             approvalStatus,
             listingStatus,
+            sortBy,
           },
         });
         setProperties(data?.data || []);
@@ -124,7 +141,7 @@ export default function PropertiesScreen({
         setLoading(false);
       }
     },
-    [approvalStatus, itemsPerPage, listingStatus, searchQuery, selectedCategory],
+    [approvalStatus, itemsPerPage, listingStatus, searchQuery, selectedCategory, sortBy],
   );
 
   useEffect(() => {
@@ -137,7 +154,7 @@ export default function PropertiesScreen({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [approvalStatus, listingStatus, searchQuery, selectedCategory]);
+  }, [approvalStatus, listingStatus, searchQuery, selectedCategory, sortBy]);
 
   useEffect(() => {
     const shouldUseInitialResponse =
@@ -145,7 +162,8 @@ export default function PropertiesScreen({
       selectedCategory === "all" &&
       approvalStatus === "all" &&
       listingStatus === "all" &&
-      !searchQuery;
+      !searchQuery &&
+      sortBy === "newest";
 
     if (shouldUseInitialResponse) {
       setProperties(initialResponse.data || []);
@@ -166,6 +184,7 @@ export default function PropertiesScreen({
     listingStatus,
     searchQuery,
     selectedCategory,
+    sortBy,
   ]);
 
   const refreshCurrentPage = useCallback(async () => {
@@ -371,6 +390,27 @@ export default function PropertiesScreen({
               </button>
             );
           })}
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:max-w-xs">
+          <label
+            htmlFor="admin-property-sort"
+            className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground"
+          >
+            Sort
+          </label>
+          <select
+            id="admin-property-sort"
+            value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as AdminSortMode)}
+            className="rounded-2xl border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-primary"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

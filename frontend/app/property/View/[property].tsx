@@ -108,6 +108,7 @@ export default function PropertiesPage() {
     onRefresh,
     isLoading,
     handleToggleFav,
+    isFavoritePending,
   } = usePropertiesPage(hostFiltersStore[hostOption], hostOption, sortBy);
 
   const onPressFav = (id: string) => {
@@ -192,6 +193,7 @@ export default function PropertiesPage() {
               theme={currentTheme}
               onPress={() => router.push(`/property/${item.id}`)}
               onToggleFav={onPressFav}
+              isFavoritePending={isFavoritePending}
             />
           )}
           showsVerticalScrollIndicator={false}

@@ -35,6 +35,9 @@ export const createCorsOriginValidator = (allowedOrigins: string[] = []) => {
 export const createCorsOptions = (allowedOrigins: string[] = []) => ({
   origin: createCorsOriginValidator(allowedOrigins),
   credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 204,
 });
 
 export const createSocketGatewayOptions = (allowedOrigins?: string[]) => ({

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
@@ -26,6 +27,7 @@ const ITEM_HEIGHT = 300;
 export const PropertySection: React.FC<
   PropertySectionProps & {
     onToggleFav?: (id: string) => void;
+    isFavoritePending?: (id: string) => boolean;
     cardWidth?: number;
     cardHeight?: number;
   }
@@ -36,6 +38,7 @@ export const PropertySection: React.FC<
   onCardPress,
   loading,
   onToggleFav,
+  isFavoritePending,
   cardWidth = ITEM_WIDTH,
   cardHeight = ITEM_HEIGHT,
 }) => {
@@ -78,6 +81,7 @@ export const PropertySection: React.FC<
             const isFeatured = isActiveFeaturedPromotion(item);
             const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
             const priceInfo = getPriceDisplay(item);
+            const propertyId = item.id || item._id;
 
             return (
               <TouchableOpacity
@@ -142,13 +146,12 @@ export const PropertySection: React.FC<
 
                     <TouchableOpacity
                       style={styles.heartCircle}
-                      onPress={() => onToggleFav?.(item.id)}
+                      onPress={() => propertyId && onToggleFav?.(propertyId)}
+                      disabled={
+                        propertyId ? isFavoritePending?.(propertyId) : false
+                      }
                     >
-                      <Ionicons
-                        name={item.isFav ? "heart" : "heart-outline"}
-                        size={18}
-                        color={item.isFav ? "#FF4D4D" : "#1E293B"}
-                      />
+                      <AnimatedFavoriteIcon isFav={Boolean(item.isFav)} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -236,6 +239,37 @@ export const PropertySection: React.FC<
         </View>
       )}
     </View>
+  );
+};
+
+const AnimatedFavoriteIcon = ({ isFav }: { isFav: boolean }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.spring(scale, {
+        toValue: isFav ? 1.18 : 0.92,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 10,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 8,
+      }),
+    ]).start();
+  }, [isFav, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Ionicons
+        name={isFav ? "heart" : "heart-outline"}
+        size={18}
+        color={isFav ? "#FF4D4D" : "#1E293B"}
+      />
+    </Animated.View>
   );
 };
 

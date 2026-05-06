@@ -15,5 +15,10 @@ export default registerAs("app", (): Record<string, any> => {
     trustProxy: process.env.TRUST_PROXY === "true",
     jsonBodyLimit: process.env.JSON_BODY_LIMIT ?? "1mb",
     urlencodedBodyLimit: process.env.URLENCODED_BODY_LIMIT ?? "1mb",
+    jwtSecret: process.env.JWT_SECRET,
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "15m",
+    jwtRefreshSecret:
+      process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET,
+    jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? "7d",
   };
 });

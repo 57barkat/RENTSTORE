@@ -1,5 +1,12 @@
-import React from "react";
-import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Animated,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
 import {
@@ -7,10 +14,17 @@ import {
   isActiveFeaturedPromotion,
 } from "@/utils/properties/promotion";
 
-export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => {
+export const PropertyCard = ({
+  item,
+  theme,
+  onPress,
+  onToggleFav,
+  isFavoritePending,
+}: any) => {
   const isFeatured = isActiveFeaturedPromotion(item);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
   const priceInfo = getPriceDisplay(item);
+  const propertyId = item.id || item._id;
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -67,13 +81,10 @@ export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => {
 
           <TouchableOpacity
             style={styles.heartCircle}
-            onPress={() => onToggleFav?.(item.id || item._id)}
+            onPress={() => onToggleFav?.(propertyId)}
+            disabled={propertyId ? isFavoritePending?.(propertyId) : false}
           >
-            <Ionicons
-              name={item.isFav ? "heart" : "heart-outline"}
-              size={18}
-              color={item.isFav ? "#FF4D4D" : "#1E293B"}
-            />
+            <AnimatedFavoriteIcon isFav={Boolean(item.isFav)} />
           </TouchableOpacity>
         </View>
       </View>
@@ -114,6 +125,37 @@ export const PropertyCard = ({ item, theme, onPress, onToggleFav }: any) => {
         </View>
       </View>
     </TouchableOpacity>
+  );
+};
+
+const AnimatedFavoriteIcon = ({ isFav }: { isFav: boolean }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      Animated.spring(scale, {
+        toValue: isFav ? 1.18 : 0.92,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 10,
+      }),
+      Animated.spring(scale, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 30,
+        bounciness: 8,
+      }),
+    ]).start();
+  }, [isFav, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Ionicons
+        name={isFav ? "heart" : "heart-outline"}
+        size={18}
+        color={isFav ? "#FF4D4D" : "#1E293B"}
+      />
+    </Animated.View>
   );
 };
 

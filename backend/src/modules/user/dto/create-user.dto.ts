@@ -1,6 +1,5 @@
 import {
   IsEmail,
-  IsEnum,
   IsOptional,
   IsString,
   MinLength,
@@ -10,7 +9,6 @@ import {
   Matches,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
-import { UserRole } from "../user.entity";
 
 export class CreateUserDto {
   @IsString()
@@ -35,10 +33,6 @@ export class CreateUserDto {
     message: "CNIC must be 00000-0000000-0 or 13 digits",
   })
   cnic!: string;
-
-  @IsEnum(UserRole)
-  @IsOptional()
-  role?: UserRole;
 
   @IsBoolean()
   @IsNotEmpty()

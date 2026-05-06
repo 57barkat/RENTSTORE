@@ -23,8 +23,7 @@ const NEXT_PUBLIC_API_URL = (
   ""
 ).replace(/\/$/, "");
 
-const FRONTEND_SECRET =
-  process.env.MY_APP_SECRET || "aganstaysecretkey";
+const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
 
 const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:3000/api/v1";
 const DEFAULT_LOCALHOST_ALIAS_API_BASE_URL = "http://127.0.0.1:3000/api/v1";
@@ -68,7 +67,9 @@ const requestJson = async <T>(path: string): Promise<T> => {
       const response = await fetch(`${baseUrl}${path}`, {
         headers: {
           "Content-Type": "application/json",
-          "x-frontend-secret": FRONTEND_SECRET,
+          ...(FRONTEND_SECRET
+            ? { "x-frontend-secret": FRONTEND_SECRET }
+            : {}),
         },
         cache: "no-store",
       });

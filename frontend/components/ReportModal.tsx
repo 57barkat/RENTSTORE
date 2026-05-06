@@ -23,7 +23,13 @@ export default function ReportModal({
   onSubmit,
   isReporting,
 }: any) {
-  const reasons = ["SCAM", "RENTED", "INCORRECT_DATA", "OFFENSIVE", "OTHER"];
+  const reasons = [
+    "SCAM",
+    "RENTED",
+    "INCORRECT_DATA",
+    "MISLEADING_PHOTOS",
+    "OTHER",
+  ];
 
   return (
     <View>

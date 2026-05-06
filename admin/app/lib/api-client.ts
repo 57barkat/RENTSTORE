@@ -4,7 +4,7 @@ import { destroyCookie, parseCookies } from "nookies";
 import { getAccessTokenCookieOptions } from "@/app/lib/auth-cookies";
 
 const API_BASE_PATH = "/api/v1";
-const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
+const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
 let refreshRequest: Promise<{ accessToken: string }> | null = null;
 
 const apiClient = axios.create({
@@ -18,7 +18,9 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   config.baseURL = config.baseURL || API_BASE_PATH;
 
   const headers = config.headers as AxiosHeaders & Record<string, string>;
-  headers["x-frontend-secret"] = FRONTEND_SECRET;
+  if (FRONTEND_SECRET) {
+    headers["x-frontend-secret"] = FRONTEND_SECRET;
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;

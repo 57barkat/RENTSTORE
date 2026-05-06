@@ -9,7 +9,7 @@ import { verifyAuthToken } from "@/app/lib/auth-token";
 import { parsePropertyDetailSlug } from "@/app/lib/property-seo";
 import { isProtectedRoute } from "@/app/lib/route-constants";
 
-const FRONTEND_SECRET = process.env.MY_APP_SECRET || "aganstaysecretkey";
+const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
 
 const getApiBaseUrl = (request: NextRequest) => {
   const candidates = [
@@ -30,10 +30,14 @@ const refreshAdminSession = async (
   try {
     const response = await fetch(`${getApiBaseUrl(request)}/users/refresh`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-frontend-secret": FRONTEND_SECRET,
-      },
+      headers: FRONTEND_SECRET
+        ? {
+            "Content-Type": "application/json",
+            "x-frontend-secret": FRONTEND_SECRET,
+          }
+        : {
+            "Content-Type": "application/json",
+          },
       body: JSON.stringify({ refreshToken }),
       cache: "no-store",
     });
@@ -53,7 +57,7 @@ const refreshAdminSession = async (
 
     const session = await verifyAuthToken(
       data.accessToken,
-      process.env.JWT_SECRET || process.env.MY_APP_SECRET,
+      process.env.JWT_SECRET,
     );
     if (!session || session.role !== "admin") {
       return null;
@@ -90,7 +94,7 @@ export async function proxy(request: NextRequest) {
   const reauthRequested = request.nextUrl.searchParams.get("reauth") === "1";
   let session = await verifyAuthToken(
     token,
-    process.env.JWT_SECRET || process.env.MY_APP_SECRET,
+    process.env.JWT_SECRET,
   );
 
   if ((!session || session.role !== "admin") && refreshToken) {
@@ -103,7 +107,7 @@ export async function proxy(request: NextRequest) {
       };
       session = await verifyAuthToken(
         refreshedTokens.accessToken,
-        process.env.JWT_SECRET || process.env.MY_APP_SECRET,
+        process.env.JWT_SECRET,
       );
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set(

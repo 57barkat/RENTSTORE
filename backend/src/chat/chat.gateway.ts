@@ -40,9 +40,7 @@ export class ChatGateway implements OnGatewayConnection {
         return;
       }
 
-      const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
-      });
+      const payload = this.jwtService.verify(token);
 
       client.data.userId = payload.sub;
 

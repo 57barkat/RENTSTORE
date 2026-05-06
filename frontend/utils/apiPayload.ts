@@ -4,6 +4,6 @@ export const createUserPayload = (
   acceptedTerms: boolean,
 ) => ({
   ...values,
-  role,
   acceptedTerms,
+  isAgencyPerson: role === "agency",
 });

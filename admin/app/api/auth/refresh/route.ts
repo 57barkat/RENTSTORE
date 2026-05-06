@@ -5,6 +5,7 @@ import {
   getAccessTokenCookieOptions,
   getRefreshTokenCookieOptions,
 } from "@/app/lib/auth-cookies";
+import { verifyAuthToken } from "@/app/lib/auth-token";
 
 const getApiBaseUrl = (request: Request) => {
   const candidates = [
@@ -38,6 +39,20 @@ export async function POST(request: Request) {
     const nextResponse = NextResponse.json(
       payload ?? { message: "Refresh failed" },
       { status: response.status || 401 },
+    );
+    nextResponse.cookies.delete("admin_token");
+    nextResponse.cookies.delete("refresh_token");
+    return nextResponse;
+  }
+
+  const session = await verifyAuthToken(
+    payload.accessToken,
+    process.env.JWT_SECRET,
+  );
+  if (!session || session.role !== "admin") {
+    const nextResponse = NextResponse.json(
+      { message: "Admin access required" },
+      { status: 403 },
     );
     nextResponse.cookies.delete("admin_token");
     nextResponse.cookies.delete("refresh_token");

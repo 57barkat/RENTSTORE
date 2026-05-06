@@ -19,6 +19,13 @@ const toDate = (value?: string | Date | null) => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
+
 export const isActiveFeaturedPromotion = (
   property: PromotionStateLike,
   now: Date = new Date(),
@@ -64,7 +71,12 @@ export const getPromotionStatusLabel = (
 
 export const formatPromotionDate = (value?: string | Date | null) => {
   const parsed = toDate(value);
-  return parsed ? parsed.toLocaleDateString() : "Not set";
+  return parsed ? DATE_FORMATTER.format(parsed) : "Not set";
+};
+
+export const formatStableDate = (value?: string | Date | null) => {
+  const parsed = toDate(value);
+  return parsed ? DATE_FORMATTER.format(parsed) : "Unknown";
 };
 
 export const getCtr = (property: PromotionStateLike) => {

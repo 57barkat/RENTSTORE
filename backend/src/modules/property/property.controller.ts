@@ -3,6 +3,7 @@ import {
   Controller,
   Post,
   Body,
+  Logger,
   UploadedFiles,
   UseInterceptors,
   Get,
@@ -31,6 +32,10 @@ import { validatePropertyPayload } from "./property.validation";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 import { GetUser, Public } from "../../common/decorators/public.decorator";
+import {
+  createPropertyImageMulterOptions,
+  PROPERTY_UPLOAD_MAX_IMAGES,
+} from "../../common/utils/upload.util";
 
 interface PaginationQuery {
   page?: number;
@@ -102,6 +107,8 @@ function stripRestrictedPropertyFields(
 @UseGuards(JwtAuthGuard)
 @Controller("properties")
 export class PropertyController {
+  private readonly logger = new Logger(PropertyController.name);
+
   constructor(private readonly propertyService: PropertyService) {}
 
   private async normalizeCreatePayload(
@@ -172,7 +179,12 @@ export class PropertyController {
 
   @Post("create")
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: "user" })
-  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [{ name: "photos", maxCount: PROPERTY_UPLOAD_MAX_IMAGES }],
+      createPropertyImageMulterOptions(),
+    ),
+  )
   async createProperty(
     @Body() dto: Partial<CreatePropertyDto>,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
@@ -233,7 +245,12 @@ export class PropertyController {
 
   @Post("admin/create")
   @SetMetadata("roles", ["admin"])
-  @UseInterceptors(FileFieldsInterceptor([{ name: "photos", maxCount: 30 }]))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [{ name: "photos", maxCount: PROPERTY_UPLOAD_MAX_IMAGES }],
+      createPropertyImageMulterOptions(),
+    ),
+  )
   async adminCreateProperty(
     @Body() dto: Partial<CreatePropertyDto>,
     @UploadedFiles() files: { photos?: Express.Multer.File[] },
@@ -271,6 +288,7 @@ export class PropertyController {
   }
   @Get()
   @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
   async getAll(@Query() query: PaginationQuery) {
     const page = clampPage(query.page, 1);
     const limit = clampLimit(query.limit, 10, PUBLIC_LIST_MAX_LIMIT);
@@ -295,6 +313,7 @@ export class PropertyController {
 
   @Get("type/:hostOption")
   @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
   async getByHostOption(
     @Param("hostOption") hostOption: string,
     @Query() query: PaginationQuery,
@@ -456,6 +475,7 @@ export class PropertyController {
 
   @Get(":id")
   @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
   async findById(@Param("id") id: string, @Req() req: any) {
     const userId = req.user?.userId;
     const userRole = req.user?.role;
@@ -503,6 +523,7 @@ export class PropertyController {
   }
   @Post(":id/view")
   @Public()
+  @RateLimit({ limit: 30, windowMs: 60_000, scope: "userOrIp" })
   async incrementViews(@Param("id") id: string) {
     return await this.propertyService.incrementViews(id);
   }
@@ -520,6 +541,8 @@ export class PropertyController {
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "10",
     @Query("hostOption") hostOption?: string,
+    @Query("sortBy")
+    sortBy: "newest" | "oldest" | "featured" | "boosted" | "mostViewed" = "newest",
   ) {
     if (hostOption && !PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
       throw new BadRequestException(
@@ -530,6 +553,7 @@ export class PropertyController {
       clampPage(page, 1),
       clampLimit(limit, 10, ADMIN_LIST_MAX_LIMIT),
       hostOption,
+      sortBy,
     );
   }
 
@@ -544,6 +568,8 @@ export class PropertyController {
     approvalStatus: "all" | "approved" | "pending" = "all",
     @Query("listingStatus")
     listingStatus: "all" | "active" | "inactive" = "all",
+    @Query("sortBy")
+    sortBy: "newest" | "oldest" | "featured" | "boosted" | "mostViewed" = "newest",
   ) {
     if (hostOption && !PROPERTY_HOST_OPTIONS.includes(hostOption as any)) {
       throw new BadRequestException(
@@ -559,6 +585,7 @@ export class PropertyController {
         q,
         approvalStatus,
         listingStatus,
+        sortBy,
       },
     );
   }
@@ -569,18 +596,21 @@ export class PropertyController {
     @Param("id") id: string,
     @Body() dto: Partial<CreatePropertyDto>,
   ) {
+    this.logger.warn(`Admin property update requested for property ${id}`);
     return this.propertyService.adminUpdateProperty(id, dto);
   }
 
   @Patch("admin/approve/:id")
   @SetMetadata("roles", ["admin"])
   async approve(@Param("id") id: string) {
+    this.logger.warn(`Admin property approval requested for property ${id}`);
     return this.propertyService.approveProperty(id);
   }
 
   @Delete("admin/delete/:id")
   @SetMetadata("roles", ["admin"])
   async adminDelete(@Param("id") id: string, @Req() req: any) {
+    this.logger.warn(`Admin property delete requested for property ${id}`);
     return this.propertyService.adminDeleteProperty(id, req.user.userId);
   }
 

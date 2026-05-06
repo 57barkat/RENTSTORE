@@ -118,19 +118,15 @@ const HomePage: React.FC = () => {
                 triggerAuthModal("Favorites");
                 return;
               }
-
-              const isFav = logic.favoriteIds?.some(
-                (favId: any) => String(favId) === String(id),
+              const property = item.properties.find(
+                (entry) => String(entry.id || entry._id) === String(id),
               );
-
-              if (isFav) {
-                await logic.removeUserFavorite({ propertyId: id });
-              } else {
-                await logic.addToFav({ propertyId: id });
+              if (!property || logic.isFavoritePending(id)) {
+                return;
               }
-
-              logic.refetchFavorites();
+              await logic.toggleFavorite(id, { property });
             }}
+            isFavoritePending={logic.isFavoritePending}
           />
         )}
       />

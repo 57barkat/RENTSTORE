@@ -25,9 +25,23 @@ interface MediaItem {
 
 interface ImageCarouselProps {
   media: MediaItem[];
+  height?: number;
+  borderRadius?: number;
+  overlayContent?: React.ReactNode;
+  counterPlacement?: "top-right" | "bottom-right";
+  topInset?: number;
+  overlayPlacement?: "top-left" | "bottom-left";
 }
 
-export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
+export default function ImageCarousel({
+  media = [],
+  height = 250,
+  borderRadius = 0,
+  overlayContent,
+  counterPlacement = "bottom-right",
+  topInset = 0,
+  overlayPlacement = "top-left",
+}: ImageCarouselProps) {
   const { theme } = useTheme();
   const currentTheme = Colors[theme];
   const [galleryVisible, setGalleryVisible] = useState(false);
@@ -58,7 +72,7 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { height, borderRadius }]}>
       <FlatList
         data={media}
         keyExtractor={(item, index) => item.id || `${item.uri}-${index}`}
@@ -71,12 +85,15 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
             onPress={() => openGallery(index)}
           >
             {item.type === "image" ? (
-              <Image source={{ uri: item.uri }} style={styles.media} />
+              <Image
+                source={{ uri: item.uri }}
+                style={[styles.media, { height }]}
+              />
             ) : (
               <View style={styles.videoContainer}>
                 <Image
                   source={{ uri: item.uri + "?vframe/jpg" }}
-                  style={styles.media}
+                  style={[styles.media, { height }]}
                 />
                 <MaterialCommunityIcons
                   name="play-circle-outline"
@@ -94,9 +111,30 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
         }}
       />
 
+      <View style={styles.scrim} pointerEvents="none" />
+
+      {overlayContent ? (
+        <View
+          style={[
+            styles.overlay,
+            overlayPlacement === "bottom-left"
+              ? styles.overlayBottomLeft
+              : { top: Math.max(topInset + 10, 18) },
+          ]}
+        >
+          {overlayContent}
+        </View>
+      ) : null}
+
       <TouchableOpacity
         style={[
           styles.counterContainer,
+          counterPlacement === "top-right"
+            ? styles.counterTopRight
+            : styles.counterBottomRight,
+          counterPlacement === "top-right"
+            ? { top: Math.max(topInset + 10, 18) }
+            : null,
           { backgroundColor: currentTheme.card },
         ]}
         onPress={() => setGalleryVisible(true)}
@@ -131,19 +169,43 @@ export default function ImageCarousel({ media = [] }: ImageCarouselProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 10, height: 250 },
-  media: { width, height: 250, resizeMode: "cover" },
+  container: { overflow: "hidden" },
+  media: { width, resizeMode: "cover" },
   videoContainer: { position: "relative" },
   playIcon: { position: "absolute", top: "40%", left: "40%" },
+  scrim: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 132,
+    backgroundColor: "rgba(15, 23, 42, 0.28)",
+  },
   counterContainer: {
     position: "absolute",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  counterTopRight: {
+    right: 18,
+  },
+  counterBottomRight: {
     bottom: 15,
     right: 15,
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
   },
   counterText: { fontWeight: "bold" },
+  overlay: {
+    position: "absolute",
+    left: 18,
+    right: 18,
+    zIndex: 2,
+  },
+  overlayBottomLeft: {
+    top: undefined,
+    bottom: 18,
+    right: undefined,
+  },
 
   // Custom Close Button "CSS"
   headerContainer: {

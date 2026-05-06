@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { getAvatarPlaceholder } from "@/app/lib/avatar";
+import { formatStableDate } from "@/app/lib/promotion";
 import { PROPERTY_SIZE_UNITS } from "@/app/lib/property-types";
 
 interface PropertyReviewOwner {
@@ -278,7 +279,7 @@ export default function PropertyReviewDrawer({
   ];
 
   const createdAtLabel = property?.createdAt
-    ? new Date(property.createdAt).toLocaleDateString()
+    ? formatStableDate(property.createdAt)
     : "Unknown";
   const categoryLabel = property?.hostOption
     ? property.hostOption.charAt(0).toUpperCase() + property.hostOption.slice(1)

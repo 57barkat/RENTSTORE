@@ -4,13 +4,11 @@ import * as Speech from "expo-speech";
 import { router } from "expo-router";
 import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 import {
-  useAddToFavMutation,
   useClearVoiceSessionMutation,
-  useGetUserFavoritesQuery,
-  useRemoveUserFavoriteMutation,
   useVoiceSearchMutation,
 } from "@/services/api";
 import { useAuth } from "@/contextStore/AuthContext";
+import { useOptimisticFavorites } from "@/hooks/useOptimisticFavorites";
 import { useApartments, useHomes, useRooms } from "@/hooks/useHomes";
 import { formatAndTagFavorites } from "@/utils/homeTabUtils/homeHelpers";
 
@@ -37,12 +35,8 @@ export const useHomePageLogic = () => {
   const { start, stop } = useVoiceRecorder();
   const [voiceSearch] = useVoiceSearchMutation();
   const [clearVoiceSession] = useClearVoiceSessionMutation();
-  const [addToFav] = useAddToFavMutation();
-  const [removeUserFavorite] = useRemoveUserFavoriteMutation();
-
-  const { data: favData, refetch: refetchFavorites } = useGetUserFavoritesQuery(
-    null,
-    { skip: isGuest },
+  const { favoriteIds, toggleFavorite, isPending } = useOptimisticFavorites(
+    !isGuest,
   );
   const { data: hData, isLoading: hLoad, refetch: refetchH } = useHomes();
   const { data: aData, isLoading: aLoad, refetch: refetchA } = useApartments();
@@ -135,15 +129,9 @@ export const useHomePageLogic = () => {
       refetchH().catch(() => {}),
       refetchA().catch(() => {}),
       refetchR().catch(() => {}),
-      (isGuest ? Promise.resolve() : refetchFavorites()).catch(() => {}),
     ]);
     setRefreshing(false);
-  }, [handleCancelVoice, isGuest, refetchH, refetchA, refetchR, refetchFavorites]);
-
-  const favoriteIds = useMemo(
-    () => (isGuest ? [] : favData?.map((f: any) => f.property?._id) || []),
-    [favData, isGuest],
-  );
+  }, [handleCancelVoice, refetchH, refetchA, refetchR]);
 
   // Helper to ensure city extraction consistency on Home Page
   const processProperties = (rawData: any[]) => {
@@ -233,9 +221,8 @@ export const useHomePageLogic = () => {
     apartments,
     apartmentsLoading: aLoad,
     favoriteIds,
-    removeUserFavorite,
-    addToFav,
-    refetchFavorites,
+    toggleFavorite,
+    isFavoritePending: isPending,
     start,
     handleSkipSpeech: () => {
       Speech.stop();

@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
 import { UserDocument } from "../modules/user/user.entity";
@@ -9,6 +10,7 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   async loginWithPassword(emailOrPhone: string, password: string) {
@@ -49,9 +51,24 @@ export class AuthService {
 
   async issueTokens(user: UserDocument) {
     const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessExpiresIn =
+      this.configService.get<string>("app.jwtExpiresIn", { infer: true }) ||
+      "15m";
+    const refreshSecret =
+      this.configService.get<string>("app.jwtRefreshSecret", { infer: true }) ||
+      this.configService.get<string>("app.jwtSecret", { infer: true });
+    const refreshExpiresIn =
+      this.configService.get<string>("app.jwtRefreshExpiresIn", {
+        infer: true,
+      }) || "7d";
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: "15m" });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: "7d" });
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: accessExpiresIn,
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: refreshSecret,
+      expiresIn: refreshExpiresIn,
+    });
 
     await this.userService.update(user.id, {
       refreshToken: await bcrypt.hash(refreshToken, 10),
@@ -62,7 +79,13 @@ export class AuthService {
 
   async refresh(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const refreshSecret =
+        this.configService.get<string>("app.jwtRefreshSecret", {
+          infer: true,
+        }) || this.configService.get<string>("app.jwtSecret", { infer: true });
+      const payload = this.jwtService.verify(token, {
+        secret: refreshSecret,
+      });
       const userId = payload.sub;
 
       const user = await this.userService.findById(userId);

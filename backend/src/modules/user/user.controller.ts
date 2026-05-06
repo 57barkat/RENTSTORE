@@ -1,5 +1,6 @@
 import {
   Body,
+  Logger,
   Controller,
   Get,
   Post,
@@ -37,6 +38,8 @@ import { RateLimit } from "../../common/decorators/rate-limit.decorator";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 @Controller("users")
 export class UserController {
+  private readonly logger = new Logger(UserController.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
@@ -58,7 +61,6 @@ export class UserController {
       body.emailOrPhone,
       body.password,
     );
-    console.log("User logged in:", user.email);
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -206,6 +208,7 @@ export class UserController {
     @Param("id") id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
+    this.logger.warn(`Admin user update requested for user ${id}`);
     const updatedUser = await this.userService.updateUser(id, updateUserDto);
     return this.mapUser(updatedUser as UserDocument);
   }
@@ -214,10 +217,12 @@ export class UserController {
   @UseGuards(AuthGuard("jwt"))
   @SetMetadata("roles", ["admin"])
   async deleteUser(@Param("id") id: string) {
+    this.logger.warn(`Admin user delete requested for user ${id}`);
     return await this.userService.deleteUser(id);
   }
   @UseGuards(JwtAuthGuard)
   @Patch("admin/update-credits/:userId")
+  @SetMetadata("roles", ["admin"])
   async updateCredits(
     @Param("userId") userId: string,
     @Body() updateDto: UpdateCreditsDto,
@@ -227,6 +232,7 @@ export class UserController {
       throw new UnauthorizedException("Only admins can modify credits");
     }
 
+    this.logger.warn(`Admin credit update requested for user ${userId}`);
     return await this.userService.updateUserCredits(userId, updateDto);
   }
 }

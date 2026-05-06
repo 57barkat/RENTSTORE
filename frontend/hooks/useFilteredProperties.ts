@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useDebounce } from "use-debounce";
 import { useAuth } from "@/contextStore/AuthContext";
-import {
-  useFilteredProperties,
-  useFavorites,
-} from "@/services/propertiesService";
+import { useFilteredProperties } from "@/services/propertiesService";
+import { useOptimisticFavorites } from "@/hooks/useOptimisticFavorites";
 import { formatProperties } from "@/utils/properties/formatProperties";
 
 export const usePropertiesPage = (
@@ -33,19 +31,8 @@ export const usePropertiesPage = (
     hostOption,
   );
 
-  const {
-    data: favData,
-    refetch: refetchFavorites,
-    addToFav,
-    removeFromFav,
-  } = useFavorites(!isGuest);
-
-  const favoriteIds = useMemo(
-    () =>
-      isGuest
-        ? []
-        : favData?.map((f: any) => f.property?._id).filter(Boolean) || [],
-    [favData, isGuest],
+  const { favoriteIds, toggleFavorite, isPending } = useOptimisticFavorites(
+    !isGuest,
   );
 
   useEffect(() => {
@@ -104,10 +91,7 @@ export const usePropertiesPage = (
   const onRefresh = async () => {
     setRefreshing(true);
     setPage(1);
-    await Promise.all([
-      refetch(),
-      isGuest ? Promise.resolve() : refetchFavorites(),
-    ]);
+    await refetch();
     setRefreshing(false);
   };
 
@@ -115,21 +99,22 @@ export const usePropertiesPage = (
     const property = allProperties.find((p) => p.id === propertyId);
     if (!property) return;
     const wasFav = property.isFav;
+    if (isPending(propertyId)) return;
 
     setAllProperties((prev) =>
       prev.map((p) => (p.id === propertyId ? { ...p, isFav: !wasFav } : p)),
     );
 
-    try {
-      wasFav
-        ? await removeFromFav({ propertyId }).unwrap()
-        : await addToFav({ propertyId }).unwrap();
-      refetchFavorites();
-    } catch {
-      setAllProperties((prev) =>
-        prev.map((p) => (p.id === propertyId ? { ...p, isFav: wasFav } : p)),
-      );
-    }
+    await toggleFavorite(propertyId, {
+      property,
+      onRollback: (previousValue) => {
+        setAllProperties((prev) =>
+          prev.map((p) =>
+            p.id === propertyId ? { ...p, isFav: previousValue } : p,
+          ),
+        );
+      },
+    });
   };
 
   return {
@@ -144,5 +129,6 @@ export const usePropertiesPage = (
     onRefresh,
     isLoading,
     handleToggleFav,
+    isFavoritePending: isPending,
   };
 };

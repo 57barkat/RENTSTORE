@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import {
   useGetUserFavoritesQuery,
-  useRemoveUserFavoriteMutation,
 } from "@/services/api";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "../constants/Colors";
@@ -23,6 +22,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { FontSize } from "@/constants/Typography";
 import { useLength } from "@/contextStore/LengthContext";
+import { useOptimisticFavorites } from "@/hooks/useOptimisticFavorites";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 type Property = {
@@ -37,9 +37,9 @@ type Property = {
 };
 
 const Favorites = () => {
-  const { fav, setFav } = useLength();
+  const { setFav } = useLength();
   const queryResult = useGetUserFavoritesQuery(null as any);
-  const [removeFavorite] = useRemoveUserFavoriteMutation();
+  const { toggleFavorite, isPending } = useOptimisticFavorites(true);
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
@@ -76,23 +76,20 @@ const Favorites = () => {
   }, [favoritesArray, setFav]);
   const confirmRemoval = async () => {
     if (!selectedId) return;
-    try {
-      await removeFavorite({ propertyId: selectedId }).unwrap();
+    const selectedProperty = favoritesArray.find(
+      (property) => property._id === selectedId,
+    );
+    const removed = await toggleFavorite(selectedId, {
+      property: selectedProperty,
+    });
+    if (removed) {
       Toast.show({
         type: "success",
         text1: "Removed from Favorites",
         text2: "This property is no longer in your favorites.",
       });
       setShowModal(false);
-      await queryResult.refetch();
-      if (fav > 0) setFav(fav - 1);
-    } catch (err) {
-      Toast.show({
-        type: "error",
-        text1: "Error Removing Favorite",
-        text2: "Something went wrong.",
-      });
-      // console.error("Remove favorite failed:", err);
+      setSelectedId(null);
     }
   };
 
@@ -283,8 +280,11 @@ const Favorites = () => {
                   { backgroundColor: currentTheme.danger },
                 ]}
                 onPress={confirmRemoval}
+                disabled={selectedId ? isPending(selectedId) : false}
               >
-                <Text style={{ color: "#fff", fontWeight: "600" }}>Remove</Text>
+                <Text style={{ color: "#fff", fontWeight: "600" }}>
+                  {selectedId && isPending(selectedId) ? "Removing..." : "Remove"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

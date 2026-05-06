@@ -6,6 +6,7 @@ import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
+import helmet from "helmet";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { createCorsOptions } from "./common/utils/cors.util";
@@ -69,6 +70,12 @@ async function bootstrap() {
     app.set("trust proxy", 1);
   }
 
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
   app.use(json({ limit: appConfig?.jsonBodyLimit ?? "1mb" }));
   app.use(
     urlencoded({
@@ -102,6 +109,11 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = appConfig?.port ?? process.env.PORT ?? 3000;
+  const isProduction = appConfig?.env === "production";
+
+  if (isProduction) {
+    app.useLogger(["log", "warn", "error"]);
+  }
 
   app.setGlobalPrefix(
     appConfig?.apiPrefix ?? process.env.API_PREFIX ?? "api/v1",
@@ -115,7 +127,10 @@ async function bootstrap() {
 
 bootstrap().catch(async (err) => {
   const logger = new Logger("Bootstrap");
-  logger.error("Error during bootstrap", err);
+  logger.error(
+    "Error during bootstrap",
+    err instanceof Error ? err.stack : String(err),
+  );
 
   Sentry.captureException(err);
   await Sentry.flush(2000);

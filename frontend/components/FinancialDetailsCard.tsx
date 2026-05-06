@@ -2,11 +2,65 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PriceRow } from "@/components/Properties/PropertyPriceCard";
+import { Colors } from "@/constants/Colors";
+import type { PropertyDetailData } from "@/types/PropertyDetailScreen.types";
 import { formatPrice } from "@/utils/properties/formatPrice";
-import { getPrimaryRentInfo } from "@/utils/properties/rent";
+import { getRentDisplayOrder } from "@/utils/properties/rent";
 
-export default function FinancialDetailsCard({ property, theme }: any) {
-  const primaryRent = getPrimaryRentInfo(property);
+type ThemeColors = typeof Colors.light;
+
+interface FinancialDetailsCardProps {
+  property: PropertyDetailData;
+  theme: ThemeColors;
+}
+
+const RENT_LABELS = {
+  monthly: "Monthly Rent",
+  weekly: "Weekly Rent",
+  daily: "Daily Rent",
+} as const;
+
+const isPositiveNumber = (value?: number) =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
+export default function FinancialDetailsCard({
+  property,
+  theme,
+}: FinancialDetailsCardProps) {
+  const rentRows = getRentDisplayOrder(property)
+    .map((type) => {
+      const amount =
+        type === "monthly"
+          ? property.monthlyRent
+          : type === "weekly"
+            ? property.weeklyRent
+            : property.dailyRent;
+
+      if (!isPositiveNumber(amount)) {
+        return null;
+      }
+
+      return {
+        key: type,
+        label: RENT_LABELS[type],
+        value: formatPrice(amount, "Price"),
+      };
+    })
+    .filter(Boolean) as { key: string; label: string; value: string }[];
+
+  const rows = [...rentRows];
+
+  if (isPositiveNumber(property.SecuritybasePrice)) {
+    rows.push({
+      key: "security",
+      label: "Security Deposit",
+      value: formatPrice(property.SecuritybasePrice, "Deposit"),
+    });
+  }
+
+  if (rows.length === 0) {
+    return null;
+  }
 
   return (
     <View
@@ -17,48 +71,45 @@ export default function FinancialDetailsCard({ property, theme }: any) {
     >
       <View style={styles.cardHeader}>
         <Ionicons
-          name="shield-checkmark-outline"
+          name="wallet-outline"
           size={20}
-          color={theme.secondary}
+          color={theme.primary}
         />
-        <Text style={[styles.cardTitle, { color: theme.text }]}>
-          FINANCIAL DETAILS
+        <Text style={[styles.cardTitle, { color: theme.primary }]}>
+          Financial Details
         </Text>
       </View>
-      <PriceRow
-        label={primaryRent?.title || "Monthly Rent"}
-        value={formatPrice(primaryRent?.amount, "not available")}
-        theme={theme}
-        color={theme.secondary}
-        isLarge
-      />
-      <PriceRow
-        label="Weekly Rate"
-        value={formatPrice(property.weeklyRent, "not available")}
-        theme={theme}
-      />
-      <PriceRow
-        label="Daily Rate"
-        value={formatPrice(property.dailyRent, "not available")}
-        theme={theme}
-      />
-      <PriceRow
-        label="Security Deposit"
-        value={formatPrice(property.SecuritybasePrice, "no deposit")}
-        theme={theme}
-        isLast
-      />
+
+      {rows.map((row, index) => (
+        <PriceRow
+          key={row.key}
+          label={row.label}
+          value={row.value}
+          theme={theme}
+          color={index === 0 ? theme.primary : theme.text}
+          isLarge={index === 0}
+          isLast={index === rows.length - 1}
+        />
+      ))}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  infoCard: { padding: 20, borderRadius: 24, borderWidth: 1, marginBottom: 24 },
+  infoCard: {
+    padding: 20,
+    borderRadius: 26,
+    borderWidth: 1,
+    gap: 6,
+  },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 10,
   },
-  cardTitle: { fontSize: 12, fontWeight: "800" },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "900",
+  },
 });

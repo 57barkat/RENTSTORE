@@ -12,26 +12,27 @@ import {
   Share,
   Alert,
   StyleSheet,
-  TouchableOpacity,
 } from "react-native";
 import * as ExpoLinking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { usePropertyById } from "@/services/propertyService";
 import { useChatRoom } from "@/hooks/useChatRoom";
 import { usePropertyReportMutation } from "@/services/api";
+import ListedByCard from "@/components/ListedByCard";
 import { PropertyDetailsHeader } from "@/components/Properties/PropertyDetailsHeader";
+import StickyActionBar from "@/components/StickyActionBar";
 import ImageCarousel from "@/utils/properties/Carousel";
 import PropertyInfoSection from "@/components/PropertyInfoSection";
 import FinancialDetailsCard from "@/components/FinancialDetailsCard";
-import OwnerSection from "@/components/OwnerSection";
 import ReportModal from "@/components/ReportModal";
 import { useAuth } from "@/contextStore/AuthContext";
 import AuthModal from "@/components/AuthModal";
 import { formatPhoneForWhatsApp } from "@/utils/properties/formatProperties";
+import type { PropertyDetailData } from "@/types/PropertyDetailScreen.types";
 import { useTrackView } from "@/hooks/useTrackView";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const options = { headerShown: false };
 
@@ -47,6 +48,7 @@ export default function PropertyDetails() {
   const isDark = theme === "dark";
   const router = useRouter();
   const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { isGuest, user } = useAuth();
   const [isModalVisible, setModalVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
@@ -56,7 +58,8 @@ export default function PropertyDetails() {
   useTrackView(propertyId);
   const { property, isLoading, refetch, isFetching } =
     usePropertyById(propertyId);
-  const isOwner = user?.id === property?.ownerId;
+  const details = property as PropertyDetailData | undefined;
+  const isOwner = user?.id === details?.ownerId;
 
   const propertyPath = propertyId ? `/property/${propertyId}` : "";
   const shareUrl = propertyPath
@@ -68,16 +71,13 @@ export default function PropertyDetails() {
     : "";
 
   const { handleChatOwner, isCreating } = useChatRoom(
-    property?.ownerId,
-    property?.owner?.name,
-    property?.owner?.profileImage,
+    details?.ownerId,
+    details?.owner?.name,
+    details?.owner?.profileImage,
   );
 
-  const [
-    ,
-    // reportProperty
-    { isLoading: isReporting },
-  ] = usePropertyReportMutation();
+  const [reportProperty, { isLoading: isReporting }] =
+    usePropertyReportMutation();
 
   const onPressChat = () => {
     if (isGuest) {
@@ -90,9 +90,9 @@ export default function PropertyDetails() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out ${property?.title} on Rent Store!\n${shareUrl}`,
+        message: `Check out ${details?.title} on Rent Store!\n${shareUrl}`,
         url: shareUrl,
-        title: property?.title,
+        title: details?.title,
       });
     } catch (error: any) {
       Alert.alert("Error", error.message);
@@ -100,16 +100,21 @@ export default function PropertyDetails() {
   };
 
   const handleWhatsApp = () => {
-    if (!property?.owner?.phone) {
+    if (!details?.owner?.phone) {
       Alert.alert("Error", "Owner phone number not available.");
       return;
     }
 
-    const phone = formatPhoneForWhatsApp(property.owner.phone);
-    const locationText = property.location || "No address provided";
+    const phone = formatPhoneForWhatsApp(details.owner.phone);
+    const locationText =
+      details.addressQuery ||
+      details.area ||
+      details.location ||
+      details.address?.[0]?.city ||
+      "No address provided";
     const message =
       `Hi, I'm interested in your property:\n\n` +
-      `*${property.title}*\n` +
+      `*${details.title || "Property"}*\n` +
       `Location: ${locationText}\n\n` +
       `Link: ${shareUrl}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
@@ -120,15 +125,64 @@ export default function PropertyDetails() {
   };
 
   const handleMapRedirect = () => {
-    if (property?.lat && property?.lng) {
+    if (typeof details?.lat === "number" && typeof details?.lng === "number") {
       const url = Platform.select({
-        ios: `maps:0,0?q=${property.title}@${property.lat},${property.lng}`,
-        android: `geo:0,0?q=${property.lat},${property.lng}(${property.title})`,
+        ios: `maps:0,0?q=${details.title || "Property"}@${details.lat},${details.lng}`,
+        android: `geo:0,0?q=${details.lat},${details.lng}(${details.title || "Property"})`,
       });
 
       if (url) {
         NativeLinking.openURL(url);
       }
+    }
+  };
+
+  const handleCall = () => {
+    if (!details?.owner?.phone) {
+      Alert.alert("Error", "Owner phone number not available.");
+      return;
+    }
+
+    NativeLinking.openURL(`tel:${details.owner.phone}`).catch(() => {
+      Alert.alert("Error", "Unable to open your dialer.");
+    });
+  };
+
+  const handleReportSubmit = async () => {
+    if (isGuest) {
+      setModalVisible(false);
+      setAuthModalVisible(true);
+      return;
+    }
+
+    if (!selectedReason) {
+      Alert.alert("Report", "Please choose a reason first.");
+      return;
+    }
+
+    if (!propertyId) {
+      Alert.alert("Report", "Unable to identify this property.");
+      return;
+    }
+
+    try {
+      await reportProperty({
+        propertyId,
+        reason: selectedReason,
+        description: reportDescription.trim() || undefined,
+      }).unwrap();
+      setModalVisible(false);
+      setSelectedReason("");
+      setReportDescription("");
+      Alert.alert(
+        "Report submitted",
+        "Thanks for helping us review this listing.",
+      );
+    } catch (error: any) {
+      Alert.alert(
+        "Report failed",
+        error?.data?.message || "Unable to submit your report right now.",
+      );
     }
   };
 
@@ -142,12 +196,14 @@ export default function PropertyDetails() {
     );
   }
 
-  if (!property) return null;
+  if (!details) return null;
 
-  const showWhatsApp = property.owner?.subscription !== "free";
+  const showWhatsApp =
+    Boolean(details.owner?.phone) && details.owner?.subscription !== "free";
+  const heroHeight = Math.min(windowHeight * 0.43, 360);
 
   return (
-    <View style={{ flex: 1, backgroundColor: currentTheme.background }}>
+    <View style={[styles.screen, { backgroundColor: currentTheme.background }]}>
       <StatusBar
         translucent
         backgroundColor="transparent"
@@ -160,12 +216,13 @@ export default function PropertyDetails() {
           isDark={isDark}
           onBack={() => router.back()}
           onShare={handleShare}
+          onReport={() => setModalVisible(true)}
         />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 250 }}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={isFetching}
@@ -174,35 +231,43 @@ export default function PropertyDetails() {
           />
         }
       >
-        <View style={{ height: windowHeight * 0.45 }}>
+        <View style={styles.heroWrap}>
           <ImageCarousel
             media={
-              property.photos?.map((uri: string, index: number) => ({
+              details.photos?.map((uri: string, index: number) => ({
                 uri,
                 type: "image",
                 id: `img-${index}`,
               })) || []
             }
+            height={heroHeight}
+            counterPlacement="top-right"
+            topInset={insets.top + 8}
           />
         </View>
 
         <View
           style={[
             styles.contentCard,
-            { backgroundColor: currentTheme.background },
+            {
+              backgroundColor: currentTheme.background,
+              borderColor: currentTheme.border,
+            },
           ]}
         >
-          <View
-            style={[styles.handle, { backgroundColor: currentTheme.border }]}
-          />
-
           <PropertyInfoSection
-            property={property}
+            property={details}
             theme={currentTheme}
             onNavigate={handleMapRedirect}
           />
 
-          <FinancialDetailsCard property={property} theme={currentTheme} />
+          <FinancialDetailsCard property={details} theme={currentTheme} />
+
+          <ListedByCard
+            propertyId={propertyId}
+            owner={details.owner}
+            theme={currentTheme}
+          />
 
           <ReportModal
             visible={isModalVisible}
@@ -213,21 +278,11 @@ export default function PropertyDetails() {
             setSelectedReason={setSelectedReason}
             reportDescription={reportDescription}
             setReportDescription={setReportDescription}
-            onSubmit={() => {}}
+            onSubmit={handleReportSubmit}
             isReporting={isReporting}
           />
         </View>
       </ScrollView>
-
-      {showWhatsApp && (
-        <TouchableOpacity
-          style={styles.whatsappSticky}
-          onPress={handleWhatsApp}
-          activeOpacity={0.9}
-        >
-          <Ionicons name="logo-whatsapp" size={32} color="#FFF" />
-        </TouchableOpacity>
-      )}
 
       <AuthModal
         visible={authModalVisible}
@@ -235,20 +290,24 @@ export default function PropertyDetails() {
         featureName="Messaging"
       />
 
-      <OwnerSection
-        propertyId={propertyId}
-        owner={property.owner}
+      <StickyActionBar
         theme={currentTheme}
+        onCall={handleCall}
         onChat={onPressChat}
-        isCreating={isCreating}
-        price={property.monthlyRent}
-        isOwner={isOwner}
+        onWhatsApp={handleWhatsApp}
+        canCall={!isOwner && Boolean(details.owner?.phone)}
+        canChat={!isOwner && Boolean(details.ownerId)}
+        canWhatsApp={!isOwner && showWhatsApp}
+        chatLoading={isCreating}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   headerWrapper: {
     position: "absolute",
@@ -258,36 +317,26 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 10,
   },
+  scrollContent: {
+    paddingBottom: 160,
+  },
+  heroWrap: {
+    backgroundColor: "#0F172A",
+  },
   contentCard: {
-    marginTop: -30,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: 24,
+    marginTop: -18,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderTopWidth: 1,
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 28,
     minHeight: 500,
-  },
-  handle: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-    alignSelf: "center",
-    marginBottom: 20,
-    opacity: 0.2,
-  },
-  whatsappSticky: {
-    position: "absolute",
-    bottom: 100,
-    right: 20,
-    backgroundColor: "#25D366",
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    zIndex: 999,
+    gap: 24,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 5,
   },
 });

@@ -43,6 +43,10 @@ import {
   normalizeAddressSearch,
   normalizeAreaSearch,
 } from "../../common/utils/normalize.util";
+import {
+  parseObjectId,
+  toObjectIdOrNull,
+} from "../../common/utils/object-id.util";
 
 interface PopularLocationsParams {
   city?: string;
@@ -52,6 +56,12 @@ interface PopularLocationsParams {
 }
 
 type PublicSortOption = "newest" | "price_asc" | "price_desc" | "popular";
+type AdminSortOption =
+  | "newest"
+  | "oldest"
+  | "featured"
+  | "boosted"
+  | "mostViewed";
 
 @Injectable()
 export class PropertyService {
@@ -81,6 +91,38 @@ export class PropertyService {
     }
 
     return { createdAt: -1, _id: -1 } as const;
+  }
+
+  private getAdminListingSort(sortBy?: AdminSortOption) {
+    if (sortBy === "oldest") {
+      return { createdAt: 1, _id: 1 } as Record<string, 1 | -1>;
+    }
+
+    if (sortBy === "featured") {
+      return {
+        featured: -1,
+        createdAt: -1,
+        _id: -1,
+      } as Record<string, 1 | -1>;
+    }
+
+    if (sortBy === "boosted") {
+      return {
+        isBoosted: -1,
+        createdAt: -1,
+        _id: -1,
+      } as Record<string, 1 | -1>;
+    }
+
+    if (sortBy === "mostViewed") {
+      return {
+        views: -1,
+        createdAt: -1,
+        _id: -1,
+      } as Record<string, 1 | -1>;
+    }
+
+    return { createdAt: -1, _id: -1 } as Record<string, 1 | -1>;
   }
 
   private normalizePromotionState(
@@ -340,6 +382,10 @@ export class PropertyService {
     userId: string,
     type: "boost" | "featured",
   ): Promise<{ property: Property; user: any }> {
+    if (type !== "boost" && type !== "featured") {
+      throw new BadRequestException("Invalid promotion type");
+    }
+
     const session = await this.connection.startSession();
     let response: { property: Property; user: any } | null = null;
 
@@ -388,6 +434,8 @@ export class PropertyService {
           user.prioritySlotCredits = slots - 1;
         }
 
+        this.normalizePromotionState(property, expirationDate);
+
         if (Array.isArray(property.address) && property.address.length === 0) {
           property.address = undefined;
         }
@@ -427,7 +475,7 @@ export class PropertyService {
 
     // Exclude user's own listings if userId provided
     if (userId) {
-      mongoFilter.ownerId = { $ne: new Types.ObjectId(userId) };
+      mongoFilter.ownerId = { $ne: parseObjectId(userId, "user id") };
     }
 
     // GeoJSON $near filter
@@ -481,13 +529,13 @@ export class PropertyService {
       };
     }
 
-    const ownerObjectId = new Types.ObjectId(userId);
+    const ownerObjectId = parseObjectId(userId, "user id");
     let filter:
       | { _id: Types.ObjectId; ownerId: Types.ObjectId }
       | { _id: Types.ObjectId };
 
     if (dto._id) {
-      const draftObjectId = new Types.ObjectId(dto._id);
+      const draftObjectId = parseObjectId(dto._id, "draft id");
       const existingDraft =
         await this.propertyDraftModel.findById(draftObjectId);
 
@@ -519,7 +567,7 @@ export class PropertyService {
 
   async getAllDrafts(userId: string | Types.ObjectId) {
     const ownerObjectId =
-      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+      typeof userId === "string" ? parseObjectId(userId, "user id") : userId;
 
     const drafts = await this.propertyDraftModel
       .find({ ownerId: ownerObjectId, status: false })
@@ -650,6 +698,8 @@ export class PropertyService {
       return [];
     }
 
+    const effectiveLimit = Math.min(Math.max(Number(limit) || 5, 1), 10);
+
     const candidates = await this.propertyModel
       .find({
         status: true,
@@ -659,7 +709,7 @@ export class PropertyService {
       })
       .select("area createdAt")
       .sort({ createdAt: -1 })
-      .limit(Math.max(limit * 8, limit))
+      .limit(Math.max(effectiveLimit * 8, effectiveLimit))
       .lean();
 
     const scoredCandidates = candidates
@@ -726,7 +776,7 @@ export class PropertyService {
       });
       seen.add(candidate.normalizedArea);
 
-      if (suggestions.length >= limit) {
+      if (suggestions.length >= effectiveLimit) {
         break;
       }
     }
@@ -990,7 +1040,7 @@ export class PropertyService {
 
     const searchRegex =
       search && search.trim()
-        ? { $regex: search.trim(), $options: "i" }
+        ? { $regex: escapeRegex(search.trim()), $options: "i" }
         : undefined;
     if (searchRegex) {
       filter.$or = [
@@ -1121,7 +1171,7 @@ export class PropertyService {
     if (!Types.ObjectId.isValid(propertyId)) {
       throw new BadRequestException("Invalid property id");
     }
-    const objectId = new Types.ObjectId(propertyId);
+    const objectId = parseObjectId(propertyId, "property id");
     const visibilitySnapshot = await this.propertyModel
       .findById(objectId)
       .select("ownerId status isApproved moderationStatus")
@@ -1232,10 +1282,10 @@ export class PropertyService {
       throw new NotFoundException("Property not found");
     }
 
-    const ownerObjectId =
-      property.ownerId instanceof Types.ObjectId
-        ? property.ownerId
-        : new Types.ObjectId(property.ownerId);
+    const ownerObjectId = toObjectIdOrNull(property.ownerId);
+    if (!ownerObjectId) {
+      throw new NotFoundException("Uploader not found");
+    }
     const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
 
     const [owner, groupedCounts] = await Promise.all([
@@ -1324,10 +1374,10 @@ export class PropertyService {
       throw new NotFoundException("Property not found");
     }
 
-    const ownerObjectId =
-      property.ownerId instanceof Types.ObjectId
-        ? property.ownerId
-        : new Types.ObjectId(property.ownerId);
+    const ownerObjectId = toObjectIdOrNull(property.ownerId);
+    if (!ownerObjectId) {
+      throw new NotFoundException("Uploader not found");
+    }
     const ownerIdCandidates = [ownerObjectId, ownerObjectId.toString()];
 
     const [summary, listings] = await Promise.all([
@@ -1383,9 +1433,7 @@ export class PropertyService {
 
     const skip = (Number(page) - 1) * Number(limit);
     const pageSize = Number(limit);
-    const ownerObjectId = Types.ObjectId.isValid(ownerId)
-      ? new Types.ObjectId(ownerId)
-      : ownerId;
+    const ownerObjectId = toObjectIdOrNull(ownerId) ?? ownerId;
     const ownerIdCandidates =
       ownerObjectId instanceof Types.ObjectId
         ? [ownerObjectId, ownerObjectId.toString()]
@@ -1757,13 +1805,19 @@ export class PropertyService {
     await this.propertyDraftModel.findByIdAndDelete(draftId);
     return { message: "Draft deleted, photos queued for Cloudinary cleanup" };
   }
-  async findUnapprovedProperties(page = 1, limit = 10, hostOption?: string) {
+  async findUnapprovedProperties(
+    page = 1,
+    limit = 10,
+    hostOption?: string,
+    sortBy: AdminSortOption = "newest",
+  ) {
     const skip = (page - 1) * limit;
+    const sort = this.getAdminListingSort(sortBy);
 
     const [result] = await this.propertyModel.aggregate([
       { $match: { isApproved: false, ...(hostOption ? { hostOption } : {}) } },
 
-      { $sort: { createdAt: -1 } },
+      { $sort: sort },
 
       {
         $facet: {
@@ -1821,12 +1875,14 @@ export class PropertyService {
       q?: string;
       approvalStatus?: "all" | "approved" | "pending";
       listingStatus?: "all" | "active" | "inactive";
+      sortBy?: AdminSortOption;
     },
   ) {
     await this.resetExpiredPromotions();
 
     const skip = (page - 1) * limit;
     const match: Record<string, any> = {};
+    const sort = this.getAdminListingSort(filters?.sortBy);
 
     if (filters?.hostOption) {
       match.hostOption = filters.hostOption;
@@ -1866,7 +1922,7 @@ export class PropertyService {
 
     const [result] = await this.propertyModel.aggregate([
       { $match: match },
-      { $sort: { sortWeight: -1, createdAt: -1, _id: -1 } },
+      { $sort: sort },
       {
         $facet: {
           metadata: [{ $count: "total" }],

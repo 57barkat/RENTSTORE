@@ -16,6 +16,7 @@ import { Property } from "../property/property.schema";
 import { ResetPasswordDto } from "./dto/forgot-password.dto";
 import { Agency, AgencyDocument } from "../Agency/agency.entity";
 import { EmailService } from "../../services/email/email.service";
+import { escapeRegex } from "../../common/utils/normalize.util";
 
 @Injectable()
 export class UserService {
@@ -47,15 +48,12 @@ export class UserService {
 
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
     const normalizedEmail = this.normalizeEmail(dto.email);
-
-    if (dto.role === UserRole.ADMIN) {
-      throw new BadRequestException("ADMIN_SIGNUP_FORBIDDEN");
-    }
+    const role = dto.isAgencyPerson ? UserRole.AGENCY : UserRole.USER;
 
     // 1. Check for existing users
     const conflict = await this.userModel.findOne({
       $or: [
-        { email: { $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" } },
+        { email: { $regex: `^${escapeRegex(normalizedEmail)}$`, $options: "i" } },
         { phone: dto.phone },
         { cnic: dto.cnic },
       ],
@@ -74,15 +72,11 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     // 3. Determine property limit based on role
-    const role = dto.role || UserRole.USER;
     let propertyLimit = 1;
 
     switch (role) {
       case UserRole.USER:
         propertyLimit = 1;
-        break;
-      case UserRole.AGENT:
-        propertyLimit = 3;
         break;
       case UserRole.AGENCY:
         propertyLimit = 50;
@@ -97,7 +91,6 @@ export class UserService {
       agencyName,
       agencyLogo,
       agencyAddress,
-      role: _requestedRole,
       ...cleanedData
     } = dto;
 
@@ -396,7 +389,7 @@ export class UserService {
       isEmailLogin
         ? {
             email: {
-              $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+              $regex: `^${escapeRegex(normalizedEmail)}$`,
               $options: "i",
             },
           }
@@ -438,9 +431,9 @@ export class UserService {
     const query = search
       ? {
           $or: [
-            { name: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-            { phone: { $regex: search, $options: "i" } },
+            { name: { $regex: escapeRegex(search), $options: "i" } },
+            { email: { $regex: escapeRegex(search), $options: "i" } },
+            { phone: { $regex: escapeRegex(search), $options: "i" } },
           ],
         }
       : {};

@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { MongooseModule } from "@nestjs/mongoose";
 import { JwtModule } from "@nestjs/jwt";
 import { ChatGateway } from "./chat.gateway";
@@ -12,9 +13,19 @@ import { Message, MessageSchema } from "./schemas/message.schema";
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: "7d" },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.getOrThrow<string>("app.jwtSecret", {
+          infer: true,
+        }),
+        signOptions: {
+          expiresIn:
+            configService.get<string>("app.jwtExpiresIn", { infer: true }) ||
+            "15m",
+        },
+      }),
     }),
     MongooseModule.forFeature([
       { name: ChatEvent.name, schema: ChatEventSchema },
