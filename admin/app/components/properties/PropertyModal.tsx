@@ -1,13 +1,14 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
 import { memo, useEffect, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   DEFAULT_PROPERTY_IMAGE,
+  buildPropertyImageAlt,
   buildPropertyHref,
   getPropertyDescriptionText,
   getPropertyLocation,
@@ -93,11 +94,15 @@ const PropertyModalComponent = ({
       >
         <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
           <div className="aspect-[4/3] bg-[var(--admin-card)] md:aspect-auto">
-            <img
-              src={selectedProperty.photos?.[0] || DEFAULT_PROPERTY_IMAGE}
-              alt={getPropertyTitle(selectedProperty)}
-              className="h-full w-full object-cover"
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src={selectedProperty.photos?.[0] || DEFAULT_PROPERTY_IMAGE}
+                alt={buildPropertyImageAlt(selectedProperty)}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
           </div>
 
           <div className="p-6 md:p-8">

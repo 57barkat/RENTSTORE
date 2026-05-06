@@ -1,9 +1,23 @@
+import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import { PropertyService } from "@/app/lib/PropertyService";
-import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
+import {
+  BRAND_NAME,
+  DEFAULT_PROPERTY_IMAGE,
+} from "@/app/lib/property-utils";
+
+export const metadata: Metadata = {
+  title: `Property Uploader Profile | ${BRAND_NAME}`,
+  description: "Public uploader profile page for marketplace contact context.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 interface UploaderPageProps {
   params: Promise<{ propertyId: string }>;
@@ -37,13 +51,15 @@ export default async function UploaderPage({ params }: UploaderPageProps) {
         <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_92%,transparent)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)]">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <img
-                src={
-                  profile.uploader.profileImage || DEFAULT_PROPERTY_IMAGE
-                }
-                alt={profile.uploader.name || "Uploader"}
-                className="h-20 w-20 rounded-full object-cover"
-              />
+              <div className="relative h-20 w-20 overflow-hidden rounded-full">
+                <Image
+                  src={profile.uploader.profileImage || DEFAULT_PROPERTY_IMAGE}
+                  alt={profile.uploader.name || "Uploader"}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                />
+              </div>
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight text-[var(--admin-text)]">
                   {profile.uploader.name}

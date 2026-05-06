@@ -6,7 +6,7 @@ import {
   buildListingPath,
   buildPropertyHref,
   getCanonicalCategorySegment,
-  getPropertyCity,
+  getPropertyAddresses,
 } from "@/app/lib/property-utils";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
 
@@ -42,6 +42,12 @@ const getCategoryProperties = async (
   return collected;
 };
 
+const getRawPropertyCity = (property: PublicProperty) =>
+  getPropertyAddresses(property)[0]?.city?.trim() || "";
+
+const getRawPropertyArea = (property: PublicProperty) =>
+  String(property.area || property.location || "").trim();
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [
     {
@@ -50,9 +56,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 1,
     },
+    {
+      url: toAbsoluteUrl("/popular-locations"),
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
   ];
 
   const seenUrls = new Set<string>(entries.map((entry) => entry.url));
+  const seenListingUrls = new Set<string>();
 
   for (const category of CATEGORIES) {
     const categoryPath = `/${getCanonicalCategorySegment(category)}`;
@@ -81,10 +94,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const seenCities = new Set<string>();
 
     for (const property of properties) {
-      const city = getPropertyCity(property);
+      const city = getRawPropertyCity(property);
+      const area = getRawPropertyArea(property);
       const cityKey = city.toLowerCase();
 
-      if (!seenCities.has(cityKey)) {
+      if (city && !seenCities.has(cityKey)) {
         const cityUrl = toAbsoluteUrl(
           buildListingPath(
             {
@@ -98,13 +112,43 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             { preferSeo: true },
           ),
         );
-        entries.push({
-          url: cityUrl,
-          lastModified: new Date(),
-          changeFrequency: "daily",
-          priority: 0.8,
-        });
+        if (!seenListingUrls.has(cityUrl)) {
+          entries.push({
+            url: cityUrl,
+            lastModified: new Date(),
+            changeFrequency: "daily",
+            priority: 0.8,
+          });
+          seenListingUrls.add(cityUrl);
+        }
         seenCities.add(cityKey);
+      }
+
+      if (city && area) {
+        const areaUrl = toAbsoluteUrl(
+          buildListingPath(
+            {
+              category,
+              purpose: "rent",
+              city,
+              location: area,
+              page: 1,
+              limit: 12,
+              sortBy: "newest",
+            },
+            { preferSeo: true },
+          ),
+        );
+
+        if (!seenListingUrls.has(areaUrl)) {
+          entries.push({
+            url: areaUrl,
+            lastModified: new Date(),
+            changeFrequency: "daily",
+            priority: 0.75,
+          });
+          seenListingUrls.add(areaUrl);
+        }
       }
 
       const propertyPath = buildPropertyHref(property);

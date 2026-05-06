@@ -8,6 +8,12 @@ import PopularLocationsSection from "@/app/components/properties/PopularLocation
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyModal from "@/app/components/properties/PropertyModal";
 import { PropertyService } from "@/app/lib/PropertyService";
+import {
+  buildBreadcrumbJsonLd,
+  buildListingSeoContent,
+  buildListingBreadcrumbs,
+  serializeJsonLd,
+} from "@/app/lib/seo";
 import type {
   PopularLocationSummary,
   PropertyCategory,
@@ -156,12 +162,25 @@ export default async function PublicListingPage({
       })),
     },
   };
-  const serializedJsonLd = JSON.stringify(jsonLd)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
+  const breadcrumbs = buildListingBreadcrumbs(filters);
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(breadcrumbs);
   const currentPage = response.page || 1;
   const totalPages = response.totalPages || 1;
+  const seoContent = buildListingSeoContent(filters);
+  const faqJsonLd = seoContent
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: seoContent.faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
   const pages = Array.from(
     new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]),
   )
@@ -170,7 +189,7 @@ export default async function PublicListingPage({
   const inventoryDescription =
     category === "property"
       ? "Verified houses, apartments, hostels, shops, and offices with real-time availability updates."
-      : `Verified ${getCategoryLabel(category, true).toLowerCase()} available in ${filters.city || "your area"} with real-time availability updates.`;
+      : `Verified ${getCategoryLabel(category, true).toLowerCase()} available in ${filters.city || filters.location || "selected locations"} with real-time availability updates.`;
   const popularLocationsTitle =
     category === "property"
       ? "Most Popular Locations Across Pakistan"
@@ -191,10 +210,53 @@ export default async function PublicListingPage({
         type="application/ld+json"
         strategy="beforeInteractive"
       >
-        {serializedJsonLd}
+        {serializeJsonLd(jsonLd)}
       </Script>
+      <Script
+        id={`category-breadcrumbs-jsonld-${category}-${currentPage}`}
+        type="application/ld+json"
+        strategy="beforeInteractive"
+      >
+        {serializeJsonLd(breadcrumbJsonLd)}
+      </Script>
+      {faqJsonLd && (
+        <Script
+          id={`category-faq-jsonld-${category}-${currentPage}`}
+          type="application/ld+json"
+          strategy="beforeInteractive"
+        >
+          {serializeJsonLd(faqJsonLd)}
+        </Script>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--admin-muted)]"
+        >
+          {breadcrumbs.map((item, index) => {
+            const isLast = index === breadcrumbs.length - 1;
+
+            return (
+              <div key={`${item.href}-${item.name}`} className="flex items-center gap-2">
+                {isLast ? (
+                  <span className="font-medium text-[var(--admin-text)]">
+                    {item.name}
+                  </span>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="transition hover:text-[var(--admin-primary)]"
+                  >
+                    {item.name}
+                  </Link>
+                )}
+                {!isLast && <span>/</span>}
+              </div>
+            );
+          })}
+        </nav>
+
         <div className="mb-10 grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-end">
           <div className="space-y-5">
             <span className="inline-flex rounded-full border border-[var(--admin-primary-strong)] bg-[color:color-mix(in_srgb,var(--admin-background)_88%,transparent)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-primary)]">
@@ -287,7 +349,7 @@ export default async function PublicListingPage({
                 <p className="mx-auto mt-3 max-w-xl text-[var(--admin-muted)]">
                   {fetchError
                     ? `We couldn't reach the property service. Please try again in a moment for ${filters.city || "Pakistan"} listings.`
-                    : `Try widening the price range or changing the locality filter to surface more results in ${filters.city || "Pakistan"}.`}
+                    : `Try widening the price range or changing the locality filter to surface more results in ${filters.city || filters.location || "the selected area"}.`}
                 </p>
               </div>
             ) : (
@@ -359,6 +421,40 @@ export default async function PublicListingPage({
                   <ChevronRight size={16} />
                 </Link>
               </nav>
+            )}
+
+            {seoContent && (
+              <section className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-6 shadow-[0_18px_40px_-34px_var(--admin-shadow)] sm:p-7">
+                <div className="max-w-4xl">
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
+                    Local rental guide
+                  </p>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-3xl">
+                    {seoContent.introTitle}
+                  </h2>
+                  <p className="mt-4 text-base leading-7 text-[var(--admin-muted)]">
+                    {seoContent.introBody}
+                  </p>
+                </div>
+
+                {seoContent.faqs.length > 0 && (
+                  <div className="mt-8 grid gap-4 lg:grid-cols-2">
+                    {seoContent.faqs.map((faq) => (
+                      <article
+                        key={faq.question}
+                        className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-5"
+                      >
+                        <h3 className="text-lg font-semibold tracking-tight text-[var(--admin-text)]">
+                          {faq.question}
+                        </h3>
+                        <p className="mt-3 text-sm leading-7 text-[var(--admin-muted)]">
+                          {faq.answer}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
             )}
 
             <PopularLocationsSection

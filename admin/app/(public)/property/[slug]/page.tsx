@@ -14,6 +14,8 @@ interface PropertySlugPageProps {
   }>;
 }
 
+export const revalidate = 600;
+
 export async function generateMetadata({
   params,
 }: PropertySlugPageProps): Promise<Metadata> {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import PublicListingPage from "@/app/components/properties/PublicListingPage";
+import { buildListingRobots } from "@/app/lib/seo";
 import {
   BRAND_NAME,
   buildListingDescription,
@@ -13,6 +14,8 @@ import { toAbsoluteUrl } from "@/app/lib/site-config";
 interface HomePageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
+
+export const revalidate = 300;
 
 export async function generateMetadata({
   searchParams,
@@ -29,6 +32,7 @@ export async function generateMetadata({
   return {
     title,
     description,
+    robots: buildListingRobots(filters),
     alternates: {
       canonical: canonicalUrl,
     },

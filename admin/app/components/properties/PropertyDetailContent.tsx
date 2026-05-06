@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import {
@@ -8,6 +8,7 @@ import {
   BedDouble,
   Building2,
   CheckCircle2,
+  CircleDot,
   MapPin,
   Phone,
   ShieldCheck,
@@ -20,18 +21,23 @@ import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
 import {
   formatPromotionDate,
-  getCtr,
-  getPromotionStatusLabel,
   isActiveBoostedPromotion,
   isActiveFeaturedPromotion,
 } from "@/app/lib/promotion";
 import { PropertyService } from "@/app/lib/PropertyService";
+import {
+  buildBreadcrumbJsonLd,
+  buildPropertyBreadcrumbs,
+  serializeJsonLd,
+} from "@/app/lib/seo";
 import type {
   PropertyCategory,
   PublicProperty,
 } from "@/app/lib/property-types";
 import {
   DEFAULT_PROPERTY_IMAGE,
+  buildPropertyImageAlt,
+  buildListingPath,
   buildPropertyMetadataDescription,
   formatCurrency,
   getCanonicalCategorySegment,
@@ -39,14 +45,12 @@ import {
   getPropertyAddresses,
   getPropertyCity,
   getPropertyContactPhone,
-  getPropertyDescriptionText,
   getPropertyHighlights,
   getPropertyLocation,
   getPropertyPriceDisplay,
   getPropertyPriceInfo,
   getPropertyPricingOptions,
   getPropertyTitle,
-  hasAllBillsIncluded,
 } from "@/app/lib/property-utils";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
 
@@ -88,71 +92,30 @@ const formatFloorLevel = (floorLevel: unknown) => {
   return String(floorLevel);
 };
 
-const getFactRows = (property: PublicProperty, category: PropertyCategory) =>
-  [
-    {
-      label: "Property Type",
-      value: getCategoryLabel(category),
-    },
-    {
-      label: "City",
-      value: getPropertyCity(property),
-    },
-    {
-      label: "Area",
-      value: getPropertyLocation(property),
-    },
-    {
-      label: "Security Deposit",
-      value:
-        property.SecuritybasePrice && property.SecuritybasePrice > 0
-          ? formatCurrency(property.SecuritybasePrice)
-          : "Ask for details",
-    },
-    {
-      label: "Apartment Type",
-      value: property.apartmentType || "",
-    },
-    {
-      label: "Furnishing",
-      value: property.furnishing || "",
-    },
-    {
-      label: "Parking",
-      value: property.parking ? "Available" : "",
-    },
-    {
-      label: "Bills",
-      value: hasAllBillsIncluded(property)
-        ? property.ALL_BILLS?.join(", ")
-        : "",
-    },
-    {
-      label: "Hostel Type",
-      value: property.hostelType || "",
-    },
-  ].filter((item) => item.value);
-
 const getAmenityItems = (property: PublicProperty) =>
   (property.amenities || []).filter(Boolean);
 
-const getTrustItems = (property: PublicProperty) => {
-  const items: string[] = [];
+const toReadableLabel = (value: string) =>
+  value
+    .replace(/[_-]+/g, " / ")
+    .replace(/\s+/g, " ")
+    .split(" ")
+    .map((part) =>
+      part === "/"
+        ? part
+        : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
+    )
+    .join(" ")
+    .replace(/\s\/\s/g, " / ");
 
-  if (property.isApproved) {
-    items.push("Verified listing");
-  }
-
-  if (property.safetyDetailsData?.safetyDetails?.length) {
-    items.push(...property.safetyDetailsData.safetyDetails);
-  }
-
-  if (property.moderationStatus) {
-    items.push(property.moderationStatus);
-  }
-
-  return Array.from(new Set(items.filter(Boolean)));
-};
+const getHostInitials = (name?: string) =>
+  (name || "PM")
+    .split(" ")
+    .map((part) => part.trim().charAt(0))
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "PM";
 
 export default async function PropertyDetailContent({
   category,
@@ -173,7 +136,7 @@ export default async function PropertyDetailContent({
   }
 
   const title = getPropertyTitle(property);
-  const overviewText = getPropertyDescriptionText(property, 520);
+  const imageAlt = buildPropertyImageAlt(property);
   const addressLine = renderAddress(property);
   const highlights = getPropertyHighlights(property);
   const contactPhone = getPropertyContactPhone(property);
@@ -181,7 +144,6 @@ export default async function PropertyDetailContent({
     await PropertyService.getPropertyUploaderProfileByProperty(property._id);
   const priceInfo = getPropertyPriceInfo(property);
   const pricingOptions = getPropertyPricingOptions(property);
-  const trustItems = getTrustItems(property);
   const amenityItems = getAmenityItems(property);
   const host = uploaderProfile?.uploader || property.owner;
   const city = getPropertyCity(property);
@@ -190,16 +152,57 @@ export default async function PropertyDetailContent({
   const categoryPlural = getCategoryLabel(category, true);
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
-  const promotionStatusLabel =
-    property.promotionStatusLabel || getPromotionStatusLabel(property);
-  const ctr = getCtr(property);
   const primaryAddress = addressLine || [area, city].filter(Boolean).join(", ");
   const mapQuery = encodeURIComponent(primaryAddress || title);
-  const listingFacts = getFactRows(property, category);
   const securityDeposit =
     property.SecuritybasePrice && property.SecuritybasePrice > 0
       ? formatCurrency(property.SecuritybasePrice)
       : "Ask for details";
+  const cityHref = city
+    ? buildListingPath(
+        {
+          category,
+          purpose: "rent",
+          city,
+          location: "",
+          title: "",
+          minRent: "",
+          maxRent: "",
+          minSize: "",
+          maxSize: "",
+          sizeUnit: "",
+          amenities: [],
+          hostelType: "",
+          sortBy: "newest",
+          page: 1,
+          limit: 12,
+        },
+        { preferSeo: true, rootForProperty: true },
+      )
+    : "";
+  const areaHref =
+    city && area
+      ? buildListingPath(
+          {
+            category,
+            purpose: "rent",
+            city,
+            location: area,
+            title: "",
+            minRent: "",
+            maxRent: "",
+            minSize: "",
+            maxSize: "",
+            sizeUnit: "",
+            amenities: [],
+            hostelType: "",
+            sortBy: "newest",
+            page: 1,
+            limit: 12,
+          },
+          { preferSeo: true, rootForProperty: true },
+        )
+      : "";
 
   const cameraDescription =
     property.safetyDetailsData?.cameraDescription &&
@@ -207,6 +210,19 @@ export default async function PropertyDetailContent({
       String(property.safetyDetailsData.cameraDescription).toLowerCase(),
     )
       ? property.safetyDetailsData.cameraDescription
+      : "";
+  const displayAmenities = amenityItems.map((item) => toReadableLabel(item));
+  const displayHighlights = highlights.map((item) => toReadableLabel(item));
+  const trustSignals = [
+    property.isApproved ? "Verified listing" : "",
+    property.moderationStatus?.toLowerCase() === "active" ? "Active" : "",
+  ].filter(Boolean);
+  const hasActivePromotion = isFeatured || isBoosted;
+  const promotionLabel = isFeatured ? "Featured" : isBoosted ? "Boosted" : "";
+  const promotionUntil = isFeatured
+    ? property.featuredUntil
+    : isBoosted
+      ? property.boostedUntil
       : "";
 
   const stats = [
@@ -275,11 +291,9 @@ export default async function PropertyDetailContent({
         property.capacityState?.bedrooms || property.capacityState?.beds,
     },
   };
-
-  const serializedJsonLd = JSON.stringify(jsonLd)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026");
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(
+    buildPropertyBreadcrumbs(category, city, area, canonicalHref, title),
+  );
 
   return (
     <main className="min-h-screen bg-[#f7f9fc]">
@@ -288,7 +302,14 @@ export default async function PropertyDetailContent({
         type="application/ld+json"
         strategy="beforeInteractive"
       >
-        {serializedJsonLd}
+        {serializeJsonLd(jsonLd)}
+      </Script>
+      <Script
+        id={`property-breadcrumbs-jsonld-${property._id}`}
+        type="application/ld+json"
+        strategy="beforeInteractive"
+      >
+        {serializeJsonLd(breadcrumbJsonLd)}
       </Script>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -309,13 +330,31 @@ export default async function PropertyDetailContent({
           {city && (
             <>
               <span>/</span>
-              <span>{city}</span>
+              {cityHref ? (
+                <Link
+                  href={cityHref}
+                  className="transition hover:text-[var(--admin-primary)]"
+                >
+                  {city}
+                </Link>
+              ) : (
+                <span>{city}</span>
+              )}
             </>
           )}
           {area && (
             <>
               <span>/</span>
-              <span className="line-clamp-1">{area}</span>
+              {areaHref ? (
+                <Link
+                  href={areaHref}
+                  className="line-clamp-1 transition hover:text-[var(--admin-primary)]"
+                >
+                  {area}
+                </Link>
+              ) : (
+                <span className="line-clamp-1">{area}</span>
+              )}
             </>
           )}
         </div>
@@ -365,7 +404,7 @@ export default async function PropertyDetailContent({
 
         <PropertyGallery
           galleryImages={galleryImages}
-          title={title}
+          imageAltBase={imageAlt}
           isFeatured={isFeatured}
           isBoosted={isBoosted}
           isVerified={Boolean(property.isApproved)}
@@ -398,30 +437,34 @@ export default async function PropertyDetailContent({
           </div>
         </section>
 
-        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="mt-8 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-6">
-            {amenityItems.length > 0 && (
-              <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_18px_40px_-34px_var(--admin-shadow)] sm:p-6">
-                <div className="flex items-center gap-3 border-b border-[var(--admin-border)] pb-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
+            {displayAmenities.length > 0 && (
+              <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[var(--admin-primary)]">
                     <Sparkles size={19} />
                   </span>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
-                      Boutique Amenities
+                    <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
+                      Amenities
                     </h2>
-                    <p className="text-sm text-[var(--admin-muted)]">
+                    <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
                       Available features from this listing.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2.5">
-                  {amenityItems.map((amenity) => (
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {displayAmenities.map((amenity, index) => (
                     <span
-                      key={amenity}
-                      className="rounded-xl border border-[var(--admin-border)] bg-[#f8fafc] px-3.5 py-2 text-sm font-semibold text-[var(--admin-text)]"
+                      key={`${amenity}-${index}`}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-2.5 text-sm font-medium text-[var(--admin-text)]"
                     >
+                      <CircleDot
+                        size={14}
+                        className="text-[var(--admin-primary)]"
+                      />
                       {amenity}
                     </span>
                   ))}
@@ -429,27 +472,27 @@ export default async function PropertyDetailContent({
               </section>
             )}
 
-            {highlights.length > 0 && (
-              <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_18px_40px_-34px_var(--admin-shadow)] sm:p-6">
-                <div className="flex items-center gap-3 border-b border-[var(--admin-border)] pb-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--admin-accent-soft)] text-[var(--admin-warning)]">
+            {displayHighlights.length > 0 && (
+              <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#D97706]">
                     <CheckCircle2 size={19} />
                   </span>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
+                    <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                       Key Highlights
                     </h2>
-                    <p className="text-sm text-[var(--admin-muted)]">
+                    <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
                       Quick reasons this listing stands out.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2.5">
-                  {highlights.map((highlight) => (
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {displayHighlights.map((highlight) => (
                     <span
                       key={highlight}
-                      className="rounded-xl border border-[rgba(245,159,11,0.28)] bg-[rgba(245,159,11,0.08)] px-3.5 py-2 text-sm font-semibold text-[var(--admin-warning)]"
+                      className="rounded-full border border-[#FCD9A6] bg-[#FFF9F1] px-4 py-2.5 text-sm font-medium text-[#B45309]"
                     >
                       {highlight}
                     </span>
@@ -459,34 +502,38 @@ export default async function PropertyDetailContent({
             )}
 
             {primaryAddress && (
-              <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_18px_40px_-34px_var(--admin-shadow)] sm:p-6">
-                <div className="flex items-center gap-3 border-b border-[var(--admin-border)] pb-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--admin-secondary-soft)] text-[var(--admin-secondary)]">
+              <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-7">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ECFDF5] text-[var(--admin-secondary)]">
                     <MapPin size={19} />
                   </span>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
+                    <h2 className="text-2xl font-semibold tracking-tight text-[var(--admin-text)]">
                       Where You&apos;ll Be
                     </h2>
-                    <p className="text-sm text-[var(--admin-muted)]">
+                    <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
                       Location details from the property listing.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-[1.25rem] border border-[var(--admin-border)] bg-[#f8fafc] p-5">
-                  <p className="break-words text-lg font-black text-[var(--admin-text)]">
+                <div className="mt-6 rounded-[1.25rem] border border-[#E5E7EB] bg-[#F8FAFC] p-5">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                    Location Summary
+                  </p>
+                  <p className="mt-3 break-words text-lg font-semibold text-[var(--admin-text)]">
                     {primaryAddress}
                   </p>
-                  <p className="mt-2 text-sm leading-7 text-[var(--admin-muted)]">
-                    Open the location in maps for route, nearby areas, and
-                    neighborhood context.
-                  </p>
+                  {(area || city) && (
+                    <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
+                      {[area, city].filter(Boolean).join(", ")}
+                    </p>
+                  )}
                   <a
                     href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-3 text-sm font-bold text-white transition hover:opacity-90"
+                    className="mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--admin-primary)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary)] hover:text-white"
                   >
                     Open in Maps
                     <ArrowUpRight size={16} />
@@ -496,125 +543,120 @@ export default async function PropertyDetailContent({
             )}
           </div>
 
-          <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-            <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_24px_48px_-34px_var(--admin-shadow)]">
+          <aside className="space-y-5 xl:sticky xl:top-[90px] xl:self-start">
+            <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-6 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.14)]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                     {priceInfo.label}
                   </p>
-                  <p className="mt-2 whitespace-nowrap text-2xl font-black tracking-tight text-[var(--admin-primary)] sm:text-3xl">
+                  <p className="mt-3 whitespace-nowrap text-3xl font-semibold tracking-tight text-[var(--admin-primary)]">
                     {getPropertyPriceDisplay(property)}
                   </p>
                 </div>
 
                 {property.isApproved && (
-                  <span className="shrink-0 rounded-full bg-[var(--admin-secondary-soft)] px-3 py-1 text-xs font-bold text-[var(--admin-secondary)]">
+                  <span className="shrink-0 rounded-full bg-[#ECFDF5] px-3 py-1.5 text-xs font-semibold text-[var(--admin-secondary)]">
                     Verified
                   </span>
                 )}
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-6 space-y-3">
                 {contactPhone ? (
                   <a
                     href={`tel:${contactPhone}`}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--admin-primary)] px-5 py-4 text-sm font-black text-white transition hover:opacity-90"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:opacity-90"
                   >
                     <Phone size={18} />
                     Contact Host
                   </a>
                 ) : (
-                  <div className="rounded-xl border border-[var(--admin-border)] bg-[#f8fafc] px-5 py-4 text-center text-sm font-semibold text-[var(--admin-muted)]">
+                  <div className="rounded-[1rem] border border-[#E5E7EB] bg-[#F8FAFC] px-5 py-4 text-center text-sm font-medium text-[var(--admin-muted)]">
                     Contact details available on request
                   </div>
                 )}
 
                 <Link
                   href={`/uploader/${property._id}`}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--admin-border)] bg-white px-5 py-4 text-sm font-black text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#D1D5DB] bg-white px-5 py-3.5 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                 >
                   View Profile
                   <ArrowUpRight size={17} />
                 </Link>
               </div>
 
-              <dl className="mt-5 space-y-4 border-t border-[var(--admin-border)] pt-5 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-[var(--admin-muted)]">Promotion</dt>
-                  <dd className="text-right font-bold text-[var(--admin-text)]">
-                    {promotionStatusLabel}
-                  </dd>
-                </div>
-                {(property.featuredUntil || property.boostedUntil) && (
+              {hasActivePromotion && (
+                <dl className="mt-6 space-y-4 border-t border-[#E5E7EB] pt-5 text-sm">
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-[var(--admin-muted)]">Promotion Until</dt>
-                    <dd className="text-right font-bold text-[var(--admin-text)]">
-                      {isFeatured
-                        ? formatPromotionDate(property.featuredUntil)
-                        : isBoosted
-                          ? formatPromotionDate(property.boostedUntil)
-                          : "Expired"}
+                    <dt className="text-[var(--admin-muted)]">Promotion</dt>
+                    <dd className="text-right font-semibold text-[var(--admin-text)]">
+                      {promotionLabel}
                     </dd>
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="flex items-center gap-2 text-[var(--admin-muted)]">
-                    <Wallet size={16} />
-                    Security Deposit
-                  </dt>
-                  <dd className="font-bold text-[var(--admin-text)]">
-                    {securityDeposit}
-                  </dd>
-                </div>
-                {area && (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-[var(--admin-muted)]">Area</dt>
-                    <dd className="text-right font-bold text-[var(--admin-text)]">
-                      {area}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-              {host && (
-                <div className="mt-5 border-t border-[var(--admin-border)] pt-5">
-                  <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                    Property Manager
-                  </h2>
-
-                  <div className="mt-4 flex items-center gap-4 rounded-2xl border border-[var(--admin-border)] bg-[#f8fafc] p-4">
-                    <img
-                      src={host.profileImage || DEFAULT_PROPERTY_IMAGE}
-                      alt={host.name || "Host"}
-                      className="h-14 w-14 rounded-full object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-black text-[var(--admin-text)]">
-                        {host.name || "Property host"}
-                      </p>
-                      <p className="truncate text-sm text-[var(--admin-muted)]">
-                        {uploaderProfile?.uploader?.planLabel ||
-                          "Listing manager"}
-                      </p>
-                      {contactPhone && (
-                        <p className="mt-1 text-sm font-bold text-[var(--admin-primary)]">
-                          {contactPhone}
-                        </p>
-                      )}
+                  {promotionUntil && (
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-[var(--admin-muted)]">
+                        Promotion Until
+                      </dt>
+                      <dd className="text-right font-semibold text-[var(--admin-text)]">
+                        {formatPromotionDate(promotionUntil)}
+                      </dd>
                     </div>
-                  </div>
-                </div>
+                  )}
+                </dl>
               )}
             </section>
 
-            {trustItems.length > 0 && (
-              <section className="rounded-[1.5rem] border border-[rgba(5,150,105,0.18)] bg-[rgba(5,150,105,0.08)] p-5 shadow-[0_16px_30px_-28px_var(--admin-secondary)]">
+            {host && (
+              <section className="rounded-[1.5rem] border border-[#E5E7EB] bg-white p-5 shadow-sm">
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--admin-text)]">
+                  Property Manager
+                </h2>
+
+                <div className="mt-4 flex items-center gap-4 rounded-[1.25rem] bg-[#F8FAFC] p-4">
+                  {host.profileImage ? (
+                    <div className="relative h-14 w-14 overflow-hidden rounded-full">
+                      <Image
+                        src={host.profileImage || DEFAULT_PROPERTY_IMAGE}
+                        alt={host.name || "Host"}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#EEF2FF] text-sm font-semibold text-[var(--admin-primary)]">
+                      {getHostInitials(host.name)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-base font-semibold text-[var(--admin-text)]">
+                      {host.name || "Property host"}
+                    </p>
+                    {uploaderProfile?.uploader?.planLabel && (
+                      <p className="mt-1 truncate text-sm text-[var(--admin-muted)]">
+                        {uploaderProfile.uploader.planLabel}
+                      </p>
+                    )}
+                    {contactPhone && (
+                      <p className="mt-2 text-sm font-semibold text-[var(--admin-primary)]">
+                        {contactPhone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {trustSignals.length > 0 && (
+              <section className="rounded-[1.5rem] border border-[#D1FAE5] bg-[#F0FDF4] p-5 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[var(--admin-secondary)]">
-                    <ShieldCheck size={20} />
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-[var(--admin-secondary)]">
+                    <ShieldCheck size={18} />
                   </span>
                   <div>
-                    <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
+                    <h2 className="text-lg font-semibold tracking-tight text-[var(--admin-text)]">
                       Verified Secure
                     </h2>
                     <p className="text-sm text-[var(--admin-muted)]">
@@ -624,10 +666,10 @@ export default async function PropertyDetailContent({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {trustItems.map((item) => (
+                  {trustSignals.map((item) => (
                     <span
                       key={item}
-                      className="rounded-xl bg-white px-3 py-2 text-sm font-bold text-[var(--admin-secondary)]"
+                      className="rounded-full border border-[#BBF7D0] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--admin-secondary)]"
                     >
                       {item}
                     </span>
@@ -635,51 +677,12 @@ export default async function PropertyDetailContent({
                 </div>
 
                 {cameraDescription && (
-                  <p className="mt-4 text-sm leading-7 text-[var(--admin-muted)]">
+                  <p className="mt-4 text-sm leading-6 text-[var(--admin-muted)]">
                     {cameraDescription}
                   </p>
                 )}
               </section>
             )}
-
-            <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_18px_40px_-34px_var(--admin-shadow)]">
-              <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                Listing Facts
-              </h2>
-
-              <dl className="mt-5 divide-y divide-[var(--admin-border)] text-sm">
-                {listingFacts.map((item) => (
-                  <div
-                    key={item.label}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 first:pt-0 last:pb-0"
-                  >
-                    <dt className="text-[var(--admin-muted)]">{item.label}</dt>
-                    <dd className="min-w-0 break-words text-right font-bold text-[var(--admin-text)]">
-                      {item.value}
-                    </dd>
-                  </div>
-                ))}
-
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 last:pb-0">
-                  <dt className="text-[var(--admin-muted)]">Views</dt>
-                  <dd className="text-right font-bold text-[var(--admin-text)]">
-                    {property.views || 0}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 last:pb-0">
-                  <dt className="text-[var(--admin-muted)]">Impressions</dt>
-                  <dd className="text-right font-bold text-[var(--admin-text)]">
-                    {property.impressions || 0}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-[minmax(0,1fr)_minmax(120px,auto)] items-start gap-4 py-3 last:pb-0">
-                  <dt className="text-[var(--admin-muted)]">CTR</dt>
-                  <dd className="text-right font-bold text-[var(--admin-text)]">
-                    {ctr.toFixed(1)}%
-                  </dd>
-                </div>
-              </dl>
-            </section>
           </aside>
         </div>
 

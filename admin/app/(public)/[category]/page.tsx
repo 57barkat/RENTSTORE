@@ -5,6 +5,7 @@ import {
 } from "next/navigation";
 
 import PublicListingPage from "@/app/components/properties/PublicListingPage";
+import { buildListingRobots } from "@/app/lib/seo";
 import type { PropertySearchFilters } from "@/app/lib/property-types";
 import {
   BRAND_NAME,
@@ -27,6 +28,8 @@ interface PageProps {
   params: Promise<{ category: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
+
+export const revalidate = 300;
 
 const getCategoryRouteContext = async (
   paramsPromise: Promise<{ category: string }>,
@@ -88,6 +91,7 @@ export async function generateMetadata({
   return {
     title: `${title} | ${BRAND_NAME}`,
     description,
+    robots: buildListingRobots(filters),
     alternates: {
       canonical: canonicalUrl,
     },

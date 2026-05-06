@@ -1,10 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUpRight,
   Bath,
   BedDouble,
   Eye,
-  Heart,
   MapPin,
   SquareDashedBottom,
 } from "lucide-react";
@@ -16,11 +16,12 @@ import {
 } from "@/app/lib/promotion";
 import {
   DEFAULT_PROPERTY_IMAGE,
+  buildPropertyImageAlt,
   buildPropertyHref,
   getCategoryLabel,
   getPropertyCategory,
   getPropertyCity,
-  getPropertyLocation,
+  getPropertyLocationLabel,
   getPropertyPriceDisplay,
   getPropertyTitle,
 } from "@/app/lib/property-utils";
@@ -72,19 +73,20 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
     getPropertyCategory(property),
   ).toUpperCase();
   const cityLabel = getPropertyCity(property);
-  const locationLabel = [getPropertyLocation(property), cityLabel]
-    .filter(Boolean)
-    .join(", ");
+  const locationLabel = getPropertyLocationLabel(property);
+  const imageAlt = buildPropertyImageAlt(property);
   const statItems = buildStatItems(property);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-white shadow-[0_18px_36px_-30px_var(--admin-shadow)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-32px_var(--admin-shadow)]">
       <div className="relative aspect-[16/11] overflow-hidden bg-[var(--admin-card)]">
         <Link href={detailHref} aria-label={title}>
-          <img
+          <Image
             src={coverImage}
-            alt={title}
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+            alt={imageAlt}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
           />
         </Link>
 

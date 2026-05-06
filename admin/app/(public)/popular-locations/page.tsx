@@ -17,12 +17,27 @@ const CATEGORY_SECTIONS: PropertyCategory[] = [
   "office",
 ];
 
+export const revalidate = 1800;
+
 export const metadata: Metadata = {
   title: `Popular Property Locations | ${BRAND_NAME}`,
   description:
     "Browse popular property locations across Pakistan and jump directly into live rental listing pages by category and area.",
   alternates: {
     canonical: toAbsoluteUrl("/popular-locations"),
+  },
+  openGraph: {
+    title: `Popular Property Locations | ${BRAND_NAME}`,
+    description:
+      "Browse popular property locations across Pakistan and jump directly into live rental listing pages by category and area.",
+    type: "website",
+    url: toAbsoluteUrl("/popular-locations"),
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Popular Property Locations | ${BRAND_NAME}`,
+    description:
+      "Browse popular property locations across Pakistan and jump directly into live rental listing pages by category and area.",
   },
 };
 

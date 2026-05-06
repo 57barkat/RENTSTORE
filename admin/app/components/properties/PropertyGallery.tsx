@@ -1,24 +1,24 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryProps {
   galleryImages: string[];
-  title: string;
+  imageAltBase: string;
   isFeatured?: boolean;
   isBoosted?: boolean;
   isVerified?: boolean;
 }
 
-const getImageAlt = (title: string, index: number) =>
-  index === 0 ? title : `${title} photo ${index + 1}`;
+const getImageAlt = (imageAltBase: string, index: number) =>
+  index === 0 ? imageAltBase : `${imageAltBase} photo ${index + 1}`;
 
 export default function PropertyGallery({
   galleryImages,
-  title,
+  imageAltBase,
   isFeatured = false,
   isBoosted = false,
   isVerified = false,
@@ -88,10 +88,13 @@ export default function PropertyGallery({
             className="group relative aspect-[16/9] cursor-pointer overflow-hidden bg-[var(--admin-card)]"
             onClick={() => openLightbox(0)}
           >
-            <img
+            <Image
               src={images[0]}
-              alt={getImageAlt(title, 0)}
-              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              alt={getImageAlt(imageAltBase, 0)}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 1200px"
+              className="object-cover transition duration-500 group-hover:scale-105"
             />
 
             {(isFeatured || isBoosted || isVerified) && renderBadges()}
@@ -110,10 +113,13 @@ export default function PropertyGallery({
                 className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
                 onClick={() => openLightbox(i)}
               >
-                <img
+                <Image
                   src={image}
-                  alt={getImageAlt(title, i)}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  alt={getImageAlt(imageAltBase, i)}
+                  fill
+                  priority={i === 0}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover transition duration-500 group-hover:scale-105"
                 />
 
                 {i === 0 && (isFeatured || isBoosted || isVerified) && renderBadges()}
@@ -132,10 +138,13 @@ export default function PropertyGallery({
               className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
               onClick={() => openLightbox(0)}
             >
-              <img
+              <Image
                 src={images[0]}
-                alt={getImageAlt(title, 0)}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                alt={getImageAlt(imageAltBase, 0)}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 70vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
               />
 
               {(isFeatured || isBoosted || isVerified) && renderBadges()}
@@ -152,10 +161,12 @@ export default function PropertyGallery({
                   className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)] lg:aspect-auto"
                   onClick={() => openLightbox(i + 1)}
                 >
-                  <img
+                  <Image
                     src={image}
-                    alt={getImageAlt(title, i + 1)}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    alt={getImageAlt(imageAltBase, i + 1)}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 30vw"
+                    className="object-cover transition duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
                     <ZoomIn className="text-white" size={28} />
@@ -172,10 +183,13 @@ export default function PropertyGallery({
               className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
               onClick={() => openLightbox(0)}
             >
-              <img
+              <Image
                 src={images[0]}
-                alt={getImageAlt(title, 0)}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                alt={getImageAlt(imageAltBase, 0)}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 70vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
               />
 
               {(isFeatured || isBoosted || isVerified) && renderBadges()}
@@ -200,10 +214,12 @@ export default function PropertyGallery({
                     }`}
                     onClick={() => openLightbox(imageIndex)}
                   >
-                    <img
+                    <Image
                       src={image}
-                      alt={getImageAlt(title, imageIndex)}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      alt={getImageAlt(imageAltBase, imageIndex)}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 30vw"
+                      className="object-cover transition duration-500 group-hover:scale-105"
                     />
 
                     {isBottomWide && extraPhotosCount > 0 && (
@@ -253,14 +269,20 @@ export default function PropertyGallery({
               </button>
             )}
 
-            <motion.img
+            <motion.div
               key={index}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              src={images[index]}
-              alt={getImageAlt(title, index)}
-              className="max-h-[85vh] w-[92vw] object-contain"
-            />
+              className="relative h-[85vh] w-[92vw]"
+            >
+              <Image
+                src={images[index]}
+                alt={getImageAlt(imageAltBase, index)}
+                fill
+                sizes="92vw"
+                className="object-contain"
+              />
+            </motion.div>
 
             {images.length > 1 && (
               <button

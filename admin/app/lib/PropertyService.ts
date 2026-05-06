@@ -24,6 +24,9 @@ const NEXT_PUBLIC_API_URL = (
 ).replace(/\/$/, "");
 
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
+const PUBLIC_LISTING_REVALIDATE_SECONDS = 300;
+const PUBLIC_DETAIL_REVALIDATE_SECONDS = 600;
+const PUBLIC_DISCOVERY_REVALIDATE_SECONDS = 1800;
 
 const DEFAULT_LOCAL_API_BASE_URL = "http://localhost:3000/api/v1";
 const DEFAULT_LOCALHOST_ALIAS_API_BASE_URL = "http://127.0.0.1:3000/api/v1";
@@ -47,7 +50,13 @@ const getCandidateBaseUrls = (): string[] => {
   );
 };
 
-const requestJson = async <T>(path: string): Promise<T> => {
+const requestJson = async <T>(
+  path: string,
+  options?: {
+    revalidate?: number;
+    tags?: string[];
+  },
+): Promise<T> => {
   const candidateBaseUrls = getCandidateBaseUrls();
 
   if (candidateBaseUrls.length === 0) {
@@ -71,7 +80,15 @@ const requestJson = async <T>(path: string): Promise<T> => {
             ? { "x-frontend-secret": FRONTEND_SECRET }
             : {}),
         },
-        cache: "no-store",
+        next:
+          options?.revalidate || options?.tags?.length
+            ? {
+                ...(options?.revalidate
+                  ? { revalidate: options.revalidate }
+                  : {}),
+                ...(options?.tags?.length ? { tags: options.tags } : {}),
+              }
+            : undefined,
       });
 
       if (!response.ok) {
@@ -115,7 +132,17 @@ const searchPropertiesInternal = async (
   filters: PropertySearchFilters,
 ): Promise<PropertySearchResponse> => {
   const query = buildPropertySearchQuery(filters);
-  return requestJson<PropertySearchResponse>(`/properties/search?${query}`);
+  return requestJson<PropertySearchResponse>(`/properties/search?${query}`, {
+    revalidate: PUBLIC_LISTING_REVALIDATE_SECONDS,
+    tags: [
+      "public-properties",
+      `public-search:${filters.category}`,
+      ...(filters.city ? [`public-city:${filters.city.toLowerCase()}`] : []),
+      ...(filters.location
+        ? [`public-area:${filters.location.toLowerCase()}`]
+        : []),
+    ],
+  });
 };
 
 const getPropertyByIdInternal = async (
@@ -123,6 +150,10 @@ const getPropertyByIdInternal = async (
 ): Promise<PublicProperty> => {
   const payload = await requestJson<PublicProperty | { data?: PublicProperty }>(
     `/properties/${propertyId}`,
+    {
+      revalidate: PUBLIC_DETAIL_REVALIDATE_SECONDS,
+      tags: ["public-properties", `public-property:${propertyId}`],
+    },
   );
 
   if ("data" in payload && payload.data) {
@@ -137,6 +168,10 @@ const getPropertyUploaderProfileInternal = async (
 ): Promise<UploaderProfileResponse> => {
   return requestJson<UploaderProfileResponse>(
     `/properties/${propertyId}/uploader-profile`,
+    {
+      revalidate: PUBLIC_DETAIL_REVALIDATE_SECONDS,
+      tags: ["public-properties", `public-property:${propertyId}`],
+    },
   );
 };
 
@@ -171,6 +206,10 @@ const getPopularLocationsInternal = async (input: {
 
   return requestJson<PopularLocationSummary[]>(
     `/seo/popular-locations?${params.toString()}`,
+    {
+      revalidate: PUBLIC_DISCOVERY_REVALIDATE_SECONDS,
+      tags: ["public-properties", "public-popular-locations"],
+    },
   );
 };
 
@@ -200,6 +239,10 @@ const getPopularLocationsOverviewInternal = async (input: {
 
   return requestJson<PopularLocationCityGroup[]>(
     `/seo/popular-locations?${params.toString()}`,
+    {
+      revalidate: PUBLIC_DISCOVERY_REVALIDATE_SECONDS,
+      tags: ["public-properties", "public-popular-locations"],
+    },
   );
 };
 
