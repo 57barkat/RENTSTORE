@@ -64,6 +64,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     ...config.extra,
+    eas: {
+      ...(config.extra?.eas as Record<string, unknown> | undefined),
+      projectId: "79e26d5d-fd98-48b9-aa09-2177bbc4a6b7",
+    },
     apiUrl: process.env.EXPO_PUBLIC_API_URL,
     shareBaseUrl: process.env.EXPO_PUBLIC_SHARE_BASE_URL,
     privacyPolicyUrl: process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL,
