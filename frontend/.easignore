@@ -1,18 +1,65 @@
-node_modules
-.git
+# dependencies
+
+node_modules/
+\*\*/node_modules/
+
+# git/editor
+
+.git/
 .gitignore
-.vscode
-.idea
+.vscode/
+.idea/
 
-**/*.log
-**/.DS_Store
+# env/local
 
-android/.gradle
-android/build
-android/app/build
+.env
+.env.\*
+!.env.example
+expo-env.d.ts
 
-ios/Pods
-ios/build
+# expo/web
 
-.expo
-.expo-shared
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# logs
+
+**/\*.log
+**/.DS*Store
+npm-debug.*
+yarn-debug.\_
+yarn-error.\*
+
+# native build output
+
+android/.gradle/
+android/build/
+android/app/build/
+android/.cxx/
+android/app/.cxx/
+android/app/.externalNativeBuild/
+
+ios/Pods/
+ios/build/
+ios/.symlinks/
+
+# kotlin / temp / caches
+
+.kotlin/
+.metro-health-check\*
+coverage/
+tmp/
+temp/
+
+# secrets / signing
+
+_.jks
+_.keystore
+_.keystore.jks
+_.p8
+_.p12
+_.key
+_.mobileprovision
+_.pem
