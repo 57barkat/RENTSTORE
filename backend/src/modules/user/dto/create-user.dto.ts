@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MinLength,
@@ -9,6 +10,7 @@ import {
   Matches,
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
+import { UserRole } from "../user.entity";
 
 export class CreateUserDto {
   @IsString()
@@ -71,4 +73,13 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   preferences?: string;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === "string" ? value.trim().toLowerCase() : value,
+  )
+  @IsIn([UserRole.USER, UserRole.AGENT], {
+    message: "role must be either user or agent",
+  })
+  role?: UserRole.USER | UserRole.AGENT;
 }

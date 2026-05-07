@@ -2,8 +2,13 @@ export const createUserPayload = (
   values: any,
   role: string | null,
   acceptedTerms: boolean,
-) => ({
-  ...values,
-  acceptedTerms,
-  isAgencyPerson: role === "agency",
-});
+) => {
+  const safePublicRole = role === "agent" ? "agent" : "user";
+
+  return {
+    ...values,
+    acceptedTerms,
+    role: safePublicRole,
+    isAgencyPerson: role === "agency",
+  };
+};

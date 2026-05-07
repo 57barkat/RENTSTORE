@@ -57,7 +57,11 @@ export default function SignUpScreen() {
     const loadStoredRole = async () => {
       const storedRole = await getStoredRole();
       const normalizedRole =
-        storedRole === "renter" ? ROLES.AGENT : storedRole;
+        storedRole === "renter"
+          ? ROLES.AGENT
+          : storedRole === ROLES.AGENT
+            ? ROLES.AGENT
+            : ROLES.USER;
 
       if (
         mounted &&

@@ -46,9 +46,15 @@ export class UserService {
     };
   }
 
+  private sanitizePublicSignupRole(
+    requestedRole?: CreateUserDto["role"],
+  ): UserRole.USER | UserRole.AGENT {
+    return requestedRole === UserRole.AGENT ? UserRole.AGENT : UserRole.USER;
+  }
+
   async createUser(dto: CreateUserDto): Promise<UserDocument> {
     const normalizedEmail = this.normalizeEmail(dto.email);
-    const role = dto.isAgencyPerson ? UserRole.AGENCY : UserRole.USER;
+    const role = this.sanitizePublicSignupRole(dto.role);
 
     // 1. Check for existing users
     const conflict = await this.userModel.findOne({
@@ -78,8 +84,8 @@ export class UserService {
       case UserRole.USER:
         propertyLimit = 1;
         break;
-      case UserRole.AGENCY:
-        propertyLimit = 50;
+      case UserRole.AGENT:
+        propertyLimit = 1;
         break;
     }
 
@@ -88,6 +94,7 @@ export class UserService {
     const {
       acceptedTerms,
       isAgencyPerson,
+      role: _requestedRole,
       agencyName,
       agencyLogo,
       agencyAddress,
@@ -105,22 +112,7 @@ export class UserService {
       TermsAndConditionsAccepted: acceptedTerms,
     });
 
-    // 5. Handle Agency Creation if applicable
-    if (role === UserRole.AGENCY && agencyName) {
-      const agency = await this.agencyModel.create({
-        name: agencyName,
-        logo: agencyLogo,
-        address: agencyAddress,
-        owner: user._id,
-        agents: [],
-      });
-
-      user.agency = agency._id as any;
-      // user.propertyLimit = 50; // Already set in the switch above
-      await user.save();
-    }
-
-    // 6. Send verification
+    // 5. Send verification
     await this.sendEmailVerificationCode(user.email);
 
     return user;

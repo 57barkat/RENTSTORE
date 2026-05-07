@@ -49,6 +49,7 @@ export class UserController {
   @RateLimit({ limit: 5, windowMs: 15 * 60 * 1000, scope: "ip" })
   async signup(@Body() dto: CreateUserDto) {
     const user = await this.userService.createUser(dto);
+    this.logger.log(`Public signup created account role=${user.role}`);
     const tokens = await this.authService.issueTokens(user);
 
     return { ...this.mapUser(user), ...tokens };
