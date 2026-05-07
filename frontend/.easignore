@@ -1,65 +1,36 @@
-# dependencies
+# Ignore everything by default
 
-node_modules/
-\*\*/node_modules/
+-
 
-# git/editor
+# Keep the Expo app directory
 
-.git/
-.gitignore
-.vscode/
-.idea/
+!frontend/
+!frontend/\*\*
 
-# env/local
+# Inside frontend, still exclude local/generated junk
 
-.env
-.env.\*
-!.env.example
-expo-env.d.ts
+frontend/node_modules/
+frontend/.expo/
+frontend/.expo-shared/
+frontend/dist/
+frontend/web-build/
+frontend/.idea/
+frontend/.vscode/
 
-# expo/web
+# Native/build caches
 
-.expo/
-.expo-shared/
-dist/
-web-build/
+frontend/android/.gradle/
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/.cxx/
+frontend/android/app/.cxx/
+frontend/android/app/.externalNativeBuild/
 
-# logs
+frontend/ios/Pods/
+frontend/ios/build/
+frontend/ios/.symlinks/
 
-**/\*.log
-**/.DS*Store
-npm-debug.*
-yarn-debug.\_
-yarn-error.\*
+# Logs / OS junk
 
-# native build output
-
-android/.gradle/
-android/build/
-android/app/build/
-android/.cxx/
-android/app/.cxx/
-android/app/.externalNativeBuild/
-
-ios/Pods/
-ios/build/
-ios/.symlinks/
-
-# kotlin / temp / caches
-
-.kotlin/
-.metro-health-check\*
-coverage/
-tmp/
-temp/
-
-# secrets / signing
-
-_.jks
-_.keystore
-_.keystore.jks
-_.p8
-_.p12
-_.key
-_.mobileprovision
-_.pem
+frontend/**/\*.log
+frontend/**/.DS_Store
