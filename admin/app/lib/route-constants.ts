@@ -39,6 +39,13 @@ export const PROTECTED_ROUTE_PREFIXES = [
 
 export const STATIC_PUBLIC_ROUTES = ["/", "/login"] as const;
 
+export const PUBLIC_AUTH_ROUTES = ["/account/login", "/account/signup"] as const;
+
+export const PUBLIC_ACCOUNT_ROUTE_PREFIXES = [
+  "/account",
+  "/upload-property",
+] as const;
+
 export const isPublicCategoryPath = (pathname: string): boolean => {
   if (parseSeoListingSlug(pathname.replace(/^\//, ""))) {
     return true;
@@ -72,4 +79,20 @@ export const isProtectedRoute = (pathname: string): boolean => {
   return PROTECTED_ROUTE_PREFIXES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
+};
+
+export const isPublicAuthRoute = (pathname: string): boolean => {
+  return PUBLIC_AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+};
+
+export const isPublicAccountRoute = (pathname: string): boolean => {
+  return PUBLIC_ACCOUNT_ROUTE_PREFIXES.some((route) => {
+    if (route === "/account") {
+      return pathname.startsWith("/account/") && !isPublicAuthRoute(pathname);
+    }
+
+    return pathname === route || pathname.startsWith(`${route}/`);
+  });
 };

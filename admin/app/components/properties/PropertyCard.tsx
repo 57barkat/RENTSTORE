@@ -9,6 +9,7 @@ import {
   SquareDashedBottom,
 } from "lucide-react";
 
+import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   isActiveBoostedPromotion,
@@ -106,6 +107,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
         </div>
 
         <div className="absolute right-3 top-3 flex items-center gap-2">
+          <PublicFavoriteButton property={property} />
           {previewHref && (
             <Link
               href={previewHref}

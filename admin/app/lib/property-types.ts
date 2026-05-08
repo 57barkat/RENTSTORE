@@ -58,6 +58,8 @@ export interface PublicProperty {
   parking?: boolean;
   location?: string;
   area?: string;
+  lat?: number;
+  lng?: number;
   size?: PropertySize;
   monthlyRent?: number;
   dailyRent?: number;
@@ -86,12 +88,14 @@ export interface PublicProperty {
   isBoosted?: boolean;
   boostedUntil?: string;
   isApproved?: boolean;
+  status?: boolean;
   isVisible?: boolean;
   moderationStatus?: string;
   chat?: boolean;
   sortWeight?: number;
   views?: number;
   impressions?: number;
+  isFav?: boolean;
   featuredImpressions?: number;
   boostedImpressions?: number;
   normalImpressions?: number;

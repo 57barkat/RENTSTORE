@@ -7,7 +7,16 @@ import {
 } from "@/app/lib/auth-cookies";
 import { verifyAuthToken } from "@/app/lib/auth-token";
 import { parsePropertyDetailSlug } from "@/app/lib/property-seo";
-import { isProtectedRoute } from "@/app/lib/route-constants";
+import {
+  isProtectedRoute,
+  isPublicAccountRoute,
+  isPublicAuthRoute,
+} from "@/app/lib/route-constants";
+import {
+  isAllowedPublicRole,
+  PUBLIC_ACCESS_COOKIE,
+  PUBLIC_REFRESH_COOKIE,
+} from "@/app/lib/public-auth-config";
 
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
 
@@ -87,13 +96,37 @@ const applyAuthCookies = (
   return response;
 };
 
+const applyPublicAuthCookies = (
+  response: NextResponse,
+  tokens: { accessToken: string; refreshToken: string },
+) => {
+  response.cookies.set(
+    PUBLIC_ACCESS_COOKIE,
+    tokens.accessToken,
+    getAccessTokenCookieOptions(),
+  );
+  response.cookies.set(
+    PUBLIC_REFRESH_COOKIE,
+    tokens.refreshToken,
+    getRefreshTokenCookieOptions(),
+  );
+
+  return response;
+};
+
 export async function proxy(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
+  const publicToken = request.cookies.get(PUBLIC_ACCESS_COOKIE)?.value;
+  const publicRefreshToken = request.cookies.get(PUBLIC_REFRESH_COOKIE)?.value;
   const { pathname } = request.nextUrl;
   const reauthRequested = request.nextUrl.searchParams.get("reauth") === "1";
   let session = await verifyAuthToken(
     token,
+    process.env.JWT_SECRET,
+  );
+  let publicSession = await verifyAuthToken(
+    publicToken,
     process.env.JWT_SECRET,
   );
 
@@ -161,6 +194,62 @@ export async function proxy(request: NextRequest) {
 
   const isAdmin = session?.role === "admin";
 
+  if ((!publicSession || !isAllowedPublicRole(publicSession.role)) && publicRefreshToken) {
+    const refreshed = await refreshAdminSession(request, publicRefreshToken);
+
+    if (refreshed?.accessToken && refreshed.refreshToken) {
+      const refreshedTokens = {
+        accessToken: refreshed.accessToken,
+        refreshToken: refreshed.refreshToken,
+      };
+      publicSession = await verifyAuthToken(
+        refreshedTokens.accessToken,
+        process.env.JWT_SECRET,
+      );
+
+      if (publicSession && isAllowedPublicRole(publicSession.role)) {
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set(
+          "cookie",
+          request.cookies
+            .getAll()
+            .filter((cookie) =>
+              cookie.name !== PUBLIC_ACCESS_COOKIE &&
+              cookie.name !== PUBLIC_REFRESH_COOKIE,
+            )
+            .map((cookie) => `${cookie.name}=${cookie.value}`)
+            .concat([
+              `${PUBLIC_ACCESS_COOKIE}=${refreshedTokens.accessToken}`,
+              `${PUBLIC_REFRESH_COOKIE}=${refreshedTokens.refreshToken}`,
+            ])
+            .join("; "),
+        );
+
+        const response = NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
+        applyPublicAuthCookies(response, refreshedTokens);
+
+        if (isPublicAuthRoute(pathname)) {
+          return applyPublicAuthCookies(
+            NextResponse.redirect(new URL("/account/dashboard", request.url)),
+            refreshedTokens,
+          );
+        }
+
+        if (isPublicAccountRoute(pathname) && !isAllowedPublicRole(publicSession.role)) {
+          const loginUrl = new URL("/account/login", request.url);
+          loginUrl.searchParams.set("redirect", pathname);
+          return applyPublicAuthCookies(NextResponse.redirect(loginUrl), refreshedTokens);
+        }
+
+        return response;
+      }
+    }
+  }
+
   if (pathname === "/login") {
     if (reauthRequested) {
       return NextResponse.next();
@@ -171,6 +260,23 @@ export async function proxy(request: NextRequest) {
     }
 
     return NextResponse.next();
+  }
+
+  if (isPublicAuthRoute(pathname)) {
+    if (publicSession && isAllowedPublicRole(publicSession.role)) {
+      return NextResponse.redirect(new URL("/account/dashboard", request.url));
+    }
+
+    return NextResponse.next();
+  }
+
+  if (
+    isPublicAccountRoute(pathname) &&
+    (!publicSession || !isAllowedPublicRole(publicSession.role))
+  ) {
+    const loginUrl = new URL("/account/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   if (isProtectedRoute(pathname) && !isAdmin) {

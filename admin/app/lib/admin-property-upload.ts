@@ -286,11 +286,13 @@ export const validateAdminPropertyForm = (
   }
 
   if (!form.location.trim()) {
-    errors.location = "Location is required.";
+    errors.location =
+      "Please select a valid location from suggestions or place a pin on the map.";
   }
 
   if (!hasPositiveNumber(lat) || !hasPositiveNumber(lng)) {
-    errors.coordinates = "Valid latitude and longitude are required.";
+    errors.coordinates =
+      "Please select a valid location from suggestions or place a pin on the map.";
   }
 
   if (!firstAddress?.street.trim()) {

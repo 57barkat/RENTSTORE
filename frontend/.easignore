@@ -1,12 +1,14 @@
-# exclude sibling projects / repo junk
-admin/
-backend/
-docs/
-policy/
-.git/
-.git_backup/
+# Ignore everything
 
-# frontend junk
+-
+
+# Re-include frontend
+
+!frontend/
+!frontend/\*\*
+
+# Exclude frontend junk
+
 frontend/node_modules/
 frontend/.expo/
 frontend/.expo-shared/
@@ -15,7 +17,6 @@ frontend/web-build/
 frontend/.idea/
 frontend/.vscode/
 
-# native build output
 frontend/android/.gradle/
 frontend/android/build/
 frontend/android/app/build/
@@ -27,6 +28,5 @@ frontend/ios/Pods/
 frontend/ios/build/
 frontend/ios/.symlinks/
 
-# logs / OS junk
-frontend/**/*.log
+frontend/**/\*.log
 frontend/**/.DS_Store

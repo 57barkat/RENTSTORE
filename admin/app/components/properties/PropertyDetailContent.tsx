@@ -17,6 +17,7 @@ import {
   Wallet,
 } from "lucide-react";
 
+import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
 import {
@@ -563,6 +564,8 @@ export default async function PropertyDetailContent({
               </div>
 
               <div className="mt-6 space-y-3">
+                <PublicFavoriteButton property={property} variant="inline" />
+
                 {contactPhone ? (
                   <a
                     href={`tel:${contactPhone}`}

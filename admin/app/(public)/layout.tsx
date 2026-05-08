@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Toaster } from "react-hot-toast";
 
+import PublicAuthProvider from "@/app/components/public/PublicAuthProvider";
+import PublicFavoritesProvider from "@/app/components/public/PublicFavoritesProvider";
 import PublicFooter from "@/app/components/public/PublicFooter";
 import PublicHeader from "@/app/components/public/PublicHeader";
 import {
@@ -56,13 +59,18 @@ export default function PublicLayout({
       >
         {serializeJsonLd(structuredData.website)}
       </Script>
-      <PublicHeader />
-      <main className="flex flex-1 flex-col">
-        <div className="mx-auto flex w-full max-w-full flex-1 flex-col">
-          {children}
-        </div>
-      </main>
-      <PublicFooter />
+      <PublicAuthProvider>
+        <PublicFavoritesProvider>
+          <Toaster position="top-right" />
+          <PublicHeader />
+          <main className="flex flex-1 flex-col">
+            <div className="mx-auto flex w-full max-w-full flex-1 flex-col">
+              {children}
+            </div>
+          </main>
+          <PublicFooter />
+        </PublicFavoritesProvider>
+      </PublicAuthProvider>
     </div>
   );
 }
