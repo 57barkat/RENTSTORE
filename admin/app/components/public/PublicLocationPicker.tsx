@@ -2,6 +2,7 @@
 
 import mapboxgl from "mapbox-gl";
 import {
+  CheckCircle2,
   Loader2,
   LocateFixed,
   MapPin,
@@ -1710,204 +1711,180 @@ export default function PublicLocationPicker({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.75rem] border border-[var(--admin-border)] bg-[var(--admin-background)]/70 p-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-[var(--admin-text)]">
-              Search and place your listing
-            </p>
-            <p className="mt-1 text-xs text-[var(--admin-muted)]">
-              Search an area or address, then drag the pin if you want to
-              fine-tune the exact entrance.
-            </p>
-          </div>
+      <div className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-50px_var(--admin-shadow)]">
+        <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(23,183,122,0.06))] px-4 py-4 sm:px-5">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] shadow-sm">
+              <MapPin className="h-5 w-5" />
+            </span>
 
-          <button
-            type="button"
-            onClick={handleUseCurrentLocation}
-            disabled={!mapboxToken || locating}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)]/40 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {locating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--admin-primary)]">
+                Property location
+              </p>
+
+              <h3 className="mt-1 text-base font-black tracking-tight text-[var(--admin-text)]">
+                Search and confirm listing address
+              </h3>
+
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-[var(--admin-muted)]">
+                Search by area, sector, city, or full address. Select a
+                suggestion to lock the address and map coordinates.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 bg-[var(--admin-background)]/45 p-4 sm:p-5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-muted)]" />
+
+            <input
+              value={searchValue}
+              onChange={(event) => handleSearch(event.target.value)}
+              onFocus={() => setSearchOpen(true)}
+              className="admin-input h-13 w-full rounded-[1.35rem] border border-[var(--admin-border)] bg-white px-12 py-3 text-sm font-medium text-[var(--admin-text)] shadow-[0_12px_30px_-28px_var(--admin-shadow)] outline-none transition placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+              placeholder="Search by area, sector, city, or full address"
+            />
+
+            {searching ? (
+              <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--admin-primary)]" />
             ) : (
-              <LocateFixed className="h-4 w-4 text-[var(--admin-primary)]" />
+              <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--admin-muted)] sm:inline-flex">
+                Search
+              </span>
             )}
-            Use current location
-          </button>
-        </div>
-
-        <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-muted)]" />
-
-          <input
-            value={searchValue}
-            onChange={(event) => handleSearch(event.target.value)}
-            onFocus={() => setSearchOpen(true)}
-            className="admin-input w-full rounded-2xl px-12 py-3 text-sm"
-            placeholder="Search by area, sector, city, or full address"
-          />
-
-          {searching ? (
-            <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--admin-muted)]" />
-          ) : null}
-        </div>
-
-        {searchOpen && suggestions.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--admin-border)] bg-white shadow-[0_20px_45px_-35px_var(--admin-shadow)]">
-            {suggestions.map((feature) => (
-              <button
-                key={feature.id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => handleSelectSuggestion(feature)}
-                className="flex w-full items-start gap-3 border-b border-[var(--admin-border)] px-4 py-3 text-left last:border-b-0 hover:bg-[var(--admin-background)]"
-              >
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
-
-                <span>
-                  <span className="block text-sm font-semibold text-[var(--admin-text)]">
-                    {feature.text || feature.place_name || "Selected place"}
-                  </span>
-
-                  {feature.place_name ? (
-                    <span className="block text-xs text-[var(--admin-muted)]">
-                      {feature.place_name}
-                    </span>
-                  ) : null}
-                </span>
-              </button>
-            ))}
           </div>
-        ) : null}
 
-        <div className="relative mt-4 overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white">
-          {mapboxToken ? (
-            <>
-              <div ref={mapContainerRef} className="h-[320px] w-full" />
-
-              {!mapReady && !mapLoadError ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2 text-xs font-semibold text-[var(--admin-muted)] shadow-sm">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Loading map
-                  </div>
-                </div>
-              ) : null}
-
-              {mapLoadError ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/90 px-6 text-center">
-                  <div className="max-w-md">
-                    <TriangleAlert className="mx-auto h-8 w-8 text-[var(--admin-error)]" />
-                    <p className="mt-3 text-sm font-semibold text-[var(--admin-text)]">
-                      Map could not load
-                    </p>
-                    <p className="mt-2 text-xs text-[var(--admin-muted)]">
-                      {mapLoadError}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="border-t border-[var(--admin-border)] px-4 py-3 text-xs text-[var(--admin-muted)]">
-                Click anywhere on the map or drag the pin to update the exact
-                location and auto-fill the address fields below.
+          {searchOpen && suggestions.length > 0 ? (
+            <div className="overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_55px_-38px_var(--admin-shadow)]">
+              <div className="border-b border-[var(--admin-border)] bg-[var(--admin-background)]/70 px-4 py-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--admin-muted)]">
+                  Suggested matches
+                </p>
               </div>
-            </>
-          ) : (
-            <div className="flex min-h-[220px] items-center justify-center px-6 py-10 text-center">
-              <div className="max-w-md">
-                <MapPin className="mx-auto h-8 w-8 text-[var(--admin-primary)]" />
 
-                <p className="mt-3 text-sm font-semibold text-[var(--admin-text)]">
-                  Map search is unavailable
-                </p>
+              <div className="max-h-72 overflow-y-auto">
+                {suggestions.map((feature) => (
+                  <button
+                    key={feature.id}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelectSuggestion(feature)}
+                    className="group flex w-full items-start gap-3 border-b border-[var(--admin-border)] px-4 py-3.5 text-left transition last:border-b-0 hover:bg-[var(--admin-primary-soft)]/55"
+                  >
+                    <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition group-hover:bg-[var(--admin-primary)] group-hover:text-white">
+                      <MapPin className="h-4 w-4" />
+                    </span>
 
-                <p className="mt-2 text-sm text-[var(--admin-muted)]">
-                  Add{" "}
-                  <span className="font-bold">
-                    NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-                  </span>{" "}
-                  to enable web map selection. Manual address entry still works
-                  below.
-                </p>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-[var(--admin-text)]">
+                        {feature.text || feature.place_name || "Selected place"}
+                      </span>
+
+                      {feature.place_name ? (
+                        <span className="mt-1 block line-clamp-2 text-xs leading-5 text-[var(--admin-muted)]">
+                          {feature.place_name}
+                        </span>
+                      ) : null}
+                    </span>
+
+                    <span className="mt-1 hidden rounded-full border border-[var(--admin-border)] bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--admin-muted)] transition group-hover:border-[var(--admin-primary)] group-hover:text-[var(--admin-primary)] sm:inline-flex">
+                      Select
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+          ) : null}
+
+          {hasConfirmedSelection ? (
+            <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50/80 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(16,185,129,0.8)]">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700">
+                    Selected location
+                  </p>
+
+                  <p className="mt-1 truncate text-sm font-bold text-emerald-950">
+                    {locationValue}
+                  </p>
+
+                  {coordinates ? (
+                    <p className="mt-1 text-xs font-medium text-emerald-800">
+                      Pin set at {coordinates.lat.toFixed(5)},{" "}
+                      {coordinates.lng.toFixed(5)}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {showTypingState ? (
+            <div className="rounded-[1.5rem] border border-sky-200 bg-sky-50/80 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(14,165,233,0.8)]">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                  <Search className="h-4 w-4" />
+                </span>
+
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-sky-700">
+                    Search pending
+                  </p>
+
+                  <p className="mt-1 text-sm font-bold text-sky-950">
+                    Select a suggestion to confirm this location.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {pickerState.kind === "pin-unresolved" ? (
+            <div className="rounded-[1.5rem] border border-amber-200 bg-amber-50/90 px-4 py-4 shadow-[0_18px_40px_-36px_rgba(245,158,11,0.8)]">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                  <MapPin className="h-4 w-4" />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-700">
+                    Pin selected
+                  </p>
+
+                  <p className="mt-1 text-sm font-bold text-amber-950">
+                    {pickerState.message}
+                  </p>
+
+                  <p className="mt-1 text-xs font-medium text-amber-800">
+                    Coordinates: {pickerState.lat.toFixed(5)},{" "}
+                    {pickerState.lng.toFixed(5)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
-
-        {hasConfirmedSelection ? (
-          <div className="mt-4 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-muted)]">
-              Selected location
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-[var(--admin-text)]">
-              {locationValue}
-            </p>
-
-            {coordinates ? (
-              <p className="mt-1 text-xs text-[var(--admin-muted)]">
-                Pin set at {coordinates.lat.toFixed(5)},{" "}
-                {coordinates.lng.toFixed(5)}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {showTypingState ? (
-          <div className="mt-4 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-muted)]">
-              Search pending
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-[var(--admin-text)]">
-              Select a suggestion to confirm this location.
-            </p>
-          </div>
-        ) : null}
-
-        {pickerState.kind === "pin-unresolved" ? (
-          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-amber-700">
-              Pin selected
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-amber-900">
-              {pickerState.message}
-            </p>
-
-            <p className="mt-1 text-xs text-amber-800">
-              Coordinates: {pickerState.lat.toFixed(5)},{" "}
-              {pickerState.lng.toFixed(5)}
-            </p>
-          </div>
-        ) : null}
-
-        {!searchValue.trim() && !hasResolvedLocation ? (
-          <div className="mt-4 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--admin-muted)]">
-              Location required
-            </p>
-
-            <p className="mt-1 text-sm font-semibold text-[var(--admin-text)]">
-              Search for a real place or drop a pin to continue.
-            </p>
-          </div>
-        ) : null}
       </div>
 
       {error ? (
-        <p className="text-xs font-semibold text-[var(--admin-error)]">
-          {error}
-        </p>
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-xs font-bold text-[var(--admin-error)]">{error}</p>
+        </div>
       ) : null}
 
       {pickerState.kind === "error" ? (
-        <p className="inline-flex items-start gap-2 text-xs font-semibold text-[var(--admin-error)]">
-          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-          {pickerState.message}
-        </p>
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="inline-flex items-start gap-2 text-xs font-bold text-[var(--admin-error)]">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            {pickerState.message}
+          </p>
+        </div>
       ) : null}
     </div>
   );

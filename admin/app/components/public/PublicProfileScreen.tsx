@@ -1,20 +1,58 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import { Loader2, Trash2, UploadCloud, UserCircle2 } from "lucide-react";
+import { ChangeEvent, useMemo, useState } from "react";
+import {
+  BadgeCheck,
+  Camera,
+  Loader2,
+  LogOut,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Trash2,
+  UploadCloud,
+  UserCircle2,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 
 import PublicAccountShell from "@/app/components/public/PublicAccountShell";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
 import publicApiClient from "@/app/lib/public-api-client";
 
+const getInitials = (name?: string | null, email?: string | null) => {
+  const source = name?.trim() || email?.split("@")?.[0] || "Account User";
+
+  return (
+    source
+      .split(/\s+/)
+      .map((part) => part.charAt(0))
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "AU"
+  );
+};
+
 export default function PublicProfileScreen() {
   const { user, updateUser, logout } = usePublicAuth();
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
 
-  const handleProfileImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const initials = useMemo(
+    () => getInitials(user?.name, user?.email),
+    [user?.email, user?.name],
+  );
+
+  const displayName = user?.name || "Account user";
+  const displayEmail = user?.email || "No email added";
+  const displayPhone = user?.phone || "No phone added";
+  const displayRole = user?.role || "user";
+
+  const handleProfileImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
+
     if (!file) {
       return;
     }
@@ -24,9 +62,14 @@ export default function PublicProfileScreen() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const response = await publicApiClient.post("/user/profile-image", formData);
+
+      const response = await publicApiClient.post(
+        "/user/profile-image",
+        formData,
+      );
+
       updateUser({ profileImage: response.data?.profileImage || null });
-      toast.success("Profile image updated.");
+      toast.success("Profile photo updated.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Upload failed.");
     } finally {
@@ -37,10 +80,11 @@ export default function PublicProfileScreen() {
 
   const handleDeleteProfileImage = async () => {
     setRemoving(true);
+
     try {
       await publicApiClient.delete("/user/profile-image");
       updateUser({ profileImage: null });
-      toast.success("Profile image removed.");
+      toast.success("Profile photo removed.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Delete failed.");
     } finally {
@@ -50,88 +94,210 @@ export default function PublicProfileScreen() {
 
   return (
     <PublicAccountShell
-      title="Profile"
-      description="Your role, contact details, and profile image come from the live backend account. Text profile editing stays hidden until a public update endpoint exists."
+      title="Profile settings"
+      description="Manage your public account identity, profile photo, and account access details."
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-6 shadow-[0_16px_36px_-30px_var(--admin-shadow)]">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-[var(--admin-border)] bg-[var(--admin-surface)]">
-              {user?.profileImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={user.profileImage}
-                  alt={user.name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <UserCircle2 className="h-12 w-12 text-[var(--admin-muted)]" />
-              )}
-            </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-56px_var(--admin-shadow)]">
+          <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(16,185,129,0.06))] px-5 py-6 sm:px-7 sm:py-7">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="relative h-28 w-28 shrink-0">
+                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_22px_55px_-38px_var(--admin-shadow)]">
+                  {user?.profileImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.profileImage}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-[var(--admin-primary-soft)] text-3xl font-black text-[var(--admin-primary)]">
+                      {initials}
+                    </span>
+                  )}
+                </div>
 
-            <div className="flex-1">
-              <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
-                {user?.name || "Account user"}
-              </h2>
-              <p className="mt-1 text-sm text-[var(--admin-muted)]">
-                {user?.email || "No email available"}
-              </p>
-              <p className="mt-1 text-sm text-[var(--admin-muted)]">
-                {user?.phone || "No phone available"}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[var(--admin-primary)]/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--admin-primary)]">
-                  {user?.role || "user"}
+                <span className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white bg-[var(--admin-primary)] text-white shadow-[0_16px_30px_-20px_var(--admin-primary)]">
+                  <Camera className="h-4 w-4" />
                 </span>
-                {user?.subscription ? (
-                  <span className="rounded-full bg-[var(--admin-surface)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--admin-muted)]">
-                    {user.subscription}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[var(--admin-primary)] shadow-sm">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    Public account
                   </span>
-                ) : null}
+
+                  <span className="inline-flex rounded-full border border-[var(--admin-border)] bg-white/75 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[var(--admin-muted)]">
+                    {displayRole}
+                  </span>
+                </div>
+
+                <h2 className="mt-4 truncate text-3xl font-black tracking-tight text-[var(--admin-text)]">
+                  {displayName}
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--admin-muted)]">
+                  This is the profile information connected to your AnganStay
+                  account. Your photo helps hosts, agents, and support identify
+                  your account more easily.
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 grid gap-5 sm:grid-cols-2">
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-              {uploading ? "Uploading..." : "Upload profile image"}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                className="hidden"
-                onChange={handleProfileImageUpload}
-              />
-            </label>
-            <button
-              type="button"
-              disabled={removing || !user?.profileImage}
-              onClick={() => void handleDeleteProfileImage()}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--admin-danger)] transition hover:border-[var(--admin-danger)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Remove profile image
-            </button>
+          <div className="px-5 py-6 sm:px-7">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-primary)]">
+                    <Mail className="h-5 w-5" />
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                      Email address
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold text-[var(--admin-text)]">
+                      {displayEmail}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-primary)]">
+                    <Phone className="h-5 w-5" />
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                      Phone number
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold text-[var(--admin-text)]">
+                      {displayPhone}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-[1.75rem] border border-[var(--admin-border)] bg-white p-4 shadow-[0_18px_45px_-40px_var(--admin-shadow)] sm:p-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-black tracking-tight text-[var(--admin-text)]">
+                    Profile photo
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
+                    Upload a clear photo for your public account. Supported
+                    formats include JPG, PNG, WEBP, HEIC, and HEIF.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_34px_-26px_var(--admin-primary)] transition hover:opacity-95">
+                  {uploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <UploadCloud className="h-4 w-4" />
+                  )}
+                  {uploading ? "Uploading..." : "Upload new photo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                    className="hidden"
+                    onChange={handleProfileImageUpload}
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  disabled={removing || !user?.profileImage}
+                  onClick={() => void handleDeleteProfileImage()}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  {removing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Remove photo
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
         <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-6 shadow-[0_16px_36px_-30px_var(--admin-shadow)]">
-            <h3 className="text-lg font-bold text-[var(--admin-text)]">
-              Account notes
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_24px_70px_-58px_var(--admin-shadow)]">
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+
+              <div>
+                <h3 className="text-lg font-black text-[var(--admin-text)]">
+                  Account status
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
+                  Your account is connected to AnganStay&apos;s public rental
+                  marketplace.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                  Access type
+                </p>
+                <p className="mt-1 text-sm font-bold capitalize text-[var(--admin-text)]">
+                  {displayRole}
+                </p>
+              </div>
+
+              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                  Plan
+                </p>
+                <p className="mt-1 text-sm font-bold capitalize text-[var(--admin-text)]">
+                  {user?.subscription || "Standard"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_24px_70px_-58px_var(--admin-shadow)]">
+            <h3 className="text-lg font-black text-[var(--admin-text)]">
+              What you can manage
             </h3>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--admin-muted)]">
-              <li>Public web access is separate from admin access.</li>
-              <li>Signup from this surface only supports user and agent roles.</li>
-              <li>Profile text editing is intentionally hidden until a public update endpoint exists.</li>
-            </ul>
+
+            <div className="mt-4 space-y-3">
+              {[
+                "Upload and manage your property listings.",
+                "Save properties to your favorites.",
+                "Update your profile photo anytime.",
+                "Contact support for account or listing help.",
+              ].map((item) => (
+                <div key={item} className="flex gap-3">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--admin-primary)]" />
+                  <p className="text-sm leading-6 text-[var(--admin-muted)]">
+                    {item}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <button
             type="button"
             onClick={() => void logout()}
-            className="inline-flex w-full items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3.5 text-sm font-bold text-[var(--admin-text)] transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
           >
+            <LogOut className="h-4 w-4" />
             Logout
           </button>
         </aside>
