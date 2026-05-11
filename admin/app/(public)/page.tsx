@@ -25,6 +25,7 @@ export async function generateMetadata({
     !filters.city && !filters.location && filters.purpose !== "sale"
       ? `Properties for Rent in Pakistan | ${BRAND_NAME}`
       : `${buildListingTitle(filters)} | ${BRAND_NAME}`;
+
   const description = buildListingDescription(filters);
   const query = buildPropertyBrowserQuery(filters);
   const canonicalUrl = toAbsoluteUrl(query ? `/?${query}` : "/");
@@ -59,13 +60,15 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const description = buildListingDescription(filters);
 
   return (
-    <PublicListingPage
-      category="property"
-      filters={filters}
-      pathname={pathname}
-      pageUrl={pageUrl}
-      title={title}
-      description={description}
-    />
+    <div className="flex min-h-[calc(100vh-180px)] flex-col">
+      <PublicListingPage
+        category="property"
+        filters={filters}
+        pathname={pathname}
+        pageUrl={pageUrl}
+        title={title}
+        description={description}
+      />
+    </div>
   );
 }

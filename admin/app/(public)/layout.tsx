@@ -13,24 +13,20 @@ export const metadata: Metadata = {
     default: "Find verified rentals in Pakistan | AnganStay",
     template: "%s",
   },
-
   description:
     "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
-
   openGraph: {
     title: "Find verified rentals in Pakistan | AnganStay",
     description:
       "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
     type: "website",
   },
-
   twitter: {
     card: "summary_large_image",
     title: "Find verified rentals in Pakistan | AnganStay",
     description:
       "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
   },
-
   robots: {
     index: true,
     follow: true,
@@ -45,14 +41,7 @@ export default function PublicLayout({
   const structuredData = getPublicStructuredData();
 
   return (
-    <div
-      className="
-        flex min-h-screen flex-col
-        bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)]
-        text-[var(--admin-text)]
-      "
-    >
-      {/* Organization Structured Data */}
+    <div className="flex min-h-screen flex-col bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] text-[var(--admin-text)]">
       <Script
         id="public-organization-jsonld"
         type="application/ld+json"
@@ -61,7 +50,6 @@ export default function PublicLayout({
         {serializeJsonLd(structuredData.organization)}
       </Script>
 
-      {/* Website Structured Data */}
       <Script
         id="public-website-jsonld"
         type="application/ld+json"
@@ -72,20 +60,14 @@ export default function PublicLayout({
 
       <PublicAuthProvider>
         <PublicFavoritesProvider>
-          {/* Toast Notifications */}
           <Toaster position="top-right" />
 
-          {/* Header */}
           <PublicHeader />
 
-          {/* Main Content */}
-          <main className="flex flex-1 flex-col">
-            <div className="mx-auto flex w-full max-w-full flex-1 flex-col">
-              {children}
-            </div>
+          <main className="flex min-h-[calc(100vh-180px)] flex-1 flex-col">
+            {children}
           </main>
 
-          {/* Footer */}
           <PublicFooter />
         </PublicFavoritesProvider>
       </PublicAuthProvider>
