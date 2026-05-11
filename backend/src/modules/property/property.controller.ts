@@ -274,7 +274,9 @@ export class PropertyController {
       });
     }
 
-    return this.propertyService.createOrUpdate(parsedDto, ownerId);
+    return this.propertyService.createOrUpdate(parsedDto, ownerId, {
+      requireVerifiedOwner: false,
+    });
   }
   @UseGuards(JwtAuthGuard)
   @Post(":id/promote")

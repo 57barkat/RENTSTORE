@@ -13,5 +13,6 @@ export class UserResponseDto {
   updatedAt!: Date;
   cnic!: string;
   isPhoneVerified!: boolean;
+  isEmailVerified!: boolean;
   TermsAndConditionsAccepted!: boolean;
 }

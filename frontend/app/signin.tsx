@@ -72,9 +72,15 @@ export default function SignInScreen() {
 
       router.replace("/homePage");
     } catch (err: any) {
-      const message = err?.data?.message;
+      const rawMessage = err?.data?.message;
+      const message =
+        typeof rawMessage === "string" ? rawMessage : rawMessage?.message;
       if (message === "VERIFY_EMAIL_REQUIRED") {
-        setActualEmail(emailOrPhone);
+        setActualEmail(
+          err?.data?.email ||
+            rawMessage?.email ||
+            (emailOrPhone.includes("@") ? emailOrPhone : ""),
+        );
         setShowEmailModal(true);
         return;
       }
@@ -89,18 +95,38 @@ export default function SignInScreen() {
     if (!verificationCode.trim()) {
       return showErrorToast("Required", "Please enter verification code");
     }
+    if (!actualEmail.trim()) {
+      return showErrorToast(
+        "Email Required",
+        "Please login with your email address to verify it.",
+      );
+    }
 
     setIsVerifying(true);
     try {
-      const response = await verifyEmail({
+      await verifyEmail({
         email: actualEmail,
         code: verificationCode,
       }).unwrap();
+      const response = await loginMutation({
+        emailOrPhone,
+        password,
+      }).unwrap();
+      const isPhoneVerified =
+        response?.isPhoneVerified ?? response?.isphoneverified;
 
       showSuccessToast("Email Verified", "You are now logged in.");
       setVerificationCode("");
       setShowEmailModal(false);
       await login(response);
+      if (isPhoneVerified === false) {
+        showErrorToast(
+          "Phone Not Verified",
+          "Please verify your phone number to continue.",
+        );
+        router.push("/Verification");
+        return;
+      }
       router.replace("/homePage");
     } catch (error: any) {
       showErrorToast(

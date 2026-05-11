@@ -33,9 +33,12 @@ export class AuthService {
       );
     }
 
-    if (isEmailLogin && !user.isEmailVerified) {
-      await this.userService.sendEmailVerificationCode(normalizedIdentifier);
-      throw new UnauthorizedException("VERIFY_EMAIL_REQUIRED");
+    if (!user.isEmailVerified) {
+      await this.userService.sendEmailVerificationCode(user.email);
+      throw new UnauthorizedException({
+        message: "VERIFY_EMAIL_REQUIRED",
+        email: user.email,
+      });
     }
 
     const tokens = await this.issueTokens(user);

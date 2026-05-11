@@ -18,6 +18,7 @@ import { toast } from "react-hot-toast";
 import PublicAccountShell from "@/app/components/public/PublicAccountShell";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
 import publicApiClient from "@/app/lib/public-api-client";
+import { managePlans } from "@/app/lib/manage-plans";
 
 const getInitials = (name?: string | null, email?: string | null) => {
   const source = name?.trim() || email?.split("@")?.[0] || "Account User";
@@ -37,7 +38,8 @@ export default function PublicProfileScreen() {
   const { user, updateUser, logout } = usePublicAuth();
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
-
+  const plan = managePlans(user?.subscription);
+  const PlanIcon = plan.icon;
   const initials = useMemo(
     () => getInitials(user?.name, user?.email),
     [user?.email, user?.name],
@@ -250,22 +252,48 @@ export default function PublicProfileScreen() {
             </div>
 
             <div className="mt-5 grid gap-3">
-              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
-                  Access type
-                </p>
-                <p className="mt-1 text-sm font-bold capitalize text-[var(--admin-text)]">
-                  {displayRole}
-                </p>
+              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-primary)]">
+                    <BadgeCheck className="h-4 w-4" />
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                      Access type
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold capitalize text-[var(--admin-text)]">
+                      {displayRole}
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[var(--admin-muted)]">
+                      Your current account access level.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
-                  Plan
-                </p>
-                <p className="mt-1 text-sm font-bold capitalize text-[var(--admin-text)]">
-                  {user?.subscription || "Standard"}
-                </p>
+              <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-primary)]">
+                    <PlanIcon className="h-4 w-4" />
+                  </span>
+
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                      Plan
+                    </p>
+
+                    <p className="mt-1 text-sm font-semibold text-[var(--admin-text)]">
+                      {plan.label}
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-[var(--admin-muted)]">
+                      {plan.description}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

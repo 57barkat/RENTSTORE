@@ -48,10 +48,11 @@ export default function AccountShell({
         {/* Title and Description area - Primary Action Button Removed */}
         <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 max-w-3xl">
-            <h1 className="text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-4xl">
+            <h1 className="text-[1.7rem] font-bold leading-[1.12] tracking-[-0.025em] text-[var(--admin-text)] sm:text-4xl sm:font-semibold">
               {title}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-[var(--admin-muted)] sm:text-[15px]">
+
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--admin-muted)] sm:text-[15px]">
               {description}
             </p>
           </div>

@@ -286,7 +286,7 @@ export default async function PublicListingPage({
             </span>
 
             <div className="space-y-3 sm:space-y-4">
-              <h1 className="max-w-4xl text-[2rem] font-black leading-[1.08] tracking-tight text-[var(--admin-text)] sm:text-5xl">
+              <h1 className="max-w-4xl text-[1.85rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--admin-text)] sm:text-5xl sm:font-semibold">
                 {title}
               </h1>
 
@@ -299,16 +299,16 @@ export default async function PublicListingPage({
           <div className="rounded-[1.75rem] border border-[var(--admin-border)] bg-white/88 p-5 shadow-[0_20px_50px_-36px_var(--admin-shadow)] backdrop-blur sm:rounded-[2rem] sm:p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--admin-muted)]">
-                  Live inventory
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                  Available listings
                 </p>
 
-                <p className="mt-3 text-4xl font-black tracking-tight text-[var(--admin-text)]">
+                <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-4xl">
                   {response.total}
                 </p>
               </div>
 
-              <p className="max-w-[13rem] text-right text-xs leading-6 text-[var(--admin-muted)] sm:text-sm">
+              <p className="max-w-[12rem] text-right text-xs leading-5 text-[var(--admin-muted)] sm:max-w-[13rem] sm:text-sm sm:leading-6">
                 {inventoryDescription}
               </p>
             </div>

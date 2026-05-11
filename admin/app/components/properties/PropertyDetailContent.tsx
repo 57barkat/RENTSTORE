@@ -387,7 +387,7 @@ export default async function PropertyDetailContent({
           </div>
 
           <div className="space-y-3">
-            <h1 className="max-w-5xl text-3xl font-black tracking-tight text-[var(--admin-text)] sm:text-4xl lg:text-5xl">
+            <h1 className="max-w-5xl text-[2rem] font-bold leading-[1.12] tracking-[-0.025em] text-[var(--admin-text)] sm:text-4xl sm:font-semibold lg:text-5xl">
               {title}
             </h1>
 
@@ -693,14 +693,17 @@ export default async function PropertyDetailContent({
           <section className="mt-16 border-t border-[var(--admin-border)] pt-10">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--admin-primary)]">
-                  Related Listings
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-primary)]">
+                  You may also like
                 </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-[var(--admin-text)]">
-                  Similar Premium Listings
+
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--admin-text)]">
+                  Similar listings nearby
                 </h2>
-                <p className="mt-2 text-sm text-[var(--admin-muted)]">
-                  Explore more {categoryPlural.toLowerCase()} in {city}.
+
+                <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
+                  Compare more {categoryPlural.toLowerCase()}
+                  {city ? ` in ${city}` : ""}.
                 </p>
               </div>
 

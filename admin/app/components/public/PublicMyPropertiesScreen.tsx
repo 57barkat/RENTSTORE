@@ -352,7 +352,9 @@ function ListingControls({
             <SlidersHorizontal className="h-4 w-4 text-[var(--admin-primary)]" />
             <select
               value={sortBy}
-              onChange={(event) => onSortChange(event.target.value as ListingSort)}
+              onChange={(event) =>
+                onSortChange(event.target.value as ListingSort)
+              }
               className="min-w-0 bg-transparent text-sm font-semibold text-[var(--admin-text)] outline-none"
               aria-label="Sort listings"
             >
@@ -720,17 +722,19 @@ function PropertyManagementCard({
         <div className="p-7">
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--admin-secondary)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--admin-secondary)]">
                 {getCategoryLabel(getPropertyCategory(property)).toUpperCase()}
               </p>
 
-              <h2 className="mt-2 max-w-3xl text-[1.7rem] font-black leading-tight tracking-tight text-[var(--admin-text)]">
+              <h2 className="mt-2 max-w-3xl text-2xl font-semibold leading-snug tracking-tight text-[var(--admin-text)]">
                 {getPropertyTitle(property)}
               </h2>
 
-              <p className="mt-3 flex items-center gap-2 text-sm font-medium leading-6 text-[var(--admin-muted)]">
-                <MapPin className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
-                {getPropertyLocationLabel(property) || "Location unavailable"}
+              <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-[var(--admin-muted)]">
+                <MapPin className="mt-1 h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
+                <span className="line-clamp-2">
+                  {getPropertyLocationLabel(property) || "Location unavailable"}
+                </span>
               </p>
             </div>
 
@@ -863,8 +867,7 @@ export default function PublicMyPropertiesScreen() {
     useState<PromotionModalState>(null);
   const [promoting, setPromoting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<ListingStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<ListingStatusFilter>("all");
   const [sortBy, setSortBy] = useState<ListingSort>("newest");
 
   const mergeListingAnalytics = (
@@ -929,9 +932,8 @@ export default function PublicMyPropertiesScreen() {
       featured: listings.filter((property) =>
         isActiveFeaturedPromotion(property),
       ).length,
-      boosted: listings.filter((property) =>
-        isActiveBoostedPromotion(property),
-      ).length,
+      boosted: listings.filter((property) => isActiveBoostedPromotion(property))
+        .length,
     }),
     [drafts.length, listings],
   );

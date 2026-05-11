@@ -77,6 +77,16 @@ export class PropertyService {
     private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
 
+  private assertPhoneVerifiedForUpload(user: UserDocument) {
+    if (!user.isPhoneVerified) {
+      throw new BadRequestException({
+        message: "Please verify your phone number to upload a property.",
+        error: "PHONE_VERIFICATION_REQUIRED",
+        requiresPhoneVerification: true,
+      });
+    }
+  }
+
   private getPublicListingSort(sortBy?: PublicSortOption) {
     if (sortBy === "price_asc") {
       return { monthlyRent: 1, createdAt: -1, _id: -1 } as const;
@@ -229,6 +239,7 @@ export class PropertyService {
   async createOrUpdate(
     dto: Partial<CreatePropertyDto>,
     userId: string,
+    options: { requireVerifiedOwner?: boolean } = {},
   ): Promise<{ property: Property; user: any }> {
     const propertyId = dto._id;
     const session = await this.connection.startSession();
@@ -240,6 +251,9 @@ export class PropertyService {
         // 1. Fetch User
         const user = await this.userModel.findById(userId).session(session);
         if (!user) throw new NotFoundException("User not found");
+        if (options.requireVerifiedOwner !== false) {
+          this.assertPhoneVerifiedForUpload(user);
+        }
 
         // 2. Data Pre-processing (Type Safe)
         const cleanedPhotos = processPhotos(dto.photos);
@@ -510,6 +524,10 @@ export class PropertyService {
     if (!userId) {
       throw new UnauthorizedException("User not authenticated");
     }
+
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException("User not found");
+    this.assertPhoneVerifiedForUpload(user);
 
     dto.defaultRentType = normalizeDefaultRentType(dto);
     let photos: string[] = [];

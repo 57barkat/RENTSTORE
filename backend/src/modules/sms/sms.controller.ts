@@ -30,7 +30,8 @@ export class AuthController {
     const phone = dto.phone;
 
     await this.otpStoreService.set(this.getOtpKey(phone), otp, OTP_TTL_MS);
-
+    const user = await this.userService.findByPhone(phone);
+    if (!user) throw new BadRequestException("incorrect phone number");
     await this.smsService.sendOtp(phone, otp);
     return { success: true, message: "OTP sent successfully" };
   }

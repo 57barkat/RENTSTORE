@@ -17,9 +17,11 @@ export interface PublicMeResponse {
   id?: string;
   name?: string;
   email?: string;
+  phone?: string;
   role?: string;
   profileImage?: string | null;
   isphoneverified?: boolean;
+  isPhoneVerified?: boolean;
   propertyLimit?: number;
   usedPropertyCount?: number;
   paidPropertyCredits?: number;
