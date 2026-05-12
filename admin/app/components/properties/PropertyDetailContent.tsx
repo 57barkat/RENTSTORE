@@ -679,11 +679,11 @@ export default async function PropertyDetailContent({
                   ))}
                 </div>
 
-                {cameraDescription && (
+                {/* {cameraDescription && (
                   <p className="mt-4 text-sm leading-6 text-[var(--admin-muted)]">
                     {cameraDescription}
                   </p>
-                )}
+                )} */}
               </section>
             )}
           </aside>
