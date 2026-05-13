@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  memo,
-  useEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-} from "react";
+import { memo, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";

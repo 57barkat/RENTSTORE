@@ -1,7 +1,6 @@
 export const DEFAULT_LISTING_CITY = "Islamabad";
 export const DEFAULT_LISTING_PURPOSE = "rent";
 export const PROPERTY_DETAIL_SLUG_MAX_LENGTH = 70;
-
 export const KNOWN_SEO_CITIES = [
   "Islamabad",
   "Lahore",
@@ -94,14 +93,6 @@ export const PUBLIC_PROPERTY_ROUTE_MAP = {
   },
 };
 
-export const PUBLIC_CATEGORY_LINKS = Object.values(
-  PUBLIC_PROPERTY_ROUTE_MAP,
-).map((item) => ({
-  label: item.label,
-  category: item.category,
-  href: item.seoExampleHref,
-}));
-
 export const LEGACY_LISTING_ROUTE_ALIASES = {
   home: "/houses",
   house: "/houses",
@@ -175,7 +166,6 @@ const titleCaseWord = (word) => {
   }
 
   const lower = word.toLowerCase();
-
   if (lower.length <= 3 && /^[a-z]+$/i.test(lower)) {
     return lower.toUpperCase();
   }
@@ -292,7 +282,6 @@ const removeDuplicateLocationTokens = (value, locations) => {
     .filter(Boolean)
     .forEach((location) => {
       const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
       sanitized = sanitized.replace(
         new RegExp(`\\b${escapedLocation}\\b`, "gi"),
         " ",
@@ -413,7 +402,6 @@ export const normalizePurpose = (purpose) => {
   }
 
   const normalized = String(purpose).toLowerCase();
-
   return PURPOSE_VALUES.has(normalized) ? normalized : null;
 };
 
@@ -439,11 +427,9 @@ export const getSeoListingContext = (input) => {
   const propertyType =
     normalizeSeoPropertyType(input?.propertyType) ||
     getSeoPropertyTypeForCategory(input?.category);
-
   const purpose =
     normalizePurpose(input?.purpose || DEFAULT_LISTING_PURPOSE) ||
     DEFAULT_LISTING_PURPOSE;
-
   const city = normalizeSeoCity(input?.city || DEFAULT_LISTING_CITY);
   const area = normalizeSeoArea(input?.area || "");
 
@@ -475,9 +461,7 @@ export const buildSeoListingSlug = (input) => {
     slugifyListingValue(seoContext.city),
   ].filter(Boolean);
 
-  return `${PROPERTY_TYPE_SEGMENTS[seoContext.propertyType]}-for-${
-    seoContext.purpose
-  }-in-${locationSlugParts.join("-")}`;
+  return `${PROPERTY_TYPE_SEGMENTS[seoContext.propertyType]}-for-${seoContext.purpose}-in-${locationSlugParts.join("-")}`;
 };
 
 /**
@@ -522,7 +506,6 @@ export const parseSeoListingSlug = (segment) => {
     locationSegment === cityMatch.slug
       ? ""
       : locationSegment.slice(0, -(cityMatch.slug.length + 1));
-
   const area = areaSegment ? normalizeSeoArea(areaSegment) : "";
 
   if (!propertyType || !purpose || !category || !city) {
@@ -571,23 +554,18 @@ export const buildLegacyListingRedirectPath = (input) => {
  */
 export const buildPropertyDetailSlug = (input) => {
   const propertyType = normalizeSeoPropertyType(input?.propertyType);
-
   const purpose =
     normalizePurpose(input?.purpose || DEFAULT_LISTING_PURPOSE) ||
     DEFAULT_LISTING_PURPOSE;
-
   const city = buildPropertyDetailLocationSlug(
     input?.city || DEFAULT_LISTING_CITY,
   );
-
   const area = buildPropertyDetailLocationSlug(input?.area || "");
-
   const descriptor = inferPropertyDescriptor({
     propertyType,
     title: input?.title,
     hostelType: input?.hostelType,
   });
-
   const sizeSegment = buildPropertySizeSlug(input?.sizeValue, input?.sizeUnit);
   const propertyId = String(input?.propertyId || "")
     .trim()
@@ -606,7 +584,6 @@ export const buildPropertyDetailSlug = (input) => {
     city,
     sizeSegment,
   ].filter(Boolean);
-
   const slugBase = truncateSlugValue(phraseParts.join("-"));
 
   return `${slugBase}-${propertyId}`;
@@ -622,7 +599,6 @@ export const parsePropertyDetailSlug = (segment) => {
   }
 
   const normalizedSegment = String(segment).trim().toLowerCase();
-
   const match = normalizedSegment.match(
     /^(.*?)-for-(rent|sale)-in-(.+)-([a-f0-9]{24})$/i,
   );
@@ -633,7 +609,6 @@ export const parsePropertyDetailSlug = (segment) => {
 
   const [, descriptorSegment, purposeSegment, rawLocationHint, propertyId] =
     match;
-
   const propertyType = descriptorSegment.includes("hostel")
     ? "hostel"
     : descriptorSegment.includes("apartment")
@@ -679,13 +654,10 @@ export const getPublicCategoryFromPath = (pathname) => {
   }
 
   const normalizedPathname = String(pathname || "");
-
   const matchedRoute = Object.values(PUBLIC_PROPERTY_ROUTE_MAP).find(
     (item) =>
       normalizedPathname === item.legacyHref ||
-      normalizedPathname.startsWith(`${item.legacyHref}/`) ||
-      normalizedPathname === item.seoExampleHref ||
-      normalizedPathname.startsWith(`${item.seoExampleHref}/`),
+      normalizedPathname.startsWith(`${item.legacyHref}/`),
   );
 
   return matchedRoute?.category || null;
