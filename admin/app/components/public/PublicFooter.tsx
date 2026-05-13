@@ -1,153 +1,234 @@
 import Link from "next/link";
-import { Building2, ChevronRight, MapPin } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Facebook,
+  Heart,
+  Instagram,
+  Linkedin,
+  Mail,
+  MapPin,
+  ShieldCheck,
+  Twitter,
+} from "lucide-react";
 
 import { PUBLIC_CATEGORY_LINKS } from "@/app/lib/route-constants";
 
 const footerGroups = [
   {
-    title: "Explore",
+    title: "Quick Links",
     links: [
-      { href: "/", label: "All Properties" },
+      { href: "/", label: "Rent" },
       ...PUBLIC_CATEGORY_LINKS.map((item) => ({
         href: item.href,
         label: item.label,
       })),
-      { href: "/popular-locations", label: "Popular Locations" },
+      { href: "/list-property", label: "List a Property" },
+      { href: "/favorites", label: "Favorites" },
     ],
   },
   {
     title: "Company",
     links: [
-      { href: "/", label: "Home" },
-      { href: "/popular-locations", label: "Popular Locations" },
-      { href: "/houses", label: "House Listings" },
+      { href: "/about", label: "About Us" },
+      { href: "/how-it-works", label: "How it Works" },
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/contact", label: "Contact Us" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { href: "/contact", label: "Help Center" },
+      { href: "/safety", label: "Safety Tips" },
+      { href: "/guides", label: "Guides & Tips" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/report-problem", label: "Report a Problem" },
     ],
   },
 ] as const;
 
 export default function PublicFooter() {
   return (
-    <footer className="border-t border-[var(--admin-border)] bg-[linear-gradient(180deg,var(--admin-background),white)]">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1.15fr]">
+    <footer className="border-t border-[var(--admin-border)] bg-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid gap-10 py-12 lg:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_1.2fr]">
           <div className="space-y-5">
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-3 text-[var(--admin-text)]"
-            >
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white shadow-[0_18px_34px_-22px_var(--admin-primary)] transition group-hover:-translate-y-0.5">
-                <Building2 className="h-5 w-5" />
+            <Link href="/" className="inline-flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--admin-primary)] text-white shadow-[0_18px_35px_-22px_var(--admin-primary)]">
+                <Building2 size={22} />
               </span>
 
-              <span className="min-w-0">
-                <span className="block text-xl font-black tracking-tight">
+              <span>
+                <span className="block text-xl font-black leading-none tracking-tight text-[var(--admin-text)]">
                   AnganStay
                 </span>
-                <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--admin-muted)]">
-                  Verified rentals
+                <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+                  Verified Rentals
                 </span>
               </span>
             </Link>
 
             <p className="max-w-sm text-sm leading-7 text-[var(--admin-muted)]">
-              Curated rental discovery across Pakistan for verified houses,
-              apartments, hostels, shops, and offices.
+              Pakistan&apos;s trusted platform for verified rental properties.
+              Find your perfect stay with confidence.
             </p>
 
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2 text-xs font-bold text-[var(--admin-muted)] shadow-sm">
-              <MapPin className="h-4 w-4 text-[var(--admin-primary)]" />
-              Pakistan rental marketplace
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="#"
+                aria-label="Facebook"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              >
+                <Facebook size={15} />
+              </Link>
+
+              <Link
+                href="#"
+                aria-label="Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              >
+                <Instagram size={15} />
+              </Link>
+
+              <Link
+                href="#"
+                aria-label="Twitter"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              >
+                <Twitter size={15} />
+              </Link>
+
+              <Link
+                href="#"
+                aria-label="LinkedIn"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+              >
+                <Linkedin size={15} />
+              </Link>
+            </div>
+
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-[var(--admin-primary-soft)] px-3 py-2 text-xs font-semibold text-[var(--admin-primary)]">
+              <MapPin size={14} />
+              Islamabad & Rawalpindi now
             </div>
           </div>
 
           {footerGroups.map((group) => (
-            <div key={group.title} className="space-y-4">
-              <h2 className="text-xs font-black uppercase tracking-[0.22em] text-[var(--admin-text)]">
+            <div key={group.title}>
+              <h2 className="mb-4 text-sm font-black text-[var(--admin-text)]">
                 {group.title}
               </h2>
 
-              <nav className="grid gap-2.5 text-sm text-[var(--admin-muted)]">
+              <nav className="grid gap-3">
                 {group.links.map((link) => (
                   <Link
-                    key={`${group.title}-${link.label}`}
+                    key={`${group.title}-${link.href}-${link.label}`}
                     href={link.href}
-                    className="group inline-flex w-fit items-center gap-2 rounded-full py-1 font-medium transition hover:text-[var(--admin-primary)]"
+                    className="w-fit text-sm font-medium text-[var(--admin-muted)] transition hover:text-[var(--admin-primary)]"
                   >
-                    <span>{link.label}</span>
-                    <ChevronRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                    {link.label}
                   </Link>
                 ))}
               </nav>
             </div>
           ))}
 
-          <div className="rounded-[2rem] border border-[var(--admin-border)] bg-white p-5 shadow-[0_24px_70px_-52px_var(--admin-shadow)]">
-            <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--admin-primary)]">
-                Stay updated
-              </p>
+          <div>
+            <h2 className="mb-4 text-sm font-black text-[var(--admin-text)]">
+              Newsletter
+            </h2>
 
-              <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                Browse live rental inventory
-              </h2>
+            <p className="mb-4 max-w-sm text-sm leading-7 text-[var(--admin-muted)]">
+              Get the latest listings and rental updates.
+            </p>
 
-              <p className="text-sm leading-7 text-[var(--admin-muted)]">
-                Fresh verified listings and popular market areas, updated from
-                live inventory.
-              </p>
-            </div>
+            <form className="flex overflow-hidden rounded-xl border border-[var(--admin-border)] bg-white shadow-sm">
+              <label htmlFor="footer-email" className="sr-only">
+                Email address
+              </label>
 
-            <Link
-              href="/"
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 py-3 text-sm font-bold text-white shadow-[0_18px_34px_-24px_var(--admin-primary)] transition hover:-translate-y-0.5 hover:opacity-95"
-            >
-              Explore listings
-              <ChevronRight className="h-4 w-4" />
-            </Link>
+              <div className="relative min-w-0 flex-1">
+                <Mail
+                  size={15}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--admin-placeholder)]"
+                />
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <Link
-                href="/popular-locations"
-                className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 py-3 text-center text-xs font-bold text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                <input
+                  id="footer-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  className="h-12 w-full bg-transparent px-3 pl-9 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-placeholder)]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                aria-label="Subscribe"
+                className="flex h-12 w-12 items-center justify-center bg-[var(--admin-primary)] text-white transition hover:opacity-95"
               >
-                Popular areas
-              </Link>
+                <ArrowRight size={18} />
+              </button>
+            </form>
 
-              <Link
-                href="/apartments"
-                className="rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-3 py-3 text-center text-xs font-bold text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-              >
-                Apartments
-              </Link>
+            <p className="mt-3 text-xs leading-5 text-[var(--admin-muted)]">
+              We respect your privacy. Unsubscribe anytime.
+            </p>
+
+            <div className="mt-5 rounded-2xl border border-[var(--admin-border)] bg-[#F8FAFC] p-4">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
+                  <ShieldCheck size={20} />
+                </div>
+
+                <p className="text-xs leading-6 text-[var(--admin-muted)]">
+                  AnganStay is a property listing platform only. Users must
+                  verify rent, ownership, availability, condition, documents,
+                  and payment terms before making any decision.
+                </p>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-[var(--admin-border)] pt-6 text-xs text-[var(--admin-muted)] sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 AnganStay. All rights reserved.</p>
+        <div className="grid gap-5 border-t border-[var(--admin-border)] py-6 text-xs text-[var(--admin-muted)] md:grid-cols-[1fr_auto_1fr] md:items-center">
+          <p>&copy; 2026 AnganStay. All rights reserved.</p>
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 md:justify-center">
             <Link
-              href="/popular-locations"
-              className="font-medium transition hover:text-[var(--admin-primary)]"
+              href="/terms"
+              className="font-semibold transition hover:text-[var(--admin-primary)]"
             >
-              Popular Locations
+              Terms
             </Link>
 
             <Link
-              href="/apartments"
-              className="font-medium transition hover:text-[var(--admin-primary)]"
+              href="/privacy"
+              className="font-semibold transition hover:text-[var(--admin-primary)]"
             >
-              Apartments
+              Privacy
             </Link>
 
             <Link
-              href="/"
-              className="font-medium transition hover:text-[var(--admin-primary)]"
+              href="/contact"
+              className="font-semibold transition hover:text-[var(--admin-primary)]"
             >
-              All Properties
+              Contact
+            </Link>
+
+            <Link
+              href="/report-problem"
+              className="font-semibold transition hover:text-[var(--admin-primary)]"
+            >
+              Report a Problem
             </Link>
           </div>
+
+          <p className="flex items-center gap-1 md:justify-end">
+            Made with <Heart size={13} className="fill-red-500 text-red-500" />{" "}
+            in Pakistan
+          </p>
         </div>
       </div>
     </footer>

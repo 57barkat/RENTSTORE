@@ -32,6 +32,10 @@ export default function PublicFavoriteButton({
 
   const pending = isPending(property._id);
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const redirectToLogin = () => {
     const redirect = encodeURIComponent(
       `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`,

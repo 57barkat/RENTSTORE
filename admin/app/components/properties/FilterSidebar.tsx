@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search, SlidersHorizontal } from "lucide-react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";
 import type { PropertyCategory, SizeUnit } from "@/app/lib/property-types";
@@ -11,7 +11,7 @@ interface FilterSidebarProps {
   totalResults: number;
 }
 
-const AMENITIES = ["WiFi", "AC", "Parking", "Laundry", "Gym"];
+const AMENITIES = ["WiFi", "AC", "Furnished", "Family Friendly", "Parking"];
 const SIZE_UNITS = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."] as const;
 const CATEGORY_OPTIONS: Array<{
   label: string;
@@ -76,14 +76,14 @@ const FilterSidebarComponent = ({
   };
 
   const sidebarContent = (
-    <div className="admin-surface rounded-[2rem] p-6">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-[var(--admin-text)]">
+    <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-white p-4 shadow-[0_18px_44px_-36px_rgba(0,31,143,0.35)]">
+      <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--admin-border)] pb-4">
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
+            <SlidersHorizontal className="h-4 w-4" />
+          </span>
+          <p className="text-sm font-black text-[var(--admin-text)]">
             Filters
-          </p>
-          <p className="text-sm text-[var(--admin-muted)]">
-            {totalResults} indexed results
           </p>
         </div>
         <button
@@ -92,49 +92,101 @@ const FilterSidebarComponent = ({
             resetFilters();
             setMobileOpen(false);
           }}
-          className="admin-button-secondary rounded-full px-4 py-2 text-sm font-medium"
+          className="rounded-full px-3 py-2 text-xs font-black text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)]"
         >
-          Reset
+          Reset All
         </button>
       </div>
 
       <div className="space-y-5">
-        {category === "property" && (
-          <div className="rounded-[1.75rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-4">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-              Category
-            </label>
-            <p className="mb-3 text-sm text-[var(--admin-muted)]">
-              Choose a property type or keep all categories selected.
-            </p>
-            <div className="relative">
-              <select
-                aria-label="Property category"
-                value={filters.category}
-                onChange={(event) =>
+        <section>
+          <label className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Location
+          </label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-muted)]" />
+            <input
+              key={filters.location || "blank-location"}
+              defaultValue={filters.location || ""}
+              onBlur={(event) =>
+                updateFilters({ location: event.currentTarget.value.trim() })
+              }
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
                   updateFilters({
-                    category: event.target.value as PropertyCategory,
-                  })
+                    location: (
+                      event.currentTarget as HTMLInputElement
+                    ).value.trim(),
+                  });
                 }
-                className="admin-input w-full appearance-none rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 pr-11 text-sm font-medium text-[var(--admin-text)] shadow-none"
-              >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
-              />
-            </div>
+              }}
+              placeholder="Search city or area"
+              className="admin-input h-11 w-full rounded-xl pl-10 pr-3 text-sm"
+            />
           </div>
-        )}
+          <div className="relative mt-2">
+            <select
+              value={filters.city || ""}
+              onChange={(event) => updateFilters({ city: event.target.value })}
+              className="admin-input h-11 w-full appearance-none rounded-xl px-3 pr-9 text-sm"
+            >
+              <option value="">All cities</option>
+              <option value="Islamabad">Islamabad</option>
+              <option value="Rawalpindi">Rawalpindi</option>
+              <option value="Lahore">Lahore</option>
+              <option value="Karachi">Karachi</option>
+            </select>
+            <ChevronDown
+              size={15}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
+            />
+          </div>
+        </section>
 
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            Title
+        <section>
+          <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Property Type
+          </p>
+          <div className="grid gap-2">
+            {CATEGORY_OPTIONS.map((option) => {
+              const active = filters.category === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() =>
+                    updateFilters({
+                      category: option.value,
+                    })
+                  }
+                  className="flex min-h-8 items-center justify-between gap-3 rounded-lg text-left text-sm font-semibold text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      className={`inline-flex h-4 w-4 items-center justify-center rounded border ${
+                        active
+                          ? "border-[var(--admin-primary)] bg-[var(--admin-primary)]"
+                          : "border-[var(--admin-border)] bg-white"
+                      }`}
+                    >
+                      {active ? (
+                        <span className="h-1.5 w-1.5 rounded-sm bg-white" />
+                      ) : null}
+                    </span>
+                    {option.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <label className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Keyword
           </label>
           <input
             key={filters.title || "blank-title"}
@@ -151,57 +203,16 @@ const FilterSidebarComponent = ({
               }
             }}
             placeholder="Family home, executive office..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white"
+            className="admin-input h-11 w-full rounded-xl px-3 text-sm"
           />
-        </div>
+        </section>
 
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-            City
-          </label>
-          <select
-            value={filters.city || ""}
-            onChange={(event) => updateFilters({ city: event.target.value })}
-            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
-          >
-            <option value="">All cities</option>
-            <option value="Islamabad">Islamabad</option>
-            <option value="Rawalpindi">Rawalpindi</option>
-            <option value="Lahore">Lahore</option>
-            <option value="Karachi">Karachi</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-            Location
-          </label>
-          <input
-            key={filters.location || "blank-location"}
-            defaultValue={filters.location || ""}
-            onBlur={(event) =>
-              updateFilters({ location: event.currentTarget.value.trim() })
-            }
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                updateFilters({
-                  location: (
-                    event.currentTarget as HTMLInputElement
-                  ).value.trim(),
-                });
-              }
-            }}
-            placeholder="DHA 2, Bahria, F-11..."
-            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
+        <section>
+          <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Price Range (PKR)
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-              Min rent
-            </label>
             <input
               ref={minRentRef}
               type="number"
@@ -214,13 +225,11 @@ const FilterSidebarComponent = ({
                   : String(filters.minRent)
               }
               onKeyDown={handleRangeKeyDown}
-              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+              placeholder="Min"
+              className="admin-input h-11 w-full rounded-xl px-3 text-sm"
             />
           </div>
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-              Max rent
-            </label>
             <input
               ref={maxRentRef}
               type="number"
@@ -233,18 +242,74 @@ const FilterSidebarComponent = ({
                   : String(filters.maxRent)
               }
               onKeyDown={handleRangeKeyDown}
-              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+              placeholder="Max"
+              className="admin-input h-11 w-full rounded-xl px-3 text-sm"
             />
           </div>
         </div>
+        </section>
+
+        <section>
+          <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Bedrooms
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map((value) => {
+              const active = filters.bedrooms === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    updateFilters({ bedrooms: active ? "" : value })
+                  }
+                  className={`rounded-xl border px-3 py-2 text-xs font-black transition ${
+                    active
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
+                      : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                  }`}
+                >
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+            Bathrooms
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map((value) => {
+              const active = filters.bathrooms === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    updateFilters({ bathrooms: active ? "" : value })
+                  }
+                  className={`rounded-xl border px-3 py-2 text-xs font-black transition ${
+                    active
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
+                      : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                  }`}
+                >
+                  {value}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {showSizeFilters && (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2">
+          <section>
+            <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+              Size
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Min size
-                </label>
                 <input
                   ref={minSizeRef}
                   type="number"
@@ -257,13 +322,11 @@ const FilterSidebarComponent = ({
                       : String(filters.minSize)
                   }
                   onKeyDown={handleRangeKeyDown}
-                  className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+                  placeholder="Min"
+                  className="admin-input h-11 w-full rounded-xl px-3 text-sm"
                 />
               </div>
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Max size
-                </label>
                 <input
                   ref={maxSizeRef}
                   type="number"
@@ -276,16 +339,13 @@ const FilterSidebarComponent = ({
                       : String(filters.maxSize)
                   }
                   onKeyDown={handleRangeKeyDown}
-                  className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+                  placeholder="Max"
+                  className="admin-input h-11 w-full rounded-xl px-3 text-sm"
                 />
               </div>
             </div>
 
-            {/* Size Unit Selector */}
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                Size unit
-              </label>
+            <div className="relative mt-2">
               <select
                 value={filters.sizeUnit || ""}
                 onChange={(event) =>
@@ -293,7 +353,7 @@ const FilterSidebarComponent = ({
                     sizeUnit: event.target.value as SizeUnit,
                   })
                 }
-                className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+                className="admin-input h-11 w-full appearance-none rounded-xl px-3 pr-9 text-sm"
               >
                 <option value="">All units</option>
                 {SIZE_UNITS.map((unit) => (
@@ -302,65 +362,80 @@ const FilterSidebarComponent = ({
                   </option>
                 ))}
               </select>
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
+              />
             </div>
-          </>
+          </section>
         )}
 
         <button
           type="button"
           onClick={applyRangeFilters}
-          className="admin-button-primary w-full rounded-2xl px-4 py-3 text-sm font-medium"
+          className="w-full rounded-xl bg-[var(--admin-primary)] px-4 py-3 text-sm font-black text-white shadow-[0_16px_30px_-24px_var(--admin-primary)] transition hover:opacity-95"
         >
           Apply filters
         </button>
 
-        {/* Sort */}
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+        <section>
+          <label className="mb-2 block text-xs font-black text-[var(--admin-text)]">
             Sort
           </label>
-          <select
-            value={filters.sortBy || "newest"}
-            onChange={(event) =>
-              updateFilters({
-                sortBy: event.target.value as typeof filters.sortBy,
-              })
-            }
-            className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
-          >
-            <option value="newest">Latest listings</option>
-            <option value="popular">Most popular</option>
-            <option value="price_asc">Price: low to high</option>
-            <option value="price_desc">Price: high to low</option>
-          </select>
-        </div>
-
-        {category === "hostel" && (
-          <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-              Hostel type
-            </label>
+          <div className="relative">
             <select
-              value={filters.hostelType || ""}
+              value={filters.sortBy || "newest"}
               onChange={(event) =>
                 updateFilters({
-                  hostelType: event.target.value as typeof filters.hostelType,
+                  sortBy: event.target.value as typeof filters.sortBy,
                 })
               }
-              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+              className="admin-input h-11 w-full appearance-none rounded-xl px-3 pr-9 text-sm"
             >
-              <option value="">All types</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="mixed">Mixed</option>
+              <option value="newest">Latest listings</option>
+              <option value="popular">Most popular</option>
+              <option value="price_asc">Price: low to high</option>
+              <option value="price_desc">Price: high to low</option>
             </select>
+            <ChevronDown
+              size={15}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
+            />
           </div>
+        </section>
+
+        {category === "hostel" && (
+          <section>
+            <label className="mb-2 block text-xs font-black text-[var(--admin-text)]">
+              Hostel type
+            </label>
+            <div className="relative">
+              <select
+                value={filters.hostelType || ""}
+                onChange={(event) =>
+                  updateFilters({
+                    hostelType: event.target.value as typeof filters.hostelType,
+                  })
+                }
+                className="admin-input h-11 w-full appearance-none rounded-xl px-3 pr-9 text-sm"
+              >
+                <option value="">All types</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="mixed">Mixed</option>
+              </select>
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
+              />
+            </div>
+          </section>
         )}
 
-        <div>
-          <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
+        <section>
+          <p className="mb-2 block text-xs font-black text-[var(--admin-text)]">
             Amenities
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {AMENITIES.map((amenity) => {
               const selected = filters.amenities?.includes(amenity);
@@ -376,8 +451,8 @@ const FilterSidebarComponent = ({
                   onClick={() => updateFilters({ amenities: nextAmenities })}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     selected
-                      ? "bg-[var(--admin-primary)] text-[var(--admin-background)]"
-                      : "border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                      ? "bg-[var(--admin-primary)] text-white"
+                      : "border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   {amenity}
@@ -385,7 +460,11 @@ const FilterSidebarComponent = ({
               );
             })}
           </div>
-        </div>
+        </section>
+
+        <p className="rounded-xl bg-[var(--admin-primary-soft)] px-3 py-2 text-xs font-bold text-[var(--admin-primary)]">
+          {totalResults.toLocaleString("en-PK")} matching results
+        </p>
       </div>
     </div>
   );
@@ -395,8 +474,9 @@ const FilterSidebarComponent = ({
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="admin-button-primary mb-4 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-medium lg:hidden"
+        className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_16px_30px_-24px_var(--admin-primary)] lg:hidden"
       >
+        <SlidersHorizontal className="h-4 w-4" />
         Open filters
       </button>
 

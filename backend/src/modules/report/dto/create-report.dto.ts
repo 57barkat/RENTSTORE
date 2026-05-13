@@ -1,24 +1,36 @@
 import {
-  IsEnum,
   IsMongoId,
   IsOptional,
   IsString,
-  MinLength,
+  MaxLength,
 } from "class-validator";
-import { ReportReason } from "../report.schema";
 
 export class CreateReportDto {
+  @IsOptional()
   @IsMongoId()
-  propertyId!: string;
+  propertyId?: string;
 
-  @IsEnum(ReportReason, {
-    message:
-      "Reason must be one of: SCAM, SOLD, INCORRECT_DATA, MISLEADING_PHOTOS, or OTHER",
-  })
-  reason!: ReportReason;
+  @IsOptional()
+  @IsMongoId()
+  listingId?: string;
 
   @IsOptional()
   @IsString()
-  @MinLength(10)
+  @MaxLength(120)
+  reportReason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  reason?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  details?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   description?: string;
 }

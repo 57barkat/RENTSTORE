@@ -27,12 +27,12 @@ export default function PopularLocationsSection({
       <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.07),rgba(255,255,255,1),rgba(16,185,129,0.06))] px-5 py-5 sm:px-6 sm:py-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--admin-primary)] shadow-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase text-[var(--admin-primary)] shadow-sm">
               <TrendingUp className="h-3.5 w-3.5" />
               Popular locations
             </span>
 
-            <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
+            <h2 className="mt-3 text-2xl font-black text-[var(--admin-text)] sm:text-3xl">
               {title}
             </h2>
 

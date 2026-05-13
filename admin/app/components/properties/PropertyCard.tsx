@@ -4,12 +4,15 @@ import {
   ArrowUpRight,
   Bath,
   BedDouble,
+  CheckCircle2,
   Eye,
   MapPin,
   SquareDashedBottom,
+  Zap,
 } from "lucide-react";
 
 import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
+import ReportListingButton from "@/app/components/properties/ReportListingButton";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   isActiveBoostedPromotion,
@@ -33,14 +36,15 @@ interface PropertyCardProps {
 }
 
 const buildStatItems = (property: PublicProperty) => {
-  const items: Array<{ key: string; value: string }> = [];
+  const items: Array<{ key: string; value: string; label: string }> = [];
 
   if (property.capacityState?.bedrooms || property.capacityState?.beds) {
+    const value =
+      property.capacityState?.bedrooms || property.capacityState?.beds;
     items.push({
       key: "beds",
-      value: String(
-        property.capacityState?.bedrooms || property.capacityState?.beds,
-      ),
+      value: String(value),
+      label: Number(value) === 1 ? "Bed" : "Beds",
     });
   }
 
@@ -48,6 +52,7 @@ const buildStatItems = (property: PublicProperty) => {
     items.push({
       key: "baths",
       value: String(property.capacityState.bathrooms),
+      label: Number(property.capacityState.bathrooms) === 1 ? "Bath" : "Baths",
     });
   }
 
@@ -55,10 +60,19 @@ const buildStatItems = (property: PublicProperty) => {
     items.push({
       key: "size",
       value: `${property.size.value} ${property.size.unit}`,
+      label: "",
     });
   }
 
-  return items.slice(0, 3);
+  if (property.furnishing) {
+    items.push({
+      key: "furnishing",
+      value: property.furnishing,
+      label: "",
+    });
+  }
+
+  return items.slice(0, 4);
 };
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
@@ -67,6 +81,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const title = getPropertyTitle(property);
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
+  const isVerified = Boolean(property.isApproved);
   const categoryLabel = getCategoryLabel(getPropertyCategory(property));
   const cityLabel = getPropertyCity(property);
   const locationLabel = getPropertyLocationLabel(property);
@@ -74,8 +89,8 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const statItems = buildStatItems(property);
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[10px] border border-[var(--admin-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_36px_-24px_var(--admin-shadow)]">
-      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--admin-card)]">
+    <article className="group flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[var(--admin-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_36%,var(--admin-border))] hover:shadow-[0_22px_55px_-34px_rgba(0,31,143,0.42)]">
+      <div className="relative aspect-[1.42] overflow-hidden bg-[var(--admin-card)]">
         <Link href={detailHref} aria-label={title}>
           <Image
             src={coverImage}
@@ -86,24 +101,40 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
           />
         </Link>
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
 
-        <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
+        <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
           {isFeatured && (
-            <span className="rounded bg-[var(--admin-accent)] px-2 py-1 text-[9px] font-black uppercase leading-none tracking-wide text-white shadow-sm">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--admin-accent)] px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm">
               Featured
             </span>
           )}
 
           {isBoosted && (
-            <span className="rounded bg-[var(--admin-secondary)] px-2 py-1 text-[9px] font-black uppercase leading-none tracking-wide text-white shadow-sm">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm">
+              <Zap className="h-3 w-3 fill-current" />
               Boosted
+            </span>
+          )}
+
+          {isVerified && (
+            <span
+              title="Verification means limited platform checks only. It does not guarantee ownership, legal title, condition, availability, or transaction safety."
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              Verified
             </span>
           )}
         </div>
 
-        <div className="absolute right-2 top-2 flex items-center gap-1.5">
+        <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
           <PublicFavoriteButton property={property} />
+          {/* <ReportListingButton
+            propertyId={property._id}
+            listingTitle={title}
+            variant="icon"
+          /> */}
 
           {previewHref && (
             <Link
@@ -116,22 +147,16 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
             </Link>
           )}
         </div>
-
-        <div className="absolute bottom-2 left-2">
-          <span className="inline-flex items-center rounded bg-[var(--admin-primary)] px-3 py-1.5 text-[11px] font-black text-white shadow-[0_12px_24px_-16px_var(--admin-primary)]">
-            {getPropertyPriceDisplay(property)}
-          </span>
-        </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-3 py-3">
+      <div className="flex flex-1 flex-col px-3.5 py-3.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="truncate text-[9px] font-black uppercase tracking-[0.16em] text-[var(--admin-secondary)]">
+          <span className="truncate text-[10px] font-black uppercase text-[var(--admin-secondary)]">
             {categoryLabel}
           </span>
 
           {cityLabel && (
-            <span className="truncate text-[9px] font-semibold text-[var(--admin-muted)]">
+            <span className="truncate text-[10px] font-semibold text-[var(--admin-muted)]">
               {cityLabel}
             </span>
           )}
@@ -139,15 +164,15 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
 
         <Link
           href={detailHref}
-          className="mt-2 line-clamp-2 min-h-[34px] text-[13px] font-black leading-[1.28] text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
+          className="mt-2 line-clamp-2 min-h-[38px] text-sm font-black leading-[1.35] text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
         >
           {title}
         </Link>
 
         {locationLabel && (
-          <p className="mt-2 flex items-center gap-1 text-[10px] font-medium text-[var(--admin-muted)]">
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--admin-muted)]">
             <MapPin
-              size={11}
+              size={12}
               className="shrink-0 text-[var(--admin-primary)]"
             />
             <span className="line-clamp-1">{locationLabel}</span>
@@ -155,7 +180,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
         )}
 
         {statItems.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--admin-border)] pt-3 text-[10px] font-semibold text-[var(--admin-muted)]">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--admin-border)] pt-3 text-[10px] font-bold text-[var(--admin-muted)]">
             {statItems.map((item) => (
               <div key={item.key} className="flex min-w-0 items-center gap-1">
                 {item.key === "beds" && (
@@ -177,22 +202,32 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
                 )}
 
                 <span className="truncate">
-                  {item.key === "beds" && `${item.value}`}
-                  {item.key === "baths" && `${item.value}`}
+                  {item.key === "beds" && `${item.value} ${item.label}`}
+                  {item.key === "baths" && `${item.value} ${item.label}`}
                   {item.key === "size" && item.value}
+                  {item.key === "furnishing" && item.value}
                 </span>
               </div>
             ))}
           </div>
         )}
 
-        <div className="mt-auto flex items-center justify-end pt-3">
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+          <div>
+            <p className="text-[10px] font-black uppercase text-[var(--admin-muted)]">
+              Rent
+            </p>
+            <p className="mt-1 text-sm font-black text-[var(--admin-primary)]">
+              {getPropertyPriceDisplay(property)}
+            </p>
+          </div>
+
           <Link
             href={detailHref}
-            className="inline-flex items-center gap-1 text-[11px] font-black text-[var(--admin-primary)] transition hover:underline"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary)] hover:text-white"
+            aria-label={`View details for ${title}`}
           >
-            View Details
-            <ArrowUpRight size={12} />
+            <ArrowUpRight size={14} />
           </Link>
         </div>
       </div>

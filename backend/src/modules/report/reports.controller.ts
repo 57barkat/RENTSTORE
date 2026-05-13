@@ -39,8 +39,13 @@ export class ReportsController {
   async getAllReports(
     @Query("page") page: string = "1",
     @Query("limit") limit: string = "20",
+    @Query("status") status?: string,
   ) {
-    return this.reportsService.getAllReports(Number(page), Number(limit));
+    return this.reportsService.getAllReports(
+      Number(page),
+      Number(limit),
+      status,
+    );
   }
 
   @Patch(":id/status")
@@ -48,20 +53,67 @@ export class ReportsController {
   async updateReportStatus(
     @Param("id") reportId: string,
     @Body() dto: UpdateReportStatusDto,
+    @Req() req,
   ) {
-    return this.reportsService.updateReportStatus(reportId, dto.status);
+    return this.reportsService.updateReportStatus(
+      reportId,
+      dto,
+      req.user?.userId,
+    );
+  }
+
+  @Patch(":id")
+  @SetMetadata("roles", ["admin"])
+  async updateReport(
+    @Param("id") reportId: string,
+    @Body() dto: UpdateReportStatusDto,
+    @Req() req,
+  ) {
+    return this.reportsService.updateReportStatus(
+      reportId,
+      dto,
+      req.user?.userId,
+    );
+  }
+
+  @Patch(":id/remove-listing")
+  @SetMetadata("roles", ["admin"])
+  async removeListingForReport(
+    @Param("id") reportId: string,
+    @Body() dto: UpdateReportStatusDto,
+    @Req() req,
+  ) {
+    return this.reportsService.removeListingForReport(
+      reportId,
+      req.user?.userId,
+      dto,
+    );
+  }
+
+  @Patch(":id/suspend-owner")
+  @SetMetadata("roles", ["admin"])
+  async suspendOwnerForReport(
+    @Param("id") reportId: string,
+    @Body() dto: UpdateReportStatusDto,
+    @Req() req,
+  ) {
+    return this.reportsService.suspendOwnerForReport(
+      reportId,
+      req.user?.userId,
+      dto,
+    );
   }
 
   @Patch("property/:id/approve")
   @SetMetadata("roles", ["admin"])
-  async approveProperty(@Param("id") propertyId: string) {
-    return this.reportsService.approveProperty(propertyId);
+  async approveProperty(@Param("id") propertyId: string, @Req() req) {
+    return this.reportsService.approveProperty(propertyId, req.user?.userId);
   }
 
   @Patch("property/:id/delete")
   @SetMetadata("roles", ["admin"])
-  async deleteProperty(@Param("id") propertyId: string) {
-    return this.reportsService.deleteProperty(propertyId);
+  async deleteProperty(@Param("id") propertyId: string, @Req() req) {
+    return this.reportsService.deleteProperty(propertyId, req.user?.userId);
   }
 
   @Patch("user/:id/reactivate")

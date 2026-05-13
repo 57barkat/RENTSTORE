@@ -23,7 +23,7 @@ export async function generateMetadata({
   const filters = parsePropertySearchParams("property", await searchParams);
   const title =
     !filters.city && !filters.location && filters.purpose !== "sale"
-      ? `Properties for Rent in Pakistan | ${BRAND_NAME}`
+      ? `Find verified rentals in Islamabad and Rawalpindi | ${BRAND_NAME}`
       : `${buildListingTitle(filters)} | ${BRAND_NAME}`;
 
   const description = buildListingDescription(filters);

@@ -2,11 +2,14 @@ import Link from "next/link";
 import Script from "next/script";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
+import BrowseByCategorySection from "@/app/components/properties/BrowseByCategorySection";
 import FilterSidebar from "@/app/components/properties/FilterSidebar";
 import ListingToolbar from "@/app/components/properties/ListingToolbar";
 import PopularLocationsSection from "@/app/components/properties/PopularLocationsSection";
+import PublicListingTrustBanner from "@/app/components/properties/PublicListingTrustBanner";
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyModal from "@/app/components/properties/PropertyModal";
+import PublicSearchHero from "@/app/components/properties/PublicSearchHero";
 import { PropertyService } from "@/app/lib/PropertyService";
 import {
   buildBreadcrumbJsonLd,
@@ -24,7 +27,9 @@ import {
   buildPropertyBrowserQuery,
   buildPropertyHref,
   buildPropertySearchQuery,
+  DEFAULT_PROPERTY_IMAGE,
   getCategoryLabel,
+  getPropertyCategory,
   getPropertyTitle,
 } from "@/app/lib/property-utils";
 import { parseSeoListingSlug } from "@/app/lib/property-seo";
@@ -111,7 +116,7 @@ export default async function PublicListingPage({
     data: [],
     total: 0,
     page: filters.page || 1,
-    limit: filters.limit || 12,
+    limit: filters.limit || 10,
     totalPages: 0,
   };
 
@@ -193,16 +198,9 @@ export default async function PublicListingPage({
     .filter((page) => page >= 1 && page <= totalPages)
     .sort((left, right) => left - right);
 
-  const inventoryDescription =
-    category === "property"
-      ? "Verified houses, apartments, hostels, shops, and offices with real-time availability updates."
-      : `Verified ${getCategoryLabel(category, true).toLowerCase()} available in ${
-          filters.city || filters.location || "selected locations"
-        } with real-time availability updates.`;
-
   const popularLocationsTitle =
     category === "property"
-      ? "Most Popular Locations Across Pakistan"
+      ? "Most Popular Locations in Islamabad and Rawalpindi"
       : `Most Popular Locations for ${getCategoryLabel(category, true)}`;
 
   const popularLocationsPrefix =
@@ -216,6 +214,18 @@ export default async function PublicListingPage({
     category === "property"
       ? "properties"
       : getCategoryLabel(category, true).toLowerCase();
+
+  const heroBackgroundImage =
+    response.data.find((property) => property.photos?.[0])?.photos?.[0] ||
+    DEFAULT_PROPERTY_IMAGE;
+
+  const categoryCounts = response.data.reduce<
+    Partial<Record<PropertyCategory, number>>
+  >((counts, property) => {
+    const propertyCategory = getPropertyCategory(property);
+    counts[propertyCategory] = (counts[propertyCategory] || 0) + 1;
+    return counts;
+  }, {});
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
@@ -245,84 +255,55 @@ export default async function PublicListingPage({
         </Script>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8 lg:py-14">
-        <div className="mb-6 space-y-5 sm:mb-8 lg:mb-10 lg:grid lg:grid-cols-[1.35fr_0.65fr] lg:items-end lg:gap-8 lg:space-y-0">
-          <div className="space-y-4 sm:space-y-5">
-            <nav
-              aria-label="Breadcrumb"
-              className="flex flex-wrap items-center gap-2 text-xs text-[var(--admin-muted)] sm:text-sm"
-            >
-              {breadcrumbs.map((item, index) => {
-                const isLast = index === breadcrumbs.length - 1;
+      <PublicSearchHero
+        category={category}
+        filters={filters}
+        total={response.total}
+        backgroundImage={heroBackgroundImage}
+      />
 
-                return (
-                  <div
-                    key={`${item.href}-${item.name}`}
-                    className="flex items-center gap-2"
+      <section className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+        <nav
+          aria-label="Breadcrumb"
+          className="mb-5 flex flex-wrap items-center gap-2 text-xs text-[var(--admin-muted)] sm:text-sm"
+        >
+          {breadcrumbs.map((item, index) => {
+            const isLast = index === breadcrumbs.length - 1;
+
+            return (
+              <div
+                key={`${item.href}-${item.name}`}
+                className="flex items-center gap-2"
+              >
+                {isLast ? (
+                  <span className="font-semibold text-[var(--admin-text)]">
+                    {item.name}
+                  </span>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="transition hover:text-[var(--admin-primary)]"
                   >
-                    {isLast ? (
-                      <span className="font-semibold text-[var(--admin-text)]">
-                        {item.name}
-                      </span>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        className="transition hover:text-[var(--admin-primary)]"
-                      >
-                        {item.name}
-                      </Link>
-                    )}
+                    {item.name}
+                  </Link>
+                )}
 
-                    {!isLast && (
-                      <span className="text-[var(--admin-muted)]">/</span>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-
-            <span className="inline-flex rounded-full border border-[var(--admin-border)] bg-white/80 px-4 py-2 text-[10px] font-black uppercase tracking-[0.22em] text-[var(--admin-primary)] shadow-sm backdrop-blur sm:text-xs">
-              Public property discovery
-            </span>
-
-            <div className="space-y-3 sm:space-y-4">
-              <h1 className="max-w-4xl text-[1.85rem] font-bold leading-[1.15] tracking-[-0.03em] text-[var(--admin-text)] sm:text-5xl sm:font-semibold">
-                {title}
-              </h1>
-
-              <p className="max-w-2xl text-sm leading-7 text-[var(--admin-muted)] sm:text-lg">
-                {description}
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-[1.75rem] border border-[var(--admin-border)] bg-white/88 p-5 shadow-[0_20px_50px_-36px_var(--admin-shadow)] backdrop-blur sm:rounded-[2rem] sm:p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                  Available listings
-                </p>
-
-                <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--admin-text)] sm:text-4xl">
-                  {response.total}
-                </p>
+                {!isLast && (
+                  <span className="text-[var(--admin-muted)]">/</span>
+                )}
               </div>
+            );
+          })}
+        </nav>
 
-              <p className="max-w-[12rem] text-right text-xs leading-5 text-[var(--admin-muted)] sm:max-w-[13rem] sm:text-sm sm:leading-6">
-                {inventoryDescription}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-8 lg:self-start">
+        <div className="grid gap-7 lg:grid-cols-[285px_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-24 lg:self-start">
             <FilterSidebar category={category} totalResults={response.total} />
           </aside>
 
-          <section className="space-y-6">
+          <section className="min-w-0 space-y-6">
             {fetchError && (
-              <div className="rounded-[2rem] border border-[var(--admin-warning-soft)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
+              <div className="rounded-[1.25rem] border border-[var(--admin-warning-soft)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
                 We couldn&apos;t load live listings right now. The page is still
                 available, and you can retry in a moment.
               </div>
@@ -330,7 +311,7 @@ export default async function PublicListingPage({
 
             <ListingToolbar
               category={category}
-              totalOnPage={response.data.length}
+              total={response.total}
               currentPage={currentPage}
               totalPages={totalPages}
             />
@@ -338,8 +319,11 @@ export default async function PublicListingPage({
             {(filters.category !== "property" ||
               filters.city ||
               filters.location ||
-              filters.hostelType) && (
-              <div className="flex flex-wrap gap-2 text-xs font-medium text-[var(--admin-muted)]">
+              filters.hostelType ||
+              filters.bedrooms ||
+              filters.bathrooms ||
+              filters.amenities?.length) && (
+              <div className="flex flex-wrap gap-2 text-xs font-bold text-[var(--admin-muted)]">
                 {filters.category !== "property" && (
                   <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
                     Category: {getCategoryLabel(filters.category, true)}
@@ -358,16 +342,37 @@ export default async function PublicListingPage({
                   </span>
                 )}
 
+                {filters.bedrooms && (
+                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
+                    Bedrooms: {filters.bedrooms}
+                  </span>
+                )}
+
+                {filters.bathrooms && (
+                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
+                    Bathrooms: {filters.bathrooms}
+                  </span>
+                )}
+
                 {filters.hostelType && (
                   <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
                     Hostel type: {filters.hostelType}
                   </span>
                 )}
+
+                {filters.amenities?.map((amenity) => (
+                  <span
+                    key={amenity}
+                    className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm"
+                  >
+                    Amenity: {amenity}
+                  </span>
+                ))}
               </div>
             )}
 
             {response.data.length === 0 ? (
-              <div className="rounded-[2rem] border border-dashed border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_76%,transparent)] px-6 py-16 text-center shadow-inner">
+              <div className="rounded-[1.5rem] border border-dashed border-[var(--admin-border)] bg-white px-6 py-16 text-center shadow-inner">
                 <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--admin-surface)]">
                   <Search
                     className="text-[var(--admin-placeholder)]"
@@ -375,14 +380,14 @@ export default async function PublicListingPage({
                   />
                 </div>
 
-                <h2 className="text-2xl font-semibold text-[var(--admin-text)]">
+                <h2 className="text-2xl font-black text-[var(--admin-text)]">
                   No properties matched these filters
                 </h2>
 
                 <p className="mx-auto mt-3 max-w-xl text-[var(--admin-muted)]">
                   {fetchError
                     ? `We couldn't reach the property service. Please try again in a moment for ${
-                        filters.city || "Pakistan"
+                        filters.city || "Islamabad and Rawalpindi"
                       } listings.`
                     : `Try widening the price range or changing the locality filter to surface more results in ${
                         filters.city || filters.location || "the selected area"
@@ -390,7 +395,7 @@ export default async function PublicListingPage({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {response.data.map((property) => (
                   <PropertyCard
                     key={property._id}
@@ -408,7 +413,7 @@ export default async function PublicListingPage({
             {totalPages > 1 && (
               <nav
                 aria-label="Pagination"
-                className="flex flex-wrap items-center justify-center gap-2 pt-4"
+                className="flex flex-wrap items-center justify-center gap-2 pt-3"
               >
                 <Link
                   href={buildPaginationHref(
@@ -417,23 +422,22 @@ export default async function PublicListingPage({
                     Math.max(1, currentPage - 1),
                   )}
                   aria-disabled={currentPage === 1}
-                  className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition ${
+                  className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-black transition ${
                     currentPage === 1
                       ? "pointer-events-none border-[var(--admin-border)] bg-white text-[var(--admin-placeholder)]"
                       : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
                   <ChevronLeft size={16} />
-                  Previous
                 </Link>
 
                 {pages.map((page) => (
                   <Link
                     key={page}
                     href={buildPaginationHref(pathname, filters, page)}
-                    className={`inline-flex h-11 min-w-11 items-center justify-center rounded-full px-4 text-center text-sm font-medium transition ${
+                    className={`inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-3 text-center text-sm font-black transition ${
                       page === currentPage
-                        ? "bg-[var(--admin-primary)] text-[var(--admin-background)] shadow-[0_14px_28px_-18px_var(--admin-primary)]"
+                        ? "bg-[var(--admin-primary)] text-white shadow-[0_14px_28px_-18px_var(--admin-primary)]"
                         : "border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                     }`}
                   >
@@ -448,85 +452,20 @@ export default async function PublicListingPage({
                     Math.min(totalPages, currentPage + 1),
                   )}
                   aria-disabled={currentPage === totalPages}
-                  className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition ${
+                  className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-black transition ${
                     currentPage === totalPages
                       ? "pointer-events-none border-[var(--admin-border)] bg-white text-[var(--admin-placeholder)]"
                       : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                   }`}
                 >
-                  Next
                   <ChevronRight size={16} />
                 </Link>
               </nav>
             )}
 
-            {seoContent && (
-              <section className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-34px_var(--admin-shadow)]">
-                <details className="group" open>
-                  <summary className="flex cursor-pointer list-none items-start justify-between gap-4 p-6 transition hover:bg-[var(--admin-background)]/45 focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/10 sm:p-7">
-                    <div className="max-w-4xl">
-                      <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--admin-primary)]">
-                        Local rental guide
-                      </p>
+            <PublicListingTrustBanner total={response.total} />
 
-                      <h2 className="mt-3 text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
-                        {seoContent.introTitle}
-                      </h2>
-
-                      <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--admin-muted)] sm:text-base">
-                        Helpful local information, common questions, and tips
-                        for browsing listings in this area.
-                      </p>
-                    </div>
-
-                    <span className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-lg font-black text-[var(--admin-muted)] transition group-open:rotate-45 group-hover:border-[var(--admin-primary)] group-hover:text-[var(--admin-primary)]">
-                      +
-                    </span>
-                  </summary>
-
-                  <div className="border-t border-[var(--admin-border)] bg-[var(--admin-background)]/35 px-6 py-6 sm:px-7">
-                    <div className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 sm:p-6">
-                      <p className="text-base leading-8 text-[var(--admin-muted)]">
-                        {seoContent.introBody}
-                      </p>
-                    </div>
-
-                    {seoContent.faqs.length > 0 && (
-                      <div className="mt-5 space-y-3">
-                        <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--admin-muted)]">
-                          Frequently asked questions
-                        </p>
-
-                        <div className="grid gap-3">
-                          {seoContent.faqs.map((faq, index) => (
-                            <details
-                              key={faq.question}
-                              className="group/faq overflow-hidden rounded-[1.35rem] border border-[var(--admin-border)] bg-white"
-                            >
-                              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 transition hover:bg-[var(--admin-background)] sm:px-5">
-                                <h3 className="text-sm font-black leading-6 text-[var(--admin-text)] sm:text-base">
-                                  {faq.question}
-                                </h3>
-
-                                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--admin-background)] text-sm font-black text-[var(--admin-muted)] transition group-open/faq:rotate-45 group-open/faq:bg-[var(--admin-primary)] group-open/faq:text-white">
-                                  +
-                                </span>
-                              </summary>
-
-                              <div className="border-t border-[var(--admin-border)] px-4 py-4 sm:px-5">
-                                <p className="text-sm leading-7 text-[var(--admin-muted)]">
-                                  {faq.answer}
-                                </p>
-                              </div>
-                            </details>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              </section>
-            )}
+            <BrowseByCategorySection counts={categoryCounts} />
 
             <PopularLocationsSection
               title={popularLocationsTitle}
@@ -534,6 +473,64 @@ export default async function PublicListingPage({
               browseLabel={popularLocationsBrowseLabel}
               items={popularLocations}
             />
+
+            {seoContent && (
+              <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.86fr)]">
+                <div className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-sm sm:p-6">
+                  <p className="text-xs font-black uppercase text-[var(--admin-primary)]">
+                    Rental Guides & Tips
+                  </p>
+
+                  <h2 className="mt-3 text-xl font-black text-[var(--admin-text)]">
+                    {seoContent.introTitle}
+                  </h2>
+
+                  <p className="mt-3 text-sm leading-7 text-[var(--admin-muted)]">
+                    {seoContent.introBody}
+                  </p>
+                </div>
+
+                {seoContent.faqs.length > 0 && (
+                  <div className="rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-5 shadow-sm sm:p-6">
+                    <div className="mb-4 flex items-end justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-black uppercase text-[var(--admin-primary)]">
+                          FAQ
+                        </p>
+                        <h2 className="mt-2 text-xl font-black text-[var(--admin-text)]">
+                          Frequently Asked Questions
+                        </h2>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      {seoContent.faqs.map((faq) => (
+                        <details
+                          key={faq.question}
+                          className="group/faq overflow-hidden rounded-xl border border-[var(--admin-border)] bg-white"
+                        >
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 transition hover:bg-[var(--admin-background)]">
+                            <h3 className="text-sm font-black leading-6 text-[var(--admin-text)]">
+                              {faq.question}
+                            </h3>
+
+                            <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--admin-background)] text-sm font-black text-[var(--admin-muted)] transition group-open/faq:rotate-45 group-open/faq:bg-[var(--admin-primary)] group-open/faq:text-white">
+                              +
+                            </span>
+                          </summary>
+
+                          <div className="border-t border-[var(--admin-border)] px-4 py-3">
+                            <p className="text-sm leading-7 text-[var(--admin-muted)]">
+                              {faq.answer}
+                            </p>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
           </section>
         </div>
       </section>

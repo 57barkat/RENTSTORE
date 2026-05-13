@@ -114,6 +114,8 @@ export interface PropertySearchFilters {
   location?: string;
   minRent?: number | "";
   maxRent?: number | "";
+  bedrooms?: number | "";
+  bathrooms?: number | "";
   minSize?: number | "";
   maxSize?: number | "";
   sizeUnit?: SizeUnit | "";
