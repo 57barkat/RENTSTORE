@@ -63,6 +63,28 @@ type AdminSortOption =
   | "boosted"
   | "mostViewed";
 
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: "mosque" | "school" | "hospital" | "market" | "useful";
+  latitude: number;
+  longitude: number;
+  distanceMeters: number;
+  address?: string;
+}
+
+interface OverpassElement {
+  id: number;
+  type: string;
+  lat?: number;
+  lon?: number;
+  center?: {
+    lat?: number;
+    lon?: number;
+  };
+  tags?: Record<string, string>;
+}
+
 @Injectable()
 export class PropertyService {
   constructor(
@@ -76,6 +98,93 @@ export class PropertyService {
     private readonly propertyImpressionTracker: PropertyImpressionTrackerService,
     private readonly propertyViewTracker: PropertyViewTrackerService,
   ) {}
+
+  private getDistanceMeters(
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number,
+  ) {
+    const earthRadiusMeters = 6371000;
+    const toRadians = (value: number) => (value * Math.PI) / 180;
+    const dLat = toRadians(toLat - fromLat);
+    const dLng = toRadians(toLng - fromLng);
+    const lat1 = toRadians(fromLat);
+    const lat2 = toRadians(toLat);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1) *
+        Math.cos(lat2) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    return Math.round(
+      earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)),
+    );
+  }
+
+  private getNearbyPlaceCategory(
+    tags: Record<string, string> = {},
+  ): NearbyPlace["category"] {
+    if (
+      tags.amenity === "place_of_worship" &&
+      (!tags.religion || tags.religion === "muslim")
+    ) {
+      return "mosque";
+    }
+
+    if (tags.amenity === "school" || tags.amenity === "college") {
+      return "school";
+    }
+
+    if (
+      tags.amenity === "hospital" ||
+      tags.amenity === "clinic" ||
+      tags.healthcare
+    ) {
+      return "hospital";
+    }
+
+    if (
+      tags.amenity === "marketplace" ||
+      ["supermarket", "convenience", "mall", "department_store"].includes(
+        tags.shop || "",
+      )
+    ) {
+      return "market";
+    }
+
+    return "useful";
+  }
+
+  private formatNearbyPlaceName(
+    tags: Record<string, string> = {},
+    category: NearbyPlace["category"],
+  ) {
+    if (tags.name) {
+      return tags.name;
+    }
+
+    const fallback: Record<NearbyPlace["category"], string> = {
+      mosque: "Nearby masjid / mosque",
+      school: "Nearby school",
+      hospital: "Nearby hospital or clinic",
+      market: "Nearby market",
+      useful: "Useful nearby place",
+    };
+
+    return fallback[category];
+  }
+
+  private formatNearbyPlaceAddress(tags: Record<string, string> = {}) {
+    const parts = [
+      tags["addr:housenumber"],
+      tags["addr:street"],
+      tags["addr:suburb"],
+      tags["addr:city"],
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(", ") : undefined;
+  }
 
   private assertPhoneVerifiedForUpload(user: UserDocument) {
     if (!user.isPhoneVerified) {
@@ -612,6 +721,7 @@ export class PropertyService {
     const mongoFilter = buildMongoFilter(filters, userId);
     mongoFilter.isApproved = true;
     mongoFilter.status = true;
+    mongoFilter.isVisible = { $ne: false };
     mongoFilter.moderationStatus = "ACTIVE";
 
     // Guard against deep pagination and oversized pages on the hot search path.
@@ -722,6 +832,7 @@ export class PropertyService {
       .find({
         status: true,
         isApproved: true,
+        isVisible: { $ne: false },
         moderationStatus: "ACTIVE",
         area: flexibleAreaRegex,
       })
@@ -800,6 +911,104 @@ export class PropertyService {
     }
 
     return suggestions;
+  }
+
+  async getNearbyPlaces(propertyId: string): Promise<NearbyPlace[]> {
+    if (!Types.ObjectId.isValid(propertyId)) {
+      throw new BadRequestException("Invalid property id");
+    }
+
+    const property = await this.propertyModel
+      .findById(propertyId)
+      .select("lat lng status isApproved isVisible moderationStatus")
+      .lean();
+
+    if (!property) {
+      throw new NotFoundException("Property not found");
+    }
+
+    if (
+      property.status !== true ||
+      property.isApproved !== true ||
+      property.isVisible === false ||
+      property.moderationStatus !== "ACTIVE"
+    ) {
+      throw new NotFoundException("Property not found");
+    }
+
+    const latitude = Number(property.lat);
+    const longitude = Number(property.lng);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return [];
+    }
+
+    const radiusMeters = 1800;
+    const overpassQuery = `
+      [out:json][timeout:7];
+      (
+        node(around:${radiusMeters},${latitude},${longitude})["amenity"~"place_of_worship|school|college|hospital|clinic|marketplace"];
+        way(around:${radiusMeters},${latitude},${longitude})["amenity"~"place_of_worship|school|college|hospital|clinic|marketplace"];
+        relation(around:${radiusMeters},${latitude},${longitude})["amenity"~"place_of_worship|school|college|hospital|clinic|marketplace"];
+        node(around:${radiusMeters},${latitude},${longitude})["shop"~"supermarket|convenience|mall|department_store"];
+        way(around:${radiusMeters},${latitude},${longitude})["shop"~"supermarket|convenience|mall|department_store"];
+      );
+      out center tags 50;
+    `;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6500);
+
+    try {
+      const response = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ data: overpassQuery }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const payload = (await response.json()) as { elements?: OverpassElement[] };
+      const unique = new Map<string, NearbyPlace>();
+
+      for (const element of payload.elements || []) {
+        const elementLat = element.lat ?? element.center?.lat;
+        const elementLng = element.lon ?? element.center?.lon;
+
+        if (!Number.isFinite(elementLat) || !Number.isFinite(elementLng)) {
+          continue;
+        }
+
+        const tags = element.tags || {};
+        const category = this.getNearbyPlaceCategory(tags);
+        const id = `${element.type}-${element.id}`;
+        unique.set(id, {
+          id,
+          name: this.formatNearbyPlaceName(tags, category),
+          category,
+          latitude: elementLat as number,
+          longitude: elementLng as number,
+          distanceMeters: this.getDistanceMeters(
+            latitude,
+            longitude,
+            elementLat as number,
+            elementLng as number,
+          ),
+          address: this.formatNearbyPlaceAddress(tags),
+        });
+      }
+
+      return Array.from(unique.values())
+        .sort((left, right) => left.distanceMeters - right.distanceMeters)
+        .slice(0, 20);
+    } catch {
+      return [];
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   async getPopularLocations({
@@ -1192,7 +1401,7 @@ export class PropertyService {
     const objectId = parseObjectId(propertyId, "property id");
     const visibilitySnapshot = await this.propertyModel
       .findById(objectId)
-      .select("ownerId status isApproved moderationStatus")
+      .select("ownerId status isApproved isVisible moderationStatus")
       .lean();
 
     if (!visibilitySnapshot) {
@@ -1205,6 +1414,7 @@ export class PropertyService {
     const isPubliclyVisible =
       visibilitySnapshot.status === true &&
       visibilitySnapshot.isApproved === true &&
+      visibilitySnapshot.isVisible !== false &&
       visibilitySnapshot.moderationStatus === "ACTIVE";
 
     if (!isPubliclyVisible && !isOwner && !isAdmin) {
@@ -1313,7 +1523,7 @@ export class PropertyService {
           "_id name phone profileImage subscription role isPhoneVerified isEmailVerified",
         )
         .lean(),
-      this.propertyModel.aggregate([
+          this.propertyModel.aggregate([
         {
           $match: {
             ownerId: { $in: ownerIdCandidates },
@@ -1405,6 +1615,7 @@ export class PropertyService {
           ownerId: { $in: ownerIdCandidates },
           isApproved: true,
           status: true,
+          isVisible: { $ne: false },
           $or: [
             { moderationStatus: "ACTIVE" },
             { moderationStatus: { $exists: false } },
@@ -1431,6 +1642,7 @@ export class PropertyService {
       .find({
         status: true,
         isApproved: true,
+        isVisible: { $ne: false },
         moderationStatus: "ACTIVE",
         sortWeight: { $gte: 2 },
       })

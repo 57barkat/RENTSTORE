@@ -96,7 +96,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
             src={coverImage}
             alt={imageAlt}
             fill
-            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         </Link>

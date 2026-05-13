@@ -267,3 +267,34 @@
     color: var(--admin-warning);
   }
 }
+
+body.admin-theme {
+  font-weight: 400;
+}
+
+body.admin-theme h1,
+body.admin-theme h2,
+body.admin-theme h3,
+body.admin-theme h4,
+body.admin-theme h5,
+body.admin-theme h6 {
+  font-weight: 500;
+}
+
+body.admin-theme strong,
+body.admin-theme b,
+body.admin-theme .font-semibold,
+body.admin-theme .font-bold,
+body.admin-theme .font-extrabold,
+body.admin-theme .font-black {
+  font-weight: 500 !important;
+}
+
+body.admin-theme button,
+body.admin-theme a,
+body.admin-theme label,
+body.admin-theme th,
+body.admin-theme .admin-button-primary,
+body.admin-theme .admin-button-secondary {
+  font-weight: 500;
+}

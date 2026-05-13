@@ -3,7 +3,6 @@ import Script from "next/script";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import BrowseByCategorySection from "@/app/components/properties/BrowseByCategorySection";
-import FilterSidebar from "@/app/components/properties/FilterSidebar";
 import ListingToolbar from "@/app/components/properties/ListingToolbar";
 import PopularLocationsSection from "@/app/components/properties/PopularLocationsSection";
 import PublicListingTrustBanner from "@/app/components/properties/PublicListingTrustBanner";
@@ -215,10 +214,6 @@ export default async function PublicListingPage({
       ? "properties"
       : getCategoryLabel(category, true).toLowerCase();
 
-  const heroBackgroundImage =
-    response.data.find((property) => property.photos?.[0])?.photos?.[0] ||
-    DEFAULT_PROPERTY_IMAGE;
-
   const categoryCounts = response.data.reduce<
     Partial<Record<PropertyCategory, number>>
   >((counts, property) => {
@@ -259,7 +254,7 @@ export default async function PublicListingPage({
         category={category}
         filters={filters}
         total={response.total}
-        backgroundImage={heroBackgroundImage}
+        backgroundImage={DEFAULT_PROPERTY_IMAGE}
       />
 
       <section className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
@@ -296,11 +291,7 @@ export default async function PublicListingPage({
           })}
         </nav>
 
-        <div className="grid gap-7 lg:grid-cols-[285px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-24 lg:self-start">
-            <FilterSidebar category={category} totalResults={response.total} />
-          </aside>
-
+        <div className="space-y-6">
           <section className="min-w-0 space-y-6">
             {fetchError && (
               <div className="rounded-[1.25rem] border border-[var(--admin-warning-soft)] bg-[var(--admin-warning-soft)] px-5 py-4 text-sm text-[var(--admin-warning)] shadow-sm">
@@ -315,61 +306,6 @@ export default async function PublicListingPage({
               currentPage={currentPage}
               totalPages={totalPages}
             />
-
-            {(filters.category !== "property" ||
-              filters.city ||
-              filters.location ||
-              filters.hostelType ||
-              filters.bedrooms ||
-              filters.bathrooms ||
-              filters.amenities?.length) && (
-              <div className="flex flex-wrap gap-2 text-xs font-bold text-[var(--admin-muted)]">
-                {filters.category !== "property" && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    Category: {getCategoryLabel(filters.category, true)}
-                  </span>
-                )}
-
-                {filters.city && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    City: {filters.city}
-                  </span>
-                )}
-
-                {filters.location && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    Area: {filters.location}
-                  </span>
-                )}
-
-                {filters.bedrooms && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    Bedrooms: {filters.bedrooms}
-                  </span>
-                )}
-
-                {filters.bathrooms && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    Bathrooms: {filters.bathrooms}
-                  </span>
-                )}
-
-                {filters.hostelType && (
-                  <span className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm">
-                    Hostel type: {filters.hostelType}
-                  </span>
-                )}
-
-                {filters.amenities?.map((amenity) => (
-                  <span
-                    key={amenity}
-                    className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 shadow-sm"
-                  >
-                    Amenity: {amenity}
-                  </span>
-                ))}
-              </div>
-            )}
 
             {response.data.length === 0 ? (
               <div className="rounded-[1.5rem] border border-dashed border-[var(--admin-border)] bg-white px-6 py-16 text-center shadow-inner">
@@ -395,7 +331,7 @@ export default async function PublicListingPage({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {response.data.map((property) => (
                   <PropertyCard
                     key={property._id}

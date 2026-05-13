@@ -475,6 +475,13 @@ export class PropertyController {
     return this.propertyService.getPropertyUploaderProfile(id);
   }
 
+  @Get(":id/nearby-places")
+  @Public()
+  @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })
+  async getNearbyPlaces(@Param("id") id: string) {
+    return this.propertyService.getNearbyPlaces(id);
+  }
+
   @Get(":id")
   @Public()
   @RateLimit({ limit: 60, windowMs: 60_000, scope: "userOrIp" })

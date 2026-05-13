@@ -47,8 +47,18 @@ export class UserController {
   @Public()
   @Post("signup")
   @RateLimit({ limit: 5, windowMs: 15 * 60 * 1000, scope: "ip" })
-  async signup(@Body() dto: CreateUserDto) {
-    const user = await this.userService.createUser(dto);
+  async signup(@Body() dto: CreateUserDto, @Req() req) {
+    const forwardedFor = req.headers?.["x-forwarded-for"];
+    const ipAddress = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : typeof forwardedFor === "string"
+        ? forwardedFor.split(",")[0]?.trim()
+        : req.ip;
+    const userAgent = req.headers?.["user-agent"];
+    const user = await this.userService.createUser(dto, {
+      ...(ipAddress ? { ipAddress } : {}),
+      ...(typeof userAgent === "string" ? { userAgent } : {}),
+    });
     this.logger.log(`Public signup created account role=${user.role}`);
     const tokens = await this.authService.issueTokens(user);
 
@@ -186,9 +196,16 @@ export class UserController {
     return { message: "Logged out successfully" };
   }
   @UseGuards(AuthGuard("jwt"))
+  @Get("me/export")
+  async exportMe(@Req() req) {
+    const userId = req.user.userId || req.user.id || req.user.sub;
+    return this.userService.exportUserData(userId);
+  }
+  @UseGuards(AuthGuard("jwt"))
   @Delete("delete")
   async delete(@Req() req) {
-    const user = await this.userService.delete(req.user.sub);
+    const userId = req.user.userId || req.user.id || req.user.sub;
+    const user = await this.userService.delete(userId);
     if (!user) throw new BadRequestException("User not found");
     return this.mapUser(user as UserDocument);
   }

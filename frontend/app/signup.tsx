@@ -22,7 +22,6 @@ import { AgencyFields } from "@/components/AgencyFields";
 import { TermsCheckbox } from "@/components/TermsCheckbox";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import TermsModal from "@/components/TermsModal";
 import VerificationModal from "@/components/VerificationModal";
 import { getStoredRole } from "@/utils/storage";
 
@@ -42,7 +41,6 @@ export default function SignUpScreen() {
   const [role, setRole] = useState<string>(ROLES.USER);
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
@@ -97,7 +95,10 @@ export default function SignUpScreen() {
 
   const handleSignup = async (values: typeof initialValues) => {
     if (!acceptedTerms) {
-      return showErrorToast("Required", "Please accept Terms and Conditions");
+      return showErrorToast(
+        "Required",
+        "Please agree to the Terms & Conditions and Privacy Policy.",
+      );
     }
 
     try {
@@ -129,6 +130,10 @@ export default function SignUpScreen() {
 
   const openPrivacyPolicy = () => {
     router.push("/PrivacyPolicyScreen");
+  };
+
+  const openTerms = () => {
+    router.push("/TermsScreen");
   };
 
   return (
@@ -422,7 +427,8 @@ export default function SignUpScreen() {
                   <TermsCheckbox
                     acceptedTerms={acceptedTerms}
                     setAcceptedTerms={setAcceptedTerms}
-                    onPressTerms={() => setShowTermsModal(true)}
+                    onPressTerms={openTerms}
+                    onPressPrivacy={openPrivacyPolicy}
                     textColor={currentTheme.muted}
                     color={currentTheme.secondary}
                   />
@@ -433,6 +439,7 @@ export default function SignUpScreen() {
                   onPress={handleSubmit}
                   loading={creating}
                   color={currentTheme.secondary}
+                  disabled={!acceptedTerms}
                 />
 
                 <TouchableOpacity
@@ -485,12 +492,6 @@ export default function SignUpScreen() {
           color={currentTheme.secondary}
         />
 
-        <TermsModal
-          visible={showTermsModal}
-          theme={currentTheme}
-          onClose={() => setShowTermsModal(false)}
-          color={currentTheme.secondary}
-        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

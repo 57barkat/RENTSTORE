@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import {
   View,
+  Text,
   ScrollView,
   StatusBar,
   RefreshControl,
@@ -12,14 +13,21 @@ import {
   Share,
   Alert,
   StyleSheet,
+  TouchableOpacity,
 } from "react-native";
+import MapboxGL from "@rnmapbox/maps";
+import Constants from "expo-constants";
 import * as ExpoLinking from "expo-linking";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { usePropertyById } from "@/services/propertyService";
 import { useChatRoom } from "@/hooks/useChatRoom";
-import { usePropertyReportMutation } from "@/services/api";
+import {
+  NearbyPlace,
+  useGetPropertyNearbyPlacesQuery,
+  usePropertyReportMutation,
+} from "@/services/api";
 import ListedByCard from "@/components/ListedByCard";
 import { PropertyDetailsHeader } from "@/components/Properties/PropertyDetailsHeader";
 import StickyActionBar from "@/components/StickyActionBar";
@@ -35,6 +43,37 @@ import { useTrackView } from "@/hooks/useTrackView";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const options = { headerShown: false };
+
+const mapboxToken =
+  Constants.expoConfig?.extra?.MAPBOX_PUBLIC_TOKEN ||
+  process.env.EXPO_PUBLIC_MAPBOX_PUBLIC_TOKEN ||
+  process.env.MAPBOX_PUBLIC_TOKEN ||
+  "";
+
+if (mapboxToken) {
+  MapboxGL.setAccessToken(mapboxToken);
+}
+
+const categoryLabels: Record<NearbyPlace["category"], string> = {
+  mosque: "Masjid / mosque",
+  school: "School",
+  hospital: "Hospital / clinic",
+  market: "Market",
+  useful: "Useful place",
+};
+
+const categoryInitials: Record<NearbyPlace["category"], string> = {
+  mosque: "M",
+  school: "S",
+  hospital: "H",
+  market: "B",
+  useful: "P",
+};
+
+const formatDistance = (distanceMeters: number) =>
+  distanceMeters >= 1000
+    ? `${(distanceMeters / 1000).toFixed(1)} km`
+    : `${Math.max(1, Math.round(distanceMeters))} m`;
 
 export default function PropertyDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,6 +97,10 @@ export default function PropertyDetails() {
   useTrackView(propertyId);
   const { property, isLoading, refetch, isFetching } =
     usePropertyById(propertyId);
+  const { data: nearbyPlaces = [] } = useGetPropertyNearbyPlacesQuery(
+    propertyId,
+    { skip: !propertyId },
+  );
   const details = property as PropertyDetailData | undefined;
   const isOwner = user?.id === details?.ownerId;
 
@@ -134,6 +177,20 @@ export default function PropertyDetails() {
       if (url) {
         NativeLinking.openURL(url);
       }
+      return;
+    }
+
+    const address =
+      details?.addressQuery ||
+      details?.area ||
+      details?.location ||
+      details?.address?.[0]?.city;
+
+    if (address) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+      NativeLinking.openURL(url).catch(() => {
+        Alert.alert("Error", "Unable to open maps.");
+      });
     }
   };
 
@@ -263,6 +320,13 @@ export default function PropertyDetails() {
 
           <FinancialDetailsCard property={details} theme={currentTheme} />
 
+          <PropertyLocationSection
+            property={details}
+            nearbyPlaces={nearbyPlaces}
+            theme={currentTheme}
+            onOpenMap={handleMapRedirect}
+          />
+
           <ListedByCard
             propertyId={propertyId}
             owner={details.owner}
@@ -304,6 +368,154 @@ export default function PropertyDetails() {
   );
 }
 
+function PropertyLocationSection({
+  property,
+  nearbyPlaces,
+  theme,
+  onOpenMap,
+}: {
+  property: PropertyDetailData;
+  nearbyPlaces: NearbyPlace[];
+  theme: typeof Colors.light;
+  onOpenMap: () => void;
+}) {
+  const hasCoordinates =
+    typeof property.lat === "number" &&
+    typeof property.lng === "number" &&
+    Number.isFinite(property.lat) &&
+    Number.isFinite(property.lng);
+  const addressText =
+    property.addressQuery ||
+    property.area ||
+    property.location ||
+    property.address?.[0]?.city ||
+    "Location details";
+
+  return (
+    <View
+      style={[
+        styles.locationCard,
+        { backgroundColor: theme.card, borderColor: theme.border },
+      ]}
+    >
+      <View style={styles.locationHeader}>
+        <View>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            Location & nearby places
+          </Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.muted }]}>
+            Check the exact marker and nearby essentials before visiting.
+          </Text>
+        </View>
+      </View>
+
+      {hasCoordinates && mapboxToken ? (
+        <MapboxGL.MapView
+          style={styles.detailMap}
+          logoEnabled={false}
+          attributionEnabled={false}
+          styleURL={MapboxGL.StyleURL.Street}
+          scrollEnabled={false}
+        >
+          <MapboxGL.Camera
+            zoomLevel={15}
+            centerCoordinate={[property.lng as number, property.lat as number]}
+          />
+
+          <MapboxGL.MarkerView
+            id="property-location"
+            coordinate={[property.lng as number, property.lat as number]}
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <View style={[styles.propertyMarker, { borderColor: theme.card }]}>
+              <Text style={styles.propertyMarkerText}>Here</Text>
+            </View>
+          </MapboxGL.MarkerView>
+
+          {nearbyPlaces.map((place) => (
+            <MapboxGL.MarkerView
+              key={place.id}
+              id={place.id}
+              coordinate={[place.longitude, place.latitude]}
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View
+                style={[
+                  styles.nearbyMarker,
+                  { backgroundColor: theme.card, borderColor: theme.primary },
+                ]}
+              >
+                <Text style={[styles.nearbyMarkerText, { color: theme.primary }]}>
+                  {categoryInitials[place.category]}
+                </Text>
+              </View>
+            </MapboxGL.MarkerView>
+          ))}
+        </MapboxGL.MapView>
+      ) : (
+        <View
+          style={[
+            styles.mapFallback,
+            { backgroundColor: theme.background, borderColor: theme.border },
+          ]}
+        >
+          <Text style={[styles.mapFallbackTitle, { color: theme.text }]}>
+            {hasCoordinates ? "Map preview unavailable" : "Exact coordinates unavailable"}
+          </Text>
+          <Text style={[styles.mapFallbackText, { color: theme.muted }]}>
+            {addressText}
+          </Text>
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={onOpenMap}
+        style={[styles.openMapButton, { backgroundColor: theme.primary }]}
+        activeOpacity={0.9}
+      >
+        <Text style={styles.openMapText}>Open in Maps</Text>
+      </TouchableOpacity>
+
+      {nearbyPlaces.length > 0 ? (
+        <View style={styles.nearbyList}>
+          {nearbyPlaces.slice(0, 8).map((place) => (
+            <View
+              key={place.id}
+              style={[
+                styles.nearbyRow,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+            >
+              <View style={styles.nearbyTextWrap}>
+                <Text
+                  style={[styles.nearbyName, { color: theme.text }]}
+                  numberOfLines={1}
+                >
+                  {place.name}
+                </Text>
+                <Text
+                  style={[styles.nearbyMeta, { color: theme.muted }]}
+                  numberOfLines={1}
+                >
+                  {categoryLabels[place.category]}
+                  {place.address ? `, ${place.address}` : ""}
+                </Text>
+              </View>
+              <Text style={[styles.nearbyDistance, { color: theme.primary }]}>
+                {formatDistance(place.distanceMeters)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={[styles.emptyNearby, { color: theme.muted }]}>
+          Nearby places are not available for this location yet.
+        </Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -338,5 +550,121 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 14,
     elevation: 5,
+  },
+  locationCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    gap: 14,
+  },
+  locationHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  sectionSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  detailMap: {
+    height: 240,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  propertyMarker: {
+    minWidth: 56,
+    height: 42,
+    paddingHorizontal: 10,
+    borderRadius: 21,
+    borderWidth: 3,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  propertyMarkerText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "900",
+    textTransform: "uppercase",
+  },
+  nearbyMarker: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  nearbyMarkerText: {
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  mapFallback: {
+    minHeight: 180,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+  },
+  mapFallbackTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  mapFallbackText: {
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  openMapButton: {
+    borderRadius: 16,
+    paddingVertical: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  openMapText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  nearbyList: {
+    gap: 10,
+  },
+  nearbyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  nearbyTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  nearbyName: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  nearbyMeta: {
+    marginTop: 3,
+    fontSize: 12,
+  },
+  nearbyDistance: {
+    fontSize: 12,
+    fontWeight: "900",
+  },
+  emptyNearby: {
+    fontSize: 13,
+    lineHeight: 19,
   },
 });

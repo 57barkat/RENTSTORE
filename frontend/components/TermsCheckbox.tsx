@@ -1,31 +1,48 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { Checkbox } from "react-native-paper";
+
+interface TermsCheckboxProps {
+  acceptedTerms: boolean;
+  setAcceptedTerms: (accepted: boolean) => void;
+  onPressTerms: () => void;
+  onPressPrivacy: () => void;
+  textColor: string;
+  color: string;
+}
 
 export const TermsCheckbox = ({
   acceptedTerms,
   setAcceptedTerms,
   onPressTerms,
+  onPressPrivacy,
   textColor,
   color,
-}: any) => (
-  <TouchableOpacity
-    style={{ flexDirection: "row", alignItems: "center", marginTop: 15 }}
-    onPress={() => setAcceptedTerms(!acceptedTerms)}
-  >
+}: TermsCheckboxProps) => (
+  <View style={{ flexDirection: "row", alignItems: "flex-start", marginTop: 15 }}>
     <Checkbox
       status={acceptedTerms ? "checked" : "unchecked"}
       onPress={() => setAcceptedTerms(!acceptedTerms)}
       color={color}
     />
-    <Text style={{ fontSize: 14, flex: 1, marginLeft: 8, color: textColor }}>
-      I accept the{" "}
-      <Text
-        style={{ color: color, textDecorationLine: "underline" }}
-        onPress={onPressTerms}
-      >
-        Terms and Conditions
+    <View style={{ flex: 1, marginLeft: 8, paddingTop: 8 }}>
+      <Text style={{ fontSize: 14, color: textColor, lineHeight: 21 }}>
+        I have read and agree to the{" "}
+        <Text
+          style={{ color, textDecorationLine: "underline" }}
+          onPress={onPressTerms}
+        >
+          Terms & Conditions
+        </Text>{" "}
+        and{" "}
+        <Text
+          style={{ color, textDecorationLine: "underline" }}
+          onPress={onPressPrivacy}
+        >
+          Privacy Policy
+        </Text>
+        .
       </Text>
-    </Text>
-  </TouchableOpacity>
+    </View>
+  </View>
 );

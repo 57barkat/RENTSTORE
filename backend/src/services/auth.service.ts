@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcrypt";
-import { UserDocument } from "../modules/user/user.entity";
+import { UserAccountStatus, UserDocument } from "../modules/user/user.entity";
 import { UserService } from "../modules/user/user.service";
 
 @Injectable()
@@ -27,29 +27,35 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException("Invalid credentials");
 
-    if (user.isBlocked) {
+    let activeUser: UserDocument = user;
+
+    if (user.accountStatus === UserAccountStatus.SUSPENDED) {
+      activeUser = await this.userService.reactivateAccount(user.id);
+    }
+
+    if (activeUser.isBlocked) {
       throw new UnauthorizedException(
         "Your account has been blocked due to multiple warnings. Please contact support.",
       );
     }
 
-    if (!user.isEmailVerified) {
-      await this.userService.sendEmailVerificationCode(user.email);
+    if (!activeUser.isEmailVerified) {
+      await this.userService.sendEmailVerificationCode(activeUser.email);
       throw new UnauthorizedException({
         message: "VERIFY_EMAIL_REQUIRED",
-        email: user.email,
+        email: activeUser.email,
       });
     }
 
-    const tokens = await this.issueTokens(user);
-    const role = user.role;
+    const tokens = await this.issueTokens(activeUser);
+    const role = activeUser.role;
     const userData = {
-      name: user.name,
-      image: user.profileImage,
-      isPhoneVerified: user.isPhoneVerified,
+      name: activeUser.name,
+      image: activeUser.profileImage,
+      isPhoneVerified: activeUser.isPhoneVerified,
     };
 
-    return { user, tokens, role, userData };
+    return { user: activeUser, tokens, role, userData };
   }
 
   async issueTokens(user: UserDocument) {

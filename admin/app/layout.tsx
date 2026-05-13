@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-
+import "mapbox-gl/dist/mapbox-gl.css";
 import "./globals.css";
 import { ThemeProvider } from "./components/theme-provider";
 import StoreProvider from "./store/StoreProvider";

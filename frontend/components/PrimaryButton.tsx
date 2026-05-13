@@ -7,17 +7,23 @@ import {
   View,
 } from "react-native";
 
-export const PrimaryButton = ({ title, onPress, loading, color }: any) => (
+export const PrimaryButton = ({
+  title,
+  onPress,
+  loading,
+  color,
+  disabled = false,
+}: any) => (
   <TouchableOpacity
     style={[
       styles.button,
       {
-        opacity: loading ? 0.7 : 1,
+        opacity: loading || disabled ? 0.7 : 1,
         backgroundColor: color || "#10B981", // Falls back to figma green
       },
     ]}
     onPress={onPress}
-    disabled={loading}
+    disabled={loading || disabled}
     activeOpacity={0.8}
   >
     {loading ? (

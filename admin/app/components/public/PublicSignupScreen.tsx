@@ -69,11 +69,17 @@ export default function PublicSignupScreen() {
     phone: "",
     cnic: "",
     password: "",
-    acceptedTerms: true,
+    acceptedTerms: false,
   });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!form.acceptedTerms) {
+      toast.error("Please agree to the Terms & Conditions and Privacy Policy.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -303,8 +309,9 @@ export default function PublicSignupScreen() {
             />
           </label>
 
-          <label className="flex items-start gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-muted)]">
+          <div className="flex items-start gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface)] px-4 py-3 text-sm text-[var(--admin-muted)]">
             <input
+              id="signup-terms-acceptance"
               type="checkbox"
               checked={form.acceptedTerms}
               onChange={(event) =>
@@ -315,9 +322,28 @@ export default function PublicSignupScreen() {
               }
               className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
               required
+              aria-label="I have read and agree to the Terms & Conditions and Privacy Policy."
             />
-            <span>I accept the marketplace terms and conditions.</span>
-          </label>
+            <span>
+              I have read and agree to the{" "}
+              <Link
+                href="/terms"
+                target="_blank"
+                className="text-[var(--admin-primary)] underline underline-offset-2"
+              >
+                Terms &amp; Conditions
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                target="_blank"
+                className="text-[var(--admin-primary)] underline underline-offset-2"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </div>
 
           <button
             type="submit"

@@ -5,8 +5,8 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
-import { User, UserDocument, UserRole } from "./user.entity";
+import { Model, Types } from "mongoose";
+import { User, UserAccountStatus, UserDocument, UserRole } from "./user.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import * as bcrypt from "bcrypt";
 import { OAuth2Client } from "google-auth-library";
@@ -21,6 +21,8 @@ import { escapeRegex } from "../../common/utils/normalize.util";
 @Injectable()
 export class UserService {
   private static readonly MAX_ADMIN_PAGE_SIZE = 50;
+  private static readonly CURRENT_TERMS_VERSION = "2026-05-13";
+  private static readonly CURRENT_PRIVACY_VERSION = "2026-05-13";
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
   constructor(
@@ -52,9 +54,16 @@ export class UserService {
     return requestedRole === UserRole.AGENT ? UserRole.AGENT : UserRole.USER;
   }
 
-  async createUser(dto: CreateUserDto): Promise<UserDocument> {
+  async createUser(
+    dto: CreateUserDto,
+    context?: { ipAddress?: string; userAgent?: string },
+  ): Promise<UserDocument> {
     const normalizedEmail = this.normalizeEmail(dto.email);
     const role = this.sanitizePublicSignupRole(dto.role);
+
+    if (dto.acceptedTerms !== true) {
+      throw new BadRequestException("TERMS_ACCEPTANCE_REQUIRED");
+    }
 
     // 1. Check for existing users
     const conflict = await this.userModel.findOne({
@@ -101,7 +110,9 @@ export class UserService {
       ...cleanedData
     } = dto;
 
+    const userId = new Types.ObjectId();
     const user = await this.userModel.create({
+      _id: userId,
       ...cleanedData,
       email: normalizedEmail,
       password: hashedPassword,
@@ -110,6 +121,18 @@ export class UserService {
       isEmailVerified: false,
       isPhoneVerified: false,
       TermsAndConditionsAccepted: acceptedTerms,
+      ...(acceptedTerms
+        ? {
+            termsAcceptance: {
+              userId: userId.toString(),
+              acceptedAt: new Date(),
+              termsVersion: UserService.CURRENT_TERMS_VERSION,
+              privacyVersion: UserService.CURRENT_PRIVACY_VERSION,
+              ...(context?.ipAddress ? { ipAddress: context.ipAddress } : {}),
+              ...(context?.userAgent ? { userAgent: context.userAgent } : {}),
+            },
+          }
+        : {}),
     });
 
     // 5. Send verification
@@ -318,7 +341,9 @@ export class UserService {
     });
 
     if (!user) {
+      const googleUserId = new Types.ObjectId();
       user = await this.userModel.create({
+        _id: googleUserId,
         name: payload.name,
         email: normalizedEmail,
         password: await bcrypt.hash(Math.random().toString(), 10),
@@ -329,10 +354,109 @@ export class UserService {
         phone: `GOOGLE_${Date.now()}`,
         cnic: `GOOGLE_${Date.now()}`,
         TermsAndConditionsAccepted: true,
+        termsAcceptance: {
+          userId: googleUserId.toString(),
+          acceptedAt: new Date(),
+          termsVersion: UserService.CURRENT_TERMS_VERSION,
+          privacyVersion: UserService.CURRENT_PRIVACY_VERSION,
+          userAgent: "google-oauth",
+        },
       });
     }
 
     return user;
+  }
+
+  async suspendOwnAccount(userId: string) {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        accountStatus: UserAccountStatus.SUSPENDED,
+        isBlocked: true,
+        suspendedAt: new Date(),
+        suspensionReason: "User requested account suspension",
+        $unset: { refreshToken: 1 },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const ownerObjectId = user._id as Types.ObjectId;
+    await this.propertyModel.updateMany(
+      {
+        ownerId: { $in: [ownerObjectId, ownerObjectId.toString()] },
+        isApproved: true,
+        moderationStatus: "ACTIVE",
+      },
+      {
+        isVisible: false,
+        status: false,
+        suspendedAt: new Date(),
+      },
+    );
+
+    return user;
+  }
+
+  async reactivateAccount(userId: string) {
+    const user = await this.userModel.findByIdAndUpdate(
+      userId,
+      {
+        accountStatus: UserAccountStatus.ACTIVE,
+        isBlocked: false,
+        $unset: {
+          suspendedAt: 1,
+          suspensionReason: 1,
+        },
+      },
+      { new: true },
+    );
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const ownerObjectId = user._id as Types.ObjectId;
+    await this.propertyModel.updateMany(
+      {
+        ownerId: { $in: [ownerObjectId, ownerObjectId.toString()] },
+        isApproved: true,
+        moderationStatus: "ACTIVE",
+      },
+      {
+        isVisible: true,
+        status: true,
+        $unset: { suspendedAt: 1 },
+      },
+    );
+
+    return user;
+  }
+
+  async exportUserData(userId: string) {
+    const user = await this.userModel
+      .findById(userId)
+      .select(
+        "-password -refreshToken -resetPasswordCode -resetPasswordCodeExpires -emailVerificationCode -emailVerificationCodeExpires -fcmToken",
+      )
+      .lean();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const properties = await this.propertyModel
+      .find({ ownerId: { $in: [user._id, user._id.toString()] } })
+      .lean();
+
+    return {
+      exportedAt: new Date().toISOString(),
+      user,
+      properties,
+    };
   }
 
   /* -------------------------------------------------------------------------- */
@@ -405,7 +529,7 @@ export class UserService {
   }
 
   async delete(id: string) {
-    return this.userModel.findByIdAndDelete(id);
+    return this.suspendOwnAccount(id);
   }
 
   async findAll() {
@@ -575,13 +699,7 @@ export class UserService {
   }
 
   async deleteUser(userId: string) {
-    // Optional: Check if user exists first or has active properties
-    const result = await this.userModel.findByIdAndDelete(userId).exec();
-
-    if (!result) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
-    return { message: "User deleted successfully", id: userId };
+    const user = await this.suspendOwnAccount(userId);
+    return { message: "User account suspended successfully", id: user.id };
   }
 }

@@ -150,6 +150,9 @@ export const parsePropertySearchParams = (
   searchParams: Record<string, string | string[] | undefined>,
 ): PropertySearchFilters => {
   const hostelTypeValue = toSingleValue(searchParams.hostelType) || "";
+  const furnishingValue = toSingleValue(searchParams.furnishing) || "";
+  const parkingValue = toSingleValue(searchParams.parking) || "";
+  const familyFriendlyValue = toSingleValue(searchParams.familyFriendly) || "";
   const sortValue = toSingleValue(searchParams.sortBy) || "newest";
   const cityValue = toSingleValue(searchParams.city) || "";
   const purposeValue = normalizePurpose(
@@ -190,6 +193,18 @@ export const parsePropertySearchParams = (
     hostelType: HOSTEL_VALUES.includes(hostelTypeValue as HostelType)
       ? (hostelTypeValue as HostelType)
       : "",
+    furnishing: ["furnished", "semi-furnished", "unfurnished"].includes(
+      furnishingValue,
+    )
+      ? (furnishingValue as PropertySearchFilters["furnishing"])
+      : "",
+    parking:
+      parkingValue === "true"
+        ? true
+        : parkingValue === "false"
+          ? false
+          : "",
+    familyFriendly: familyFriendlyValue === "true" ? true : "",
     sortBy: SORT_VALUES.includes(sortValue as PropertySort)
       ? (sortValue as PropertySort)
       : "newest",
@@ -262,6 +277,18 @@ export const buildPropertySearchQuery = (
     params.set("hostelType", filters.hostelType);
   }
 
+  if (filters.furnishing) {
+    params.set("furnishing", filters.furnishing);
+  }
+
+  if (filters.parking !== "" && filters.parking !== undefined) {
+    params.set("parking", String(filters.parking));
+  }
+
+  if (filters.familyFriendly === true) {
+    params.set("familyFriendly", "true");
+  }
+
   return params.toString();
 };
 
@@ -325,6 +352,18 @@ export const buildPropertyBrowserQuery = (
 
   if (filters.hostelType) {
     params.set("hostelType", filters.hostelType);
+  }
+
+  if (filters.furnishing) {
+    params.set("furnishing", filters.furnishing);
+  }
+
+  if (filters.parking !== "" && filters.parking !== undefined) {
+    params.set("parking", String(filters.parking));
+  }
+
+  if (filters.familyFriendly === true) {
+    params.set("familyFriendly", "true");
   }
 
   if (filters.sortBy && filters.sortBy !== "newest") {

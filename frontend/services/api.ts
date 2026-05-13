@@ -16,6 +16,16 @@ export interface AreaSuggestion {
   area: string;
 }
 
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: "mosque" | "school" | "hospital" | "market" | "useful";
+  latitude: number;
+  longitude: number;
+  distanceMeters: number;
+  address?: string;
+}
+
 // export const API_URL =
 //   process.env.EXPO_PUBLIC_API_URL ||
 //   "http://192.168.81.201:3000" ||
@@ -132,6 +142,12 @@ export const api = createApi({
     deleteUser: builder.mutation({
       query: () => ({ url: "/api/v1/users/delete", method: "DELETE" }),
     }),
+    exportMyData: builder.query({
+      query: () => ({
+        url: "/api/v1/users/me/export",
+        method: "GET",
+      }),
+    }),
     getMe: builder.query<UserType, void>({
       query: () => ({
         url: "/api/v1/users/me",
@@ -229,6 +245,13 @@ export const api = createApi({
       query: (id) => ({
         url: `/api/v1/properties/${id}/uploader-profile`,
         method: "GET",
+      }),
+    }),
+    getPropertyNearbyPlaces: builder.query<NearbyPlace[], string>({
+      query: (id) => ({
+        url: `/api/v1/properties/${id}/nearby-places`,
+        method: "GET",
+        headers: { "x-skip-auth": "true" },
       }),
     }),
     getAllProperties: builder.query({
@@ -452,6 +475,7 @@ export const {
   useCreateUserMutation,
   useLoginMutation,
   useDeleteUserMutation,
+  useLazyExportMyDataQuery,
   useGetMeQuery,
   useLazyGetMeQuery,
   useCreatePropertyMutation,
@@ -460,6 +484,7 @@ export const {
   useFindPropertyByIdQuery,
   useGetPropertyUploaderProfileQuery,
   useGetPropertyUploaderSummaryQuery,
+  useGetPropertyNearbyPlacesQuery,
   useFindPropertyByIdAndUpdateMutation,
   useFindPropertyByIdAndDeleteMutation,
   useFindDraftPropertyByIdAndDeleteMutation,
