@@ -173,6 +173,8 @@ export const parsePropertySearchParams = (
     maxRent:
       toPositiveNumber(toSingleValue(searchParams.maxRent)) ||
       toPositiveNumber(toSingleValue(searchParams.maxPrice)),
+    bedrooms: toPositiveNumber(toSingleValue(searchParams.bedrooms)),
+    bathrooms: toPositiveNumber(toSingleValue(searchParams.bathrooms)),
     minSize: toPositiveNumber(toSingleValue(searchParams.minSize)),
     maxSize: toPositiveNumber(toSingleValue(searchParams.maxSize)),
     sizeUnit: SIZE_UNIT_VALUES.includes(
@@ -192,7 +194,7 @@ export const parsePropertySearchParams = (
       ? (sortValue as PropertySort)
       : "newest",
     page: Math.max(1, Number(toSingleValue(searchParams.page) || "1")),
-    limit: 12,
+    limit: 10,
   };
 };
 
@@ -205,7 +207,7 @@ export const buildPropertySearchQuery = (
     params.set("hostOption", filters.category);
   }
   params.set("page", String(filters.page || 1));
-  params.set("limit", String(filters.limit || 12));
+  params.set("limit", String(filters.limit || 10));
   params.set("sortBy", filters.sortBy || "newest");
 
   if (filters.purpose) {
@@ -230,6 +232,14 @@ export const buildPropertySearchQuery = (
 
   if (filters.maxRent !== "" && filters.maxRent !== undefined) {
     params.set("maxRent", String(filters.maxRent));
+  }
+
+  if (filters.bedrooms !== "" && filters.bedrooms !== undefined) {
+    params.set("bedrooms", String(filters.bedrooms));
+  }
+
+  if (filters.bathrooms !== "" && filters.bathrooms !== undefined) {
+    params.set("bathrooms", String(filters.bathrooms));
   }
 
   if (filters.minSize !== "" && filters.minSize !== undefined) {
@@ -287,6 +297,14 @@ export const buildPropertyBrowserQuery = (
 
   if (filters.maxRent !== "" && filters.maxRent !== undefined) {
     params.set("maxRent", String(filters.maxRent));
+  }
+
+  if (filters.bedrooms !== "" && filters.bedrooms !== undefined) {
+    params.set("bedrooms", String(filters.bedrooms));
+  }
+
+  if (filters.bathrooms !== "" && filters.bathrooms !== undefined) {
+    params.set("bathrooms", String(filters.bathrooms));
   }
 
   if (filters.minSize !== "" && filters.minSize !== undefined) {
@@ -675,7 +693,7 @@ export const buildListingTitle = (filters: PropertySearchFilters): string => {
       return `Properties for ${purposeLabel} in ${filters.city}`;
     }
 
-    return `Properties for ${purposeLabel} in Pakistan`;
+    return `Properties for ${purposeLabel} in Islamabad and Rawalpindi`;
   }
 
   const city = filters.city;
@@ -703,7 +721,7 @@ export const buildListingDescription = (
 ): string => {
   if (filters.category === "property") {
     if (!filters.city && !filters.location) {
-      return "Browse houses, apartments, hostels, shops and offices for rent across Pakistan.";
+      return "Find verified rentals in Islamabad and Rawalpindi. AnganStay is currently focused on these cities, with more cities coming soon.";
     }
 
     const resultPrefix =

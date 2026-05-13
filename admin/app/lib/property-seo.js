@@ -142,7 +142,10 @@ const normalizePropertyDetailText = (value) => {
     .trim();
 };
 
-const truncateSlugValue = (value, maxLength = PROPERTY_DETAIL_SLUG_MAX_LENGTH) => {
+const truncateSlugValue = (
+  value,
+  maxLength = PROPERTY_DETAIL_SLUG_MAX_LENGTH,
+) => {
   if (!value || value.length <= maxLength) {
     return value;
   }
@@ -200,7 +203,9 @@ const normalizeDisplayArea = (value) => {
     return "";
   }
 
-  const compact = normalizeSectorIdentifiers(normalized).replace(/\s+/g, " ").trim();
+  const compact = normalizeSectorIdentifiers(normalized)
+    .replace(/\s+/g, " ")
+    .trim();
 
   if (/^[a-z]+-\d+(?:-[a-z0-9]+)?$/i.test(compact)) {
     return compact.toUpperCase();
@@ -237,7 +242,11 @@ const normalizeSizeUnitForSlug = (value) => {
     return "kanal";
   }
 
-  if (normalized === "sq ft" || normalized === "sqft" || normalized === "square feet") {
+  if (
+    normalized === "sq ft" ||
+    normalized === "sqft" ||
+    normalized === "square feet"
+  ) {
     return "sq-ft";
   }
 
@@ -267,7 +276,9 @@ const removeDuplicateLocationTokens = (value, locations) => {
   let sanitized = ` ${normalizePropertyDetailText(value || "").toLowerCase()} `;
 
   locations
-    .map((location) => normalizePropertyDetailText(location || "").toLowerCase())
+    .map((location) =>
+      normalizePropertyDetailText(location || "").toLowerCase(),
+    )
     .filter(Boolean)
     .forEach((location) => {
       const escapedLocation = location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -280,13 +291,12 @@ const removeDuplicateLocationTokens = (value, locations) => {
   return sanitized.replace(/\s+/g, " ").trim();
 };
 
-const inferPropertyDescriptor = ({
-  propertyType,
-  title,
-  hostelType,
-}) => {
+const inferPropertyDescriptor = ({ propertyType, title, hostelType }) => {
   const normalizedType = normalizeSeoPropertyType(propertyType);
-  const normalizedTitle = removeDuplicateLocationTokens(title, []).toLowerCase();
+  const normalizedTitle = removeDuplicateLocationTokens(
+    title,
+    [],
+  ).toLowerCase();
 
   if (!normalizedType) {
     return "";
@@ -299,7 +309,10 @@ const inferPropertyDescriptor = ({
       return "boys-hostel";
     }
 
-    if (normalizedHostelType === "female" || /\bgirls?\b/.test(normalizedTitle)) {
+    if (
+      normalizedHostelType === "female" ||
+      /\bgirls?\b/.test(normalizedTitle)
+    ) {
       return "girls-hostel";
     }
 
@@ -455,7 +468,8 @@ export const buildSeoListingSlug = (input) => {
  * @param {{category?: string, purpose?: string, city?: string, area?: string, propertyType?: string}} input
  * @returns {boolean}
  */
-export const canBuildSeoListingSlug = (input) => Boolean(buildSeoListingSlug(input));
+export const canBuildSeoListingSlug = (input) =>
+  Boolean(buildSeoListingSlug(input));
 
 /**
  * @param {string} segment
@@ -543,7 +557,9 @@ export const buildPropertyDetailSlug = (input) => {
   const purpose =
     normalizePurpose(input?.purpose || DEFAULT_LISTING_PURPOSE) ||
     DEFAULT_LISTING_PURPOSE;
-  const city = buildPropertyDetailLocationSlug(input?.city || DEFAULT_LISTING_CITY);
+  const city = buildPropertyDetailLocationSlug(
+    input?.city || DEFAULT_LISTING_CITY,
+  );
   const area = buildPropertyDetailLocationSlug(input?.area || "");
   const descriptor = inferPropertyDescriptor({
     propertyType,
@@ -551,15 +567,23 @@ export const buildPropertyDetailSlug = (input) => {
     hostelType: input?.hostelType,
   });
   const sizeSegment = buildPropertySizeSlug(input?.sizeValue, input?.sizeUnit);
-  const propertyId = String(input?.propertyId || "").trim().toLowerCase();
+  const propertyId = String(input?.propertyId || "")
+    .trim()
+    .toLowerCase();
 
   if (!propertyType || !city || propertyId.length !== 24) {
     return null;
   }
 
-  const phraseParts = [descriptor, "for", purpose, "in", area, city, sizeSegment].filter(
-    Boolean,
-  );
+  const phraseParts = [
+    descriptor,
+    "for",
+    purpose,
+    "in",
+    area,
+    city,
+    sizeSegment,
+  ].filter(Boolean);
   const slugBase = truncateSlugValue(phraseParts.join("-"));
 
   return `${slugBase}-${propertyId}`;
@@ -583,19 +607,20 @@ export const parsePropertyDetailSlug = (segment) => {
     return null;
   }
 
-  const [, descriptorSegment, purposeSegment, rawLocationHint, propertyId] = match;
-  const propertyType =
-    descriptorSegment.includes("hostel")
-      ? "hostel"
-      : descriptorSegment.includes("apartment")
-        ? "apartment"
-        : descriptorSegment.includes("office")
-          ? "office"
-          : descriptorSegment.includes("shop")
-            ? "shop"
-            : descriptorSegment.includes("house") || descriptorSegment.includes("portion")
-              ? "house"
-              : "property";
+  const [, descriptorSegment, purposeSegment, rawLocationHint, propertyId] =
+    match;
+  const propertyType = descriptorSegment.includes("hostel")
+    ? "hostel"
+    : descriptorSegment.includes("apartment")
+      ? "apartment"
+      : descriptorSegment.includes("office")
+        ? "office"
+        : descriptorSegment.includes("shop")
+          ? "shop"
+          : descriptorSegment.includes("house") ||
+              descriptorSegment.includes("portion")
+            ? "house"
+            : "property";
 
   const locationHint = rawLocationHint.replace(
     /-(\d+(?:-\d+)?-(?:marla|kanal|sq-ft))$/i,
@@ -616,7 +641,9 @@ export const parsePropertyDetailSlug = (segment) => {
  * @returns {"home"|"apartment"|"hostel"|"shop"|"office"|null}
  */
 export const getPublicCategoryFromPath = (pathname) => {
-  const seoCategory = parseSeoListingSlug(String(pathname || "").replace(/^\//, ""))?.category;
+  const seoCategory = parseSeoListingSlug(
+    String(pathname || "").replace(/^\//, ""),
+  )?.category;
 
   if (
     seoCategory &&

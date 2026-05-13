@@ -8,7 +8,10 @@ export default async function ReportsPage() {
   const session = await requireAdminSession();
   const reports = await serverApiRequest<ReportsResponse>("/reports", {
     token: session.token,
+    searchParams: {
+      status: "pending",
+    },
   });
 
-  return <ReportsScreen initialReports={reports.data} />;
+  return <ReportsScreen initialReports={reports.data} initialStatus="pending" />;
 }

@@ -47,7 +47,7 @@ const supportOptions = [
 export default function PublicSupportScreen() {
   return (
     <PublicAccountShell
-      title="24/7 Support"
+      title="Support"
       description="Need help? Our support team can help with listings, uploads, account access, verification, and promotions."
     >
       <PublicAccountPanel className="p-5 sm:p-6">

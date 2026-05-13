@@ -21,7 +21,7 @@ export const PUBLIC_ACCOUNT_NAV_ITEMS: PublicAccountNavItem[] = [
   { href: "/account/properties", label: "My Properties", icon: Building2 },
   { href: "/account/favorites", label: "Favorites", icon: Heart },
   { href: "/account/profile", label: "Settings", icon: Settings },
-  { href: "/account/support", label: "24/7 Support", icon: Headphones },
+  { href: "/account/support", label: "Support", icon: Headphones },
 ];
 
 export function isAccountNavItemActive(pathname: string, href: string) {

@@ -19,13 +19,15 @@ This document mirrors the in-app privacy policy and is intended to be published 
 - Publish and manage listings.
 - Power maps, nearby results, messaging, favorites, and voice search.
 - Process purchases and support requests.
+- Review listing reports, suspicious activity, and disputes.
 
 ## Sharing and service providers
 
 - Cloudinary for media uploads.
 - Google Places for address search.
 - Mapbox for maps.
-- Backend and payment providers that support authentication, listings, chat, and purchases.
+- Backend providers that support authentication, listings, chat, and purchases.
+- We may display promoted listings or advertising in the future. If we do, we will update this policy and explain what data is used.
 
 ## Device storage
 
@@ -39,4 +41,10 @@ This document mirrors the in-app privacy policy and is intended to be published 
 ## Choices
 
 - Users can decline optional permissions such as location, microphone, or media-library access.
-- Privacy or deletion requests can be directed to `barkat.khattak@codeshop.biz`.
+- To request account or data deletion, contact us at `contact@anganstay.com` from your registered email.
+- We retain account and listing data while your account is active. Deleted listings may be retained temporarily for security, fraud prevention, dispute handling, or legal compliance.
+- We currently do not use third-party tracking cookies. If this changes, we will update this policy.
+
+## Security
+
+Passwords are stored using secure hashing. Sensitive data is protected using appropriate technical and organizational safeguards.

@@ -235,7 +235,7 @@ const BuyCredits = () => {
         </TouchableOpacity>
 
         <Text style={[styles.footerNote, { color: currentTheme.muted }]}>
-          All plans include basic dashboard access and 24/7 automated support.
+          All plans include basic dashboard access and support.
         </Text>
       </ScrollView>
     </SafeAreaView>

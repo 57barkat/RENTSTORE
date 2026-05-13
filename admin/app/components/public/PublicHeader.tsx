@@ -566,7 +566,7 @@ export default function PublicHeader() {
                         <ProfileMenuLink
                           href="/account/support"
                           icon={Headphones}
-                          label="24/7 Support"
+                          label="Support"
                           description="Get help from AnganStay support"
                           active={matchesRoute(pathname, "/account/support")}
                           onClick={closeProfileMenu}

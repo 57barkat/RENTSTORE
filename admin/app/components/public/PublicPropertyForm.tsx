@@ -362,6 +362,7 @@ export default function PublicPropertyForm({
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
+  const [accuracyConfirmed, setAccuracyConfirmed] = useState(false);
 
   useEffect(() => {
     if (initialForm && !initializedRef.current) {
@@ -608,6 +609,11 @@ export default function PublicPropertyForm({
 
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Please complete the required property fields.");
+      return;
+    }
+
+    if (publish && !accuracyConfirmed) {
+      toast.error("Please confirm that your listing details are accurate.");
       return;
     }
 
@@ -1645,6 +1651,22 @@ export default function PublicPropertyForm({
                 </div>
 
                 <div className="mt-6 space-y-3">
+                  <label className="flex items-start gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 text-sm leading-6 text-[var(--admin-muted)]">
+                    <input
+                      type="checkbox"
+                      checked={accuracyConfirmed}
+                      onChange={(event) =>
+                        setAccuracyConfirmed(event.target.checked)
+                      }
+                      className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
+                    />
+                    <span>
+                      I confirm that I am authorized to publish this property
+                      and that the rent, location, photos, availability, and
+                      contact details are accurate.
+                    </span>
+                  </label>
+
                   {mode === "create" ? (
                     <button
                       type="button"
@@ -1661,7 +1683,7 @@ export default function PublicPropertyForm({
 
                   <button
                     type="submit"
-                    disabled={submitting || uploadingImages}
+                    disabled={submitting || uploadingImages || !accuracyConfirmed}
                     onClick={(event) => {
                       event.preventDefault();
                       void submitForm(true);

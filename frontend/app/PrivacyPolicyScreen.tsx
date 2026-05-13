@@ -18,11 +18,11 @@ const sections = [
   },
   {
     title: "4. How We Use Information",
-    body: "We use collected information to create and secure accounts, verify contact details, publish and manage listings, support messaging and favorites, process purchases, improve search and map features, and respond to support or abuse reports.",
+    body: "We use collected information to create and secure accounts, verify contact details, publish and manage listings, support messaging and favorites, improve search and map features, and respond to support, disputes, or abuse reports.",
   },
   {
     title: "5. Sharing and Service Providers",
-    body: "We may share information with service providers that support hosting, media storage, maps and address lookup, payments, and realtime features. Examples visible in the app code include Cloudinary for image uploads, Google Places for address search, Mapbox for maps, and backend services that power authentication, listings, payments, and chat.",
+    body: "We may share information with service providers that support hosting, media storage, maps and address lookup, and realtime features. Examples visible in the app code include Cloudinary for image uploads, Google Places for address search, Mapbox for maps, and backend services that power authentication, listings, reports, and chat.",
   },
   {
     title: "6. Local Device Storage",
@@ -30,19 +30,23 @@ const sections = [
   },
   {
     title: "7. Security",
-    body: "We use reasonable safeguards to protect data in transit and at rest, but no system can guarantee absolute security. You should keep your device secure and avoid sharing your login credentials.",
+    body: "Passwords are stored using secure hashing. Sensitive data is protected using appropriate technical and organizational safeguards. No system can guarantee absolute security, so you should keep your device secure and avoid sharing your login credentials.",
   },
   {
     title: "8. Your Choices",
-    body: "You can choose whether to grant optional permissions such as location, microphone, and media-library access. You may also request account updates or deletion through the support contact listed below, subject to applicable operational or legal requirements.",
+    body: "You can choose whether to grant optional permissions such as location, microphone, and media-library access. To request account or data deletion, contact us at contact@anganstay.com from your registered email.",
   },
   {
-    title: "9. Children’s Privacy",
+    title: "9. Cookies, Ads, and Retention",
+    body: "We currently do not use third-party tracking cookies. If this changes, we will update this policy. We may display promoted listings or advertising in the future. If we do, we will update this policy and explain what data is used. We retain account and listing data while your account is active. Deleted listings may be retained temporarily for security, fraud prevention, dispute handling, or legal compliance.",
+  },
+  {
+    title: "10. Children's Privacy",
     body: "The app is not intended for children under 13, and we do not knowingly seek to collect their personal information.",
   },
   {
-    title: "10. Contact Us",
-    body: "For privacy questions or requests, contact barkat.khattak@codeshop.biz.",
+    title: "11. Contact Us",
+    body: "For privacy questions or requests, contact contact@anganstay.com.",
   },
 ];
 
@@ -59,7 +63,7 @@ const PrivacyPolicyScreen = () => {
           AnganStay Privacy Policy
         </Text>
         <Text style={[styles.date, { color: currentTheme.muted }]}>
-          Effective Date: April 28, 2026
+          Effective Date: May 13, 2026
         </Text>
 
         {sections.map((section) => (

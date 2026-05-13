@@ -12,25 +12,25 @@ import { getPublicStructuredData, serializeJsonLd } from "@/app/lib/seo";
 
 export const metadata: Metadata = {
   title: {
-    default: "Find verified rentals in Pakistan | AnganStay",
+    default: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
     template: "%s",
   },
 
   description:
-    "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
+    "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
 
   openGraph: {
-    title: "Find verified rentals in Pakistan | AnganStay",
+    title: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
     description:
-      "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
+      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
     type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Find verified rentals in Pakistan | AnganStay",
+    title: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
     description:
-      "Browse verified houses, apartments, hostels, shops, and offices with real-time availability, location details, and pricing on AnganStay.",
+      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
   },
 
   robots: {

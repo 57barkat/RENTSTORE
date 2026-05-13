@@ -176,7 +176,7 @@ export default function PropertyDetails() {
       setReportDescription("");
       Alert.alert(
         "Report submitted",
-        "Thanks for helping us review this listing.",
+        "Thanks. Our team will review this listing. If it violates AnganStay rules, we may remove it or contact the owner.",
       );
     } catch (error: any) {
       Alert.alert(

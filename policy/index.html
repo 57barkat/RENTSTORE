@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anganstay | Privacy Hub</title>
+    <title>AnganStay | Privacy Hub</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -13,11 +13,18 @@
     <style>
       :root {
         --accent: #4f46e5;
-        --accent-glow: rgba(79, 70, 229, 0.1);
-        --glass: rgba(255, 255, 255, 0.6);
+        --accent-dark: #3730a3;
+        --accent-soft: #eef2ff;
+        --accent-glow: rgba(79, 70, 229, 0.16);
+        --emerald: #10b981;
+        --emerald-soft: rgba(16, 185, 129, 0.12);
+        --glass: rgba(255, 255, 255, 0.72);
         --text: #0f172a;
         --subtext: #475569;
-        --border: rgba(226, 232, 240, 0.8);
+        --muted: #64748b;
+        --border: rgba(226, 232, 240, 0.88);
+        --shadow: 0 24px 70px -35px rgba(15, 23, 42, 0.45);
+        --radius-xl: 32px;
       }
 
       * {
@@ -26,37 +33,84 @@
         padding: 0;
       }
 
+      html {
+        scroll-behavior: smooth;
+      }
+
       body {
         font-family: "Outfit", sans-serif;
         color: var(--text);
         background: #f8fafc;
         background-image:
           radial-gradient(
-            at 0% 0%,
-            hsla(253, 16%, 7%, 0.03) 0,
-            transparent 50%
+            circle at 0% 0%,
+            rgba(79, 70, 229, 0.12) 0,
+            transparent 32%
           ),
           radial-gradient(
-            at 100% 100%,
-            hsla(225, 39%, 30%, 0.05) 0,
-            transparent 50%
+            circle at 100% 20%,
+            rgba(14, 165, 233, 0.12) 0,
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at 50% 100%,
+            rgba(16, 185, 129, 0.1) 0,
+            transparent 32%
           );
         min-height: 100vh;
         line-height: 1.7;
         overflow-x: hidden;
       }
 
-      .blob {
+      body::before {
+        content: "";
         position: fixed;
-        width: 500px;
-        height: 500px;
-        background: var(--accent-glow);
-        filter: blur(100px);
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+        background-size: 54px 54px;
+        mask-image: linear-gradient(to bottom, black, transparent 80%);
+        z-index: -2;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      a:hover {
+        color: var(--accent-dark);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .blob,
+      .blob-secondary {
+        position: fixed;
+        width: 520px;
+        height: 520px;
+        filter: blur(95px);
         border-radius: 50%;
         z-index: -1;
-        top: -10%;
-        right: -10%;
         animation: float 25s infinite alternate ease-in-out;
+      }
+
+      .blob {
+        background: var(--accent-glow);
+        top: -12%;
+        right: -12%;
+      }
+
+      .blob-secondary {
+        width: 380px;
+        height: 380px;
+        background: rgba(16, 185, 129, 0.14);
+        bottom: -14%;
+        left: -10%;
+        animation-delay: -8s;
       }
 
       @keyframes float {
@@ -69,103 +123,168 @@
       }
 
       .wrapper {
-        max-width: 1100px;
+        max-width: 1180px;
         margin: 0 auto;
-        padding: 80px 24px;
+        padding: 76px 24px 60px;
       }
 
       header {
         text-align: center;
-        margin-bottom: 80px;
+        margin-bottom: 58px;
       }
 
       .badge {
         display: inline-flex;
         align-items: center;
-        padding: 6px 14px;
-        background: white;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.84);
         color: var(--accent);
-        border-radius: 100px;
-        font-size: 0.75rem;
-        font-weight: 600;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
         margin-bottom: 20px;
         border: 1px solid var(--border);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
       }
 
       header h1 {
-        font-size: clamp(2.5rem, 6vw, 4rem);
+        font-size: clamp(2.7rem, 7vw, 5.1rem);
         font-weight: 800;
-        letter-spacing: -0.04em;
-        margin-bottom: 16px;
-        background: linear-gradient(135deg, #1e293b 0%, #4f46e5 100%);
+        letter-spacing: -0.06em;
+        line-height: 0.96;
+        margin-bottom: 20px;
+        background: linear-gradient(
+          135deg,
+          #0f172a 0%,
+          #4f46e5 58%,
+          #06b6d4 100%
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
 
       header p {
         color: var(--subtext);
-        font-size: 1.1rem;
-        max-width: 500px;
+        font-size: clamp(1rem, 2vw, 1.18rem);
+        max-width: 680px;
         margin: 0 auto;
+      }
+
+      .coverage-note {
+        margin: 28px auto 0;
+        max-width: 760px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border: 1px solid rgba(79, 70, 229, 0.18);
+        border-radius: 22px;
+        background: rgba(238, 242, 255, 0.72);
+        color: #312e81;
+        font-weight: 600;
+        box-shadow: 0 18px 45px -35px rgba(79, 70, 229, 0.65);
       }
 
       .bento-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        grid-auto-rows: minmax(240px, auto);
+        grid-auto-rows: minmax(250px, auto);
         gap: 24px;
       }
 
       .item {
         background: var(--glass);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
         border: 1px solid var(--border);
-        border-radius: 28px;
-        padding: 40px;
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        border-radius: var(--radius-xl);
+        padding: 34px;
+        transition:
+          transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+          box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+          border-color 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+          background 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         position: relative;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+      }
+
+      .item::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.55),
+          transparent 42%
+        );
+      }
+
+      .item > * {
+        position: relative;
+        z-index: 1;
       }
 
       .item:hover {
         transform: translateY(-10px);
-        border-color: var(--accent);
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 30px 60px -12px rgba(99, 102, 241, 0.15);
+        border-color: rgba(79, 70, 229, 0.45);
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 34px 80px -32px rgba(79, 70, 229, 0.38);
       }
 
       .wide {
         grid-column: span 2;
       }
+
       .tall {
         grid-row: span 2;
       }
 
+      .accent-card {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.92),
+          rgba(238, 242, 255, 0.82)
+        );
+        border-color: rgba(79, 70, 229, 0.2);
+      }
+
       .icon-wrap {
         color: var(--accent);
-        margin-bottom: 28px;
+        margin-bottom: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 52px;
-        height: 52px;
-        background: var(--accent-glow);
-        border-radius: 14px;
+        width: 56px;
+        height: 56px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(79, 70, 229, 0.12);
+        border-radius: 18px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
       }
 
       .item h2 {
         font-size: 1.35rem;
         margin-bottom: 14px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        font-weight: 800;
+        letter-spacing: -0.03em;
       }
 
       .item p {
         color: var(--subtext);
         font-size: 1rem;
+      }
+
+      .item strong {
+        color: var(--text);
+        font-weight: 700;
       }
 
       .list-container {
@@ -177,23 +296,69 @@
 
       .list-item {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 12px;
-        font-size: 0.95rem;
-        font-weight: 500;
+        font-size: 0.96rem;
+        font-weight: 600;
         color: var(--text);
+        padding: 12px 14px;
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.58);
       }
 
       .list-item i {
-        color: #10b981; /* Success Green */
+        flex: 0 0 auto;
+        color: var(--emerald);
+        margin-top: 3px;
+      }
+
+      .small-note {
+        margin-top: auto;
+        padding-top: 28px;
+        color: var(--muted) !important;
+        font-size: 0.91rem !important;
+      }
+
+      .policy-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        margin-top: 22px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: var(--emerald-soft);
+        color: #047857;
+        font-size: 0.88rem;
+        font-weight: 700;
+      }
+
+      .contact-box {
+        margin-top: 22px;
+        padding: 18px;
+        border-radius: 20px;
+        background: rgba(238, 242, 255, 0.75);
+        border: 1px solid rgba(79, 70, 229, 0.14);
       }
 
       footer {
         text-align: center;
-        margin-top: 100px;
-        padding-bottom: 40px;
-        font-size: 0.9rem;
+        margin-top: 80px;
+        padding: 30px 20px;
+        font-size: 0.94rem;
         color: var(--subtext);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      footer a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
       }
 
       /* Responsive Logic */
@@ -201,8 +366,9 @@
         .bento-grid {
           grid-template-columns: repeat(2, 1fr);
         }
+
         .tall {
-          grid-row: span 1; /* Reset tall on tablets for better flow */
+          grid-row: span 1;
         }
       }
 
@@ -210,49 +376,76 @@
         .bento-grid {
           grid-template-columns: 1fr;
         }
+
         .wide,
         .tall {
           grid-column: span 1;
           grid-row: span 1;
         }
+
         .wrapper {
-          padding: 40px 20px;
+          padding: 42px 18px;
         }
+
         header {
-          margin-bottom: 40px;
+          margin-bottom: 38px;
         }
+
+        .coverage-note {
+          align-items: flex-start;
+          text-align: left;
+        }
+
         .item {
-          padding: 30px;
+          padding: 28px;
+          border-radius: 26px;
         }
       }
     </style>
   </head>
   <body>
     <div class="blob"></div>
+    <div class="blob-secondary"></div>
 
     <div class="wrapper">
       <header>
         <div class="badge">
-          <i data-lucide="refresh-cw" size="12" style="margin-right: 6px"></i>
+          <i data-lucide="refresh-cw" size="12"></i>
           Updated March 2026
         </div>
         <h1>Privacy Hub</h1>
-        <p>Your data belongs to you. We’re just the guardians of it.</p>
+        <p>
+          Your data belongs to you. We use it only to run AnganStay, improve
+          rental discovery, and protect our community.
+        </p>
+        <div class="coverage-note">
+          <i data-lucide="map-pinned" size="20"></i>
+          <span>
+            AnganStay is currently focused on Islamabad and Rawalpindi. More
+            cities are coming soon.
+          </span>
+        </div>
       </header>
 
       <div class="bento-grid">
-        <div class="item wide">
+        <div class="item wide accent-card">
           <div class="icon-wrap"><i data-lucide="shield-check"></i></div>
           <h2>Our Privacy Promise</h2>
           <p>
             We collect only essential data for your account and property
-            listings. All passwords are fully encrypted, and property
-            information is used solely for rental purposes. Sensitive
-            information is protected with enterprise-grade encryption.
+            listings.
+            <strong>Passwords are stored using secure hashing.</strong>
+            Sensitive data is protected using appropriate technical and
+            organizational safeguards. Property information is used solely for
+            rental and listing-related purposes.
           </p>
+          <div class="policy-pill">
+            <i data-lucide="lock-keyhole" size="16"></i>
+            Secure-by-design privacy wording
+          </div>
         </div>
 
-        <div class="item">
+        <div class="item tall">
           <div class="icon-wrap"><i data-lucide="database"></i></div>
           <h2>What We Collect</h2>
           <div class="list-container">
@@ -266,24 +459,18 @@
               <i data-lucide="check" size="18"></i> Phone Number
             </div>
             <div class="list-item">
-              <i data-lucide="check" size="18"></i> Password (Encrypted)
+              <i data-lucide="check" size="18"></i> Password stored using secure
+              hashing
             </div>
             <div class="list-item">
-              <i data-lucide="check" size="18"></i> Property Details (Address,
-              Images, Location)
+              <i data-lucide="check" size="18"></i> Property Details including
+              address, images, and location
             </div>
           </div>
-          <p
-            style="
-              margin-top: auto;
-              padding-top: 30px;
-              font-size: 0.85rem;
-              opacity: 0.8;
-            "
-          >
-            Data is stored until you delete it or an admin removes it. Location
-            and property info is only used for displaying properties to other
-            users.
+          <p class="small-note">
+            We retain account and listing data while your account is active.
+            Deleted listings may be retained temporarily for security, fraud
+            prevention, dispute handling, or legal compliance.
           </p>
         </div>
 
@@ -292,8 +479,8 @@
           <h2>Use of Maps</h2>
           <p>
             We use Mapbox and Google Maps to display property locations to other
-            users. No personal data beyond the property address is shared with
-            these services.
+            users. No personal data beyond the property address and listing
+            location is shared with these services for map display.
           </p>
         </div>
 
@@ -301,20 +488,28 @@
           <div class="icon-wrap"><i data-lucide="user-minus"></i></div>
           <h2>User Rights</h2>
           <p>
-            You can delete or modify your data at any time. Currently, data
-            export is not supported. Location permission is required for
-            property display. Push notifications may be added in future updates.
-            Functional cookies are used to maintain login sessions.
+            You can request to delete or modify your data at any time.
+            Currently, data export is not supported. Location permission may be
+            required for property display. Push notifications may be added in
+            future updates. Functional cookies are used to maintain login
+            sessions.
           </p>
+          <div class="contact-box">
+            <p>
+              To request account or data deletion, contact us at
+              <a href="mailto:contact@anganstay.com">contact@anganstay.com</a>
+              from your registered email.
+            </p>
+          </div>
         </div>
 
         <div class="item">
           <div class="icon-wrap"><i data-lucide="cookie"></i></div>
           <h2>Cookies</h2>
           <p>
-            We use functional cookies to ensure a smooth user experience. No
-            third-party tracking cookies are used. Cookies help maintain session
-            and user preferences.
+            We use functional cookies to maintain login sessions and user
+            preferences. We currently do not use third-party tracking cookies.
+            If this changes, we will update this policy.
           </p>
         </div>
 
@@ -322,45 +517,41 @@
           <div class="icon-wrap"><i data-lucide="shield-off"></i></div>
           <h2>Third-Party Integrations</h2>
           <p>
-            We do not currently process payments. Ads may be displayed on the
-            front page. Maps use Mapbox and Google Maps for property display
-            only. No other third-party services access personal data.
+            We do not currently process payments. Maps use Mapbox and Google
+            Maps for property display only. We may display promoted listings or
+            advertising in the future. If we do, we will update this policy and
+            explain what data is used.
           </p>
         </div>
 
         <div class="item">
+          <div class="icon-wrap"><i data-lucide="clock"></i></div>
+          <h2>Data Retention</h2>
+          <p>
+            We retain account and listing data while your account is active.
+            Deleted listings may be retained temporarily for security, fraud
+            prevention, dispute handling, or legal compliance.
+          </p>
+        </div>
+
+        <div class="item wide accent-card">
           <div class="icon-wrap"><i data-lucide="info"></i></div>
           <h2>Legal & Contact Info</h2>
           <p>
             We follow applicable laws to protect your data. For privacy
-            questions or deletion requests, contact us at
-            <a href="mailto:contact@Anganstay.com">contact@Anganstay.com</a>.
+            questions, account deletion, or data deletion requests, contact us
+            from your registered email at
+            <a href="mailto:contact@anganstay.com">contact@anganstay.com</a>.
           </p>
         </div>
       </div>
 
       <footer>
         <p>
-          &copy; 2026 Anganstay •
-          <a
-            href="#"
-            style="
-              color: var(--accent);
-              text-decoration: none;
-              font-weight: 600;
-            "
-            >Terms</a
-          >
+          &copy; 2026 AnganStay •
+          <a href="/terms">Terms</a>
           •
-          <a
-            href="#"
-            style="
-              color: var(--accent);
-              text-decoration: none;
-              font-weight: 600;
-            "
-            >Contact</a
-          >
+          <a href="mailto:contact@anganstay.com">Contact</a>
         </p>
       </footer>
     </div>

@@ -18,24 +18,24 @@ const CATEGORY_SECTIONS: PropertyCategory[] = [
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: `Popular Rental Locations in Pakistan | ${BRAND_NAME}`,
+  title: `Popular Rental Locations in Islamabad and Rawalpindi | ${BRAND_NAME}`,
   description:
-    "Explore popular rental areas across Pakistan for apartments, houses, hostels, shops, and offices. Browse live location pages by city, area, and property type.",
+    "Explore popular rental areas in Islamabad and Rawalpindi for apartments, houses, hostels, shops, and offices. More cities are coming soon.",
   alternates: {
     canonical: toAbsoluteUrl("/popular-locations"),
   },
   openGraph: {
-    title: `Popular Rental Locations in Pakistan | ${BRAND_NAME}`,
+    title: `Popular Rental Locations in Islamabad and Rawalpindi | ${BRAND_NAME}`,
     description:
-      "Explore popular rental areas across Pakistan for apartments, houses, hostels, shops, and offices. Browse live location pages by city, area, and property type.",
+      "Explore popular rental areas in Islamabad and Rawalpindi for apartments, houses, hostels, shops, and offices. More cities are coming soon.",
     type: "website",
     url: toAbsoluteUrl("/popular-locations"),
   },
   twitter: {
     card: "summary_large_image",
-    title: `Popular Rental Locations in Pakistan | ${BRAND_NAME}`,
+    title: `Popular Rental Locations in Islamabad and Rawalpindi | ${BRAND_NAME}`,
     description:
-      "Explore popular rental areas across Pakistan for apartments, houses, hostels, shops, and offices. Browse live location pages by city, area, and property type.",
+      "Explore popular rental areas in Islamabad and Rawalpindi for apartments, houses, hostels, shops, and offices. More cities are coming soon.",
   },
 };
 
@@ -96,12 +96,13 @@ export default async function PopularLocationsPage() {
                 </span>
 
                 <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-[var(--admin-text)] sm:text-5xl">
-                  Find where people are renting across Pakistan
+                  Find where people are renting in Islamabad and Rawalpindi
                 </h1>
 
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--admin-muted)] sm:text-lg">
-                  Explore popular areas by property type and city. Each link
-                  takes you directly to live rental listings for that location.
+                  AnganStay is currently focused on Islamabad and Rawalpindi,
+                  with more cities coming soon. Each link takes you directly to
+                  live rental listings for that location.
                 </p>
               </div>
 

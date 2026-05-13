@@ -24,11 +24,15 @@ export default function ReportModal({
   isReporting,
 }: any) {
   const reasons = [
-    "SCAM",
-    "RENTED",
-    "INCORRECT_DATA",
-    "MISLEADING_PHOTOS",
-    "OTHER",
+    "Fake property",
+    "Wrong price",
+    "Wrong location",
+    "Already rented / unavailable",
+    "Duplicate listing",
+    "Misleading photos",
+    "Suspicious owner/agent",
+    "Offensive or illegal content",
+    "Other",
   ];
 
   return (
@@ -54,14 +58,14 @@ export default function ReportModal({
           >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>
-                Report Property
+                Report this listing
               </Text>
               <TouchableOpacity onPress={() => setVisible(false)}>
                 <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.modalLabel, { color: theme.muted }]}>
-              Select a Reason
+              Help us keep AnganStay safe and reliable. Tell us what looks wrong with this listing.
             </Text>
             <View style={styles.reasonContainer}>
               {reasons.map((reason) => (
@@ -104,7 +108,7 @@ export default function ReportModal({
                 },
               ]}
               multiline
-              placeholder="Additional details..."
+              placeholder="Tell us what looks wrong."
               placeholderTextColor={theme.muted}
               value={reportDescription}
               onChangeText={setReportDescription}
@@ -117,7 +121,7 @@ export default function ReportModal({
               {isReporting ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text style={styles.submitButtonText}>Submit Report</Text>
+                <Text style={styles.submitButtonText}>Submit report</Text>
               )}
             </TouchableOpacity>
           </View>
