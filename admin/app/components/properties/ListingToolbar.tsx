@@ -27,8 +27,7 @@ export default function ListingToolbar({
 }: ListingToolbarProps) {
   const { filters, updateFilters } = useProperties(category);
   const locationLabel =
-    [filters.location, filters.city].filter(Boolean).join(", ") ||
-    "Islamabad and Rawalpindi";
+    [filters.location, filters.city].filter(Boolean).join(", ") || "Islamabad ";
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -63,25 +62,6 @@ export default function ListingToolbar({
             size={16}
             className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[var(--admin-muted)]"
           />
-        </div>
-
-        <div className="inline-flex rounded-2xl border border-[var(--admin-border)] bg-white p-1 shadow-sm">
-          <button
-            type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--admin-primary)] px-3 text-xs font-black text-white"
-            aria-pressed="true"
-          >
-            <Grid2X2 className="h-4 w-4" />
-            Grid
-          </button>
-          <button
-            type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-xl px-3 text-xs font-black text-[var(--admin-muted)]"
-            aria-pressed="false"
-          >
-            <Map className="h-4 w-4" />
-            Map
-          </button>
         </div>
       </div>
     </div>

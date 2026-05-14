@@ -65,6 +65,9 @@ export class PropertyReport extends Document {
 
   @Prop({ type: String, trim: true, maxlength: 2000 })
   description?: string;
+
+  @Prop({ type: Date, index: true })
+  undoExpiresAt?: Date;
 }
 
 export const ReportSchema = SchemaFactory.createForClass(PropertyReport);

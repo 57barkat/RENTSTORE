@@ -32,7 +32,7 @@ const TermsModal: React.FC<TermsModalProps> = ({
     {
       id: 1,
       title: "Platform Purpose",
-      body: "AnganStay is a property listing and discovery platform currently focused on Islamabad and Rawalpindi. We facilitate listings and inquiries but do not act as a party in rental agreements.",
+      body: "AnganStay is a property listing and discovery platform currently focused on Islamabad. We facilitate listings and inquiries but do not act as a party in rental agreements.",
     },
     {
       id: 2,

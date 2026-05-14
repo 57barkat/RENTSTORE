@@ -199,11 +199,7 @@ export const parsePropertySearchParams = (
       ? (furnishingValue as PropertySearchFilters["furnishing"])
       : "",
     parking:
-      parkingValue === "true"
-        ? true
-        : parkingValue === "false"
-          ? false
-          : "",
+      parkingValue === "true" ? true : parkingValue === "false" ? false : "",
     familyFriendly: familyFriendlyValue === "true" ? true : "",
     sortBy: SORT_VALUES.includes(sortValue as PropertySort)
       ? (sortValue as PropertySort)
@@ -511,8 +507,7 @@ export const getPropertyDescriptionText = (
         getPropertyHighlights(property).join(" ");
 
   const normalized = (
-    raw ||
-    "Explore verified rental listings with pricing and amenity details."
+    raw || "Explore verified rental listings with pricing and amenity details."
   )
     .replace(/\s+/g, " ")
     .trim();
@@ -710,9 +705,7 @@ export const buildPropertyHref = (property: PublicProperty): string => {
 
   return `/${getCanonicalCategorySegment(normalizedCategory)}/${slugify(
     fallbackCity,
-  )}/${slugify(fallbackLocation)}/${buildPropertyIdSegment(
-    property._id,
-  )}`;
+  )}/${slugify(fallbackLocation)}/${buildPropertyIdSegment(property._id)}`;
 };
 
 export const buildListingTitle = (filters: PropertySearchFilters): string => {
@@ -732,7 +725,7 @@ export const buildListingTitle = (filters: PropertySearchFilters): string => {
       return `Properties for ${purposeLabel} in ${filters.city}`;
     }
 
-    return `Properties for ${purposeLabel} in Islamabad and Rawalpindi`;
+    return `Properties for ${purposeLabel} in Islamabad `;
   }
 
   const city = filters.city;
@@ -760,7 +753,7 @@ export const buildListingDescription = (
 ): string => {
   if (filters.category === "property") {
     if (!filters.city && !filters.location) {
-      return "Find verified rentals in Islamabad and Rawalpindi. AnganStay is currently focused on these cities, with more cities coming soon.";
+      return "Find verified rentals in Islamabad. AnganStay is currently focused on these cities, with more cities coming soon.";
     }
 
     const resultPrefix =
@@ -809,7 +802,8 @@ export const buildPropertyMetadataTitle = (
   property: PublicProperty,
 ): string => {
   const title = getPropertyTitle(property);
-  const purposeLabel = getPropertyPurpose(property) === "sale" ? "Sale" : "Rent";
+  const purposeLabel =
+    getPropertyPurpose(property) === "sale" ? "Sale" : "Rent";
   const locationLabel = getPropertyLocationLabel(property);
 
   if (locationLabel) {
@@ -829,7 +823,8 @@ export const buildPropertyMetadataDescription = (
 ): string => {
   const priceDisplay = getPropertyPriceDisplay(property);
   const title = getPropertyTitle(property);
-  const purposeLabel = getPropertyPurpose(property) === "sale" ? "sale" : "rent";
+  const purposeLabel =
+    getPropertyPurpose(property) === "sale" ? "sale" : "rent";
   const locationLabel = getPropertyLocationLabel(property);
   const lead = locationLabel
     ? `Find ${title.toLowerCase()} for ${purposeLabel} in ${locationLabel}.`

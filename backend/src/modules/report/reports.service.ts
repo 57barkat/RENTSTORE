@@ -62,6 +62,7 @@ type LeanReport = {
 };
 
 const DUPLICATE_REPORT_WINDOW_MS = 15 * 60 * 1000;
+const REPORT_UNDO_WINDOW_MS = 30 * 1000;
 
 const LEGACY_REASON_MAP: Record<string, ReportReason> = {
   SCAM: ReportReason.SUSPICIOUS_OWNER_AGENT,
@@ -243,6 +244,7 @@ export class ReportsService {
     const reporterUserId = this.toObjectId(userId, "user id");
     const propertyId = this.resolvePropertyId(dto);
     const reportReason = this.normalizeReason(dto.reportReason || dto.reason);
+    const undoExpiresAt = new Date(Date.now() + REPORT_UNDO_WINDOW_MS);
 
     if (!reportReason) {
       throw new BadRequestException("Report reason is required");
@@ -288,6 +290,7 @@ export class ReportsService {
       details,
       description: details,
       status: ReportStatus.PENDING,
+      undoExpiresAt,
     });
 
     await newReport.save();
@@ -301,38 +304,73 @@ export class ReportsService {
       reportCount,
     });
 
-    if (reportCount >= 3) {
-      await this.propertyModel.findByIdAndUpdate(propertyId, {
-        moderationStatus: PropertyModerationStatus.UNDER_REVIEW,
-        isVisible: false,
-      });
-    }
-
-    if (reportCount >= 5) {
-      await this.propertyModel.findByIdAndUpdate(propertyId, {
-        moderationStatus: PropertyModerationStatus.SUSPENDED,
-        suspendedAt: new Date(),
-        $inc: { strikeCount: 1 },
-      });
-
-      const suspendedPropertiesCount = await this.propertyModel.countDocuments({
-        ownerId: listingOwnerId,
-        moderationStatus: PropertyModerationStatus.SUSPENDED,
-      });
-
-      if (suspendedPropertiesCount >= 3) {
-        await this.userModel.findByIdAndUpdate(listingOwnerId, {
-          accountStatus: UserAccountStatus.SUSPENDED,
-          suspendedAt: new Date(),
-          $inc: { strikeCount: 1 },
-        });
-      }
-    }
-
     return {
       message:
         "Thanks. Our team will review this listing. If it violates AnganStay rules, we may remove it or contact the owner.",
       reportId: newReport._id,
+      propertyId,
+      undoExpiresAt,
+      undoWindowSeconds: Math.round(REPORT_UNDO_WINDOW_MS / 1000),
+    };
+  }
+
+  async getHiddenPropertyIdsForUser(userId: string) {
+    const reporterUserId = this.toObjectId(userId, "user id");
+    const reports = await this.reportModel
+      .find({
+        $or: [{ reporterUserId }, { reporterId: reporterUserId }],
+      })
+      .select("propertyId")
+      .lean()
+      .exec();
+
+    return {
+      propertyIds: Array.from(
+        new Set(
+          reports
+            .map((report) => this.getIdString(report.propertyId))
+            .filter(Boolean),
+        ),
+      ),
+    };
+  }
+
+  async undoReport(userId: string, reportId: string) {
+    const reporterUserId = this.toObjectId(userId, "user id");
+    const reportObjectId = this.toObjectId(reportId, "report id");
+    const report = await this.reportModel
+      .findOne({
+        _id: reportObjectId,
+        $or: [{ reporterUserId }, { reporterId: reporterUserId }],
+      })
+      .lean()
+      .exec();
+
+    if (!report) {
+      throw new NotFoundException("Report not found");
+    }
+
+    if (
+      report.undoExpiresAt &&
+      new Date(report.undoExpiresAt).getTime() < Date.now()
+    ) {
+      throw new BadRequestException("The undo window for this report has expired");
+    }
+
+    await this.reportModel.deleteOne({ _id: reportObjectId });
+
+    const propertyId = report.propertyId as Types.ObjectId;
+    const reportCount = await this.reportModel.countDocuments({
+      propertyId,
+      status: { $in: [ReportStatus.PENDING, "PENDING"] },
+    });
+
+    await this.propertyModel.findByIdAndUpdate(propertyId, { reportCount });
+
+    return {
+      message: "Report undone",
+      propertyId,
+      reportId,
     };
   }
 

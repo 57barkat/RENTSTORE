@@ -199,7 +199,7 @@ export default async function PublicListingPage({
 
   const popularLocationsTitle =
     category === "property"
-      ? "Most Popular Locations in Islamabad and Rawalpindi"
+      ? "Most Popular Locations in Islamabad "
       : `Most Popular Locations for ${getCategoryLabel(category, true)}`;
 
   const popularLocationsPrefix =
@@ -323,7 +323,7 @@ export default async function PublicListingPage({
                 <p className="mx-auto mt-3 max-w-xl text-[var(--admin-muted)]">
                   {fetchError
                     ? `We couldn't reach the property service. Please try again in a moment for ${
-                        filters.city || "Islamabad and Rawalpindi"
+                        filters.city || "Islamabad "
                       } listings.`
                     : `Try widening the price range or changing the locality filter to surface more results in ${
                         filters.city || filters.location || "the selected area"

@@ -86,8 +86,11 @@ const formatBudgetLabel = (minRent?: number | "", maxRent?: number | "") => {
     notation: "compact",
   });
 
-  if (min && max) return `Rs. ${formatter.format(min)} - ${formatter.format(max)}`;
-  return min ? `From Rs. ${formatter.format(min)}` : `Up to Rs. ${formatter.format(max!)}`;
+  if (min && max)
+    return `Rs. ${formatter.format(min)} - ${formatter.format(max)}`;
+  return min
+    ? `From Rs. ${formatter.format(min)}`
+    : `Up to Rs. ${formatter.format(max!)}`;
 };
 
 const getActiveFilterCount = (filters: PropertySearchFilters) =>
@@ -133,14 +136,15 @@ export default function PublicSearchHero({
   const activeFilterCount = getActiveFilterCount(filters);
 
   const heroLocation = useMemo(() => {
-    if (filters.location && filters.city) return `${filters.location}, ${filters.city}`;
+    if (filters.location && filters.city)
+      return `${filters.location}, ${filters.city}`;
     if (filters.location) return filters.location;
     if (filters.city) {
       return filters.city.toLowerCase() === "islamabad"
-        ? "Islamabad sectors"
+        ? "Islamabad"
         : filters.city;
     }
-    return "Islamabad and Rawalpindi";
+    return "Islamabad";
   }, [filters.city, filters.location]);
 
   const selectedAmenities = filters.amenities || [];
@@ -320,7 +324,10 @@ export default function PublicSearchHero({
             options={[1, 2, 3, 4].map((value) => ({
               label: `${value}`,
               active: filters.bedrooms === value,
-              onClick: () => updateFilters({ bedrooms: filters.bedrooms === value ? "" : value }),
+              onClick: () =>
+                updateFilters({
+                  bedrooms: filters.bedrooms === value ? "" : value,
+                }),
             }))}
           />
         </FilterGroup>
@@ -330,7 +337,10 @@ export default function PublicSearchHero({
             options={[1, 2, 3].map((value) => ({
               label: `${value}`,
               active: filters.bathrooms === value,
-              onClick: () => updateFilters({ bathrooms: filters.bathrooms === value ? "" : value }),
+              onClick: () =>
+                updateFilters({
+                  bathrooms: filters.bathrooms === value ? "" : value,
+                }),
             }))}
           />
         </FilterGroup>
@@ -518,8 +528,8 @@ export default function PublicSearchHero({
             Browse {total.toLocaleString("en-PK")} verified listings with live
             pricing, photos, and location-aware filters.
             <span className="mt-2 block text-sm text-white/85">
-              AnganStay is currently focused on Islamabad and Rawalpindi. More
-              cities are coming soon.
+              AnganStay is currently focused on Islamabad. More cities are
+              coming soon.
             </span>
           </p>
         </div>
@@ -700,7 +710,9 @@ export default function PublicSearchHero({
           <div className="relative max-h-[88vh] w-full overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.7)] transition sm:max-w-3xl sm:rounded-[1.75rem]">
             <div className="flex items-center justify-between gap-4 border-b border-[var(--admin-border)] px-5 py-4">
               <div>
-                <h2 className="text-lg text-[var(--admin-text)]">More filters</h2>
+                <h2 className="text-lg text-[var(--admin-text)]">
+                  More filters
+                </h2>
                 <p className="mt-1 text-sm text-[var(--admin-muted)]">
                   Refine listings without leaving the search page.
                 </p>

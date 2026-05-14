@@ -24,7 +24,7 @@ const values = [
   },
   {
     title: "Local focus",
-    body: "AnganStay is currently focused on Islamabad and Rawalpindi so the search experience, locations, and rental categories can stay practical and relevant.",
+    body: "AnganStay is currently focused on Islamabad  so the search experience, locations, and rental categories can stay practical and relevant.",
   },
 ] as const;
 
@@ -64,8 +64,8 @@ export default function AboutPage() {
 
         <div className="mt-6 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-7 text-amber-800 sm:p-6">
           AnganStay is a listing platform only. Users should independently
-          verify ownership, documents, rent, availability, condition, and payment
-          terms before making any rental decision.
+          verify ownership, documents, rent, availability, condition, and
+          payment terms before making any rental decision.
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">

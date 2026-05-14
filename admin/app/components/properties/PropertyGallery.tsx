@@ -9,9 +9,6 @@ import {
   ZoomIn,
   CheckCircle2,
   Images,
-  Share2,
-  Heart,
-  BadgeCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -63,7 +60,7 @@ export default function PropertyGallery({
 
   const renderBadges = () => (
     <div className="absolute left-5 top-5 z-30 flex flex-col items-start gap-2">
-      {isFeatured && (
+      {/* {isFeatured && (
         <span className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
           Featured
         </span>
@@ -80,33 +77,13 @@ export default function PropertyGallery({
           <CheckCircle2 size={14} />
           Verified
         </span>
-      )}
+      )} */}
 
       {categoryLabel && (
         <span className="rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-bold text-white shadow-lg">
           {categoryLabel}
         </span>
       )}
-    </div>
-  );
-
-  const renderActionButtons = () => (
-    <div className="absolute right-5 top-5 z-30 flex items-center gap-3">
-      <button
-        type="button"
-        aria-label="Save property"
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-lg transition hover:scale-105 hover:text-red-500"
-      >
-        <Heart size={20} />
-      </button>
-
-      <button
-        type="button"
-        aria-label="Share property"
-        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-lg transition hover:scale-105 hover:text-[var(--admin-primary)]"
-      >
-        <Share2 size={20} />
-      </button>
     </div>
   );
 
@@ -155,7 +132,6 @@ export default function PropertyGallery({
             />
 
             {renderBadges()}
-            {renderActionButtons()}
             {renderHoverOverlay()}
 
             <button
@@ -308,8 +284,6 @@ export default function PropertyGallery({
                 </div>
               ))}
           </div>
-
-          {renderActionButtons()}
         </div>
       </section>
 

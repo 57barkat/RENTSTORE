@@ -10,6 +10,7 @@ import {
   Param,
   SetMetadata,
   Query,
+  Delete,
 } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { CreateReportDto } from "./dto/create-report.dto";
@@ -32,6 +33,30 @@ export class ReportsController {
     }
 
     return this.reportsService.create(userId, dto);
+  }
+
+  @UseGuards(AuthGuard("jwt"))
+  @Get("my-hidden-properties")
+  async getMyHiddenProperties(@Req() req) {
+    const userId = req.user.userId;
+
+    if (!userId) {
+      throw new UnauthorizedException("User ID not found in token");
+    }
+
+    return this.reportsService.getHiddenPropertyIdsForUser(userId);
+  }
+
+  @UseGuards(AuthGuard("jwt"))
+  @Delete(":id")
+  async undoReport(@Req() req, @Param("id") reportId: string) {
+    const userId = req.user.userId;
+
+    if (!userId) {
+      throw new UnauthorizedException("User ID not found in token");
+    }
+
+    return this.reportsService.undoReport(userId, reportId);
   }
 
   @Get()

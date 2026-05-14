@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Suspense } from "react";
 import {
@@ -12,6 +14,7 @@ import {
 } from "lucide-react";
 
 import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
+import { useReportedProperties } from "@/app/components/public/ReportedPropertiesProvider";
 import PropertyCardGalleryTrigger from "@/app/components/properties/PropertyCardGalleryTrigger";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
@@ -76,6 +79,7 @@ const buildStatItems = (property: PublicProperty) => {
 };
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
+  const { isPropertyHidden } = useReportedProperties();
   const detailHref = buildPropertyHref(property);
   const galleryImages =
     property.photos && property.photos.length > 0
@@ -90,6 +94,10 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const locationLabel = getPropertyLocationLabel(property);
   const imageAlt = buildPropertyImageAlt(property);
   const statItems = buildStatItems(property);
+
+  if (isPropertyHidden(property._id)) {
+    return null;
+  }
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[var(--admin-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_36%,var(--admin-border))] hover:shadow-[0_22px_55px_-34px_rgba(0,31,143,0.42)]">

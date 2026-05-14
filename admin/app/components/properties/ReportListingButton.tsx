@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
+import { useReportedProperties } from "@/app/components/public/ReportedPropertiesProvider";
 import publicApiClient from "@/app/lib/public-api-client";
 
 type ReportReasonValue =
@@ -33,6 +34,13 @@ interface ReportListingButtonProps {
 
 type ErrorPayload = {
   message?: string | string[];
+};
+
+type ReportResponse = {
+  reportId?: string;
+  propertyId?: string;
+  undoExpiresAt?: string;
+  undoWindowSeconds?: number;
 };
 
 const REPORT_REASONS: ReportReasonOption[] = [
@@ -80,6 +88,7 @@ export default function ReportListingButton({
 }: ReportListingButtonProps) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = usePublicAuth();
+  const { hideProperty, unhideProperty } = useReportedProperties();
   const [open, setOpen] = useState(false);
   const [selectedReason, setSelectedReason] = useState<ReportReasonValue | "">(
     "",
@@ -88,6 +97,61 @@ export default function ReportListingButton({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  const undoReport = async (reportId: string, toastId: string) => {
+    try {
+      await publicApiClient.delete(`/reports/${reportId}`);
+      unhideProperty(propertyId);
+      toast.dismiss(toastId);
+      toast.success("Report undone. The listing is visible again.");
+    } catch (undoError) {
+      toast.error(getErrorMessage(undoError));
+    }
+  };
+
+  const showUndoToast = (report: ReportResponse) => {
+    const reportId = report.reportId ? String(report.reportId) : "";
+    const undoWindowMs = Math.max(
+      10_000,
+      (report.undoWindowSeconds || 30) * 1000,
+    );
+
+    if (!reportId) {
+      toast.success("Report submitted. This listing is hidden for you.");
+      return;
+    }
+
+    toast.custom(
+      (toastInstance) => (
+        <div className="w-[min(92vw,420px)] rounded-2xl border border-[var(--admin-border)] bg-white p-4 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.55)]">
+          <p className="text-sm font-black text-[var(--admin-text)]">
+            Report submitted
+          </p>
+          <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
+            This listing is now hidden for you. You can undo this report for a
+            short time.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void undoReport(reportId, toastInstance.id)}
+              className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl bg-[var(--admin-primary)] px-4 text-sm font-black text-white transition hover:opacity-95"
+            >
+              Undo Report
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(toastInstance.id)}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-[var(--admin-border)] bg-white px-4 text-sm font-black text-[var(--admin-muted)] transition hover:text-[var(--admin-text)]"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: undoWindowMs },
+    );
+  };
 
   const openReportFlow = () => {
     if (isLoading) {
@@ -132,13 +196,17 @@ export default function ReportListingButton({
     setError("");
 
     try {
-      await publicApiClient.post("/reports", {
+      const response = await publicApiClient.post<ReportResponse>("/reports", {
         propertyId,
         reportReason: selectedReason,
         details: details.trim() || undefined,
       });
+      hideProperty(propertyId);
+      setOpen(false);
+      setSelectedReason("");
+      setDetails("");
       setSuccessMessage(SUCCESS_MESSAGE);
-      toast.success("Report submitted");
+      showUndoToast(response.data);
     } catch (submitError) {
       setError(getErrorMessage(submitError));
     } finally {

@@ -8,29 +8,30 @@ import PublicAuthProvider from "@/app/components/public/PublicAuthProvider";
 import PublicFavoritesProvider from "@/app/components/public/PublicFavoritesProvider";
 import PublicFooter from "@/app/components/public/PublicFooter";
 import PublicHeader from "@/app/components/public/PublicHeader";
+import ReportedPropertiesProvider from "@/app/components/public/ReportedPropertiesProvider";
 import { getPublicStructuredData, serializeJsonLd } from "@/app/lib/seo";
 
 export const metadata: Metadata = {
   title: {
-    default: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
+    default: "Find verified rentals in Islamabad  | AnganStay",
     template: "%s",
   },
 
   description:
-    "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
+    "Browse verified houses, apartments, hostels, shops, and offices in Islamabad  with location details and pricing on AnganStay.",
 
   openGraph: {
-    title: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
+    title: "Find verified rentals in Islamabad  | AnganStay",
     description:
-      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
+      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad  with location details and pricing on AnganStay.",
     type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Find verified rentals in Islamabad and Rawalpindi | AnganStay",
+    title: "Find verified rentals in Islamabad  | AnganStay",
     description:
-      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad and Rawalpindi with location details and pricing on AnganStay.",
+      "Browse verified houses, apartments, hostels, shops, and offices in Islamabad  with location details and pricing on AnganStay.",
   },
 
   robots: {
@@ -67,23 +68,25 @@ export default function PublicLayout({
       </Script>
 
       <PublicAuthProvider>
-        <PublicFavoritesProvider>
-          {/* Toast Notifications */}
-          <Toaster position="top-right" />
+        <ReportedPropertiesProvider>
+          <PublicFavoritesProvider>
+            {/* Toast Notifications */}
+            <Toaster position="top-right" />
 
-          {/* Header */}
-          <PublicHeader />
+            {/* Header */}
+            <PublicHeader />
 
-          {/* Main Content */}
-          <main className="flex flex-1 flex-col">
-            <div className="flex min-h-[calc(100vh-180px)] flex-1 flex-col">
-              {children}
-            </div>
-          </main>
+            {/* Main Content */}
+            <main className="flex flex-1 flex-col">
+              <div className="flex min-h-[calc(100vh-180px)] flex-1 flex-col">
+                {children}
+              </div>
+            </main>
 
-          {/* Footer */}
-          <PublicFooter />
-        </PublicFavoritesProvider>
+            {/* Footer */}
+            <PublicFooter />
+          </PublicFavoritesProvider>
+        </ReportedPropertiesProvider>
       </PublicAuthProvider>
     </div>
   );

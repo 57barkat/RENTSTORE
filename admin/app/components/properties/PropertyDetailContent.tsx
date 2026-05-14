@@ -11,11 +11,9 @@ import {
   CheckCircle2,
   CircleDot,
   Flag,
-  Heart,
   Home,
   MapPin,
   Phone,
-  Share2,
   ShieldCheck,
   Sparkles,
   SquareDashedBottom,
@@ -25,7 +23,9 @@ import {
 import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyGallery from "@/app/components/properties/PropertyGallery";
+import ReportedPropertyGate from "@/app/components/properties/ReportedPropertyGate";
 import ReportListingButton from "@/app/components/properties/ReportListingButton";
+import PropertyShareButton from "@/app/components/properties/PropertyShareButton";
 import {
   formatPromotionDate,
   isActiveBoostedPromotion,
@@ -374,7 +374,8 @@ export default async function PropertyDetailContent({
   );
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#F8FAFC_0%,#FFFFFF_42%,#F8FAFC_100%)]">
+    <ReportedPropertyGate propertyId={property._id}>
+      <main className="min-h-screen bg-[linear-gradient(180deg,#F8FAFC_0%,#FFFFFF_42%,#F8FAFC_100%)]">
       <Script
         id={`property-jsonld-${property._id}`}
         type="application/ld+json"
@@ -498,21 +499,11 @@ export default async function PropertyDetailContent({
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 text-sm font-bold text-[var(--admin-text)] shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-            >
-              <Share2 size={16} />
-              Share
-            </button>
+            <PropertyShareButton title={title} url={canonicalHref} />
 
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3 text-sm font-bold text-[var(--admin-text)] shadow-sm transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-            >
-              <Heart size={16} />
-              Save
-            </button>
+            <Suspense fallback={null}>
+              <PublicFavoriteButton property={property} variant="inline" />
+            </Suspense>
           </div>
         </div>
 
@@ -733,10 +724,6 @@ export default async function PropertyDetailContent({
               </div>
 
               <div className="space-y-3 p-5">
-                <Suspense fallback={null}>
-                  <PublicFavoriteButton property={property} variant="inline" />
-                </Suspense>
-
                 {contactPhone ? (
                   <a
                     href={`tel:${contactPhone}`}
@@ -949,6 +936,7 @@ export default async function PropertyDetailContent({
           </a>
         </div>
       )}
-    </main>
+      </main>
+    </ReportedPropertyGate>
   );
 }
