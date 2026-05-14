@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
+import { Suspense } from "react";
 import {
   ArrowUpRight,
   BadgeCheck,
@@ -732,7 +733,9 @@ export default async function PropertyDetailContent({
               </div>
 
               <div className="space-y-3 p-5">
-                <PublicFavoriteButton property={property} variant="inline" />
+                <Suspense fallback={null}>
+                  <PublicFavoriteButton property={property} variant="inline" />
+                </Suspense>
 
                 {contactPhone ? (
                   <a
