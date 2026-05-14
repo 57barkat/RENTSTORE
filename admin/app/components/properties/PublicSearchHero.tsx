@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ChevronDown,
+  Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -32,6 +33,8 @@ interface PublicSearchHeroProps {
   backgroundImage?: string;
 }
 
+type NumericFilterValue = number | "";
+
 const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
   { label: "All", value: "property" },
   { label: "Hostels", value: "hostel" },
@@ -42,9 +45,9 @@ const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
 ];
 
 const CITY_OPTIONS = [
-  { label: "All cities", value: "" },
+  // { label: "All cities", value: "" },
   { label: "Islamabad", value: "Islamabad" },
-  { label: "Rawalpindi", value: "Rawalpindi" },
+  // { label: "Rawalpindi", value: "Rawalpindi" },
 ] as const;
 
 const AMENITY_FILTERS = [
@@ -61,19 +64,33 @@ const AMENITY_FILTERS = [
 const SIZE_UNITS: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
 
 const BUDGET_PRESETS = [
-  { label: "Under Rs. 25k", minRent: "", maxRent: 25000 },
+  { label: "Under Rs. 25k", minRent: "" as const, maxRent: 25000 },
   { label: "Rs. 25k - 50k", minRent: 25000, maxRent: 50000 },
   { label: "Rs. 50k - 100k", minRent: 50000, maxRent: 100000 },
-  { label: "Above Rs. 100k", minRent: 100000, maxRent: "" },
+  { label: "Above Rs. 100k", minRent: 100000, maxRent: "" as const },
 ] as const;
 
-const parseBudget = (value: string) => {
+const parseNumericFilter = (value: string): NumericFilterValue => {
   const trimmed = value.trim();
+
   if (!trimmed) return "";
 
   const parsed = Number(trimmed);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : "";
+
+  if (!Number.isFinite(parsed) || parsed < 0) return "";
+
+  return parsed;
 };
+
+const hasRangeError = (minValue: string, maxValue: string) => {
+  const min = parseNumericFilter(minValue);
+  const max = parseNumericFilter(maxValue);
+
+  return typeof min === "number" && typeof max === "number" && min > max;
+};
+
+const stringifyNumericFilter = (value: number | "" | undefined) =>
+  typeof value === "number" ? String(value) : "";
 
 const formatBudgetLabel = (minRent?: number | "", maxRent?: number | "") => {
   const min = typeof minRent === "number" && minRent > 0 ? minRent : null;
@@ -88,6 +105,7 @@ const formatBudgetLabel = (minRent?: number | "", maxRent?: number | "") => {
 
   if (min && max)
     return `Rs. ${formatter.format(min)} - ${formatter.format(max)}`;
+
   return min
     ? `From Rs. ${formatter.format(min)}`
     : `Up to Rs. ${formatter.format(max!)}`;
@@ -96,7 +114,7 @@ const formatBudgetLabel = (minRent?: number | "", maxRent?: number | "") => {
 const getActiveFilterCount = (filters: PropertySearchFilters) =>
   [
     filters.category !== "property",
-    filters.city,
+    // filters.city,
     filters.location,
     filters.minRent,
     filters.maxRent,
@@ -124,141 +142,283 @@ export default function PublicSearchHero({
   total,
   backgroundImage,
 }: PublicSearchHeroProps) {
-  const { updateFilters, resetFilters } = useProperties(category);
+  const { updateFilters } = useProperties(category);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const locationRef = useRef<HTMLInputElement>(null);
-  const minRentRef = useRef<HTMLInputElement>(null);
-  const maxRentRef = useRef<HTMLInputElement>(null);
-  const advancedMinRentRef = useRef<HTMLInputElement>(null);
-  const advancedMaxRentRef = useRef<HTMLInputElement>(null);
-  const minSizeRef = useRef<HTMLInputElement>(null);
-  const maxSizeRef = useRef<HTMLInputElement>(null);
-  const activeFilterCount = getActiveFilterCount(filters);
+  const [isResetting, setIsResetting] = useState(false);
+  const [optimisticFilters, setOptimisticFilters] =
+    useState<PropertySearchFilters>(filters);
+  const [locationInput, setLocationInput] = useState(filters.location || "");
+  const [minRentInput, setMinRentInput] = useState(
+    stringifyNumericFilter(filters.minRent),
+  );
+  const [maxRentInput, setMaxRentInput] = useState(
+    stringifyNumericFilter(filters.maxRent),
+  );
+  const [minSizeInput, setMinSizeInput] = useState(
+    stringifyNumericFilter(filters.minSize),
+  );
+  const [maxSizeInput, setMaxSizeInput] = useState(
+    stringifyNumericFilter(filters.maxSize),
+  );
+
+  const rentRangeHasError = hasRangeError(minRentInput, maxRentInput);
+  const sizeRangeHasError = hasRangeError(minSizeInput, maxSizeInput);
+
+  const displayFilters: PropertySearchFilters = {
+    ...optimisticFilters,
+    location: locationInput,
+    minRent: parseNumericFilter(minRentInput),
+    maxRent: parseNumericFilter(maxRentInput),
+    minSize: parseNumericFilter(minSizeInput),
+    maxSize: parseNumericFilter(maxSizeInput),
+  };
+
+  const activeFilterCount = getActiveFilterCount(displayFilters);
 
   const heroLocation = useMemo(() => {
-    if (filters.location && filters.city)
-      return `${filters.location}, ${filters.city}`;
-    if (filters.location) return filters.location;
-    if (filters.city) {
-      return filters.city.toLowerCase() === "islamabad"
-        ? "Islamabad"
-        : filters.city;
-    }
-    return "Islamabad";
-  }, [filters.city, filters.location]);
+    if (displayFilters.location && displayFilters.city)
+      return `${displayFilters.location}, ${displayFilters.city}`;
 
-  const selectedAmenities = filters.amenities || [];
+    if (displayFilters.location) return displayFilters.location;
+
+    if (displayFilters.city) return displayFilters.city;
+
+    return "Islamabad ";
+  }, [displayFilters.city, displayFilters.location]);
+
+  const selectedAmenities = displayFilters.amenities || [];
+
+  const commitFilters = (nextFilters: Partial<PropertySearchFilters>) => {
+    setOptimisticFilters((currentFilters) => ({
+      ...currentFilters,
+      ...nextFilters,
+    }));
+
+    updateFilters(nextFilters);
+  };
 
   const handleResetFilters = () => {
+    setIsResetting(true);
     setFiltersOpen(false);
-    resetFilters();
+
+    const clearedFilterPatch: Partial<PropertySearchFilters> = {
+      category: "property",
+      city: "",
+      location: "",
+      minRent: "",
+      maxRent: "",
+      bedrooms: "",
+      bathrooms: "",
+      minSize: "",
+      maxSize: "",
+      sizeUnit: "",
+      hostelType: "",
+      furnishing: "",
+      parking: "",
+      familyFriendly: "",
+      amenities: [],
+      sortBy: "newest",
+    };
+
+    setLocationInput("");
+    setMinRentInput("");
+    setMaxRentInput("");
+    setMinSizeInput("");
+    setMaxSizeInput("");
+
+    setOptimisticFilters((currentFilters) => ({
+      ...currentFilters,
+      ...clearedFilterPatch,
+    }));
+
+    updateFilters(clearedFilterPatch);
+
+    window.setTimeout(() => {
+      setIsResetting(false);
+    }, 450);
   };
 
   const applyPrimarySearch = () => {
-    const nextLocation = locationRef.current?.value.trim() || "";
+    if (rentRangeHasError) return;
 
-    updateFilters({
-      location: nextLocation,
-      city: filters.city,
-      minRent: parseBudget(minRentRef.current?.value || ""),
-      maxRent: parseBudget(maxRentRef.current?.value || ""),
-    });
+    const nextFilters: Partial<PropertySearchFilters> = {
+      location: locationInput.trim(),
+      city: displayFilters.city,
+      minRent: parseNumericFilter(minRentInput),
+      maxRent: parseNumericFilter(maxRentInput),
+    };
+
+    commitFilters(nextFilters);
   };
 
   const applyAdvancedFilters = () => {
-    updateFilters({
-      minRent: parseBudget(advancedMinRentRef.current?.value || ""),
-      maxRent: parseBudget(advancedMaxRentRef.current?.value || ""),
-      minSize: parseBudget(minSizeRef.current?.value || ""),
-      maxSize: parseBudget(maxSizeRef.current?.value || ""),
-    });
+    if (rentRangeHasError || sizeRangeHasError) return;
+
+    const nextFilters: Partial<PropertySearchFilters> = {
+      minRent: parseNumericFilter(minRentInput),
+      maxRent: parseNumericFilter(maxRentInput),
+      minSize: parseNumericFilter(minSizeInput),
+      maxSize: parseNumericFilter(maxSizeInput),
+    };
+
+    commitFilters(nextFilters);
     setFiltersOpen(false);
+  };
+
+  const handleCategoryChange = (nextCategory: PropertyCategory) => {
+    commitFilters({
+      category: nextCategory,
+      hostelType: nextCategory === "hostel" ? displayFilters.hostelType : "",
+    });
+  };
+
+  const handleCityChange = (nextCity: string) => {
+    setLocationInput("");
+    commitFilters({
+      city: nextCity,
+      location: "",
+    });
+  };
+
+  const applyBudgetPreset = (
+    minRent: NumericFilterValue,
+    maxRent: NumericFilterValue,
+  ) => {
+    setMinRentInput(stringifyNumericFilter(minRent));
+    setMaxRentInput(stringifyNumericFilter(maxRent));
+    commitFilters({ minRent, maxRent });
   };
 
   const toggleAmenity = (amenity: string) => {
     const selected = selectedAmenities.includes(amenity);
-    updateFilters({
-      amenities: selected
-        ? selectedAmenities.filter((item) => item !== amenity)
-        : [...selectedAmenities, amenity],
-    });
+    const nextAmenities = selected
+      ? selectedAmenities.filter((item) => item !== amenity)
+      : [...selectedAmenities, amenity];
+
+    commitFilters({ amenities: nextAmenities });
   };
 
   const removeAmenity = (amenity: string) => {
-    updateFilters({
+    commitFilters({
       amenities: selectedAmenities.filter((item) => item !== amenity),
     });
   };
 
   const activeChips = [
-    filters.category !== "property"
+    displayFilters.category !== "property"
       ? {
           key: "category",
-          label: getCategoryLabel(filters.category, true),
-          onRemove: () => updateFilters({ category: "property" }),
+          label: getCategoryLabel(displayFilters.category, true),
+          onRemove: () =>
+            commitFilters({ category: "property", hostelType: "" }),
         }
       : null,
-    filters.location
+    displayFilters.location
       ? {
           key: "location",
-          label: makeChipLabel("Area", filters.location),
-          onRemove: () => updateFilters({ location: "" }),
+          label: makeChipLabel("Area", displayFilters.location),
+          onRemove: () => {
+            setLocationInput("");
+            commitFilters({ location: "" });
+          },
         }
       : null,
-    filters.city
-      ? {
-          key: "city",
-          label: makeChipLabel("City", filters.city),
-          onRemove: () => updateFilters({ city: "", location: "" }),
-        }
-      : null,
-    filters.minRent || filters.maxRent
+    // displayFilters.city
+    //   ? {
+    //       key: "city",
+    //       label: makeChipLabel("City", displayFilters.city),
+    //       onRemove: () => {
+    //         setLocationInput("");
+    //         commitFilters({ city: "", location: "" });
+    //       },
+    //     }
+    //   : null,
+    displayFilters.minRent || displayFilters.maxRent
       ? {
           key: "budget",
-          label: formatBudgetLabel(filters.minRent, filters.maxRent),
-          onRemove: () => updateFilters({ minRent: "", maxRent: "" }),
+          label: formatBudgetLabel(
+            displayFilters.minRent,
+            displayFilters.maxRent,
+          ),
+          onRemove: () => {
+            setMinRentInput("");
+            setMaxRentInput("");
+            commitFilters({ minRent: "", maxRent: "" });
+          },
         }
       : null,
-    filters.bedrooms
+    displayFilters.bedrooms
       ? {
           key: "bedrooms",
-          label: makeChipLabel("Bedrooms", filters.bedrooms),
-          onRemove: () => updateFilters({ bedrooms: "" }),
+          label: makeChipLabel("Bedrooms", displayFilters.bedrooms),
+          onRemove: () => commitFilters({ bedrooms: "" }),
         }
       : null,
-    filters.bathrooms
+    displayFilters.bathrooms
       ? {
           key: "bathrooms",
-          label: makeChipLabel("Bathrooms", filters.bathrooms),
-          onRemove: () => updateFilters({ bathrooms: "" }),
+          label: makeChipLabel("Bathrooms", displayFilters.bathrooms),
+          onRemove: () => commitFilters({ bathrooms: "" }),
         }
       : null,
-    filters.hostelType
+    displayFilters.minSize || displayFilters.maxSize || displayFilters.sizeUnit
+      ? {
+          key: "size",
+          label:
+            [
+              displayFilters.minSize ? `Min ${displayFilters.minSize}` : "",
+              displayFilters.maxSize ? `Max ${displayFilters.maxSize}` : "",
+              displayFilters.sizeUnit || "",
+            ]
+              .filter(Boolean)
+              .join(" ") || "Size",
+          onRemove: () => {
+            setMinSizeInput("");
+            setMaxSizeInput("");
+            commitFilters({ minSize: "", maxSize: "", sizeUnit: "" });
+          },
+        }
+      : null,
+    displayFilters.hostelType
       ? {
           key: "hostelType",
-          label: makeChipLabel("Hostel type", filters.hostelType),
-          onRemove: () => updateFilters({ hostelType: "" }),
+          label: makeChipLabel("Hostel type", displayFilters.hostelType),
+          onRemove: () => commitFilters({ hostelType: "" }),
         }
       : null,
-    filters.furnishing
+    displayFilters.furnishing
       ? {
           key: "furnishing",
-          label: makeChipLabel("Furnishing", filters.furnishing),
-          onRemove: () => updateFilters({ furnishing: "" }),
+          label: makeChipLabel("Furnishing", displayFilters.furnishing),
+          onRemove: () => commitFilters({ furnishing: "" }),
         }
       : null,
-    filters.parking === true
+    displayFilters.parking === true
       ? {
           key: "parking",
           label: "Parking",
-          onRemove: () => updateFilters({ parking: "" }),
+          onRemove: () => commitFilters({ parking: "" }),
         }
       : null,
-    filters.familyFriendly === true
+    displayFilters.familyFriendly === true
       ? {
           key: "familyFriendly",
           label: "Family friendly",
-          onRemove: () => updateFilters({ familyFriendly: "" }),
+          onRemove: () => commitFilters({ familyFriendly: "" }),
+        }
+      : null,
+    displayFilters.sortBy && displayFilters.sortBy !== "newest"
+      ? {
+          key: "sortBy",
+          label:
+            displayFilters.sortBy === "popular"
+              ? "Most popular"
+              : displayFilters.sortBy === "price_asc"
+                ? "Price low to high"
+                : displayFilters.sortBy === "price_desc"
+                  ? "Price high to low"
+                  : "Latest listings",
+          onRemove: () => commitFilters({ sortBy: "newest" }),
         }
       : null,
     ...selectedAmenities.map((amenity) => ({
@@ -279,42 +439,54 @@ export default function PublicSearchHero({
       <FilterGroup title="Budget">
         <div className="grid gap-2 sm:grid-cols-2">
           <input
-            ref={advancedMinRentRef}
-            key={`advanced-min-${filters.minRent ?? "blank"}`}
-            defaultValue={filters.minRent ? String(filters.minRent) : ""}
+            value={minRentInput}
+            onChange={(event) => setMinRentInput(event.target.value)}
             type="number"
             min={0}
             inputMode="numeric"
             placeholder="Min price"
+            aria-invalid={rentRangeHasError}
             className="admin-input h-11 rounded-xl px-3 text-sm"
           />
           <input
-            ref={advancedMaxRentRef}
-            key={`advanced-max-${filters.maxRent ?? "blank"}`}
-            defaultValue={filters.maxRent ? String(filters.maxRent) : ""}
+            value={maxRentInput}
+            onChange={(event) => setMaxRentInput(event.target.value)}
             type="number"
             min={0}
             inputMode="numeric"
             placeholder="Max price"
+            aria-invalid={rentRangeHasError}
             className="admin-input h-11 rounded-xl px-3 text-sm"
           />
         </div>
+        {rentRangeHasError && (
+          <p className="mt-2 text-xs text-red-600">
+            Min price cannot be higher than max price.
+          </p>
+        )}
         <div className="mt-2 flex flex-wrap gap-2">
-          {BUDGET_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() =>
-                updateFilters({
-                  minRent: preset.minRent,
-                  maxRent: preset.maxRent,
-                })
-              }
-              className="rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-            >
-              {preset.label}
-            </button>
-          ))}
+          {BUDGET_PRESETS.map((preset) => {
+            const active =
+              displayFilters.minRent === preset.minRent &&
+              displayFilters.maxRent === preset.maxRent;
+
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() =>
+                  applyBudgetPreset(preset.minRent, preset.maxRent)
+                }
+                className={`rounded-full border px-3 py-2 text-xs transition ${
+                  active
+                    ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
+                    : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                }`}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
       </FilterGroup>
 
@@ -323,10 +495,10 @@ export default function PublicSearchHero({
           <SegmentedOptions
             options={[1, 2, 3, 4].map((value) => ({
               label: `${value}`,
-              active: filters.bedrooms === value,
+              active: displayFilters.bedrooms === value,
               onClick: () =>
-                updateFilters({
-                  bedrooms: filters.bedrooms === value ? "" : value,
+                commitFilters({
+                  bedrooms: displayFilters.bedrooms === value ? "" : value,
                 }),
             }))}
           />
@@ -336,10 +508,10 @@ export default function PublicSearchHero({
           <SegmentedOptions
             options={[1, 2, 3].map((value) => ({
               label: `${value}`,
-              active: filters.bathrooms === value,
+              active: displayFilters.bathrooms === value,
               onClick: () =>
-                updateFilters({
-                  bathrooms: filters.bathrooms === value ? "" : value,
+                commitFilters({
+                  bathrooms: displayFilters.bathrooms === value ? "" : value,
                 }),
             }))}
           />
@@ -349,9 +521,9 @@ export default function PublicSearchHero({
       <div className="grid gap-4 sm:grid-cols-2">
         <FilterGroup title="Furnishing">
           <SelectControl
-            value={filters.furnishing || ""}
+            value={displayFilters.furnishing || ""}
             onChange={(value) =>
-              updateFilters({
+              commitFilters({
                 furnishing: value as FurnishingType | "",
               })
             }
@@ -366,9 +538,9 @@ export default function PublicSearchHero({
 
         <FilterGroup title="Hostel type">
           <SelectControl
-            value={filters.hostelType || ""}
+            value={displayFilters.hostelType || ""}
             onChange={(value) =>
-              updateFilters({
+              commitFilters({
                 hostelType: value as HostelType | "",
               })
             }
@@ -385,29 +557,29 @@ export default function PublicSearchHero({
       <FilterGroup title="Size">
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_150px]">
           <input
-            ref={minSizeRef}
-            key={`min-size-${filters.minSize ?? "blank"}`}
-            defaultValue={filters.minSize ? String(filters.minSize) : ""}
+            value={minSizeInput}
+            onChange={(event) => setMinSizeInput(event.target.value)}
             type="number"
             min={0}
             inputMode="numeric"
             placeholder="Min size"
+            aria-invalid={sizeRangeHasError}
             className="admin-input h-11 rounded-xl px-3 text-sm"
           />
           <input
-            ref={maxSizeRef}
-            key={`max-size-${filters.maxSize ?? "blank"}`}
-            defaultValue={filters.maxSize ? String(filters.maxSize) : ""}
+            value={maxSizeInput}
+            onChange={(event) => setMaxSizeInput(event.target.value)}
             type="number"
             min={0}
             inputMode="numeric"
             placeholder="Max size"
+            aria-invalid={sizeRangeHasError}
             className="admin-input h-11 rounded-xl px-3 text-sm"
           />
           <SelectControl
-            value={filters.sizeUnit || ""}
+            value={displayFilters.sizeUnit || ""}
             onChange={(value) =>
-              updateFilters({
+              commitFilters({
                 sizeUnit: value as SizeUnit | "",
               })
             }
@@ -417,6 +589,11 @@ export default function PublicSearchHero({
             ]}
           />
         </div>
+        {sizeRangeHasError && (
+          <p className="mt-2 text-xs text-red-600">
+            Min size cannot be higher than max size.
+          </p>
+        )}
       </FilterGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -425,13 +602,15 @@ export default function PublicSearchHero({
             options={[
               {
                 label: "Any",
-                active: filters.parking === "" || filters.parking === undefined,
-                onClick: () => updateFilters({ parking: "" }),
+                active:
+                  displayFilters.parking === "" ||
+                  displayFilters.parking === undefined,
+                onClick: () => commitFilters({ parking: "" }),
               },
               {
                 label: "Parking available",
-                active: filters.parking === true,
-                onClick: () => updateFilters({ parking: true }),
+                active: displayFilters.parking === true,
+                onClick: () => commitFilters({ parking: true }),
               },
             ]}
           />
@@ -443,14 +622,14 @@ export default function PublicSearchHero({
               {
                 label: "Any",
                 active:
-                  filters.familyFriendly === "" ||
-                  filters.familyFriendly === undefined,
-                onClick: () => updateFilters({ familyFriendly: "" }),
+                  displayFilters.familyFriendly === "" ||
+                  displayFilters.familyFriendly === undefined,
+                onClick: () => commitFilters({ familyFriendly: "" }),
               },
               {
                 label: "Family friendly",
-                active: filters.familyFriendly === true,
-                onClick: () => updateFilters({ familyFriendly: true }),
+                active: displayFilters.familyFriendly === true,
+                onClick: () => commitFilters({ familyFriendly: true }),
               },
             ]}
           />
@@ -461,6 +640,7 @@ export default function PublicSearchHero({
         <div className="flex flex-wrap gap-2">
           {AMENITY_FILTERS.map((item) => {
             const active = selectedAmenities.includes(item.value);
+
             return (
               <button
                 key={item.value}
@@ -482,9 +662,9 @@ export default function PublicSearchHero({
 
       <FilterGroup title="Sort">
         <SelectControl
-          value={filters.sortBy || "newest"}
+          value={displayFilters.sortBy || "newest"}
           onChange={(value) =>
-            updateFilters({
+            commitFilters({
               sortBy: value as PropertySort,
             })
           }
@@ -520,8 +700,10 @@ export default function PublicSearchHero({
             Verified property discovery
           </span>
 
-          <h1 className="mt-5 max-w-4xl text-[2.2rem] leading-[1.08] text-white sm:text-5xl lg:text-6xl">
-            Find your perfect stay in {heroLocation}.
+          <h1 className="mt-5 max-w-4xl text-[2.2rem] font-black leading-[1.08] tracking-[-0.03em] text-white sm:text-5xl lg:text-6xl">
+            Find your perfect{" "}
+            <span className="italic text-[#22C55E]">angan</span> in{" "}
+            {heroLocation}
           </h1>
 
           <p className="mt-5 max-w-2xl text-sm leading-7 text-white/90 sm:text-base">
@@ -551,15 +733,9 @@ export default function PublicSearchHero({
               <label className="relative hidden lg:block">
                 <span className="sr-only">Property category</span>
                 <select
-                  value={filters.category}
+                  value={displayFilters.category}
                   onChange={(event) =>
-                    updateFilters({
-                      category: event.target.value as PropertyCategory,
-                      hostelType:
-                        event.target.value === "hostel"
-                          ? filters.hostelType
-                          : "",
-                    })
+                    handleCategoryChange(event.target.value as PropertyCategory)
                   }
                   className="admin-input h-12 w-full appearance-none rounded-2xl px-4 pr-9 text-sm"
                 >
@@ -576,14 +752,9 @@ export default function PublicSearchHero({
                 <MapPin className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
                 <span className="relative shrink-0 border-r border-[var(--admin-border)] pr-3">
                   <span className="sr-only">City</span>
-                  <select
-                    value={filters.city || ""}
-                    onChange={(event) =>
-                      updateFilters({
-                        city: event.target.value,
-                        location: "",
-                      })
-                    }
+                  {/* <select
+                    value={displayFilters.city || ""}
+                    onChange={(event) => handleCityChange(event.target.value)}
                     className="w-[104px] appearance-none bg-transparent pr-5 text-sm text-[var(--admin-text)] outline-none sm:w-[118px]"
                   >
                     {CITY_OPTIONS.map((city) => (
@@ -594,13 +765,13 @@ export default function PublicSearchHero({
                         {city.label}
                       </option>
                     ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--admin-muted)]" />
+                  </select> */}
+                  {"Islamabad"}
+                  {/* <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--admin-muted)]" /> */}
                 </span>
                 <input
-                  ref={locationRef}
-                  key={`${filters.city || ""}-${filters.location || ""}`}
-                  defaultValue={filters.location || ""}
+                  value={locationInput}
+                  onChange={(event) => setLocationInput(event.target.value)}
                   placeholder="Sector, area, or landmark"
                   className="min-w-0 flex-1 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
@@ -608,23 +779,23 @@ export default function PublicSearchHero({
 
               <div className="hidden min-h-12 grid-cols-2 items-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 md:grid">
                 <input
-                  ref={minRentRef}
-                  key={`hero-min-${filters.minRent ?? "blank"}`}
-                  defaultValue={filters.minRent ? String(filters.minRent) : ""}
+                  value={minRentInput}
+                  onChange={(event) => setMinRentInput(event.target.value)}
                   inputMode="numeric"
                   type="number"
                   min={0}
                   placeholder="Min price"
+                  aria-invalid={rentRangeHasError}
                   className="min-w-0 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
                 <input
-                  ref={maxRentRef}
-                  key={`hero-max-${filters.maxRent ?? "blank"}`}
-                  defaultValue={filters.maxRent ? String(filters.maxRent) : ""}
+                  value={maxRentInput}
+                  onChange={(event) => setMaxRentInput(event.target.value)}
                   inputMode="numeric"
                   type="number"
                   min={0}
                   placeholder="Max price"
+                  aria-invalid={rentRangeHasError}
                   className="min-w-0 border-l border-[var(--admin-border)] bg-transparent pl-3 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
               </div>
@@ -645,21 +816,29 @@ export default function PublicSearchHero({
 
               <button
                 type="submit"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white shadow-[0_16px_30px_-24px_var(--admin-primary)] transition hover:opacity-95"
+                disabled={rentRangeHasError}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white shadow-[0_16px_30px_-24px_var(--admin-primary)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Search className="h-4 w-4" />
                 <span className="hidden sm:inline">Search</span>
               </button>
             </div>
 
+            {rentRangeHasError && (
+              <p className="mt-2 px-2 text-xs text-red-600">
+                Min price cannot be higher than max price.
+              </p>
+            )}
+
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1 lg:hidden">
               {CATEGORY_TABS.map((tab) => {
-                const active = filters.category === tab.value;
+                const active = displayFilters.category === tab.value;
+
                 return (
                   <button
                     key={tab.value}
                     type="button"
-                    onClick={() => updateFilters({ category: tab.value })}
+                    onClick={() => handleCategoryChange(tab.value)}
                     className={`shrink-0 rounded-full border px-4 py-2 text-xs transition ${
                       active
                         ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
@@ -741,7 +920,8 @@ export default function PublicSearchHero({
               <button
                 type="button"
                 onClick={applyAdvancedFilters}
-                className="min-h-12 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white transition hover:opacity-95"
+                disabled={rentRangeHasError || sizeRangeHasError}
+                className="min-h-12 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Apply Filters
               </button>

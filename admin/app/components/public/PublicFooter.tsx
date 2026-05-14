@@ -106,7 +106,7 @@ export default function PublicFooter() {
 
               <p className="mt-5 max-w-sm text-sm leading-7 text-[var(--admin-muted)]">
                 Islamabad&apos;s trusted platform for verified rental
-                properties. Find your perfect stay with confidence.
+                properties. Find your perfect angan with confidence.
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
@@ -194,29 +194,27 @@ export default function PublicFooter() {
               <p className="mt-3 text-xs leading-5 text-[var(--admin-muted)]">
                 We respect your privacy. Unsubscribe anytime.
               </p>
+            </div>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[var(--admin-border)] bg-[#F8FAFC] p-4">
+            <div className="flex gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--admin-primary)]">
+                <Info size={18} />
+              </span>
 
-              <div className="mt-4 rounded-2xl border border-[var(--admin-border)] bg-[#F8FAFC] p-4">
-                <div className="flex gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[var(--admin-primary)]">
-                    <Info size={18} />
-                  </span>
+              <div>
+                <h3 className="text-sm font-black text-[var(--admin-text)]">
+                  Disclaimer
+                </h3>
 
-                  <div>
-                    <h3 className="text-sm font-black text-[var(--admin-text)]">
-                      Disclaimer
-                    </h3>
-
-                    <p className="mt-1 text-xs leading-6 text-[var(--admin-muted)]">
-                      AnganStay is a property listing platform only. Users must
-                      verify rent, ownership, availability, condition,
-                      documents, and payment terms before making any decision.
-                    </p>
-                  </div>
-                </div>
+                <p className="mt-1 text-xs leading-6 text-[var(--admin-muted)]">
+                  AnganStay is a property listing platform only. Users must
+                  verify rent, ownership, availability, condition, documents,
+                  and payment terms before making any decision.
+                </p>
               </div>
             </div>
           </div>
-
           <div className="mt-9 grid gap-4 border-t border-[var(--admin-border)] pt-6 text-xs text-[var(--admin-muted)] md:grid-cols-[1fr_auto_1fr] md:items-center">
             <p>&copy; 2026 AnganStay. All rights reserved.</p>
 

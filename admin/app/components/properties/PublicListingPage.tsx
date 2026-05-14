@@ -401,7 +401,7 @@ export default async function PublicListingPage({
 
             <PublicListingTrustBanner total={response.total} />
 
-            <BrowseByCategorySection counts={categoryCounts} />
+            {/* <BrowseByCategorySection counts={categoryCounts} /> */}
 
             <PopularLocationsSection
               title={popularLocationsTitle}

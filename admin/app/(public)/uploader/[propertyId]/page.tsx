@@ -5,10 +5,7 @@ import { notFound } from "next/navigation";
 
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import { PropertyService } from "@/app/lib/PropertyService";
-import {
-  BRAND_NAME,
-  DEFAULT_PROPERTY_IMAGE,
-} from "@/app/lib/property-utils";
+import { BRAND_NAME, DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 
 export const metadata: Metadata = {
   title: `Property Uploader Profile | ${BRAND_NAME}`,
@@ -45,7 +42,7 @@ export default async function UploaderPage({ params }: UploaderPageProps) {
             Back to listings
           </Link>
           <span>/</span>
-          <span>Uploader profile</span>
+          <span>profile</span>
         </div>
 
         <div className="rounded-[2rem] border border-[var(--admin-border)] bg-[color:color-mix(in_srgb,var(--admin-background)_92%,transparent)] p-6 shadow-[0_18px_40px_-28px_var(--admin-shadow)]">

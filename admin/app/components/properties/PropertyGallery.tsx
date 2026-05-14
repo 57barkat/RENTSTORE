@@ -59,32 +59,7 @@ export default function PropertyGallery({
   };
 
   const renderBadges = () => (
-    <div className="absolute left-5 top-5 z-30 flex flex-col items-start gap-2">
-      {/* {isFeatured && (
-        <span className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
-          Featured
-        </span>
-      )}
-
-      {isBoosted && !isFeatured && (
-        <span className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
-          Boosted
-        </span>
-      )}
-
-      {isVerified && (
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-lg">
-          <CheckCircle2 size={14} />
-          Verified
-        </span>
-      )} */}
-
-      {categoryLabel && (
-        <span className="rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-bold text-white shadow-lg">
-          {categoryLabel}
-        </span>
-      )}
-    </div>
+    <div className="absolute left-5 top-5 z-30 flex flex-col items-start gap-2"></div>
   );
 
   const renderHoverOverlay = () => (
