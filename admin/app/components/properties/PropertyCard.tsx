@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   ArrowUpRight,
   Bath,
@@ -128,7 +129,9 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
         </div>
 
         <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
-          <PublicFavoriteButton property={property} />
+          <Suspense fallback={null}>
+            <PublicFavoriteButton property={property} />
+          </Suspense>
           {/* <ReportListingButton
             propertyId={property._id}
             listingTitle={title}
