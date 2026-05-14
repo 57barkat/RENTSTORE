@@ -11,7 +11,6 @@ import {
   ShieldCheck,
   Trash2,
   UploadCloud,
-  UserCircle2,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -38,6 +37,8 @@ export default function PublicProfileScreen() {
   const { user, updateUser, logout } = usePublicAuth();
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [suspending, setSuspending] = useState(false);
   const plan = managePlans(user?.subscription);
   const PlanIcon = plan.icon;
   const initials = useMemo(
@@ -91,6 +92,46 @@ export default function PublicProfileScreen() {
       toast.error(error instanceof Error ? error.message : "Delete failed.");
     } finally {
       setRemoving(false);
+    }
+  };
+
+  const downloadAccountData = async () => {
+    const response = await publicApiClient.get("/users/me/export");
+    const blob = new Blob([JSON.stringify(response.data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "anganstay-account-data.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSuspendAccount = async (downloadFirst: boolean) => {
+    setSuspending(true);
+
+    try {
+      if (downloadFirst) {
+        await downloadAccountData();
+      }
+
+      await publicApiClient.delete("/users/delete");
+      toast.success(
+        "Your account deletion has been scheduled. Log in within 30 days to restore it.",
+      );
+      setShowSuspendModal(false);
+      await logout();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete your account right now.",
+      );
+    } finally {
+      setSuspending(false);
     }
   };
 
@@ -328,8 +369,72 @@ export default function PublicProfileScreen() {
             <LogOut className="h-4 w-4" />
             Logout
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowSuspendModal(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Account
+          </button>
         </aside>
       </div>
+
+      {showSuspendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] border border-[var(--admin-border)] bg-white p-6 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.6)]">
+            <div className="flex items-start gap-4">
+              <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
+                <Trash2 className="h-5 w-5" />
+              </span>
+
+              <div>
+                <h3 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
+                  Delete account
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
+                  AnganStay will hide your account for 30 days before permanent
+                  deletion. You can download your data before deleting your
+                  account. Log in any time within the 30-day period to restore
+                  your account and listings. After 30 days, your account and all
+                  associated data will be permanently deleted.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3">
+              <button
+                type="button"
+                disabled={suspending}
+                onClick={() => void handleSuspendAccount(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 py-3.5 text-sm font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {suspending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Download my data before deleting
+              </button>
+
+              <button
+                type="button"
+                disabled={suspending}
+                onClick={() => void handleSuspendAccount(false)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Delete account only
+              </button>
+
+              <button
+                type="button"
+                disabled={suspending}
+                onClick={() => setShowSuspendModal(false)}
+                className="inline-flex items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-white px-4 py-3.5 text-sm font-bold text-[var(--admin-text)] transition hover:bg-[var(--admin-background)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PublicAccountShell>
   );
 }

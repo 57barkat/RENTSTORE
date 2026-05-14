@@ -62,6 +62,12 @@ export const sidebarMenuItems: MenuItem[] = [
     screen: "PrivacyPolicyScreen",
   },
   {
+    iconType: "Feather",
+    iconName: "trash-2",
+    label: "Delete Account",
+    screen: "DeleteAccount",
+  },
+  {
     iconType: "Ionicons",
     iconName: "log-out-outline",
     label: "Logout",

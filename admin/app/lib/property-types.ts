@@ -8,6 +8,7 @@ export type PropertyCategory =
 export type PropertySort = "newest" | "price_asc" | "price_desc" | "popular";
 export type HostelType = "male" | "female" | "mixed";
 export type SizeUnit = "Marla" | "Kanal" | "Sq. Ft." | "Sq. Yd.";
+export type FurnishingType = "furnished" | "semi-furnished" | "unfurnished";
 
 export const PROPERTY_SIZE_UNITS: SizeUnit[] = [
   "Marla",
@@ -106,6 +107,16 @@ export interface PublicProperty {
   updatedAt?: string;
 }
 
+export interface NearbyPlace {
+  id: string;
+  name: string;
+  category: "mosque" | "school" | "hospital" | "market" | "useful";
+  latitude: number;
+  longitude: number;
+  distanceMeters: number;
+  address?: string;
+}
+
 export interface PropertySearchFilters {
   category: PropertyCategory;
   purpose?: PropertyPurpose;
@@ -121,6 +132,9 @@ export interface PropertySearchFilters {
   sizeUnit?: SizeUnit | "";
   amenities?: string[];
   hostelType?: HostelType | "";
+  furnishing?: FurnishingType | "";
+  parking?: boolean | "";
+  familyFriendly?: boolean | "";
   sortBy?: PropertySort;
   page?: number;
   limit?: number;

@@ -5,6 +5,8 @@ type CachedUserAuthSnapshot = {
   email: string;
   role: string;
   isBlocked: boolean;
+  accountStatus?: string;
+  suspensionReason?: string;
 };
 
 type CacheEntry = {

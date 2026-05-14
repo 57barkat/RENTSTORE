@@ -11,6 +11,12 @@ export async function POST(request: Request) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(request.headers.get("x-forwarded-for")
+        ? { "x-forwarded-for": request.headers.get("x-forwarded-for") as string }
+        : {}),
+      ...(request.headers.get("user-agent")
+        ? { "user-agent": request.headers.get("user-agent") as string }
+        : {}),
     },
     body: JSON.stringify(body),
     cache: "no-store",

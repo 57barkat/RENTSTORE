@@ -37,6 +37,7 @@ import {
   serializeJsonLd,
 } from "@/app/lib/seo";
 import type {
+  NearbyPlace,
   PropertyCategory,
   PublicProperty,
 } from "@/app/lib/property-types";
@@ -59,6 +60,8 @@ import {
   getPropertyTitle,
 } from "@/app/lib/property-utils";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
+import { getPropertyCoordinates } from "@/app/lib/property-coordinates";
+import PropertyLocationMap from "./PropertyLocationMap";
 
 interface PropertyDetailContentProps {
   category: PropertyCategory;
@@ -199,11 +202,18 @@ export default async function PropertyDetailContent({
       : [DEFAULT_PROPERTY_IMAGE];
 
   let relatedProperties: PublicProperty[] = [];
+  let nearbyPlaces: NearbyPlace[] = [];
 
   try {
     relatedProperties = await PropertyService.getRelatedProperties(property);
   } catch {
     relatedProperties = [];
+  }
+
+  try {
+    nearbyPlaces = await PropertyService.getNearbyPlacesByProperty(property._id);
+  } catch {
+    nearbyPlaces = [];
   }
 
   const title = getPropertyTitle(property);
@@ -224,8 +234,8 @@ export default async function PropertyDetailContent({
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
   const primaryAddress = addressLine || [area, city].filter(Boolean).join(", ");
-  const mapQuery = encodeURIComponent(primaryAddress || title);
   const detailDescription = getDetailDescription(category, property);
+  const { latitude, longitude } = getPropertyCoordinates(property);
   const displayRules = getHouseRules(property);
   const securityDeposit =
     property.SecuritybasePrice && property.SecuritybasePrice > 0
@@ -275,14 +285,6 @@ export default async function PropertyDetailContent({
           },
           { preferSeo: true, rootForProperty: true },
         )
-      : "";
-
-  const cameraDescription =
-    property.safetyDetailsData?.cameraDescription &&
-    !["yes", "true", "active"].includes(
-      String(property.safetyDetailsData.cameraDescription).toLowerCase(),
-    )
-      ? property.safetyDetailsData.cameraDescription
       : "";
 
   const displayAmenities = amenityItems.map(toReadableLabel).filter(Boolean);
@@ -643,80 +645,30 @@ export default async function PropertyDetailContent({
             )}
 
             {primaryAddress && (
-              <section className="rounded-[1.75rem] border border-[var(--admin-border)] bg-white p-6 shadow-sm sm:p-7">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-secondary-soft)] text-[var(--admin-secondary)]">
-                    <MapPin size={19} />
+              <section className="mt-8 rounded-[2rem] border border-[var(--admin-border)] bg-white p-10">
+                <div className="mb-8 flex items-start gap-4">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
+                    <MapPin size={30} />
                   </span>
 
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
-                      Location
+                    <h2 className="text-4xl font-black tracking-tight text-[var(--admin-text)]">
+                      Location & nearby places
                     </h2>
 
-                    <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
-                      Location details from the property listing.
+                    <p className="mt-2 text-lg font-medium text-[var(--admin-muted)]">
+                      See the property location and nearby essentials such as
+                      masjid, schools, hospitals, shops, and transport.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_0.8fr]">
-                  <div className="overflow-hidden rounded-[1.35rem] border border-[var(--admin-border)] bg-[#F8FAFC]">
-                    <div className="relative h-60 bg-[radial-gradient(circle_at_center,var(--admin-primary-soft),transparent_48%),linear-gradient(135deg,#EEF2FF,#F8FAFC)]">
-                      <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(to_right,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.08)_1px,transparent_1px)] [background-size:34px_34px]" />
-
-                      <div className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--admin-primary)] text-white shadow-[0_20px_40px_-18px_var(--admin-primary)]">
-                        <MapPin size={22} />
-                      </div>
-
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${mapQuery}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-[var(--admin-primary)] shadow-sm transition hover:bg-[var(--admin-primary)] hover:text-white"
-                      >
-                        Open in Google Maps
-                        <ArrowUpRight size={15} />
-                      </a>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[1.35rem] border border-[var(--admin-border)] bg-[#F8FAFC] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                      Location Summary
-                    </p>
-
-                    <p className="mt-3 break-words text-base font-black leading-7 text-[var(--admin-text)]">
-                      {primaryAddress}
-                    </p>
-
-                    {(area || city) && (
-                      <p className="mt-2 text-sm font-medium leading-6 text-[var(--admin-muted)]">
-                        {[area, city].filter(Boolean).join(", ")}
-                      </p>
-                    )}
-
-                    <div className="mt-5 space-y-3 text-sm font-medium text-[var(--admin-muted)]">
-                      {area && (
-                        <div className="flex items-center justify-between gap-3">
-                          <span>Area</span>
-                          <span className="text-right font-black text-[var(--admin-text)]">
-                            {area}
-                          </span>
-                        </div>
-                      )}
-
-                      {city && (
-                        <div className="flex items-center justify-between gap-3">
-                          <span>City</span>
-                          <span className="text-right font-black text-[var(--admin-text)]">
-                            {city}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <PropertyLocationMap
+                  address={primaryAddress}
+                  latitude={latitude}
+                  longitude={longitude}
+                  nearbyPlaces={nearbyPlaces}
+                />
               </section>
             )}
 
@@ -728,10 +680,6 @@ export default async function PropertyDetailContent({
                   </span>
 
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)]">
-                      House Rules
-                    </h2>
-
                     <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
                       Rules shared by the property owner.
                     </p>

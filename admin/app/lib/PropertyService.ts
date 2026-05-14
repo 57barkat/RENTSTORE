@@ -5,6 +5,7 @@ import { cache } from "react";
 import type {
   PopularLocationCityGroup,
   PopularLocationSummary,
+  NearbyPlace,
   PropertySearchFilters,
   PropertySearchResponse,
   PublicProperty,
@@ -175,6 +176,15 @@ const getPropertyUploaderProfileInternal = async (
   );
 };
 
+const getNearbyPlacesInternal = async (
+  propertyId: string,
+): Promise<NearbyPlace[]> => {
+  return requestJson<NearbyPlace[]>(`/properties/${propertyId}/nearby-places`, {
+    revalidate: PUBLIC_DETAIL_REVALIDATE_SECONDS,
+    tags: ["public-properties", `public-property:${propertyId}`],
+  });
+};
+
 const getPopularLocationsInternal = async (input: {
   city?: string;
   propertyType?: string;
@@ -256,6 +266,10 @@ const getPropertyByIdCached = cache(async (propertyId: string) => {
   return getPropertyByIdInternal(propertyId);
 });
 
+const getNearbyPlacesCached = cache(async (propertyId: string) => {
+  return getNearbyPlacesInternal(propertyId);
+});
+
 const getPopularLocationsCached = cache(
   async (serializedInput: string) =>
     getPopularLocationsInternal(
@@ -329,6 +343,18 @@ export const PropertyService = {
       return await getPropertyUploaderProfileInternal(propertyId);
     } catch {
       return null;
+    }
+  },
+
+  async getNearbyPlacesByProperty(propertyId: string): Promise<NearbyPlace[]> {
+    if (!propertyId) {
+      return [];
+    }
+
+    try {
+      return await getNearbyPlacesCached(propertyId);
+    } catch {
+      return [];
     }
   },
 

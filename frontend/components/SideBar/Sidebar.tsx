@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState } from "react";
 import {
   Animated,
+  Alert,
   ScrollView,
+  Share,
   TouchableOpacity,
   StyleSheet,
   View,
@@ -18,6 +20,7 @@ import {
   useUploadProfileImageMutation,
   useDeleteProfileImageMutation,
   useDeleteUserMutation,
+  useLazyExportMyDataQuery,
   useLogoutMutation,
 } from "@/services/api";
 import Toast from "react-native-toast-message";
@@ -48,6 +51,8 @@ const Sidebar: React.FC = () => {
   const [uploadProfileImage] = useUploadProfileImageMutation();
   const [deleteProfileImage] = useDeleteProfileImageMutation();
   const [logoutApi] = useLogoutMutation();
+  const [deleteUser] = useDeleteUserMutation();
+  const [exportMyData] = useLazyExportMyDataQuery();
 
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
@@ -122,7 +127,7 @@ const Sidebar: React.FC = () => {
     if (item.isLogout) {
       handleLogout();
     } else if (item.screen === "DeleteAccount") {
-      // handleDeleteAccount();
+      handleDeleteAccount();
     } else if (item.screen) {
       const path = normalizeScreenPath(item.screen);
 
@@ -150,6 +155,53 @@ const Sidebar: React.FC = () => {
       });
       router.replace("/signin");
     }
+  };
+
+  const deleteAccount = async (downloadFirst: boolean) => {
+    try {
+      if (downloadFirst) {
+        const exportData = await exportMyData(undefined).unwrap();
+        await Share.share({
+          title: "AnganStay account data",
+          message: JSON.stringify(exportData, null, 2),
+        });
+      }
+
+      await deleteUser(undefined).unwrap();
+      close();
+      await logout();
+      Toast.show({
+        type: "success",
+        text1: "Account deletion scheduled",
+        text2: "Log in within 30 days to restore your account.",
+      });
+      router.replace("/signin");
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Unable to delete account",
+        text2: "Please try again or contact support.",
+      });
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete account",
+      "Your account will be hidden for 30 days. Log in during that time to restore it. After 30 days, your account and data will be permanently deleted.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Download my data before deleting",
+          onPress: () => void deleteAccount(true),
+        },
+        {
+          text: "Delete account only",
+          style: "destructive",
+          onPress: () => void deleteAccount(false),
+        },
+      ],
+    );
   };
 
   const mainMenuItems = sidebarMenuItems.filter((i) => !i.isLogout);

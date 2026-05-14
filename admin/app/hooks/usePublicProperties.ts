@@ -72,8 +72,21 @@ export const useProperties = (category: PropertyCategory) => {
   );
 
   const resetFilters = useCallback(() => {
-    router.push(pathname, { scroll: false });
-  }, [pathname, router]);
+    const resetCategory = seoRoute?.category || category;
+    const resetPath = buildListingPath(
+      {
+        category: resetCategory,
+        purpose: "rent",
+        page: 1,
+        limit: 10,
+      },
+      {
+        rootForProperty: resetCategory === "property",
+      },
+    );
+
+    router.push(resetPath, { scroll: false });
+  }, [category, router, seoRoute]);
 
   return {
     filters,

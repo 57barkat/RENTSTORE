@@ -2,7 +2,17 @@
 
 import Image from "next/image";
 import { useMemo, useState } from "react";
-import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  CheckCircle2,
+  Images,
+  Share2,
+  Heart,
+  BadgeCheck,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GalleryProps {
@@ -11,6 +21,7 @@ interface GalleryProps {
   isFeatured?: boolean;
   isBoosted?: boolean;
   isVerified?: boolean;
+  categoryLabel?: string;
 }
 
 const getImageAlt = (imageAltBase: string, index: number) =>
@@ -22,6 +33,7 @@ export default function PropertyGallery({
   isFeatured = false,
   isBoosted = false,
   isVerified = false,
+  categoryLabel = "House",
 }: GalleryProps) {
   const images = useMemo(() => galleryImages.filter(Boolean), [galleryImages]);
 
@@ -29,27 +41,8 @@ export default function PropertyGallery({
   const [index, setIndex] = useState(0);
 
   const hasImages = images.length > 0;
-  const extraPhotosCount = Math.max(0, images.length - 4);
-
-  const renderBadges = () => (
-    <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-      {isFeatured && (
-        <span className="rounded-full bg-[var(--admin-accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-[0_14px_24px_-16px_var(--admin-accent)]">
-          Featured
-        </span>
-      )}
-      {!isFeatured && isBoosted && (
-        <span className="rounded-full bg-[var(--admin-secondary)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white shadow-sm">
-          Boosted
-        </span>
-      )}
-      {isVerified && (
-        <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-[var(--admin-secondary)] shadow-sm">
-          Verified
-        </span>
-      )}
-    </div>
-  );
+  const visibleImages = images.slice(0, 5);
+  const extraPhotosCount = Math.max(0, images.length - 5);
 
   const openLightbox = (i: number) => {
     if (!hasImages) {
@@ -68,10 +61,67 @@ export default function PropertyGallery({
     setIndex((current) => (current + 1) % images.length);
   };
 
+  const renderBadges = () => (
+    <div className="absolute left-5 top-5 z-30 flex flex-col items-start gap-2">
+      {isFeatured && (
+        <span className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
+          Featured
+        </span>
+      )}
+
+      {isBoosted && !isFeatured && (
+        <span className="rounded-full bg-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
+          Boosted
+        </span>
+      )}
+
+      {isVerified && (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-lg">
+          <CheckCircle2 size={14} />
+          Verified
+        </span>
+      )}
+
+      {categoryLabel && (
+        <span className="rounded-full bg-[var(--admin-primary)] px-4 py-2 text-xs font-bold text-white shadow-lg">
+          {categoryLabel}
+        </span>
+      )}
+    </div>
+  );
+
+  const renderActionButtons = () => (
+    <div className="absolute right-5 top-5 z-30 flex items-center gap-3">
+      <button
+        type="button"
+        aria-label="Save property"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-lg transition hover:scale-105 hover:text-red-500"
+      >
+        <Heart size={20} />
+      </button>
+
+      <button
+        type="button"
+        aria-label="Share property"
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-700 shadow-lg transition hover:scale-105 hover:text-[var(--admin-primary)]"
+      >
+        <Share2 size={20} />
+      </button>
+    </div>
+  );
+
+  const renderHoverOverlay = () => (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 opacity-0 transition duration-300 group-hover:opacity-100">
+      <div className="rounded-full bg-white/95 p-3 text-slate-900 shadow-xl">
+        <ZoomIn size={24} />
+      </div>
+    </div>
+  );
+
   if (!hasImages) {
     return (
-      <div className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
-        <div className="flex aspect-[16/9] items-center justify-center bg-[var(--admin-card)] p-8 text-center">
+      <div className="overflow-hidden rounded-[1.8rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
+        <div className="flex aspect-[16/7] items-center justify-center bg-[var(--admin-card)] p-8 text-center">
           <p className="text-sm font-semibold text-[var(--admin-muted)]">
             No property photos available
           </p>
@@ -80,166 +130,188 @@ export default function PropertyGallery({
     );
   }
 
-  return (
-    <>
-      <div className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
-        {images.length === 1 && (
+  if (images.length === 1) {
+    return (
+      <>
+        <section className="relative overflow-hidden rounded-[1.8rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
           <div
-            className="group relative aspect-[16/9] cursor-pointer overflow-hidden bg-[var(--admin-card)]"
+            role="button"
+            tabIndex={0}
+            className="group relative aspect-[16/7] cursor-pointer overflow-hidden bg-[var(--admin-card)]"
             onClick={() => openLightbox(0)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                openLightbox(0);
+              }
+            }}
           >
             <Image
               src={images[0]}
               alt={getImageAlt(imageAltBase, 0)}
               fill
               priority
-              sizes="(max-width: 1024px) 100vw, 1200px"
-              className="object-cover transition duration-500 group-hover:scale-105"
+              sizes="100vw"
+              className="object-cover transition duration-700 group-hover:scale-105"
             />
 
-            {(isFeatured || isBoosted || isVerified) && renderBadges()}
+            {renderBadges()}
+            {renderActionButtons()}
+            {renderHoverOverlay()}
 
-            <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-              <ZoomIn className="text-white" size={32} />
-            </div>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openLightbox(0);
+              }}
+              className="absolute bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-lg transition hover:scale-105"
+            >
+              <Images size={18} />
+              View photo
+            </button>
           </div>
-        )}
+        </section>
 
-        {images.length === 2 && (
-          <div className="grid gap-2 p-2 md:grid-cols-2">
-            {images.map((image, i) => (
-              <div
-                key={`${image}-${i}`}
-                className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
-                onClick={() => openLightbox(i)}
+        <AnimatePresence>
+          {isOpen && hasImages && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.96)] px-4 backdrop-blur-xl"
+            >
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close gallery"
+                className="absolute right-4 top-4 z-[110] rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 sm:right-8 sm:top-8"
+              >
+                <X size={30} />
+              </button>
+
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
+                className="relative h-[85vh] w-[92vw]"
               >
                 <Image
-                  src={image}
-                  alt={getImageAlt(imageAltBase, i)}
+                  src={images[index]}
+                  alt={getImageAlt(imageAltBase, index)}
                   fill
-                  priority={i === 0}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition duration-500 group-hover:scale-105"
+                  sizes="92vw"
+                  className="object-contain"
                 />
+              </motion.div>
 
-                {i === 0 && (isFeatured || isBoosted || isVerified) && renderBadges()}
-
-                <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-                  <ZoomIn className="text-white" size={32} />
-                </div>
+              <div className="absolute bottom-6 left-1/2 z-[110] -translate-x-1/2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white backdrop-blur">
+                {index + 1} / {images.length}
               </div>
-            ))}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
 
-        {images.length === 3 && (
-          <div className="grid gap-2 p-2 lg:grid-cols-[1.15fr_0.85fr]">
-            <div
-              className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
-              onClick={() => openLightbox(0)}
+  return (
+    <>
+      <section className="relative overflow-hidden rounded-[1.8rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
+        <div className="grid h-[360px] gap-2 sm:h-[430px] lg:h-[520px] lg:grid-cols-[1.15fr_1fr]">
+          <div
+            role="button"
+            tabIndex={0}
+            className="group relative cursor-pointer overflow-hidden bg-[var(--admin-card)]"
+            onClick={() => openLightbox(0)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                openLightbox(0);
+              }
+            }}
+          >
+            <Image
+              src={images[0]}
+              alt={getImageAlt(imageAltBase, 0)}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 55vw"
+              className="object-cover transition duration-700 group-hover:scale-105"
+            />
+
+            {renderBadges()}
+            {renderHoverOverlay()}
+
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                openLightbox(0);
+              }}
+              className="absolute bottom-5 right-5 z-30 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-lg transition hover:scale-105"
             >
-              <Image
-                src={images[0]}
-                alt={getImageAlt(imageAltBase, 0)}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 70vw"
-                className="object-cover transition duration-500 group-hover:scale-105"
-              />
+              <Images size={18} />
+              View all {images.length} photos
+            </button>
+          </div>
 
-              {(isFeatured || isBoosted || isVerified) && renderBadges()}
+          <div className="hidden grid-cols-2 gap-2 lg:grid">
+            {visibleImages.slice(1, 5).map((image, i) => {
+              const imageIndex = i + 1;
+              const isLastVisibleImage =
+                imageIndex === 4 && extraPhotosCount > 0;
 
-              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-                <ZoomIn className="text-white" size={32} />
-              </div>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
-              {images.slice(1, 3).map((image, i) => (
+              return (
                 <div
-                  key={`${image}-${i + 1}`}
-                  className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)] lg:aspect-auto"
-                  onClick={() => openLightbox(i + 1)}
+                  key={`${image}-${imageIndex}`}
+                  role="button"
+                  tabIndex={0}
+                  className="group relative cursor-pointer overflow-hidden bg-[var(--admin-card)]"
+                  onClick={() => openLightbox(imageIndex)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      openLightbox(imageIndex);
+                    }
+                  }}
                 >
                   <Image
                     src={image}
-                    alt={getImageAlt(imageAltBase, i + 1)}
+                    alt={getImageAlt(imageAltBase, imageIndex)}
                     fill
-                    sizes="(max-width: 1024px) 100vw, 30vw"
-                    className="object-cover transition duration-500 group-hover:scale-105"
+                    sizes="(max-width: 1024px) 50vw, 25vw"
+                    className={`object-cover transition duration-700 group-hover:scale-105 ${
+                      isLastVisibleImage ? "blur-[2px]" : ""
+                    }`}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-                    <ZoomIn className="text-white" size={28} />
-                  </div>
+
+                  {isLastVisibleImage && (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45">
+                      <span className="text-lg font-bold text-white">
+                        +{extraPhotosCount} more
+                      </span>
+                    </div>
+                  )}
+
+                  {!isLastVisibleImage && renderHoverOverlay()}
+                </div>
+              );
+            })}
+
+            {images.length < 5 &&
+              Array.from({ length: 5 - images.length }).map((_, emptyIndex) => (
+                <div
+                  key={`empty-${emptyIndex}`}
+                  className="flex items-center justify-center bg-[var(--admin-card)] text-sm font-semibold text-[var(--admin-muted)]"
+                >
+                  No photo
                 </div>
               ))}
-            </div>
           </div>
-        )}
 
-        {images.length >= 4 && (
-          <div className="grid gap-2 p-2 lg:grid-cols-[1.35fr_0.65fr]">
-            <div
-              className="group relative aspect-[16/11] cursor-pointer overflow-hidden rounded-[1.6rem] bg-[var(--admin-card)]"
-              onClick={() => openLightbox(0)}
-            >
-              <Image
-                src={images[0]}
-                alt={getImageAlt(imageAltBase, 0)}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 70vw"
-                className="object-cover transition duration-500 group-hover:scale-105"
-              />
-
-              {(isFeatured || isBoosted || isVerified) && renderBadges()}
-
-              <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-                <ZoomIn className="text-white" size={32} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-2 lg:grid-rows-2">
-              {images.slice(1, 4).map((image, i) => {
-                const imageIndex = i + 1;
-                const isBottomWide = i === 2;
-
-                return (
-                  <div
-                    key={`${image}-${imageIndex}`}
-                    className={`group relative cursor-pointer overflow-hidden rounded-[1.5rem] bg-[var(--admin-card)] ${
-                      isBottomWide
-                        ? "col-span-2 aspect-[16/7.8]"
-                        : "aspect-[16/10]"
-                    }`}
-                    onClick={() => openLightbox(imageIndex)}
-                  >
-                    <Image
-                      src={image}
-                      alt={getImageAlt(imageAltBase, imageIndex)}
-                      fill
-                      sizes="(max-width: 1024px) 100vw, 30vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                    />
-
-                    {isBottomWide && extraPhotosCount > 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.42)] text-sm font-bold text-white sm:text-base">
-                        +{extraPhotosCount} Photos
-                      </div>
-                    )}
-
-                    {!isBottomWide && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-[rgba(15,23,42,0.2)] opacity-0 transition-opacity group-hover:opacity-100">
-                        <ZoomIn className="text-white" size={28} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+          {renderActionButtons()}
+        </div>
+      </section>
 
       <AnimatePresence>
         {isOpen && hasImages && (
@@ -253,7 +325,7 @@ export default function PropertyGallery({
               type="button"
               onClick={() => setIsOpen(false)}
               aria-label="Close gallery"
-              className="absolute right-4 top-4 z-[110] rounded-full p-2 text-white transition hover:bg-white/10 sm:right-8 sm:top-8"
+              className="absolute right-4 top-4 z-[110] rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 sm:right-8 sm:top-8"
             >
               <X size={30} />
             </button>
@@ -263,7 +335,7 @@ export default function PropertyGallery({
                 type="button"
                 onClick={goPrevious}
                 aria-label="Previous photo"
-                className="absolute left-3 z-[110] rounded-full p-3 text-white transition hover:bg-white/10 sm:left-8 sm:p-4"
+                className="absolute left-3 z-[110] rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 sm:left-8 sm:p-4"
               >
                 <ChevronLeft size={42} />
               </button>
@@ -273,6 +345,8 @@ export default function PropertyGallery({
               key={index}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
               className="relative h-[85vh] w-[92vw]"
             >
               <Image
@@ -289,13 +363,13 @@ export default function PropertyGallery({
                 type="button"
                 onClick={goNext}
                 aria-label="Next photo"
-                className="absolute right-3 z-[110] rounded-full p-3 text-white transition hover:bg-white/10 sm:right-8 sm:p-4"
+                className="absolute right-3 z-[110] rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 sm:right-8 sm:p-4"
               >
                 <ChevronRight size={42} />
               </button>
             )}
 
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur">
+            <div className="absolute bottom-6 left-1/2 z-[110] -translate-x-1/2 rounded-full bg-white/10 px-5 py-2 text-sm font-semibold text-white backdrop-blur">
               {index + 1} / {images.length}
             </div>
           </motion.div>

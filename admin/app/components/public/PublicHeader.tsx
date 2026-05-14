@@ -166,6 +166,7 @@ export default function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const headerRef = useRef<HTMLElement>(null);
   const drawerCloseButtonRef = useRef<HTMLButtonElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
@@ -182,6 +183,31 @@ export default function PublicHeader() {
     user?.name?.trim()?.split(/\s+/)?.[0] ||
     user?.email?.split("@")?.[0] ||
     "Account";
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const updateHeaderHeight = () => {
+      const height = Math.ceil(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty(
+        "--public-header-height",
+        `${height}px`,
+      );
+    };
+
+    updateHeaderHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateHeaderHeight);
+      return () => window.removeEventListener("resize", updateHeaderHeight);
+    }
+
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    resizeObserver.observe(header);
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!mobileOpen || !mounted) return;
@@ -417,7 +443,10 @@ export default function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-[rgba(255,255,255,0.94)] backdrop-blur-xl">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-50 border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-[rgba(255,255,255,0.94)] backdrop-blur-xl"
+      >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-5">
             <Link

@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { UserService } from "../modules/user/user.service";
+import { UserAccountStatus } from "../modules/user/user.entity";
 import { AuthUserCacheService } from "./auth-user-cache.service";
 
 @Injectable()
@@ -26,11 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
 
     const cachedUser = await this.authUserCacheService.get(payload.sub);
     if (cachedUser) {
-      if (cachedUser.isBlocked) {
-        throw new UnauthorizedException(
-          "Your account has been blocked due to multiple warnings.",
-        );
-      }
+      this.assertUserCanUseToken(cachedUser);
 
       return {
         userId: cachedUser.id,
@@ -47,15 +44,44 @@ export class JwtStrategy extends PassportStrategy(Strategy, "jwt") {
       email: user.email,
       role: user.role,
       isBlocked: Boolean(user.isBlocked),
+      accountStatus: user.accountStatus,
+      suspensionReason: user.suspensionReason,
     });
 
     if (user.isBlocked) {
       await this.userService.update(user.id, { refreshToken: undefined });
+    }
+
+    this.assertUserCanUseToken({
+      isBlocked: Boolean(user.isBlocked),
+      accountStatus: user.accountStatus,
+      suspensionReason: user.suspensionReason,
+    });
+
+    return { userId: user.id, email: user.email, role: user.role };
+  }
+
+  private assertUserCanUseToken(user: {
+    isBlocked: boolean;
+    accountStatus?: string;
+    suspensionReason?: string;
+  }) {
+    if (user.isBlocked) {
       throw new UnauthorizedException(
         "Your account has been blocked due to multiple warnings.",
       );
     }
 
-    return { userId: user.id, email: user.email, role: user.role };
+    if (user.accountStatus === UserAccountStatus.SUSPENDED) {
+      if (this.userService.isSelfDeletionPending(user)) {
+        throw new UnauthorizedException(
+          "Your account deletion is scheduled. Log in again within 30 days to restore it.",
+        );
+      }
+
+      throw new UnauthorizedException(
+        "Your account is suspended. Please contact support.",
+      );
+    }
   }
 }

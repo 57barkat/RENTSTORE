@@ -223,6 +223,7 @@ export const buildCanonicalListingBaseFilter = ({
   const mongoFilter: any = {
     status: true,
     isApproved: true,
+    isVisible: { $ne: false },
     moderationStatus: "ACTIVE",
   };
 
@@ -265,6 +266,9 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
     floorLevel,
     hostOption,
     hostelType,
+    furnishing,
+    parking,
+    familyFriendly,
     amenities,
     bills,
     mealPlan,
@@ -376,6 +380,26 @@ export const buildMongoFilter = (filters: any, userId?: string) => {
       mixed: ["mixed", "co-ed"],
     };
     mongoFilter.hostelType = { $in: mapping[hostelType] };
+  }
+
+  if (furnishing) {
+    mongoFilter.furnishing = furnishing;
+  }
+
+  if (parking === true || parking === "true") {
+    mongoFilter.parking = true;
+  } else if (parking === false || parking === "false") {
+    mongoFilter.parking = false;
+  }
+
+  if (familyFriendly === true || familyFriendly === "true") {
+    andConditions.push({
+      $or: [
+        { "description.highlighted": "family_friendly" },
+        { amenities: "family_friendly" },
+        { amenities: "Family Friendly" },
+      ],
+    });
   }
 
   // 5. Arrays (Amenities, Bills, etc.)

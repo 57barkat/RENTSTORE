@@ -17,6 +17,15 @@ export enum UserAccountStatus {
   BANNED = "BANNED",
 }
 
+export interface TermsAcceptanceProof {
+  userId: string;
+  acceptedAt: Date;
+  termsVersion: string;
+  privacyVersion: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export enum SubscriptionType {
   FREE = "free",
   STARTER = "standard",
@@ -98,6 +107,19 @@ export class User {
 
   @Prop()
   TermsAndConditionsAccepted!: boolean;
+
+  @Prop({
+    type: {
+      userId: String,
+      acceptedAt: Date,
+      termsVersion: String,
+      privacyVersion: String,
+      ipAddress: String,
+      userAgent: String,
+      _id: false,
+    },
+  })
+  termsAcceptance?: TermsAcceptanceProof;
 
   @Prop({ type: String })
   fcmToken?: string;
