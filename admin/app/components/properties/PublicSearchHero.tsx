@@ -525,7 +525,10 @@ export default function PublicSearchHero({
         </div>
       </section>
 
-      <section className="sticky top-0 z-40 -mt-16 border-b border-[var(--admin-border)] bg-white/92 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:px-6 lg:px-8">
+      <section
+        className="sticky z-40 -mt-16 border-b border-[var(--admin-border)] bg-white/92 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:px-6 lg:px-8"
+        style={{ top: "calc(var(--public-header-height, 0px))" }}
+      >
         <div className="mx-auto max-w-[1500px]">
           <form
             onSubmit={(event) => {

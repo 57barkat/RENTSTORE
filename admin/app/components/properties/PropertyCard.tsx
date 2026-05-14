@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -12,7 +11,7 @@ import {
 } from "lucide-react";
 
 import PublicFavoriteButton from "@/app/components/public/PublicFavoriteButton";
-import ReportListingButton from "@/app/components/properties/ReportListingButton";
+import PropertyCardGalleryTrigger from "@/app/components/properties/PropertyCardGalleryTrigger";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   isActiveBoostedPromotion,
@@ -77,7 +76,10 @@ const buildStatItems = (property: PublicProperty) => {
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const detailHref = buildPropertyHref(property);
-  const coverImage = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
+  const galleryImages =
+    property.photos && property.photos.length > 0
+      ? property.photos
+      : [DEFAULT_PROPERTY_IMAGE];
   const title = getPropertyTitle(property);
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
@@ -91,19 +93,16 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[var(--admin-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_36%,var(--admin-border))] hover:shadow-[0_22px_55px_-34px_rgba(0,31,143,0.42)]">
       <div className="relative aspect-[1.42] overflow-hidden bg-[var(--admin-card)]">
-        <Link href={detailHref} aria-label={title}>
-          <Image
-            src={coverImage}
-            alt={imageAlt}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
-            className="object-cover transition duration-500 group-hover:scale-105"
-          />
-        </Link>
+        <PropertyCardGalleryTrigger
+          images={galleryImages}
+          imageAltBase={imageAlt}
+          title={title}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
+        />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
 
-        <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
+        <div className="pointer-events-none absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
           {isFeatured && (
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--admin-accent)] px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm">
               Featured

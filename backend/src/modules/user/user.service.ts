@@ -23,6 +23,10 @@ export class UserService {
   private static readonly MAX_ADMIN_PAGE_SIZE = 50;
   private static readonly CURRENT_TERMS_VERSION = "2026-05-13";
   private static readonly CURRENT_PRIVACY_VERSION = "2026-05-13";
+  private static readonly SELF_DELETE_GRACE_PERIOD_DAYS = 30;
+  private static readonly SELF_DELETE_PURGE_BATCH_SIZE = 100;
+  private static readonly SELF_DELETE_SUSPENSION_REASON =
+    "User requested account deletion";
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
   constructor(
@@ -46,6 +50,16 @@ export class UserService {
         ? { $regex: `^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" }
         : normalizedEmail,
     };
+  }
+
+  isSelfDeletionPending(user: {
+    accountStatus?: UserAccountStatus | string | null;
+    suspensionReason?: string | null;
+  }) {
+    return (
+      user.accountStatus === UserAccountStatus.SUSPENDED &&
+      user.suspensionReason === UserService.SELF_DELETE_SUSPENSION_REASON
+    );
   }
 
   private sanitizePublicSignupRole(
@@ -367,14 +381,19 @@ export class UserService {
     return user;
   }
 
-  async suspendOwnAccount(userId: string) {
+  async suspendOwnAccount(
+    userId: string,
+    options: { blockAccount?: boolean; reason?: string } = {},
+  ) {
+    const suspendedAt = new Date();
     const user = await this.userModel.findByIdAndUpdate(
       userId,
       {
         accountStatus: UserAccountStatus.SUSPENDED,
-        isBlocked: true,
-        suspendedAt: new Date(),
-        suspensionReason: "User requested account suspension",
+        isBlocked: Boolean(options.blockAccount),
+        suspendedAt,
+        suspensionReason:
+          options.reason || UserService.SELF_DELETE_SUSPENSION_REASON,
         $unset: { refreshToken: 1 },
       },
       { new: true },
@@ -394,7 +413,7 @@ export class UserService {
       {
         isVisible: false,
         status: false,
-        suspendedAt: new Date(),
+        suspendedAt,
       },
     );
 
@@ -529,7 +548,10 @@ export class UserService {
   }
 
   async delete(id: string) {
-    return this.suspendOwnAccount(id);
+    return this.suspendOwnAccount(id, {
+      blockAccount: false,
+      reason: UserService.SELF_DELETE_SUSPENSION_REASON,
+    });
   }
 
   async findAll() {
@@ -699,7 +721,55 @@ export class UserService {
   }
 
   async deleteUser(userId: string) {
-    const user = await this.suspendOwnAccount(userId);
+    const user = await this.suspendOwnAccount(userId, {
+      blockAccount: true,
+      reason: "Admin deleted or suspended account",
+    });
     return { message: "User account suspended successfully", id: user.id };
+  }
+
+  async purgeExpiredSelfDeletedAccounts(now = new Date()) {
+    const cutoff = new Date(
+      now.getTime() -
+        UserService.SELF_DELETE_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000,
+    );
+    let deletedUsers = 0;
+    let deletedProperties = 0;
+
+    while (true) {
+      const users = await this.userModel
+        .find({
+          accountStatus: UserAccountStatus.SUSPENDED,
+          suspensionReason: UserService.SELF_DELETE_SUSPENSION_REASON,
+          suspendedAt: { $lte: cutoff },
+        })
+        .select("_id")
+        .limit(UserService.SELF_DELETE_PURGE_BATCH_SIZE)
+        .lean();
+
+      if (!users.length) {
+        return { deletedUsers, deletedProperties };
+      }
+
+      const userIds = users.map((user) => user._id);
+      const propertyOwnerIds = [
+        ...userIds,
+        ...userIds.map((userId) => userId.toString()),
+      ];
+
+      const propertyResult = await this.propertyModel.deleteMany({
+        ownerId: { $in: propertyOwnerIds },
+      });
+      const userResult = await this.userModel.deleteMany({
+        _id: { $in: userIds },
+      });
+
+      deletedProperties += propertyResult.deletedCount || 0;
+      deletedUsers += userResult.deletedCount || 0;
+
+      if (users.length < UserService.SELF_DELETE_PURGE_BATCH_SIZE) {
+        return { deletedUsers, deletedProperties };
+      }
+    }
   }
 }

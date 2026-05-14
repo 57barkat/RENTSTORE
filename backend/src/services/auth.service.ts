@@ -29,14 +29,20 @@ export class AuthService {
 
     let activeUser: UserDocument = user;
 
-    if (user.accountStatus === UserAccountStatus.SUSPENDED) {
-      activeUser = await this.userService.reactivateAccount(user.id);
-    }
-
-    if (activeUser.isBlocked) {
+    if (user.isBlocked) {
       throw new UnauthorizedException(
         "Your account has been blocked due to multiple warnings. Please contact support.",
       );
+    }
+
+    if (user.accountStatus === UserAccountStatus.SUSPENDED) {
+      if (!this.userService.isSelfDeletionPending(user)) {
+        throw new UnauthorizedException(
+          "Your account is suspended. Please contact support.",
+        );
+      }
+
+      activeUser = await this.userService.reactivateAccount(user.id);
     }
 
     if (!activeUser.isEmailVerified) {
@@ -99,6 +105,20 @@ export class AuthService {
 
       const user = await this.userService.findById(userId);
       if (!user || !user.refreshToken) throw new UnauthorizedException();
+
+      if (user.isBlocked) {
+        throw new UnauthorizedException(
+          "Your account has been blocked due to multiple warnings. Please contact support.",
+        );
+      }
+
+      if (user.accountStatus === UserAccountStatus.SUSPENDED) {
+        throw new UnauthorizedException(
+          this.userService.isSelfDeletionPending(user)
+            ? "Your account deletion is scheduled. Log in again within 30 days to restore it."
+            : "Your account is suspended. Please contact support.",
+        );
+      }
 
       const valid = await bcrypt.compare(token, user.refreshToken);
       if (!valid) throw new UnauthorizedException();

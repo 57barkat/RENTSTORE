@@ -120,7 +120,7 @@ export default function PublicProfileScreen() {
 
       await publicApiClient.delete("/users/delete");
       toast.success(
-        "Your account has been suspended. You can reactivate it by logging in again.",
+        "Your account deletion has been scheduled. Log in within 30 days to restore it.",
       );
       setShowSuspendModal(false);
       await logout();
@@ -128,7 +128,7 @@ export default function PublicProfileScreen() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Unable to suspend your account right now.",
+          : "Unable to delete your account right now.",
       );
     } finally {
       setSuspending(false);
@@ -391,13 +391,14 @@ export default function PublicProfileScreen() {
 
               <div>
                 <h3 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                  Delete or suspend account
+                  Delete account
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
-                  AnganStay will suspend your account instead of permanently
-                  deleting data immediately. Your public profile and listings
-                  will be hidden, and you can restore visibility by logging in
-                  again.
+                  AnganStay will hide your account for 30 days before permanent
+                  deletion. You can download your data before deleting your
+                  account. Log in any time within the 30-day period to restore
+                  your account and listings. After 30 days, your account and all
+                  associated data will be permanently deleted.
                 </p>
               </div>
             </div>
@@ -410,7 +411,7 @@ export default function PublicProfileScreen() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 py-3.5 text-sm font-bold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {suspending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Download my data before deleting/suspending
+                Download my data before deleting
               </button>
 
               <button
@@ -419,7 +420,7 @@ export default function PublicProfileScreen() {
                 onClick={() => void handleSuspendAccount(false)}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Delete/suspend account only
+                Delete account only
               </button>
 
               <button

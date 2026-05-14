@@ -157,7 +157,7 @@ const Sidebar: React.FC = () => {
     }
   };
 
-  const suspendAccount = async (downloadFirst: boolean) => {
+  const deleteAccount = async (downloadFirst: boolean) => {
     try {
       if (downloadFirst) {
         const exportData = await exportMyData(undefined).unwrap();
@@ -172,14 +172,14 @@ const Sidebar: React.FC = () => {
       await logout();
       Toast.show({
         type: "success",
-        text1: "Account suspended",
-        text2: "Log in again anytime to reactivate your account.",
+        text1: "Account deletion scheduled",
+        text2: "Log in within 30 days to restore your account.",
       });
       router.replace("/signin");
     } catch {
       Toast.show({
         type: "error",
-        text1: "Unable to suspend account",
+        text1: "Unable to delete account",
         text2: "Please try again or contact support.",
       });
     }
@@ -187,18 +187,18 @@ const Sidebar: React.FC = () => {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete or suspend account",
-      "We will suspend your account, hide your public data, and keep it safely stored so you can reactivate by logging in again.",
+      "Delete account",
+      "Your account will be hidden for 30 days. Log in during that time to restore it. After 30 days, your account and data will be permanently deleted.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Download my data before deleting/suspending",
-          onPress: () => void suspendAccount(true),
+          text: "Download my data before deleting",
+          onPress: () => void deleteAccount(true),
         },
         {
-          text: "Delete/suspend account only",
+          text: "Delete account only",
           style: "destructive",
-          onPress: () => void suspendAccount(false),
+          onPress: () => void deleteAccount(false),
         },
       ],
     );

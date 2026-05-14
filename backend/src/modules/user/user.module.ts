@@ -3,6 +3,7 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { User, UserSchema } from "./user.entity";
 import { UserService } from "./user.service";
 import { UserController } from "./user.controller";
+import { UserDeletionCron } from "./user-deletion.cron";
 import { AuthModule } from "../../services/auth.module";
 import { Agency, AgencySchema } from "../Agency/agency.entity";
 import { Property, PropertySchema } from "../property/property.schema";
@@ -18,7 +19,7 @@ import { EmailModule } from "../../services/email/email.module";
     forwardRef(() => AuthModule),
     EmailModule,
   ],
-  providers: [UserService],
+  providers: [UserService, UserDeletionCron],
   controllers: [UserController],
   exports: [UserService],
 })
