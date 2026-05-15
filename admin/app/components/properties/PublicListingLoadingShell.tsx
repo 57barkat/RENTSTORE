@@ -3,8 +3,10 @@
 import { usePathname } from "next/navigation";
 
 import PublicSearchHero from "@/app/components/properties/PublicSearchHero";
-import { useProperties } from "@/app/hooks/usePublicProperties";
-import type { PropertyCategory } from "@/app/lib/property-types";
+import type {
+  PropertyCategory,
+  PropertySearchFilters,
+} from "@/app/lib/property-types";
 import { getPublicCategoryFromPath } from "@/app/lib/route-constants";
 import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 
@@ -61,11 +63,20 @@ export default function PublicListingLoadingShell({
       ? category
       : (getPublicCategoryFromPath(pathname) as PropertyCategory | null);
   const activeCategory = inferredCategory || category;
-  const { filters } = useProperties(activeCategory);
 
   if (pathname !== "/" && !inferredCategory) {
     return null;
   }
+
+  const filters: PropertySearchFilters = {
+    category: activeCategory,
+    purpose: "rent",
+    city: "Islamabad",
+    location: "",
+    page: 1,
+    limit: 10,
+    sortBy: "newest",
+  };
 
   return (
     <main className="has-sticky-filters min-h-screen overflow-x-clip bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
