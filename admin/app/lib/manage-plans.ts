@@ -20,7 +20,7 @@ export const managePlans = (plan: unknown): ManagedPlan => {
       key: "free",
       label: "Free",
       badgeLabel: "Free plan",
-      description: "Basic access for browsing and saving listings.",
+      description: "Basic access for browsing and saving property listings.",
       icon: ShieldCheck,
     };
   }

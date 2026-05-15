@@ -13,13 +13,14 @@ import {
   Menu,
   Plus,
   Search,
-  Settings,
   UserCircle2,
   X,
   type LucideIcon,
 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -30,6 +31,7 @@ import { createPortal } from "react-dom";
 
 import { PublicAccountNavItems } from "@/app/components/public/PublicAccountNavigation";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
+import { usePublicScrollHeader } from "@/app/components/public/PublicScrollHeaderContext";
 import {
   PUBLIC_CATEGORY_LINKS,
   getPublicCategoryFromPath,
@@ -154,6 +156,11 @@ function ProfileMenuLink({
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
+const STICKY_FILTERS_PAGE_SELECTOR = ".has-sticky-filters";
+const STICKY_FILTER_SENTINEL_SELECTOR = "[data-public-sticky-filter-sentinel]";
+const STICKY_FILTER_OFFSET_VISIBLE = "var(--public-header-height, 74px)";
+const HEADER_HIDE_DELTA = 4;
+const HEADER_REVEAL_DELTA = 1;
 
 export default function PublicHeader() {
   const pathname = usePathname();
@@ -165,16 +172,30 @@ export default function PublicHeader() {
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [hasStickyFilters, setHasStickyFilters] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
   const drawerCloseButtonRef = useRef<HTMLButtonElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const profileButtonRef = useRef<HTMLButtonElement>(null);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
+  const lastScrollYRef = useRef(0);
+  const headerHiddenRef = useRef(false);
 
   const activeCategory = getPublicCategoryFromPath(pathname);
   const isAccountArea = isPublicAccountRoute(pathname);
   const mobileMenuVisibilityClass = isAccountArea ? "lg:hidden" : "xl:hidden";
   const { isAuthenticated, isLoading, logout, user } = usePublicAuth();
+  const { setIsHeaderHidden } = usePublicScrollHeader();
+
+  const setHeaderHiddenState = useCallback((nextHidden: boolean) => {
+    if (headerHiddenRef.current === nextHidden) return;
+
+    headerHiddenRef.current = nextHidden;
+    setHeaderHidden(nextHidden);
+    setIsHeaderHidden(nextHidden);
+  }, [setIsHeaderHidden]);
 
   const closeMobileMenu = () => setMobileOpen(false);
   const closeProfileMenu = () => setProfileOpen(false);
@@ -184,7 +205,7 @@ export default function PublicHeader() {
     user?.email?.split("@")?.[0] ||
     "Account";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const header = headerRef.current;
     if (!header) return;
 
@@ -208,6 +229,155 @@ export default function PublicHeader() {
 
     return () => resizeObserver.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    let frameId: number | null = null;
+    let resetForPath = false;
+
+    const detectStickyFiltersPage = () => {
+      const enabled = Boolean(
+        document.querySelector(STICKY_FILTERS_PAGE_SELECTOR),
+      );
+
+      setHasStickyFilters((current) =>
+        current === enabled ? current : enabled,
+      );
+
+      if (!enabled || !resetForPath) {
+        setHeaderHiddenState(false);
+        lastScrollYRef.current = window.scrollY;
+        resetForPath = true;
+      }
+    };
+
+    const scheduleDetection = () => {
+      if (frameId !== null) return;
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        detectStickyFiltersPage();
+      });
+    };
+
+    scheduleDetection();
+
+    const timeoutId = window.setTimeout(scheduleDetection, 120);
+    const observer =
+      typeof MutationObserver === "undefined"
+        ? null
+        : new MutationObserver(scheduleDetection);
+
+    observer?.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      window.clearTimeout(timeoutId);
+      observer?.disconnect();
+    };
+  }, [mounted, pathname, setHeaderHiddenState]);
+
+  useLayoutEffect(() => {
+    if (!mounted) return;
+
+    const root = document.documentElement;
+
+    if (hasStickyFilters) {
+      root.style.setProperty(
+        "--public-sticky-filter-offset",
+        headerHidden ? "0px" : STICKY_FILTER_OFFSET_VISIBLE,
+      );
+    } else {
+      root.style.removeProperty("--public-sticky-filter-offset");
+    }
+  }, [hasStickyFilters, headerHidden, mounted]);
+
+  useEffect(() => {
+    return () => {
+      document.documentElement.style.removeProperty(
+        "--public-sticky-filter-offset",
+      );
+      setIsHeaderHidden(false);
+    };
+  }, [setIsHeaderHidden]);
+
+  useEffect(() => {
+    if (!hasStickyFilters || !mounted) return;
+
+    lastScrollYRef.current = window.scrollY;
+
+    const filtersHaveReachedHeader = () => {
+      const sentinel = document.querySelector(STICKY_FILTER_SENTINEL_SELECTOR);
+      if (!sentinel) return false;
+
+      const headerHeight =
+        headerRef.current?.getBoundingClientRect().height ||
+        Number.parseFloat(
+          window
+            .getComputedStyle(document.documentElement)
+            .getPropertyValue("--public-header-height"),
+        ) ||
+        74;
+
+      return sentinel.getBoundingClientRect().top <= headerHeight + 1;
+    };
+
+    const handleScroll = () => {
+      if (scrollAnimationFrameRef.current !== null) return;
+
+      scrollAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        scrollAnimationFrameRef.current = null;
+
+        const currentScrollY = Math.max(window.scrollY, 0);
+        const previousScrollY = lastScrollYRef.current;
+        const delta = currentScrollY - previousScrollY;
+        const filtersTouchingHeader = filtersHaveReachedHeader();
+
+        if (currentScrollY <= 12 || !filtersTouchingHeader) {
+          setHeaderHiddenState(false);
+          lastScrollYRef.current = currentScrollY;
+          return;
+        }
+
+        if (delta < -HEADER_REVEAL_DELTA) {
+          setHeaderHiddenState(false);
+          lastScrollYRef.current = currentScrollY;
+          return;
+        }
+
+        if (delta > HEADER_HIDE_DELTA && !mobileOpen && !profileOpen) {
+          setHeaderHiddenState(true);
+          lastScrollYRef.current = currentScrollY;
+          return;
+        }
+
+        if (Math.abs(delta) > HEADER_REVEAL_DELTA) {
+          lastScrollYRef.current = currentScrollY;
+        }
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+
+      if (scrollAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(scrollAnimationFrameRef.current);
+        scrollAnimationFrameRef.current = null;
+      }
+    };
+  }, [
+    hasStickyFilters,
+    mobileOpen,
+    mounted,
+    profileOpen,
+    setHeaderHiddenState,
+  ]);
 
   useEffect(() => {
     if (!mobileOpen || !mounted) return;
@@ -287,7 +457,7 @@ export default function PublicHeader() {
 
   const mobileDrawer = mounted ? (
     <div
-      className={`fixed inset-0 z-[1000] transition-[visibility] duration-200 ${mobileMenuVisibilityClass} ${
+      className={`fixed inset-0 z-[1000] transition-[visibility] duration-300 ${mobileMenuVisibilityClass} ${
         mobileOpen
           ? "visible pointer-events-auto"
           : "invisible pointer-events-none"
@@ -299,7 +469,7 @@ export default function PublicHeader() {
         aria-label="Close navigation overlay"
         tabIndex={-1}
         onClick={closeMobileMenu}
-        className={`absolute inset-0 h-full w-full bg-slate-950/55 backdrop-blur-[2px] transition-opacity duration-200 ${
+        className={`absolute inset-0 h-full w-full bg-slate-950/55 backdrop-blur-[2px] transition-opacity duration-300 ease-out ${
           mobileOpen ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -309,18 +479,20 @@ export default function PublicHeader() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-mobile-drawer-title"
-        className={`relative z-10 flex h-dvh w-[82vw] max-w-[320px] flex-col overflow-hidden border-r border-[var(--admin-border)] bg-white shadow-[24px_0_60px_-36px_rgba(15,23,42,0.55)] transition-transform duration-200 ease-out ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        className={`relative z-10 flex h-dvh w-[82vw] max-w-[320px] flex-col overflow-hidden border-r border-[var(--admin-border)] bg-white shadow-[24px_0_60px_-36px_rgba(15,23,42,0.55)] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          mobileOpen
+            ? "translate-x-0 opacity-100"
+            : "-translate-x-full opacity-0"
         }`}
       >
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--admin-border)] px-4 py-3.5">
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="inline-flex min-w-0 items-center gap-3 text-[var(--admin-text)]"
+            className="public-logo-link inline-flex min-w-0 items-center gap-3 text-[var(--admin-text)]"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#000080] text-white">
-              <Building2 size={19} />
+            <span className="public-logo-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#000080] text-white">
+              <Building2 className="public-logo-icon" size={19} />
             </span>
 
             <span className="min-w-0">
@@ -445,16 +617,20 @@ export default function PublicHeader() {
     <>
       <header
         ref={headerRef}
-        className="sticky top-0 z-50 border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-[rgba(255,255,255,0.94)] backdrop-blur-xl"
+        className={`sticky top-0 z-50 transform-gpu border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-out will-change-transform ${
+          hasStickyFilters && headerHidden
+            ? "pointer-events-none -translate-y-full"
+            : "translate-y-0"
+        }`}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-5">
             <Link
               href="/"
-              className="inline-flex items-center gap-3 text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
+              className="public-logo-link inline-flex items-center gap-3 text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white shadow-[0_18px_30px_-18px_var(--admin-primary)]">
-                <Building2 size={20} />
+              <span className="public-logo-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white shadow-[0_18px_30px_-18px_var(--admin-primary)]">
+                <Building2 className="public-logo-icon" size={20} />
               </span>
 
               <span className="flex flex-col leading-none">
@@ -486,13 +662,13 @@ export default function PublicHeader() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
+            {/* <Link
               href="/"
               className="hidden items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
             >
               <Search size={16} />
               All Properties
-            </Link>
+            </Link> */}
 
             {!isLoading && isAuthenticated ? (
               <>
@@ -510,7 +686,10 @@ export default function PublicHeader() {
                     type="button"
                     aria-haspopup="menu"
                     aria-expanded={profileOpen}
-                    onClick={() => setProfileOpen((current) => !current)}
+                    onClick={() => {
+                      setHeaderHiddenState(false);
+                      setProfileOpen((current) => !current);
+                    }}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white py-1.5 pl-1.5 pr-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/10"
                   >
                     <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
@@ -541,7 +720,7 @@ export default function PublicHeader() {
                       ref={profileMenuRef}
                       role="menu"
                       aria-label="Account menu"
-                      className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)]"
+                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] origin-top-right overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)] transition-[opacity,transform] duration-200 ease-out ${profileOpen ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0"}`}
                     >
                       <div className="border-b border-[var(--admin-border)] px-3 py-3">
                         <p className="truncate text-sm font-black text-[var(--admin-text)]">
@@ -585,9 +764,9 @@ export default function PublicHeader() {
 
                         <ProfileMenuLink
                           href="/account/profile"
-                          icon={Settings}
-                          label="Settings"
-                          description="Update profile and account details"
+                          icon={UserCircle2}
+                          label="Profile"
+                          description="Manage profile and account details"
                           active={matchesRoute(pathname, "/account/profile")}
                           onClick={closeProfileMenu}
                         />
@@ -642,7 +821,10 @@ export default function PublicHeader() {
 
             <button
               type="button"
-              onClick={() => setMobileOpen(true)}
+              onClick={() => {
+                setHeaderHiddenState(false);
+                setMobileOpen(true);
+              }}
               className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-icon)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] ${mobileMenuVisibilityClass} ${
                 mobileOpen
                   ? "pointer-events-none opacity-0"

@@ -51,6 +51,7 @@
     --admin-placeholder: #94a3b8;
     --admin-shadow: rgba(0, 0, 0, 0.05);
     --public-header-height: 78px;
+    --public-sticky-filter-offset: var(--public-header-height);
 
     --admin-primary-soft: rgba(0, 0, 128, 0.08);
     --admin-primary-strong: rgba(0, 0, 128, 0.16);
@@ -146,16 +147,36 @@
 
   body {
     background:
-      radial-gradient(circle at top left, var(--admin-primary-soft), transparent 28%),
-      radial-gradient(circle at top right, var(--admin-secondary-soft), transparent 24%),
-      linear-gradient(180deg, var(--admin-background) 0%, var(--admin-card) 100%);
+      radial-gradient(
+        circle at top left,
+        var(--admin-primary-soft),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at top right,
+        var(--admin-secondary-soft),
+        transparent 24%
+      ),
+      linear-gradient(
+        180deg,
+        var(--admin-background) 0%,
+        var(--admin-card) 100%
+      );
     color: var(--admin-text);
     @apply antialiased;
   }
 
+  html {
+    scrollbar-color: color-mix(in srgb, var(--admin-primary) 42%, #6b7280 58%)
+      color-mix(in srgb, var(--admin-card) 92%, #d1d5db 8%);
+
+    scrollbar-width: auto;
+  }
+
+  /* Text selection */
   ::selection {
     background: var(--admin-primary);
-    color: var(--admin-background);
+    color: white;
   }
 
   input::placeholder,
@@ -163,17 +184,41 @@
     color: var(--admin-placeholder);
   }
 
+  /* Scrollbar */
   ::-webkit-scrollbar {
-    width: 5px;
+    width: 14px;
+    height: 14px;
   }
 
+  /* Track */
   ::-webkit-scrollbar-track {
-    background: transparent;
+    background: color-mix(in srgb, var(--admin-card) 94%, #d1d5db 6%);
   }
 
+  /* Thumb */
   ::-webkit-scrollbar-thumb {
-    background: var(--admin-border);
-    border-radius: 10px;
+    background: color-mix(in srgb, var(--admin-primary) 38%, #6b7280 62%);
+
+    border-radius: 999px;
+
+    border: 3px solid color-mix(in srgb, var(--admin-card) 94%, #d1d5db 6%);
+
+    min-height: 56px;
+  }
+
+  /* Hover */
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--admin-primary) 58%, #4b5563 42%);
+  }
+
+  /* Active drag */
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--admin-primary);
+  }
+
+  /* Corner */
+  ::-webkit-scrollbar-corner {
+    background: color-mix(in srgb, var(--admin-card) 94%, #d1d5db 6%);
   }
 }
 
@@ -240,6 +285,77 @@
     background-color: var(--admin-primary-soft);
   }
 
+  .public-logo-link .public-logo-mark {
+    position: relative;
+    overflow: hidden;
+    transform: translateZ(0);
+    animation: public-logo-float 4.8s ease-in-out infinite;
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease,
+      background-color 220ms ease;
+    will-change: transform;
+  }
+
+  .public-logo-link .public-logo-mark::after {
+    content: "";
+    position: absolute;
+    inset: -35%;
+    background: linear-gradient(
+      120deg,
+      transparent 34%,
+      rgba(255, 255, 255, 0.45) 48%,
+      transparent 62%
+    );
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-120%) rotate(8deg);
+  }
+
+  .public-logo-link .public-logo-icon {
+    position: relative;
+    z-index: 1;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .public-logo-link:hover .public-logo-mark,
+  .public-logo-link:focus-visible .public-logo-mark {
+    animation: none;
+    box-shadow: 0 18px 34px -18px var(--admin-primary-strong);
+    transform: translate3d(0, -2px, 0) scale(1.05) rotate(2deg);
+  }
+
+  .public-logo-link:hover .public-logo-mark::after,
+  .public-logo-link:focus-visible .public-logo-mark::after {
+    animation: public-logo-shine 680ms ease-out;
+  }
+
+  .public-logo-link:hover .public-logo-icon,
+  .public-logo-link:focus-visible .public-logo-icon {
+    transform: rotate(-6deg) scale(1.04);
+  }
+
+  .public-sticky-filter-bar::before {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    height: var(--public-header-height, 74px);
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom: 1px solid
+      color-mix(in srgb, var(--admin-border) 86%, transparent);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateZ(0);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .public-sticky-filter-bar[data-stuck="true"]::before {
+    opacity: 1;
+  }
+
   .admin-badge-featured {
     background-color: var(--admin-accent);
     color: var(--admin-text);
@@ -266,6 +382,52 @@
     background-color: var(--admin-warning-soft);
     border: 1px solid rgba(217, 119, 6, 0.18);
     color: var(--admin-warning);
+  }
+}
+
+@keyframes public-logo-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+@keyframes public-logo-shine {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) rotate(8deg);
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(120%) rotate(8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-logo-link .public-logo-mark,
+  .public-logo-link:hover .public-logo-mark,
+  .public-logo-link:focus-visible .public-logo-mark,
+  .public-logo-link .public-logo-mark::after,
+  .public-logo-link:hover .public-logo-mark::after,
+  .public-logo-link:focus-visible .public-logo-mark::after,
+  .public-logo-link .public-logo-icon,
+  .public-logo-link:hover .public-logo-icon,
+  .public-logo-link:focus-visible .public-logo-icon {
+    animation: none;
+    transform: none;
+  }
+
+  .public-sticky-filter-bar {
+    transition: none;
   }
 }
 

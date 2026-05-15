@@ -1,5 +1,5 @@
-import PublicListingSkeleton from "@/app/components/properties/PublicListingSkeleton";
+import PublicListingLoadingShell from "@/app/components/properties/PublicListingLoadingShell";
 
 export default function PublicLoading() {
-  return <PublicListingSkeleton />;
+  return <PublicListingLoadingShell />;
 }

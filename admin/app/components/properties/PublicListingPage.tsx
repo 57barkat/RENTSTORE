@@ -171,7 +171,10 @@ export default async function PublicListingPage({
   };
 
   const breadcrumbs = buildListingBreadcrumbs(filters);
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd(breadcrumbs);
+  const showBreadcrumbs = breadcrumbs.length > 1;
+  const breadcrumbJsonLd = showBreadcrumbs
+    ? buildBreadcrumbJsonLd(breadcrumbs)
+    : null;
   const currentPage = response.page || 1;
   const totalPages = response.totalPages || 1;
   const seoContent = buildListingSeoContent(filters);
@@ -223,7 +226,7 @@ export default async function PublicListingPage({
   }, {});
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
+    <main className="has-sticky-filters min-h-screen overflow-x-clip bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
       <Script
         id={`category-jsonld-${category}-${currentPage}`}
         type="application/ld+json"
@@ -232,13 +235,15 @@ export default async function PublicListingPage({
         {serializeJsonLd(jsonLd)}
       </Script>
 
-      <Script
-        id={`category-breadcrumbs-jsonld-${category}-${currentPage}`}
-        type="application/ld+json"
-        strategy="beforeInteractive"
-      >
-        {serializeJsonLd(breadcrumbJsonLd)}
-      </Script>
+      {breadcrumbJsonLd && (
+        <Script
+          id={`category-breadcrumbs-jsonld-${category}-${currentPage}`}
+          type="application/ld+json"
+          strategy="beforeInteractive"
+        >
+          {serializeJsonLd(breadcrumbJsonLd)}
+        </Script>
+      )}
 
       {faqJsonLd && (
         <Script
@@ -257,39 +262,41 @@ export default async function PublicListingPage({
         backgroundImage={DEFAULT_PROPERTY_IMAGE}
       />
 
-      <section className="mx-auto w-full max-w-[1500px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-        <nav
-          aria-label="Breadcrumb"
-          className="mb-5 flex flex-wrap items-center gap-2 text-xs text-[var(--admin-muted)] sm:text-sm"
-        >
-          {breadcrumbs.map((item, index) => {
-            const isLast = index === breadcrumbs.length - 1;
+      <section className="mx-auto w-full min-w-0 max-w-[1500px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+        {showBreadcrumbs && (
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-5 flex flex-wrap items-center gap-2 text-xs text-[var(--admin-muted)] sm:text-sm"
+          >
+            {breadcrumbs.map((item, index) => {
+              const isLast = index === breadcrumbs.length - 1;
 
-            return (
-              <div
-                key={`${item.href}-${item.name}`}
-                className="flex items-center gap-2"
-              >
-                {isLast ? (
-                  <span className="font-semibold text-[var(--admin-text)]">
-                    {item.name}
-                  </span>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className="transition hover:text-[var(--admin-primary)]"
-                  >
-                    {item.name}
-                  </Link>
-                )}
+              return (
+                <div
+                  key={`${item.href}-${item.name}`}
+                  className="flex items-center gap-2"
+                >
+                  {isLast ? (
+                    <span className="font-semibold text-[var(--admin-text)]">
+                      {item.name}
+                    </span>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="transition hover:text-[var(--admin-primary)]"
+                    >
+                      {item.name}
+                    </Link>
+                  )}
 
-                {!isLast && (
-                  <span className="text-[var(--admin-muted)]">/</span>
-                )}
-              </div>
-            );
-          })}
-        </nav>
+                  {!isLast && (
+                    <span className="text-[var(--admin-muted)]">/</span>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+        )}
 
         <div className="space-y-6">
           <section className="min-w-0 space-y-6">
@@ -331,7 +338,7 @@ export default async function PublicListingPage({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {response.data.map((property) => (
                   <PropertyCard
                     key={property._id}

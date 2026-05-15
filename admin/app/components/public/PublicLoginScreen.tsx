@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import PublicAuthCard from "@/app/components/public/PublicAuthCard";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
 import PublicEmailVerificationModal from "@/app/components/public/PublicEmailVerificationModal";
+import { broadcastAuthSessionEvent } from "@/app/lib/session-sync";
 
 type AuthPayload = {
   message?: string | { message?: string; email?: string };
@@ -62,6 +63,7 @@ export default function PublicLoginScreen() {
     message = "Welcome back.",
   ) => {
     await refreshSession();
+    broadcastAuthSessionEvent("public", "login");
 
     if (message) {
       toast.success(message);
@@ -89,6 +91,7 @@ export default function PublicLoginScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify(form),
       });
 
@@ -158,6 +161,7 @@ export default function PublicLoginScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify(form),
       });
 
@@ -186,7 +190,7 @@ export default function PublicLoginScreen() {
     <>
       <PublicAuthCard
         title="Login to your account"
-        description="Manage your uploads, favorites, and profile from the same verified account system used in the mobile app."
+        description="Manage your uploads, favorites, and profile using the same verified account system as the mobile app."
         aside={
           <div className="space-y-4">
             {[
@@ -241,7 +245,7 @@ export default function PublicLoginScreen() {
                 }))
               }
               className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
-              placeholder="you@example.com or 03xx..."
+              placeholder="example@email.com or 03XX-XXXXXXX"
               autoComplete="username"
               required
             />
@@ -283,7 +287,7 @@ export default function PublicLoginScreen() {
             href="/account/signup"
             className="font-semibold text-[var(--admin-primary)] hover:underline"
           >
-            Create one here
+            Create one here.
           </Link>
         </p>
       </PublicAuthCard>

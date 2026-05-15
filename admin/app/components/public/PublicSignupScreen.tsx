@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import PublicAuthCard from "@/app/components/public/PublicAuthCard";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
 import PublicEmailVerificationModal from "@/app/components/public/PublicEmailVerificationModal";
+import { broadcastAuthSessionEvent } from "@/app/lib/session-sync";
 
 type PublicSignupRole = "user" | "agent";
 type AuthPayload = {
@@ -88,6 +89,7 @@ export default function PublicSignupScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           ...form,
           isAgencyPerson: false,
@@ -123,6 +125,7 @@ export default function PublicSignupScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           email: signupEmail,
           code: verificationCode,
@@ -143,6 +146,7 @@ export default function PublicSignupScreen() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "same-origin",
         body: JSON.stringify({
           emailOrPhone: form.email,
           password: form.password,
@@ -157,6 +161,7 @@ export default function PublicSignupScreen() {
       }
 
       await refreshSession();
+      broadcastAuthSessionEvent("public", "login");
       setShowVerifyModal(false);
       setVerificationCode("");
       toast.success("Email verified.");

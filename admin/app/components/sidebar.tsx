@@ -11,8 +11,14 @@ import {
   MailWarning,
   Upload,
 } from "lucide-react";
+import { useEffect } from "react";
 import { destroyCookie } from "nookies";
 import { useRouter, usePathname } from "next/navigation";
+
+import {
+  broadcastAuthSessionEvent,
+  subscribeAuthSessionEvents,
+} from "@/app/lib/session-sync";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -30,12 +36,26 @@ export default function Sidebar({
   const router = useRouter();
   const pathname = usePathname();
 
+  useEffect(
+    () =>
+      subscribeAuthSessionEvents("admin", (event) => {
+        if (event.type === "logout") {
+          router.push("/login");
+          return;
+        }
+
+        router.refresh();
+      }),
+    [router],
+  );
+
   const handleLogout = async () => {
     destroyCookie(null, "admin_token", { path: "/" });
     await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "same-origin",
     });
+    broadcastAuthSessionEvent("admin", "logout", "manual");
     router.push("/login");
   };
 

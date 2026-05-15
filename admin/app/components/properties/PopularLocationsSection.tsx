@@ -29,7 +29,7 @@ export default function PopularLocationsSection({
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase text-[var(--admin-primary)] shadow-sm">
               <TrendingUp className="h-3.5 w-3.5" />
-              Popular locations
+              Trending Areas
             </span>
 
             <h2 className="mt-3 text-2xl font-black text-[var(--admin-text)] sm:text-3xl">

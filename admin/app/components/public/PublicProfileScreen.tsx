@@ -1,9 +1,10 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useMemo, useRef, useState } from "react";
 import {
   BadgeCheck,
   Camera,
+  Copy,
   Loader2,
   LogOut,
   Mail,
@@ -39,6 +40,7 @@ export default function PublicProfileScreen() {
   const [removing, setRemoving] = useState(false);
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspending, setSuspending] = useState(false);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const plan = managePlans(user?.subscription);
   const PlanIcon = plan.icon;
   const initials = useMemo(
@@ -50,6 +52,26 @@ export default function PublicProfileScreen() {
   const displayEmail = user?.email || "No email added";
   const displayPhone = user?.phone || "No phone added";
   const displayRole = user?.role || "user";
+  const displayRoleLabel =
+    displayRole.charAt(0).toUpperCase() + displayRole.slice(1).toLowerCase();
+  const publicAccountLabel = `Public Account (${displayRoleLabel})`;
+
+  const openProfilePhotoPicker = () => {
+    if (uploading || removing) return;
+
+    profilePhotoInputRef.current?.click();
+  };
+
+  const copyEmailAddress = async () => {
+    if (!user?.email) return;
+
+    try {
+      await navigator.clipboard.writeText(user.email);
+      toast.success("Email address copied.");
+    } catch {
+      toast.error("Unable to copy email address.");
+    }
+  };
 
   const handleProfileImageUpload = async (
     event: ChangeEvent<HTMLInputElement>,
@@ -142,10 +164,24 @@ export default function PublicProfileScreen() {
     >
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-56px_var(--admin-shadow)]">
+          <input
+            ref={profilePhotoInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            className="hidden"
+            onChange={handleProfileImageUpload}
+          />
+
           <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(16,185,129,0.06))] px-5 py-6 sm:px-7 sm:py-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="relative h-28 w-28 shrink-0">
-                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_22px_55px_-38px_var(--admin-shadow)]">
+              <button
+                type="button"
+                onClick={openProfilePhotoPicker}
+                disabled={uploading || removing}
+                aria-label="Upload profile photo"
+                className="group relative h-28 w-28 shrink-0 rounded-[2rem] text-left outline-none transition focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/20 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                <span className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_22px_55px_-38px_var(--admin-shadow)]">
                   {user?.profileImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -158,22 +194,25 @@ export default function PublicProfileScreen() {
                       {initials}
                     </span>
                   )}
-                </div>
+                </span>
+
+                <span className="absolute inset-0 flex items-center justify-center rounded-[2rem] bg-slate-950/0 text-white opacity-0 transition group-hover:bg-slate-950/35 group-hover:opacity-100 group-focus-visible:bg-slate-950/35 group-focus-visible:opacity-100">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-2 text-xs font-bold text-[var(--admin-primary)] shadow-sm">
+                    <UploadCloud className="h-3.5 w-3.5" />
+                    Upload
+                  </span>
+                </span>
 
                 <span className="absolute -bottom-2 -right-2 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white bg-[var(--admin-primary)] text-white shadow-[0_16px_30px_-20px_var(--admin-primary)]">
                   <Camera className="h-4 w-4" />
                 </span>
-              </div>
+              </button>
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[var(--admin-primary)] shadow-sm">
                     <BadgeCheck className="h-3.5 w-3.5" />
-                    Public account
-                  </span>
-
-                  <span className="inline-flex rounded-full border border-[var(--admin-border)] bg-white/75 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-[var(--admin-muted)]">
-                    {displayRole}
+                    {publicAccountLabel}
                   </span>
                 </div>
 
@@ -183,8 +222,8 @@ export default function PublicProfileScreen() {
 
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--admin-muted)]">
                   This is the profile information connected to your AnganStay
-                  account. Your photo helps hosts, agents, and support identify
-                  your account more easily.
+                  account. Your profile photo helps hosts, agents, and support
+                  staff identify your account more easily.
                 </p>
               </div>
             </div>
@@ -198,13 +237,30 @@ export default function PublicProfileScreen() {
                     <Mail className="h-5 w-5" />
                   </span>
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--admin-muted)]">
                       Email address
                     </p>
-                    <p className="mt-1 truncate text-sm font-bold text-[var(--admin-text)]">
-                      {displayEmail}
-                    </p>
+                    <div className="mt-1 flex items-start gap-2">
+                      <p
+                        title={displayEmail}
+                        className="min-w-0 flex-1 break-all text-[13px] font-bold leading-5 text-[var(--admin-text)]"
+                      >
+                        {displayEmail}
+                      </p>
+
+                      {user?.email ? (
+                        <button
+                          type="button"
+                          onClick={() => void copyEmailAddress()}
+                          title="Copy full email address"
+                          aria-label="Copy full email address"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -231,30 +287,29 @@ export default function PublicProfileScreen() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-lg font-black tracking-tight text-[var(--admin-text)]">
-                    Profile photo
+                    Profile Photo
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
-                    Upload a clear photo for your public account. Supported
-                    formats include JPG, PNG, WEBP, HEIC, and HEIF.
+                    Upload a clear profile photo for your public account.
+                    Supported formats include JPG, PNG, WEBP, HEIC, and HEIF.
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_34px_-26px_var(--admin-primary)] transition hover:opacity-95">
+                <button
+                  type="button"
+                  onClick={openProfilePhotoPicker}
+                  disabled={uploading || removing}
+                  className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 py-3.5 text-sm font-bold text-white shadow-[0_18px_34px_-26px_var(--admin-primary)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                >
                   {uploading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <UploadCloud className="h-4 w-4" />
                   )}
-                  {uploading ? "Uploading..." : "Upload new photo"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                    className="hidden"
-                    onChange={handleProfileImageUpload}
-                  />
-                </label>
+                  {uploading ? "Uploading..." : "Upload New Photo"}
+                </button>
 
                 <button
                   type="button"
@@ -267,7 +322,7 @@ export default function PublicProfileScreen() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  Remove photo
+                  Remove Photo
                 </button>
               </div>
             </div>
@@ -286,7 +341,7 @@ export default function PublicProfileScreen() {
                   Account status
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
-                  Your account is connected to AnganStay&apos;s public rental
+                  Your account is connected to the AnganStay public rental
                   marketplace.
                 </p>
               </div>
@@ -348,8 +403,8 @@ export default function PublicProfileScreen() {
               {[
                 "Upload and manage your property listings.",
                 "Save properties to your favorites.",
-                "Update your profile photo anytime.",
-                "Contact support for account or listing help.",
+                "Update your profile photo at any time.",
+                "Contact support for help with your account or property listings.",
               ].map((item) => (
                 <div key={item} className="flex gap-3">
                   <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--admin-primary)]" />

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   Loader2,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";
+import { usePublicScrollHeader } from "@/app/components/public/PublicScrollHeaderContext";
 import type {
   FurnishingType,
   HostelType,
@@ -29,19 +30,19 @@ import {
 interface PublicSearchHeroProps {
   category: PropertyCategory;
   filters: PropertySearchFilters;
-  total: number;
+  total?: number | null;
   backgroundImage?: string;
 }
 
 type NumericFilterValue = number | "";
 
 const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
-  { label: "All", value: "property" },
-  { label: "Hostels", value: "hostel" },
-  { label: "Apartments", value: "apartment" },
+  { label: "All Properties", value: "property" },
   { label: "Houses", value: "home" },
-  { label: "Offices", value: "office" },
+  { label: "Apartments", value: "apartment" },
+  { label: "Hostels", value: "hostel" },
   { label: "Shops", value: "shop" },
+  { label: "Offices", value: "office" },
 ];
 
 const CITY_OPTIONS = [
@@ -94,26 +95,32 @@ const stringifyNumericFilter = (value: number | "" | undefined) =>
 
 const formatBudgetLabel = (minRent?: number | "", maxRent?: number | "") => {
   const min = typeof minRent === "number" && minRent > 0 ? minRent : null;
+
   const max = typeof maxRent === "number" && maxRent > 0 ? maxRent : null;
 
-  if (!min && !max) return "Any budget";
+  if (!min && !max) {
+    return "Any budget";
+  }
 
   const formatter = new Intl.NumberFormat("en-PK", {
     maximumFractionDigits: 0,
     notation: "compact",
   });
 
-  if (min && max)
+  if (min && max) {
     return `Rs. ${formatter.format(min)} - ${formatter.format(max)}`;
+  }
 
-  return min
-    ? `From Rs. ${formatter.format(min)}`
-    : `Up to Rs. ${formatter.format(max!)}`;
+  if (min) {
+    return `From Rs. ${formatter.format(min)}`;
+  }
+
+  return `Up to Rs. ${formatter.format(max!)}`;
 };
 
 const getActiveFilterCount = (filters: PropertySearchFilters) =>
   [
-    filters.category !== "property",
+    // filters.category !== "property",
     // filters.city,
     filters.location,
     filters.minRent,
@@ -143,10 +150,13 @@ export default function PublicSearchHero({
   backgroundImage,
 }: PublicSearchHeroProps) {
   const { updateFilters } = useProperties(category);
+  const { isHeaderHidden } = usePublicScrollHeader();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [filtersStuck, setFiltersStuck] = useState(false);
   const [optimisticFilters, setOptimisticFilters] =
     useState<PropertySearchFilters>(filters);
+  const stickyFilterSentinelRef = useRef<HTMLDivElement>(null);
   const [locationInput, setLocationInput] = useState(filters.location || "");
   const [minRentInput, setMinRentInput] = useState(
     stringifyNumericFilter(filters.minRent),
@@ -174,19 +184,77 @@ export default function PublicSearchHero({
   };
 
   const activeFilterCount = getActiveFilterCount(displayFilters);
+  const showStickyCategorySelector = filtersStuck && isHeaderHidden;
+  const stickyFilterRowClass = showStickyCategorySelector
+    ? "grid grid-cols-2 gap-2 md:grid-cols-[minmax(160px,220px)_minmax(0,1fr)_auto_auto] xl:grid-cols-[minmax(180px,220px)_minmax(280px,1fr)_minmax(260px,360px)_auto_auto]"
+    : "grid grid-cols-2 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(360px,1fr)_minmax(280px,420px)_auto_auto]";
+  const locationFieldClass = showStickyCategorySelector
+    ? "col-span-1 min-w-0 xl:col-span-1"
+    : "col-span-2 min-w-0 xl:col-span-1";
+  const priceFieldClass = showStickyCategorySelector
+    ? "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white xl:col-span-1 xl:grid xl:w-full xl:grid-cols-2"
+    : "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white md:col-span-2 md:grid md:w-full md:grid-cols-2 xl:col-span-1";
+  const compactPriceRowClass = showStickyCategorySelector
+    ? "mt-2 grid grid-cols-2 gap-2 xl:hidden"
+    : "mt-2 grid grid-cols-2 gap-2 md:hidden";
 
   const heroLocation = useMemo(() => {
-    if (displayFilters.location && displayFilters.city)
-      return `${displayFilters.location}, ${displayFilters.city}`;
+    // if (displayFilters.location && displayFilters.city)
+    //   return `${displayFilters.location}, ${displayFilters.city}`;
 
-    if (displayFilters.location) return displayFilters.location;
+    // if (displayFilters.location) return displayFilters.location;
 
-    if (displayFilters.city) return displayFilters.city;
+    // if (displayFilters.city) return displayFilters.city;
 
     return "Islamabad ";
   }, [displayFilters.city, displayFilters.location]);
 
   const selectedAmenities = displayFilters.amenities || [];
+
+  useEffect(() => {
+    const sentinel = stickyFilterSentinelRef.current;
+    if (!sentinel) return;
+
+    let frameId: number | null = null;
+
+    const getHeaderHeight = () =>
+      Number.parseFloat(
+        window
+          .getComputedStyle(document.documentElement)
+          .getPropertyValue("--public-header-height"),
+      ) || 74;
+
+    const updateStuckState = () => {
+      const shouldStick =
+        sentinel.getBoundingClientRect().top <= getHeaderHeight() + 1;
+
+      setFiltersStuck((current) =>
+        current === shouldStick ? current : shouldStick,
+      );
+    };
+
+    const scheduleUpdate = () => {
+      if (frameId !== null) return;
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        updateStuckState();
+      });
+    };
+
+    scheduleUpdate();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
 
   const commitFilters = (nextFilters: Partial<PropertySearchFilters>) => {
     setOptimisticFilters((currentFilters) => ({
@@ -305,14 +373,14 @@ export default function PublicSearchHero({
   };
 
   const activeChips = [
-    displayFilters.category !== "property"
-      ? {
-          key: "category",
-          label: getCategoryLabel(displayFilters.category, true),
-          onRemove: () =>
-            commitFilters({ category: "property", hostelType: "" }),
-        }
-      : null,
+    // displayFilters.category !== "property"
+    //   ? {
+    //       key: "category",
+    //       label: getCategoryLabel(displayFilters.category, true),
+    //       onRemove: () =>
+    //         commitFilters({ category: "property", hostelType: "" }),
+    //     }
+    //   : null,
     displayFilters.location
       ? {
           key: "location",
@@ -333,17 +401,24 @@ export default function PublicSearchHero({
     //       },
     //     }
     //   : null,
-    displayFilters.minRent || displayFilters.maxRent
+    displayFilters.minRent
       ? {
           key: "budget",
-          label: formatBudgetLabel(
-            displayFilters.minRent,
-            displayFilters.maxRent,
-          ),
+          label: formatBudgetLabel(displayFilters.minRent, ""),
           onRemove: () => {
             setMinRentInput("");
+            commitFilters({ minRent: "" });
+          },
+        }
+      : null,
+
+    displayFilters.maxRent
+      ? {
+          key: "budget1",
+          label: formatBudgetLabel("", displayFilters.maxRent),
+          onRemove: () => {
             setMaxRentInput("");
-            commitFilters({ minRent: "", maxRent: "" });
+            commitFilters({ maxRent: "" });
           },
         }
       : null,
@@ -702,13 +777,15 @@ export default function PublicSearchHero({
 
           <h1 className="mt-5 max-w-4xl text-[2.2rem] font-black leading-[1.08] tracking-[-0.03em] text-white sm:text-5xl lg:text-6xl">
             Find your perfect{" "}
-            <span className="italic text-[#22C55E]">angan</span> in{" "}
+            <span className="italic text-[#22C55E]">Angan</span> in{" "}
             {heroLocation}
           </h1>
 
           <p className="mt-5 max-w-2xl text-sm leading-7 text-white/90 sm:text-base">
-            Browse {total.toLocaleString("en-PK")} verified listings with live
-            pricing, photos, and location-aware filters.
+            {typeof total === "number"
+              ? `Browse ${total.toLocaleString("en-PK")} verified listings`
+              : "Browse verified listings"}{" "}
+            with live pricing, photos, and location-aware filters.
             <span className="mt-2 block text-sm text-white/85">
               AnganStay is currently focused on Islamabad. More cities are
               coming soon.
@@ -717,27 +794,49 @@ export default function PublicSearchHero({
         </div>
       </section>
 
+      <div
+        ref={stickyFilterSentinelRef}
+        data-public-sticky-filter-sentinel="true"
+        aria-hidden="true"
+        className="h-px"
+      />
+
       <section
-        className="sticky z-40 -mt-16 border-b border-[var(--admin-border)] bg-white/92 px-4 py-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:px-6 lg:px-8"
-        style={{ top: "calc(var(--public-header-height, 0px))" }}
+        data-stuck={filtersStuck ? "true" : "false"}
+        className="public-sticky-filter-bar has-sticky-filters sticky top-0 z-40 transform-gpu border-b border-[var(--admin-border)] bg-white/95 px-4 py-3 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-[transform,box-shadow,background-color] duration-300 ease-out will-change-transform sm:px-6 lg:px-8"
+        style={{
+          transform: filtersStuck
+            ? "translate3d(0, var(--public-sticky-filter-offset, var(--public-header-height, 74px)), 0)"
+            : "translate3d(0, 0, 0)",
+        }}
       >
-        <div className="mx-auto max-w-[1500px]">
+        <div className="mx-auto w-full min-w-0 md:max-w-[1500px] md:px-5">
           <form
             onSubmit={(event) => {
               event.preventDefault();
               applyPrimarySearch();
             }}
-            className="rounded-[1.25rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm"
+            className="min-w-0 rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm"
           >
-            <div className="grid gap-2 lg:grid-cols-[minmax(180px,220px)_minmax(260px,1fr)_minmax(220px,0.7fr)_auto_auto]">
-              <label className="relative hidden lg:block">
+            <div className={`relative ${stickyFilterRowClass}`}>
+              <label
+                className={`min-h-12 shrink-0 transform-gpu transition-[opacity,transform] duration-300 ease-out ${
+                  showStickyCategorySelector
+                    ? "relative col-span-1 min-w-0 translate-y-0 scale-100 opacity-100 xl:col-span-1"
+                    : "pointer-events-none absolute left-0 top-0 w-[190px] -translate-y-1 scale-95 opacity-0"
+                }`}
+                aria-hidden={!showStickyCategorySelector}
+              >
                 <span className="sr-only">Property category</span>
+
                 <select
                   value={displayFilters.category}
                   onChange={(event) =>
                     handleCategoryChange(event.target.value as PropertyCategory)
                   }
-                  className="admin-input h-12 w-full appearance-none rounded-2xl px-4 pr-9 text-sm"
+                  disabled={!showStickyCategorySelector}
+                  tabIndex={showStickyCategorySelector ? undefined : -1}
+                  className="h-12 w-full appearance-none rounded-2xl border border-[var(--admin-border)] bg-white px-3 pr-8 text-sm font-semibold text-[var(--admin-text)] shadow-sm outline-none transition hover:border-[var(--admin-primary)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10 sm:px-4 sm:pr-10"
                 >
                   {CATEGORY_TABS.map((tab) => (
                     <option key={tab.value} value={tab.value}>
@@ -745,30 +844,21 @@ export default function PublicSearchHero({
                     </option>
                   ))}
                 </select>
+
                 <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--admin-muted)]" />
               </label>
 
-              <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-[var(--admin-border)] bg-white px-4 transition focus-within:border-[var(--admin-primary)] focus-within:ring-4 focus-within:ring-[var(--admin-primary)]/10">
+              <label
+                className={`flex min-h-12 items-center gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-surface,#fff)] px-4 transition focus-within:border-[var(--admin-primary)] focus-within:ring-4 focus-within:ring-[var(--admin-primary)]/10 ${
+                  locationFieldClass
+                }`}
+              >
                 <MapPin className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
-                <span className="relative shrink-0 border-r border-[var(--admin-border)] pr-3">
-                  <span className="sr-only">City</span>
-                  {/* <select
-                    value={displayFilters.city || ""}
-                    onChange={(event) => handleCityChange(event.target.value)}
-                    className="w-[104px] appearance-none bg-transparent pr-5 text-sm text-[var(--admin-text)] outline-none sm:w-[118px]"
-                  >
-                    {CITY_OPTIONS.map((city) => (
-                      <option
-                        key={city.value || "all-cities"}
-                        value={city.value}
-                      >
-                        {city.label}
-                      </option>
-                    ))}
-                  </select> */}
-                  {"Islamabad"}
-                  {/* <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--admin-muted)]" /> */}
+
+                <span className="hidden shrink-0 border-r border-[var(--admin-border)] pr-3 text-sm font-semibold text-[var(--admin-text)] sm:inline-flex">
+                  Islamabad
                 </span>
+
                 <input
                   value={locationInput}
                   onChange={(event) => setLocationInput(event.target.value)}
@@ -777,7 +867,7 @@ export default function PublicSearchHero({
                 />
               </label>
 
-              <div className="hidden min-h-12 grid-cols-2 items-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 md:grid">
+              <div className={priceFieldClass}>
                 <input
                   value={minRentInput}
                   onChange={(event) => setMinRentInput(event.target.value)}
@@ -786,8 +876,9 @@ export default function PublicSearchHero({
                   min={0}
                   placeholder="Min price"
                   aria-invalid={rentRangeHasError}
-                  className="min-w-0 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
+                  className="min-w-0 bg-transparent px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
+
                 <input
                   value={maxRentInput}
                   onChange={(event) => setMaxRentInput(event.target.value)}
@@ -796,19 +887,19 @@ export default function PublicSearchHero({
                   min={0}
                   placeholder="Max price"
                   aria-invalid={rentRangeHasError}
-                  className="min-w-0 border-l border-[var(--admin-border)] bg-transparent pl-3 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
+                  className="min-w-0 border-l border-[var(--admin-border)] bg-transparent px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={() => setFiltersOpen(true)}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-3 text-sm font-medium text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] sm:px-4"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
                 {activeFilterCount > 0 && (
-                  <span className="rounded-full bg-[var(--admin-primary)] px-2 py-0.5 text-xs text-white">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--admin-primary)] px-1.5 text-xs font-semibold text-white">
                     {activeFilterCount}
                   </span>
                 )}
@@ -817,20 +908,48 @@ export default function PublicSearchHero({
               <button
                 type="submit"
                 disabled={rentRangeHasError}
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white shadow-[0_16px_30px_-24px_var(--admin-primary)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-[0_18px_34px_-24px_var(--admin-primary)] transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50 sm:px-6"
               >
                 <Search className="h-4 w-4" />
-                <span className="hidden sm:inline">Search</span>
+                <span>Search</span>
               </button>
             </div>
 
+            <div className={compactPriceRowClass}>
+              <input
+                value={minRentInput}
+                onChange={(event) => setMinRentInput(event.target.value)}
+                inputMode="numeric"
+                type="number"
+                min={0}
+                placeholder="Min price"
+                aria-invalid={rentRangeHasError}
+                className="min-h-11 min-w-0 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+              />
+
+              <input
+                value={maxRentInput}
+                onChange={(event) => setMaxRentInput(event.target.value)}
+                inputMode="numeric"
+                type="number"
+                min={0}
+                placeholder="Max price"
+                aria-invalid={rentRangeHasError}
+                className="min-h-11 min-w-0 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+              />
+            </div>
+
             {rentRangeHasError && (
-              <p className="mt-2 px-2 text-xs text-red-600">
+              <p className="mt-2 px-2 text-xs font-medium text-red-600">
                 Min price cannot be higher than max price.
               </p>
             )}
 
-            <div className="mt-2 flex gap-2 overflow-x-auto pb-1 lg:hidden">
+            <div
+              className={`mt-3 gap-2 pb-1 lg:hidden ${
+                showStickyCategorySelector ? "hidden" : "flex flex-wrap"
+              }`}
+            >
               {CATEGORY_TABS.map((tab) => {
                 const active = displayFilters.category === tab.value;
 
@@ -839,10 +958,10 @@ export default function PublicSearchHero({
                     key={tab.value}
                     type="button"
                     onClick={() => handleCategoryChange(tab.value)}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-xs transition ${
+                    className={`shrink-0 rounded-full border px-4 py-2 text-xs font-medium transition ${
                       active
-                        ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
-                        : "border-[var(--admin-border)] bg-white text-[var(--admin-text)]"
+                        ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white shadow-sm"
+                        : "border-[var(--admin-border)] bg-white text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                     }`}
                   >
                     {tab.label}
@@ -853,22 +972,23 @@ export default function PublicSearchHero({
           </form>
 
           {activeChips.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out">
               {activeChips.map((chip) => (
                 <button
                   key={chip.key}
                   type="button"
                   onClick={chip.onRemove}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
                 >
                   {chip.label}
                   <X className="h-3.5 w-3.5" />
                 </button>
               ))}
+
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="shrink-0 rounded-full px-3 py-2 text-xs text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)]"
+                className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)]"
               >
                 Reset filters
               </button>
@@ -878,7 +998,13 @@ export default function PublicSearchHero({
       </section>
 
       {filtersOpen && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 px-0 backdrop-blur-sm sm:items-center sm:px-4">
+        <div
+          className={`fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 px-0 backdrop-blur-sm transition-opacity duration-300 ease-out sm:items-center sm:px-4 ${
+            filtersOpen
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0"
+          }`}
+        >
           <button
             type="button"
             aria-label="Close filters"
@@ -886,7 +1012,13 @@ export default function PublicSearchHero({
             className="absolute inset-0"
           />
 
-          <div className="relative max-h-[88vh] w-full overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.7)] transition sm:max-w-3xl sm:rounded-[1.75rem]">
+          <div
+            className={`relative max-h-[88vh] w-full overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.7)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-3xl sm:rounded-[1.75rem] ${
+              filtersOpen
+                ? "translate-y-0 scale-100 opacity-100"
+                : "translate-y-6 scale-95 opacity-0 sm:translate-y-2"
+            }`}
+          >
             <div className="flex items-center justify-between gap-4 border-b border-[var(--admin-border)] px-5 py-4">
               <div>
                 <h2 className="text-lg text-[var(--admin-text)]">

@@ -1,4 +1,10 @@
-export default function PublicListingSkeleton() {
+export default function PublicListingSkeleton({
+  title = "Loading",
+  description = "Please wait while we load listings.",
+}: {
+  title?: string;
+  description?: string;
+}) {
   return (
     <div className="flex flex-1 items-center justify-center bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] px-4 py-16 sm:px-6 lg:px-8">
       <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-[var(--admin-border)] bg-white px-10 py-9 text-center shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
@@ -14,11 +20,11 @@ export default function PublicListingSkeleton() {
         {/* Text */}
         <div>
           <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-            Loading
+            {title}
           </h2>
 
           <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--admin-muted)]">
-            Please wait while we load listings.
+            {description}
           </p>
         </div>
       </div>

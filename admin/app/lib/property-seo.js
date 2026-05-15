@@ -65,31 +65,31 @@ export const PUBLIC_PROPERTY_ROUTE_MAP = {
     category: "home",
     legacyHref: "/houses",
     seoExampleHref: "/houses-for-rent-in-islamabad",
-    label: "House",
+    label: "Houses",
   },
   apartment: {
     category: "apartment",
     legacyHref: "/apartments",
     seoExampleHref: "/apartments-for-rent-in-islamabad",
-    label: "Apartment",
+    label: "Apartments",
   },
   hostel: {
     category: "hostel",
     legacyHref: "/hostels",
     seoExampleHref: "/hostels-for-rent-in-islamabad",
-    label: "Hostel",
+    label: "Hostels",
   },
   shop: {
     category: "shop",
     legacyHref: "/shops",
     seoExampleHref: "/shops-for-rent-in-islamabad",
-    label: "Shop",
+    label: "Shops",
   },
   office: {
     category: "office",
     legacyHref: "/offices",
     seoExampleHref: "/offices-for-rent-in-islamabad",
-    label: "Office",
+    label: "Offices",
   },
 };
 

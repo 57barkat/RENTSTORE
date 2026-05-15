@@ -44,6 +44,7 @@ const buildStatItems = (property: PublicProperty) => {
   if (property.capacityState?.bedrooms || property.capacityState?.beds) {
     const value =
       property.capacityState?.bedrooms || property.capacityState?.beds;
+
     items.push({
       key: "beds",
       value: String(value),
@@ -80,11 +81,13 @@ const buildStatItems = (property: PublicProperty) => {
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const { isPropertyHidden } = useReportedProperties();
+
   const detailHref = buildPropertyHref(property);
   const galleryImages =
     property.photos && property.photos.length > 0
       ? property.photos
       : [DEFAULT_PROPERTY_IMAGE];
+
   const title = getPropertyTitle(property);
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
@@ -140,11 +143,6 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
           <Suspense fallback={null}>
             <PublicFavoriteButton property={property} />
           </Suspense>
-          {/* <ReportListingButton
-            propertyId={property._id}
-            listingTitle={title}
-            variant="icon"
-          /> */}
 
           {previewHref && (
             <Link
@@ -159,7 +157,11 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col px-3.5 py-3.5">
+      <Link
+        href={detailHref}
+        aria-label={`View details for ${title}`}
+        className="flex flex-1 flex-col px-3.5 py-3.5 outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/15"
+      >
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[10px] font-black uppercase text-[var(--admin-secondary)]">
             {categoryLabel}
@@ -172,12 +174,9 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
           )}
         </div>
 
-        <Link
-          href={detailHref}
-          className="mt-2 line-clamp-2 min-h-[38px] text-sm font-black leading-[1.35] text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
-        >
+        <h3 className="mt-2 line-clamp-2 min-h-[38px] text-sm font-black leading-[1.35] text-[var(--admin-text)] transition group-hover:text-[var(--admin-primary)]">
           {title}
-        </Link>
+        </h3>
 
         {locationLabel && (
           <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--admin-muted)]">
@@ -232,15 +231,14 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
             </p>
           </div>
 
-          <Link
-            href={detailHref}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary)] hover:text-white"
-            aria-label={`View details for ${title}`}
+          <span
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition group-hover:border-[var(--admin-primary)] group-hover:bg-[var(--admin-primary)] group-hover:text-white"
+            aria-hidden="true"
           >
             <ArrowUpRight size={14} />
-          </Link>
+          </span>
         </div>
-      </div>
+      </Link>
     </article>
   );
 };

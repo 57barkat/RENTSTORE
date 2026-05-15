@@ -148,7 +148,7 @@ export default function PublicPhoneVerificationPanel({
               onChange={(event) => setPhone(event.target.value)}
               className="admin-input h-12 w-full rounded-2xl pl-11 pr-4 text-sm"
               autoComplete="tel"
-              placeholder="03xx..."
+              placeholder="03XX-XXXXXXX"
               disabled={sending || verifying || otpSent}
               required
             />

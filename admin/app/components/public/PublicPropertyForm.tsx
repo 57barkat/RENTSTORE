@@ -798,8 +798,8 @@ export default function PublicPropertyForm({
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-[32px] border border-[var(--admin-border)] bg-white shadow-[0_30px_90px_-55px_var(--admin-shadow)]">
-        <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(23,183,122,0.06))] p-6 sm:p-8">
+      <div className="rounded-[32px] border border-[var(--admin-border)] bg-white shadow-[0_30px_90px_-55px_var(--admin-shadow)]">
+        <div className="rounded-t-[32px] border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(23,183,122,0.06))] p-6 sm:p-8">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-4xl">
               <Link
@@ -1532,10 +1532,77 @@ export default function PublicPropertyForm({
                 </>
               ) : null}
             </SectionCard>
+
+            <div className="rounded-[28px] border border-[var(--admin-border)] bg-white p-5 shadow-[0_22px_50px_-42px_var(--admin-shadow)] sm:p-6">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                  <Banknote className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-black text-[var(--admin-text)]">
+                    Final actions
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
+                    Save a draft first or submit immediately for review.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <label className="flex items-start gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 text-sm leading-6 text-[var(--admin-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={accuracyConfirmed}
+                    onChange={(event) =>
+                      setAccuracyConfirmed(event.target.checked)
+                    }
+                    className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
+                  />
+                  <span>
+                    I confirm that I am authorized to publish this property and
+                    that the rent, location, photos, availability, and contact
+                    details are accurate.
+                  </span>
+                </label>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {mode === "create" ? (
+                    <button
+                      type="button"
+                      disabled={submitting || uploadingImages}
+                      onClick={() => void submitForm(false)}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-5 py-3.5 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-70"
+                    >
+                      {submitting && !uploadingImages ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      Save draft
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={submitting || uploadingImages || !accuracyConfirmed}
+                    className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70 ${
+                      mode === "create" ? "" : "sm:col-span-2"
+                    }`}
+                  >
+                    {submitting || uploadingImages ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : null}
+                    {uploadingImages
+                      ? "Uploading images..."
+                      : mode === "edit"
+                        ? "Save changes"
+                        : "Submit property"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </form>
 
-          <aside className="border-t border-[var(--admin-border)] bg-[var(--admin-background)]/35 p-5 sm:p-6 xl:sticky xl:top-24 xl:h-fit xl:border-l xl:border-t-0">
-            <div className="space-y-5">
+          <aside className="rounded-b-[32px] border-t border-[var(--admin-border)] bg-[var(--admin-background)]/35 p-5 sm:p-6 xl:rounded-bl-none xl:rounded-br-[32px] xl:border-l xl:border-t-0">
+            <div className="flex flex-col gap-5 xl:sticky xl:top-24">
               <div className="rounded-[28px] border border-[var(--admin-border)] bg-white p-5 shadow-[0_22px_50px_-42px_var(--admin-shadow)]">
                 <div className="flex items-start gap-3">
                   <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
@@ -1632,73 +1699,6 @@ export default function PublicPropertyForm({
                       are handled automatically.
                     </p>
                   </div>
-                </div>
-              </div>
-
-              <div className="rounded-[28px] border border-[var(--admin-border)] bg-white p-5 shadow-[0_22px_50px_-42px_var(--admin-shadow)]">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
-                    <Banknote className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <h3 className="text-lg font-black text-[var(--admin-text)]">
-                      Final actions
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
-                      Save a draft first or submit immediately for review.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-6 space-y-3">
-                  <label className="flex items-start gap-3 rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 text-sm leading-6 text-[var(--admin-muted)]">
-                    <input
-                      type="checkbox"
-                      checked={accuracyConfirmed}
-                      onChange={(event) =>
-                        setAccuracyConfirmed(event.target.checked)
-                      }
-                      className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
-                    />
-                    <span>
-                      I confirm that I am authorized to publish this property
-                      and that the rent, location, photos, availability, and
-                      contact details are accurate.
-                    </span>
-                  </label>
-
-                  {mode === "create" ? (
-                    <button
-                      type="button"
-                      disabled={submitting || uploadingImages}
-                      onClick={() => void submitForm(false)}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-5 py-3.5 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] disabled:cursor-not-allowed disabled:opacity-70"
-                    >
-                      {submitting && !uploadingImages ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : null}
-                      Save draft
-                    </button>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    disabled={submitting || uploadingImages || !accuracyConfirmed}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      void submitForm(true);
-                    }}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-5 py-3.5 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {submitting || uploadingImages ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : null}
-                    {uploadingImages
-                      ? "Uploading images..."
-                      : mode === "edit"
-                        ? "Save changes"
-                        : "Submit property"}
-                  </button>
                 </div>
               </div>
 

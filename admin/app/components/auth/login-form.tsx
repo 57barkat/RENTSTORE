@@ -5,6 +5,8 @@ import { destroyCookie } from "nookies";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
+import { broadcastAuthSessionEvent } from "@/app/lib/session-sync";
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,6 +25,7 @@ export default function LoginPage() {
       method: "POST",
       credentials: "same-origin",
     });
+    broadcastAuthSessionEvent("admin", "logout", "reauth");
   }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -45,6 +48,7 @@ export default function LoginPage() {
         throw new Error("Login failed");
       }
 
+      broadcastAuthSessionEvent("admin", "login");
       router.push("/dashboard");
     } catch {
       alert("Invalid credentials. Please try again.");

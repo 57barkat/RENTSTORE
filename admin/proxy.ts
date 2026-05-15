@@ -35,6 +35,8 @@ const getApiBaseUrl = (request: NextRequest) => {
 const refreshAdminSession = async (
   request: NextRequest,
   refreshToken: string,
+  isAllowedRole: (role: string | null | undefined) => boolean = (role) =>
+    role === "admin",
 ) => {
   try {
     const response = await fetch(`${getApiBaseUrl(request)}/users/refresh`, {
@@ -68,7 +70,7 @@ const refreshAdminSession = async (
       data.accessToken,
       process.env.JWT_SECRET,
     );
-    if (!session || session.role !== "admin") {
+    if (!session || !isAllowedRole(session.role)) {
       return null;
     }
 
@@ -77,6 +79,9 @@ const refreshAdminSession = async (
     return null;
   }
 };
+
+const refreshPublicSession = (request: NextRequest, refreshToken: string) =>
+  refreshAdminSession(request, refreshToken, isAllowedPublicRole);
 
 const applyAuthCookies = (
   response: NextResponse,
@@ -195,7 +200,7 @@ export async function proxy(request: NextRequest) {
   const isAdmin = session?.role === "admin";
 
   if ((!publicSession || !isAllowedPublicRole(publicSession.role)) && publicRefreshToken) {
-    const refreshed = await refreshAdminSession(request, publicRefreshToken);
+    const refreshed = await refreshPublicSession(request, publicRefreshToken);
 
     if (refreshed?.accessToken && refreshed.refreshToken) {
       const refreshedTokens = {

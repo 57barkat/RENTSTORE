@@ -4,14 +4,101 @@ import { destroyCookie, parseCookies } from "nookies";
 
 import { getAccessTokenCookieOptions } from "@/app/lib/auth-cookies";
 import { PUBLIC_ACCESS_COOKIE } from "@/app/lib/public-auth-config";
+import { broadcastAuthSessionEvent } from "@/app/lib/session-sync";
 
 const API_BASE_PATH = "/api/v1";
 const FRONTEND_SECRET = process.env.MY_APP_SECRET || "";
 let refreshRequest: Promise<{ accessToken: string }> | null = null;
 
+export class PublicAuthSessionExpiredError extends Error {
+  constructor(message = "Public auth session expired") {
+    super(message);
+    this.name = "PublicAuthSessionExpiredError";
+  }
+}
+
+export const isPublicAuthSessionExpiredError = (
+  error: unknown,
+): error is PublicAuthSessionExpiredError =>
+  error instanceof PublicAuthSessionExpiredError;
+
 const publicApiClient = axios.create({
   baseURL: API_BASE_PATH,
 });
+
+const persistPublicAccessToken = (accessToken: string) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const options = getAccessTokenCookieOptions();
+  document.cookie = `${PUBLIC_ACCESS_COOKIE}=${accessToken}; Path=/; Max-Age=${options.maxAge}; SameSite=Lax${
+    options.secure ? "; Secure" : ""
+  }`;
+};
+
+export const refreshPublicAccessToken = async () => {
+  if (!refreshRequest) {
+    refreshRequest = fetch("/api/public-auth/refresh", {
+      method: "POST",
+      credentials: "same-origin",
+    })
+      .then(async (res) => {
+        const payload = await res.json().catch(() => null);
+        if (!res.ok || !payload?.accessToken) {
+          throw new PublicAuthSessionExpiredError("Refresh failed");
+        }
+        return { accessToken: payload.accessToken as string };
+      })
+      .finally(() => {
+        refreshRequest = null;
+      });
+  }
+
+  const refreshed = await refreshRequest;
+  persistPublicAccessToken(refreshed.accessToken);
+  broadcastAuthSessionEvent("public", "refresh");
+  return refreshed.accessToken;
+};
+
+const clearPublicBrowserSession = async (reason: string) => {
+  destroyCookie(null, PUBLIC_ACCESS_COOKIE, { path: "/" });
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  await fetch("/api/public-auth/logout", {
+    method: "POST",
+    credentials: "same-origin",
+  }).catch(() => null);
+
+  broadcastAuthSessionEvent("public", "logout", reason);
+};
+
+const redirectToPublicLoginIfNeeded = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const { pathname } = window.location;
+  const isPublicAuthPage =
+    pathname === "/account/login" || pathname === "/account/signup";
+  const requiresAuthenticatedPage =
+    !isPublicAuthPage &&
+    (pathname.startsWith("/account/") ||
+      pathname === "/upload-property" ||
+      pathname.startsWith("/upload-property/"));
+
+  if (!requiresAuthenticatedPage) {
+    return;
+  }
+
+  const redirectPath = encodeURIComponent(
+    `${window.location.pathname}${window.location.search}`,
+  );
+  window.location.href = `/account/login?redirect=${redirectPath}`;
+};
 
 publicApiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const cookies = parseCookies();
@@ -46,28 +133,8 @@ publicApiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        if (!refreshRequest) {
-          refreshRequest = fetch("/api/public-auth/refresh", {
-            method: "POST",
-            credentials: "same-origin",
-          })
-            .then(async (res) => {
-              const payload = await res.json().catch(() => null);
-              if (!res.ok || !payload?.accessToken) {
-                throw new Error("Refresh failed");
-              }
-              return { accessToken: payload.accessToken as string };
-            })
-            .finally(() => {
-              refreshRequest = null;
-            });
-        }
+        const newToken = await refreshPublicAccessToken();
 
-        const { accessToken: newToken } = await refreshRequest;
-
-        document.cookie = `${PUBLIC_ACCESS_COOKIE}=${newToken}; Path=/; Max-Age=${getAccessTokenCookieOptions().maxAge}; SameSite=Lax${
-          getAccessTokenCookieOptions().secure ? "; Secure" : ""
-        }`;
         originalRequest.headers = originalRequest.headers || {};
         (
           originalRequest.headers as AxiosHeaders & Record<string, string>
@@ -75,25 +142,9 @@ publicApiClient.interceptors.response.use(
 
         return publicApiClient(originalRequest);
       } catch {
-        destroyCookie(null, PUBLIC_ACCESS_COOKIE, { path: "/" });
-
-        if (typeof window !== "undefined") {
-          const requiresAuthenticatedPage =
-            window.location.pathname.startsWith("/account") ||
-            window.location.pathname.startsWith("/upload-property");
-
-          void fetch("/api/public-auth/logout", {
-            method: "POST",
-            credentials: "same-origin",
-          }).finally(() => {
-            if (requiresAuthenticatedPage) {
-              const redirectPath = encodeURIComponent(
-                `${window.location.pathname}${window.location.search}`,
-              );
-              window.location.href = `/account/login?redirect=${redirectPath}`;
-            }
-          });
-        }
+        await clearPublicBrowserSession("refresh-failed");
+        redirectToPublicLoginIfNeeded();
+        return Promise.reject(new PublicAuthSessionExpiredError());
       }
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   X,
   ChevronLeft,
@@ -57,6 +57,37 @@ export default function PropertyGallery({
   const goNext = () => {
     setIndex((current) => (current + 1) % images.length);
   };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        return;
+      }
+
+      if (images.length <= 1) return;
+
+      if (event.key === "ArrowLeft") {
+        setIndex((current) => (current + images.length - 1) % images.length);
+      }
+
+      if (event.key === "ArrowRight") {
+        setIndex((current) => (current + 1) % images.length);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [images.length, isOpen]);
 
   const renderBadges = () => (
     <div className="absolute left-5 top-5 z-30 flex flex-col items-start gap-2"></div>

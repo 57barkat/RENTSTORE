@@ -554,7 +554,7 @@ const buildPriceInfo = (
         amount,
         frequency,
         label: "Monthly rent",
-        suffix: "/ mo",
+        suffix: "/ month",
         schemaUnitText: "month",
         schemaUnitCode: "MON",
       };
@@ -581,7 +581,7 @@ const buildPriceInfo = (
         amount,
         frequency: "monthly",
         label: "Monthly rent",
-        suffix: "/ mo",
+        suffix: "/ month",
         schemaUnitText: "month",
         schemaUnitCode: "MON",
       };
@@ -783,11 +783,11 @@ export const buildListingDescription = (
   const purposeLabel = filters.purpose === "sale" ? "sale" : "rent";
 
   if (filters.location && city) {
-    return `${resultPrefix} for ${category} for ${purposeLabel} in ${filters.location}, ${city}. Find the right match by filtering for price, amenities, and nearby neighborhoods.`;
+    return `${resultPrefix} for ${category} for ${purposeLabel} in ${filters.location}, ${city}. Find the right match by filtering by price, amenities, and nearby neighborhoods.`;
   }
 
   if (city) {
-    return `${resultPrefix} for ${category} for ${purposeLabel} in ${city}. Find the right match by filtering for price, amenities, and nearby neighborhoods.`;
+    return `${resultPrefix} for ${category} for ${purposeLabel} in ${city}. Find the right match by filtering by price, amenities, and nearby neighborhoods.`;
   }
 
   if (filters.location) {
