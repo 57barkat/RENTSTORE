@@ -2,7 +2,6 @@ import Link from "next/link";
 import Script from "next/script";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
-import BrowseByCategorySection from "@/app/components/properties/BrowseByCategorySection";
 import ListingToolbar from "@/app/components/properties/ListingToolbar";
 import PopularLocationsSection from "@/app/components/properties/PopularLocationsSection";
 import PublicListingTrustBanner from "@/app/components/properties/PublicListingTrustBanner";
@@ -19,6 +18,7 @@ import {
 import type {
   PopularLocationSummary,
   PropertyCategory,
+  PublicPropertyFilterOptions,
   PropertySearchFilters,
   PropertySearchResponse,
 } from "@/app/lib/property-types";
@@ -28,7 +28,6 @@ import {
   buildPropertySearchQuery,
   DEFAULT_PROPERTY_IMAGE,
   getCategoryLabel,
-  getPropertyCategory,
   getPropertyTitle,
 } from "@/app/lib/property-utils";
 import { parseSeoListingSlug } from "@/app/lib/property-seo";
@@ -101,6 +100,17 @@ const resolvePopularLocationsCity = (
   return firstPropertyCity?.trim() || "";
 };
 
+const EMPTY_FILTER_OPTIONS: PublicPropertyFilterOptions = {
+  amenities: [],
+  furnishing: [],
+  hostelTypes: [],
+  sizeUnits: [],
+  bedrooms: [],
+  bathrooms: [],
+  parkingAvailable: false,
+  familyFriendlyAvailable: false,
+};
+
 export default async function PublicListingPage({
   category,
   filters,
@@ -111,6 +121,7 @@ export default async function PublicListingPage({
 }: PublicListingPageProps) {
   let fetchError: string | null = null;
   let popularLocations: PopularLocationSummary[] = [];
+  let filterOptions: PublicPropertyFilterOptions = EMPTY_FILTER_OPTIONS;
   let response: PropertySearchResponse = {
     data: [],
     total: 0,
@@ -135,6 +146,16 @@ export default async function PublicListingPage({
       error instanceof Error
         ? error.message
         : "Unable to load property listings right now.";
+  }
+
+  try {
+    filterOptions = await PropertyService.getFilterOptions({
+      category,
+      city: filters.city,
+      purpose: filters.purpose || "rent",
+    });
+  } catch {
+    filterOptions = EMPTY_FILTER_OPTIONS;
   }
 
   try {
@@ -217,14 +238,6 @@ export default async function PublicListingPage({
       ? "properties"
       : getCategoryLabel(category, true).toLowerCase();
 
-  const categoryCounts = response.data.reduce<
-    Partial<Record<PropertyCategory, number>>
-  >((counts, property) => {
-    const propertyCategory = getPropertyCategory(property);
-    counts[propertyCategory] = (counts[propertyCategory] || 0) + 1;
-    return counts;
-  }, {});
-
   return (
     <main className="has-sticky-filters min-h-screen overflow-x-clip bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
       <Script
@@ -258,6 +271,7 @@ export default async function PublicListingPage({
       <PublicSearchHero
         category={category}
         filters={filters}
+        filterOptions={filterOptions}
         total={response.total}
         backgroundImage={DEFAULT_PROPERTY_IMAGE}
       />

@@ -149,6 +149,23 @@ export interface PropertySearchResponse {
   message?: string;
 }
 
+export interface PublicFilterOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+export interface PublicPropertyFilterOptions {
+  amenities: PublicFilterOption[];
+  furnishing: PublicFilterOption[];
+  hostelTypes: PublicFilterOption[];
+  sizeUnits: PublicFilterOption[];
+  bedrooms: number[];
+  bathrooms: number[];
+  parkingAvailable: boolean;
+  familyFriendlyAvailable: boolean;
+}
+
 export interface PopularLocationSummary {
   area: string;
   city: string;

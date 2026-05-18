@@ -55,6 +55,29 @@ interface PopularLocationsParams {
   limit?: number;
 }
 
+export interface PublicFilterOptionsParams {
+  hostOption?: string;
+  city?: string;
+  purpose?: "rent" | "sale";
+}
+
+export interface FilterOption {
+  value: string;
+  label: string;
+  count?: number;
+}
+
+export interface PublicPropertyFilterOptions {
+  amenities: FilterOption[];
+  furnishing: FilterOption[];
+  hostelTypes: FilterOption[];
+  sizeUnits: FilterOption[];
+  bedrooms: number[];
+  bathrooms: number[];
+  parkingAvailable: boolean;
+  familyFriendlyAvailable: boolean;
+}
+
 type PublicSortOption = "newest" | "price_asc" | "price_desc" | "popular";
 type AdminSortOption =
   | "newest"
@@ -242,6 +265,90 @@ export class PropertyService {
     }
 
     return { createdAt: -1, _id: -1 } as Record<string, 1 | -1>;
+  }
+
+  private formatFilterOptionLabel(value: string) {
+    const cleaned = cleanDisplayValue(value)
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!cleaned) {
+      return "";
+    }
+
+    return cleaned
+      .split(" ")
+      .map((word) =>
+        word.length <= 3
+          ? word.toUpperCase()
+          : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+      )
+      .join(" ");
+  }
+
+  private mapFilterOptionRows(rows: Array<{ _id?: unknown; count?: number }>) {
+    const seen = new Set<string>();
+    const options: FilterOption[] = [];
+
+    for (const row of rows || []) {
+      const value = cleanDisplayValue(
+        typeof row?._id === "string" ? row._id : "",
+      );
+      if (!value) {
+        continue;
+      }
+
+      const dedupeKey = normalizeAddressSearch(value);
+      if (!dedupeKey || seen.has(dedupeKey)) {
+        continue;
+      }
+
+      const label = this.formatFilterOptionLabel(value);
+      if (!label) {
+        continue;
+      }
+
+      seen.add(dedupeKey);
+      options.push({
+        value,
+        label,
+        count: Number(row.count) || 0,
+      });
+    }
+
+    return options;
+  }
+
+  private mapNumericFilterRows(rows: Array<{ _id?: unknown }>) {
+    return Array.from(
+      new Set(
+        (rows || [])
+          .map((row) => Number(row?._id))
+          .filter((value) => Number.isFinite(value) && value > 0)
+          .map((value) => Math.floor(value)),
+      ),
+    ).sort((left, right) => left - right);
+  }
+
+  private buildPublicFilterOptionsMatch({
+    hostOption,
+    city,
+    purpose = "rent",
+  }: PublicFilterOptionsParams) {
+    const match: Record<string, any> = buildCanonicalListingBaseFilter({
+      city,
+      hostOption:
+        hostOption && hostOption !== "property" ? hostOption : undefined,
+      purpose,
+    });
+
+    match.isApproved = true;
+    match.status = true;
+    match.isVisible = { $ne: false };
+    match.moderationStatus = "ACTIVE";
+
+    return match;
   }
 
   private normalizePromotionState(
@@ -710,6 +817,100 @@ export class PropertyService {
   async findAll(page = 1, limit = 10, ownerId?: string) {
     return this.findFiltered(page, limit, {}, ownerId);
   }
+
+  async getPublicFilterOptions(
+    params: PublicFilterOptionsParams,
+  ): Promise<PublicPropertyFilterOptions> {
+    await this.resetExpiredPromotions();
+
+    const match = this.buildPublicFilterOptionsMatch(params);
+    const [options = {}] = await this.propertyModel.aggregate([
+      { $match: match },
+      {
+        $facet: {
+          amenities: [
+            { $unwind: "$amenities" },
+            {
+              $match: {
+                amenities: { $type: "string", $ne: "" },
+              },
+            },
+            { $group: { _id: "$amenities", count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+            { $limit: 40 },
+          ],
+          bedrooms: [
+            {
+              $match: {
+                "capacityState.bedrooms": { $type: "number", $gt: 0 },
+              },
+            },
+            {
+              $group: {
+                _id: "$capacityState.bedrooms",
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ],
+          bathrooms: [
+            {
+              $match: {
+                "capacityState.bathrooms": { $type: "number", $gt: 0 },
+              },
+            },
+            {
+              $group: {
+                _id: "$capacityState.bathrooms",
+                count: { $sum: 1 },
+              },
+            },
+            { $sort: { _id: 1 } },
+          ],
+          sizeUnits: [
+            { $match: { "size.unit": { $type: "string", $ne: "" } } },
+            { $group: { _id: "$size.unit", count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+          ],
+          furnishing: [
+            { $match: { furnishing: { $type: "string", $ne: "" } } },
+            { $group: { _id: "$furnishing", count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+          ],
+          hostelTypes: [
+            { $match: { hostelType: { $type: "string", $ne: "" } } },
+            { $group: { _id: "$hostelType", count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+          ],
+          parking: [{ $match: { parking: true } }, { $count: "count" }],
+          familyFriendly: [
+            {
+              $match: {
+                $or: [
+                  { "description.highlighted": "family_friendly" },
+                  { amenities: "family_friendly" },
+                  { amenities: "Family Friendly" },
+                ],
+              },
+            },
+            { $count: "count" },
+          ],
+        },
+      },
+    ]);
+
+    return {
+      amenities: this.mapFilterOptionRows(options.amenities),
+      furnishing: this.mapFilterOptionRows(options.furnishing),
+      hostelTypes: this.mapFilterOptionRows(options.hostelTypes),
+      sizeUnits: this.mapFilterOptionRows(options.sizeUnits),
+      bedrooms: this.mapNumericFilterRows(options.bedrooms),
+      bathrooms: this.mapNumericFilterRows(options.bathrooms),
+      parkingAvailable: Boolean(options.parking?.[0]?.count),
+      familyFriendlyAvailable: Boolean(options.familyFriendly?.[0]?.count),
+    };
+  }
+
   async findFiltered(
     page = 1,
     limit = 10,

@@ -6,6 +6,7 @@ import type {
   PopularLocationCityGroup,
   PopularLocationSummary,
   NearbyPlace,
+  PublicPropertyFilterOptions,
   PropertySearchFilters,
   PropertySearchResponse,
   PublicProperty,
@@ -256,6 +257,38 @@ const getPopularLocationsOverviewInternal = async (input: {
   );
 };
 
+const getFilterOptionsInternal = async (input: {
+  category?: string;
+  city?: string;
+  purpose?: "rent" | "sale";
+}): Promise<PublicPropertyFilterOptions> => {
+  const params = new URLSearchParams();
+
+  if (input.category) {
+    params.set("hostOption", input.category);
+  }
+
+  if (input.city) {
+    params.set("city", input.city);
+  }
+
+  if (input.purpose) {
+    params.set("purpose", input.purpose);
+  }
+
+  return requestJson<PublicPropertyFilterOptions>(
+    `/properties/filter-options?${params.toString()}`,
+    {
+      revalidate: PUBLIC_DISCOVERY_REVALIDATE_SECONDS,
+      tags: [
+        "public-properties",
+        "public-filter-options",
+        ...(input.category ? [`public-filters:${input.category}`] : []),
+      ],
+    },
+  );
+};
+
 const searchPropertiesCached = cache(async (serializedFilters: string) => {
   return searchPropertiesInternal(
     JSON.parse(serializedFilters) as PropertySearchFilters,
@@ -291,6 +324,17 @@ const getPopularLocationsOverviewCached = cache(
         type?: string;
         purpose?: "rent" | "sale";
         limit?: number;
+      },
+    ),
+);
+
+const getFilterOptionsCached = cache(
+  async (serializedInput: string) =>
+    getFilterOptionsInternal(
+      JSON.parse(serializedInput) as {
+        category?: string;
+        city?: string;
+        purpose?: "rent" | "sale";
       },
     ),
 );
@@ -375,5 +419,13 @@ export const PropertyService = {
     limit?: number;
   }): Promise<PopularLocationCityGroup[]> {
     return getPopularLocationsOverviewCached(JSON.stringify(input));
+  },
+
+  async getFilterOptions(input: {
+    category?: string;
+    city?: string;
+    purpose?: "rent" | "sale";
+  }): Promise<PublicPropertyFilterOptions> {
+    return getFilterOptionsCached(JSON.stringify(input));
   },
 };

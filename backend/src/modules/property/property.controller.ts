@@ -383,6 +383,31 @@ export class PropertyController {
     return this.propertyService.findFiltered(page, limit, filters, userId);
   }
 
+  @Public()
+  @Get("filter-options")
+  @RateLimit({ limit: 120, windowMs: 60_000, scope: "userOrIp" })
+  async getPublicFilterOptions(
+    @Query("hostOption") hostOption?: string,
+    @Query("city") city?: string,
+    @Query("purpose") purpose?: "rent" | "sale",
+  ) {
+    if (
+      hostOption &&
+      hostOption !== "property" &&
+      !PROPERTY_HOST_OPTIONS.includes(hostOption as any)
+    ) {
+      throw new BadRequestException(
+        `Invalid hostOption. Expected one of: property, ${PROPERTY_HOST_OPTIONS.join(", ")}`,
+      );
+    }
+
+    return this.propertyService.getPublicFilterOptions({
+      hostOption,
+      city,
+      purpose: purpose === "sale" ? "sale" : "rent",
+    });
+  }
+
   @Get("my-listings")
   async getMyProperties(
     @Req() req: any,

@@ -17,6 +17,8 @@ import type {
   FurnishingType,
   HostelType,
   PropertyCategory,
+  PublicFilterOption,
+  PublicPropertyFilterOptions,
   PropertySearchFilters,
   PropertySort,
   SizeUnit,
@@ -26,6 +28,7 @@ import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 interface PublicSearchHeroProps {
   category: PropertyCategory;
   filters: PropertySearchFilters;
+  filterOptions: PublicPropertyFilterOptions;
   total?: number | null;
   backgroundImage?: string;
 }
@@ -40,26 +43,6 @@ const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
   { label: "Shops", value: "shop" },
   { label: "Offices", value: "office" },
 ];
-
-const AMENITY_FILTERS = [
-  { label: "WiFi", value: "wifi" },
-  { label: "AC", value: "ac" },
-  { label: "Kitchen", value: "kitchen" },
-  { label: "Laundry", value: "laundry" },
-  { label: "CCTV", value: "cctv" },
-  { label: "Lift", value: "lift" },
-  { label: "Gym", value: "gym" },
-  { label: "Workspace", value: "workspace" },
-] as const;
-
-const SIZE_UNITS: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
-
-const BUDGET_PRESETS = [
-  { label: "Under Rs. 25k", minRent: "" as const, maxRent: 25000 },
-  { label: "Rs. 25k - 50k", minRent: 25000, maxRent: 50000 },
-  { label: "Rs. 50k - 100k", minRent: 50000, maxRent: 100000 },
-  { label: "Above Rs. 100k", minRent: 100000, maxRent: "" as const },
-] as const;
 
 const parseNumericFilter = (value: string): NumericFilterValue => {
   const trimmed = value.trim();
@@ -133,9 +116,85 @@ const makeChipLabel = (label: string, value?: string | number | boolean) =>
     ? label
     : `${label}: ${value}`;
 
+const EMPTY_FILTER_OPTIONS: PublicPropertyFilterOptions = {
+  amenities: [],
+  furnishing: [],
+  hostelTypes: [],
+  sizeUnits: [],
+  bedrooms: [],
+  bathrooms: [],
+  parkingAvailable: false,
+  familyFriendlyAvailable: false,
+};
+
+const formatOptionLabel = (value: string) =>
+  value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((word) =>
+      word.length <= 3
+        ? word.toUpperCase()
+        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join(" ");
+
+const mergeTextOptions = (
+  options: PublicFilterOption[],
+  selectedValues: Array<string | undefined | null>,
+) => {
+  const seen = new Set<string>();
+  const merged: PublicFilterOption[] = [];
+
+  [
+    ...options,
+    ...selectedValues.map((value) => ({
+      value: value || "",
+      label: "",
+      count: undefined,
+    })),
+  ].forEach((option) => {
+    const value = option.value.trim();
+    const key = value.toLowerCase();
+
+    if (!value || seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    merged.push({
+      value,
+      label: option.label || formatOptionLabel(value),
+      count: option.count,
+    });
+  });
+
+  return merged;
+};
+
+const mergeNumberOptions = (
+  options: number[],
+  selectedValue: number | "" | undefined,
+) =>
+  Array.from(
+    new Set([
+      ...options.filter((value) => Number.isFinite(value) && value > 0),
+      ...(typeof selectedValue === "number" && selectedValue > 0
+        ? [selectedValue]
+        : []),
+    ]),
+  ).sort((left, right) => left - right);
+
+const getOptionLabel = (options: PublicFilterOption[], value: string) =>
+  options.find((option) => option.value === value)?.label ||
+  formatOptionLabel(value);
+
 export default function PublicSearchHero({
   category,
   filters,
+  filterOptions,
   total,
   backgroundImage,
 }: PublicSearchHeroProps) {
@@ -172,7 +231,11 @@ export default function PublicSearchHero({
     maxSize: parseNumericFilter(maxSizeInput),
   };
 
-  const activeFilterCount = getActiveFilterCount(displayFilters);
+  const activeFilterCount = getActiveFilterCount({
+    ...displayFilters,
+    hostelType:
+      displayFilters.category === "hostel" ? displayFilters.hostelType : "",
+  });
   const showStickyCategorySelector = filtersStuck && isHeaderHidden;
   const stickyFilterRowClass = showStickyCategorySelector
     ? "grid grid-cols-2 gap-2 md:grid-cols-[minmax(160px,220px)_minmax(0,1fr)_auto_auto] xl:grid-cols-[minmax(180px,220px)_minmax(280px,1fr)_minmax(260px,360px)_auto_auto]"
@@ -190,6 +253,46 @@ export default function PublicSearchHero({
   const heroLocation = "Islamabad ";
 
   const selectedAmenities = displayFilters.amenities || [];
+  const resolvedFilterOptions = {
+    ...EMPTY_FILTER_OPTIONS,
+    ...filterOptions,
+  };
+  const amenityFilterOptions = mergeTextOptions(
+    resolvedFilterOptions.amenities,
+    selectedAmenities,
+  );
+  const furnishingOptions = mergeTextOptions(resolvedFilterOptions.furnishing, [
+    displayFilters.furnishing || "",
+  ]);
+  const hostelTypeOptions = mergeTextOptions(
+    resolvedFilterOptions.hostelTypes,
+    [displayFilters.hostelType || ""],
+  );
+  const sizeUnitOptions = mergeTextOptions(resolvedFilterOptions.sizeUnits, [
+    displayFilters.sizeUnit || "",
+  ]);
+  const bedroomOptions = mergeNumberOptions(
+    resolvedFilterOptions.bedrooms,
+    displayFilters.bedrooms,
+  );
+  const bathroomOptions = mergeNumberOptions(
+    resolvedFilterOptions.bathrooms,
+    displayFilters.bathrooms,
+  );
+  const showBedroomFilters = bedroomOptions.length > 0;
+  const showBathroomFilters = bathroomOptions.length > 0;
+  const showFurnishingFilters = furnishingOptions.length > 0;
+  const showHostelTypeFilters =
+    displayFilters.category === "hostel" && hostelTypeOptions.length > 0;
+  const showSizeFilters =
+    sizeUnitOptions.length > 0 ||
+    Boolean(displayFilters.minSize || displayFilters.maxSize);
+  const showParkingFilters =
+    resolvedFilterOptions.parkingAvailable || displayFilters.parking === true;
+  const showFamilyFriendlyFilters =
+    resolvedFilterOptions.familyFriendlyAvailable ||
+    displayFilters.familyFriendly === true;
+  const showAmenitiesFilters = amenityFilterOptions.length > 0;
 
   useEffect(() => {
     const sentinel = stickyFilterSentinelRef.current;
@@ -279,7 +382,6 @@ export default function PublicSearchHero({
     }));
 
     updateFilters(clearedFilterPatch);
-
   };
 
   const applyPrimarySearch = () => {
@@ -301,6 +403,8 @@ export default function PublicSearchHero({
     const nextFilters: Partial<PropertySearchFilters> = {
       location: locationInput.trim(),
       city: displayFilters.city,
+      hostelType:
+        displayFilters.category === "hostel" ? displayFilters.hostelType : "",
       minRent: parseNumericFilter(minRentInput),
       maxRent: parseNumericFilter(maxRentInput),
       minSize: parseNumericFilter(minSizeInput),
@@ -316,15 +420,6 @@ export default function PublicSearchHero({
       category: nextCategory,
       hostelType: nextCategory === "hostel" ? displayFilters.hostelType : "",
     });
-  };
-
-  const applyBudgetPreset = (
-    minRent: NumericFilterValue,
-    maxRent: NumericFilterValue,
-  ) => {
-    setMinRentInput(stringifyNumericFilter(minRent));
-    setMaxRentInput(stringifyNumericFilter(maxRent));
-    commitFilters({ minRent, maxRent });
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -424,10 +519,13 @@ export default function PublicSearchHero({
           },
         }
       : null,
-    displayFilters.hostelType
+    displayFilters.category === "hostel" && displayFilters.hostelType
       ? {
           key: "hostelType",
-          label: makeChipLabel("Hostel type", displayFilters.hostelType),
+          label: makeChipLabel(
+            "Hostel type",
+            getOptionLabel(hostelTypeOptions, displayFilters.hostelType),
+          ),
           onRemove: () => commitFilters({ hostelType: "" }),
         }
       : null,
@@ -468,9 +566,7 @@ export default function PublicSearchHero({
       : null,
     ...selectedAmenities.map((amenity) => ({
       key: `amenity-${amenity}`,
-      label:
-        AMENITY_FILTERS.find((item) => item.value === amenity)?.label ||
-        amenity,
+      label: getOptionLabel(amenityFilterOptions, amenity),
       onRemove: () => removeAmenity(amenity),
     })),
   ].filter(Boolean) as Array<{
@@ -509,201 +605,205 @@ export default function PublicSearchHero({
             Min price cannot be higher than max price.
           </p>
         )}
-        <div className="mt-2 flex flex-wrap gap-2">
-          {BUDGET_PRESETS.map((preset) => {
-            const active =
-              displayFilters.minRent === preset.minRent &&
-              displayFilters.maxRent === preset.maxRent;
+      </FilterGroup>
 
-            return (
-              <button
-                key={preset.label}
-                type="button"
-                onClick={() =>
-                  applyBudgetPreset(preset.minRent, preset.maxRent)
+      {(showBedroomFilters || showBathroomFilters) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {showBedroomFilters && (
+            <FilterGroup title="Bedrooms">
+              <SegmentedOptions
+                options={bedroomOptions.map((value) => ({
+                  label: `${value}`,
+                  active: displayFilters.bedrooms === value,
+                  onClick: () =>
+                    commitFilters({
+                      bedrooms: displayFilters.bedrooms === value ? "" : value,
+                    }),
+                }))}
+              />
+            </FilterGroup>
+          )}
+
+          {showBathroomFilters && (
+            <FilterGroup title="Bathrooms">
+              <SegmentedOptions
+                options={bathroomOptions.map((value) => ({
+                  label: `${value}`,
+                  active: displayFilters.bathrooms === value,
+                  onClick: () =>
+                    commitFilters({
+                      bathrooms:
+                        displayFilters.bathrooms === value ? "" : value,
+                    }),
+                }))}
+              />
+            </FilterGroup>
+          )}
+        </div>
+      )}
+
+      {(showFurnishingFilters || showHostelTypeFilters) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {showFurnishingFilters && (
+            <FilterGroup title="Furnishing">
+              <SelectControl
+                value={displayFilters.furnishing || ""}
+                onChange={(value) =>
+                  commitFilters({
+                    furnishing: value as FurnishingType | "",
+                  })
                 }
-                className={`rounded-full border px-3 py-2 text-xs transition ${
-                  active
-                    ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
-                    : "border-[var(--admin-border)] bg-white text-[var(--admin-muted)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                }`}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
-      </FilterGroup>
+                options={[
+                  ["", "Any furnishing"],
+                  ...furnishingOptions.map((option): [string, string] => [
+                    option.value,
+                    option.label,
+                  ]),
+                ]}
+              />
+            </FilterGroup>
+          )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FilterGroup title="Bedrooms">
-          <SegmentedOptions
-            options={[1, 2, 3, 4].map((value) => ({
-              label: `${value}`,
-              active: displayFilters.bedrooms === value,
-              onClick: () =>
+          {showHostelTypeFilters && (
+            <FilterGroup title="Hostel type">
+              <SelectControl
+                value={displayFilters.hostelType || ""}
+                onChange={(value) =>
+                  commitFilters({
+                    hostelType: value as HostelType | "",
+                  })
+                }
+                options={[
+                  ["", "All hostel types"],
+                  ...hostelTypeOptions.map((option): [string, string] => [
+                    option.value,
+                    option.label,
+                  ]),
+                ]}
+              />
+            </FilterGroup>
+          )}
+        </div>
+      )}
+
+      {showSizeFilters && (
+        <FilterGroup title="Size">
+          <div className="grid gap-2 sm:grid-cols-[1fr_1fr_150px]">
+            <input
+              value={minSizeInput}
+              onChange={(event) => setMinSizeInput(event.target.value)}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="Min size"
+              aria-invalid={sizeRangeHasError}
+              className="admin-input h-11 rounded-xl px-3 text-sm"
+            />
+            <input
+              value={maxSizeInput}
+              onChange={(event) => setMaxSizeInput(event.target.value)}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="Max size"
+              aria-invalid={sizeRangeHasError}
+              className="admin-input h-11 rounded-xl px-3 text-sm"
+            />
+            <SelectControl
+              value={displayFilters.sizeUnit || ""}
+              onChange={(value) =>
                 commitFilters({
-                  bedrooms: displayFilters.bedrooms === value ? "" : value,
-                }),
-            }))}
-          />
+                  sizeUnit: value as SizeUnit | "",
+                })
+              }
+              options={[
+                ["", "Any unit"],
+                ...sizeUnitOptions.map((option): [string, string] => [
+                  option.value,
+                  option.label,
+                ]),
+              ]}
+            />
+          </div>
+          {sizeRangeHasError && (
+            <p className="mt-2 text-xs text-red-600">
+              Min size cannot be higher than max size.
+            </p>
+          )}
         </FilterGroup>
+      )}
 
-        <FilterGroup title="Bathrooms">
-          <SegmentedOptions
-            options={[1, 2, 3].map((value) => ({
-              label: `${value}`,
-              active: displayFilters.bathrooms === value,
-              onClick: () =>
-                commitFilters({
-                  bathrooms: displayFilters.bathrooms === value ? "" : value,
-                }),
-            }))}
-          />
-        </FilterGroup>
-      </div>
+      {(showParkingFilters || showFamilyFriendlyFilters) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {showParkingFilters && (
+            <FilterGroup title="Parking">
+              <SegmentedOptions
+                options={[
+                  {
+                    label: "Any",
+                    active:
+                      displayFilters.parking === "" ||
+                      displayFilters.parking === undefined,
+                    onClick: () => commitFilters({ parking: "" }),
+                  },
+                  {
+                    label: "Parking available",
+                    active: displayFilters.parking === true,
+                    onClick: () => commitFilters({ parking: true }),
+                  },
+                ]}
+              />
+            </FilterGroup>
+          )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FilterGroup title="Furnishing">
-          <SelectControl
-            value={displayFilters.furnishing || ""}
-            onChange={(value) =>
-              commitFilters({
-                furnishing: value as FurnishingType | "",
-              })
-            }
-            options={[
-              ["", "Any furnishing"],
-              ["furnished", "Furnished"],
-              ["semi-furnished", "Semi-furnished"],
-              ["unfurnished", "Unfurnished"],
-            ]}
-          />
-        </FilterGroup>
-
-        <FilterGroup title="Hostel type">
-          <SelectControl
-            value={displayFilters.hostelType || ""}
-            onChange={(value) =>
-              commitFilters({
-                hostelType: value as HostelType | "",
-              })
-            }
-            options={[
-              ["", "All hostel types"],
-              ["male", "Male"],
-              ["female", "Female"],
-              ["mixed", "Mixed"],
-            ]}
-          />
-        </FilterGroup>
-      </div>
-
-      <FilterGroup title="Size">
-        <div className="grid gap-2 sm:grid-cols-[1fr_1fr_150px]">
-          <input
-            value={minSizeInput}
-            onChange={(event) => setMinSizeInput(event.target.value)}
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="Min size"
-            aria-invalid={sizeRangeHasError}
-            className="admin-input h-11 rounded-xl px-3 text-sm"
-          />
-          <input
-            value={maxSizeInput}
-            onChange={(event) => setMaxSizeInput(event.target.value)}
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="Max size"
-            aria-invalid={sizeRangeHasError}
-            className="admin-input h-11 rounded-xl px-3 text-sm"
-          />
-          <SelectControl
-            value={displayFilters.sizeUnit || ""}
-            onChange={(value) =>
-              commitFilters({
-                sizeUnit: value as SizeUnit | "",
-              })
-            }
-            options={[
-              ["", "Any unit"],
-              ...SIZE_UNITS.map((unit) => [unit, unit] as [string, string]),
-            ]}
-          />
+          {showFamilyFriendlyFilters && (
+            <FilterGroup title="Family friendly">
+              <SegmentedOptions
+                options={[
+                  {
+                    label: "Any",
+                    active:
+                      displayFilters.familyFriendly === "" ||
+                      displayFilters.familyFriendly === undefined,
+                    onClick: () => commitFilters({ familyFriendly: "" }),
+                  },
+                  {
+                    label: "Family friendly",
+                    active: displayFilters.familyFriendly === true,
+                    onClick: () => commitFilters({ familyFriendly: true }),
+                  },
+                ]}
+              />
+            </FilterGroup>
+          )}
         </div>
-        {sizeRangeHasError && (
-          <p className="mt-2 text-xs text-red-600">
-            Min size cannot be higher than max size.
-          </p>
-        )}
-      </FilterGroup>
+      )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FilterGroup title="Parking">
-          <SegmentedOptions
-            options={[
-              {
-                label: "Any",
-                active:
-                  displayFilters.parking === "" ||
-                  displayFilters.parking === undefined,
-                onClick: () => commitFilters({ parking: "" }),
-              },
-              {
-                label: "Parking available",
-                active: displayFilters.parking === true,
-                onClick: () => commitFilters({ parking: true }),
-              },
-            ]}
-          />
+      {showAmenitiesFilters && (
+        <FilterGroup title="Amenities">
+          <div className="flex flex-wrap gap-2">
+            {amenityFilterOptions.map((item) => {
+              const active = selectedAmenities.includes(item.value);
+
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => toggleAmenity(item.value)}
+                  aria-pressed={active}
+                  className={`rounded-full border px-4 py-2 text-xs transition ${
+                    active
+                      ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
+                      : "border-[var(--admin-border)] bg-white text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </FilterGroup>
-
-        <FilterGroup title="Family friendly">
-          <SegmentedOptions
-            options={[
-              {
-                label: "Any",
-                active:
-                  displayFilters.familyFriendly === "" ||
-                  displayFilters.familyFriendly === undefined,
-                onClick: () => commitFilters({ familyFriendly: "" }),
-              },
-              {
-                label: "Family friendly",
-                active: displayFilters.familyFriendly === true,
-                onClick: () => commitFilters({ familyFriendly: true }),
-              },
-            ]}
-          />
-        </FilterGroup>
-      </div>
-
-      <FilterGroup title="Amenities">
-        <div className="flex flex-wrap gap-2">
-          {AMENITY_FILTERS.map((item) => {
-            const active = selectedAmenities.includes(item.value);
-
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => toggleAmenity(item.value)}
-                aria-pressed={active}
-                className={`rounded-full border px-4 py-2 text-xs transition ${
-                  active
-                    ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white"
-                    : "border-[var(--admin-border)] bg-white text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                }`}
-              >
-                {item.label}
-              </button>
-            );
-          })}
-        </div>
-      </FilterGroup>
+      )}
 
       <FilterGroup title="Sort">
         <SelectControl
@@ -1028,9 +1128,7 @@ export default function PublicSearchHero({
                     <MapPin className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
                     <input
                       value={locationInput}
-                      onChange={(event) =>
-                        setLocationInput(event.target.value)
-                      }
+                      onChange={(event) => setLocationInput(event.target.value)}
                       placeholder="Sector, area, or landmark"
                       className="min-w-0 flex-1 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                     />

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import PublicSearchHero from "@/app/components/properties/PublicSearchHero";
 import type {
   PropertyCategory,
+  PublicPropertyFilterOptions,
   PropertySearchFilters,
 } from "@/app/lib/property-types";
 import { getPublicCategoryFromPath } from "@/app/lib/route-constants";
@@ -28,6 +29,17 @@ function PropertyCardSkeleton() {
     </article>
   );
 }
+
+const EMPTY_FILTER_OPTIONS: PublicPropertyFilterOptions = {
+  amenities: [],
+  furnishing: [],
+  hostelTypes: [],
+  sizeUnits: [],
+  bedrooms: [],
+  bathrooms: [],
+  parkingAvailable: false,
+  familyFriendlyAvailable: false,
+};
 
 export function PublicListingResultsSkeleton() {
   return (
@@ -83,6 +95,7 @@ export default function PublicListingLoadingShell({
       <PublicSearchHero
         category={activeCategory}
         filters={filters}
+        filterOptions={EMPTY_FILTER_OPTIONS}
         total={null}
         backgroundImage={DEFAULT_PROPERTY_IMAGE}
       />
