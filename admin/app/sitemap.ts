@@ -5,7 +5,6 @@ import type { PropertyCategory, PublicProperty } from "@/app/lib/property-types"
 import {
   buildListingPath,
   buildPropertyHref,
-  getCanonicalCategorySegment,
   getPropertyAddresses,
 } from "@/app/lib/property-utils";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
@@ -68,7 +67,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const seenListingUrls = new Set<string>();
 
   for (const category of CATEGORIES) {
-    const categoryPath = `/${getCanonicalCategorySegment(category)}`;
+    const categoryPath = buildListingPath(
+      {
+        category,
+        purpose: "rent",
+      },
+      { preferSeo: true },
+    );
     const categoryUrl = toAbsoluteUrl(categoryPath);
 
     if (!seenUrls.has(categoryUrl)) {

@@ -18,6 +18,11 @@ import {
 
 import { PUBLIC_CATEGORY_LINKS } from "@/app/lib/route-constants";
 
+const getCategoryHref = (
+  category: (typeof PUBLIC_CATEGORY_LINKS)[number]["category"],
+) =>
+  PUBLIC_CATEGORY_LINKS.find((item) => item.category === category)?.href || "/";
+
 const footerGroups = [
   {
     title: "Quick Links",
@@ -36,11 +41,11 @@ const footerGroups = [
     title: "Listings",
     icon: Home,
     links: [
-      { href: "/houses", label: "Houses" },
-      { href: "/apartments", label: "Flats for Rent" },
-      { href: "/houses", label: "Portions for Rent" },
-      { href: "/hostels", label: "Rooms for Rent" },
-      { href: "/commercial", label: "Commercial" },
+      { href: getCategoryHref("home"), label: "Houses" },
+      { href: getCategoryHref("apartment"), label: "Flats for Rent" },
+      { href: getCategoryHref("home"), label: "Portions for Rent" },
+      { href: getCategoryHref("hostel"), label: "Rooms for Rent" },
+      { href: getCategoryHref("shop"), label: "Commercial" },
       { href: "/popular-locations", label: "Popular Locations" },
     ],
   },

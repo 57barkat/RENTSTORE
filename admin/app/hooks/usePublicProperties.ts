@@ -81,6 +81,7 @@ export const useProperties = (category: PropertyCategory) => {
         limit: 10,
       },
       {
+        preferSeo: resetCategory !== "property",
         rootForProperty: resetCategory === "property",
       },
     );

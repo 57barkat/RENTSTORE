@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import { PropertyService } from "@/app/lib/PropertyService";
+import { getLegacyListingRedirectPath } from "@/app/lib/route-constants";
 import { BRAND_NAME, DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 
 export const metadata: Metadata = {
@@ -31,12 +32,14 @@ export default async function UploaderPage({ params }: UploaderPageProps) {
     notFound();
   }
 
+  const listingsHref = getLegacyListingRedirectPath("home") || "/houses";
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,_var(--admin-surface)_0%,_var(--admin-card)_28%,_var(--admin-background)_100%)]">
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-8 flex flex-wrap items-center gap-3 text-sm text-[var(--admin-muted)]">
           <Link
-            href={`/houses`}
+            href={listingsHref}
             className="font-medium text-[var(--admin-primary)] hover:text-[var(--admin-text)]"
           >
             Back to listings

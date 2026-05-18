@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, Home, Hotel, Store, Warehouse } from "lucide-react";
 
 import type { PropertyCategory } from "@/app/lib/property-types";
-import { getCanonicalCategorySegment } from "@/app/lib/property-utils";
+import { buildListingPath } from "@/app/lib/property-utils";
 
 interface BrowseByCategorySectionProps {
   counts: Partial<Record<PropertyCategory, number>>;
@@ -42,7 +42,13 @@ export default function BrowseByCategorySection({
           return (
             <Link
               key={item.category}
-              href={`/${getCanonicalCategorySegment(item.category)}`}
+              href={buildListingPath(
+                {
+                  category: item.category,
+                  purpose: "rent",
+                },
+                { preferSeo: true },
+              )}
               className="group rounded-[1.2rem] border border-[var(--admin-border)] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--admin-primary)] hover:shadow-[0_18px_38px_-30px_var(--admin-shadow)]"
             >
               <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition group-hover:bg-[var(--admin-primary)] group-hover:text-white">

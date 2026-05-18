@@ -10,7 +10,6 @@ import {
   Building2,
   CheckCircle2,
   CircleDot,
-  Flag,
   Home,
   MapPin,
   Phone,
@@ -48,7 +47,6 @@ import {
   buildListingPath,
   buildPropertyMetadataDescription,
   formatCurrency,
-  getCanonicalCategorySegment,
   getCategoryLabel,
   getPropertyAddresses,
   getPropertyCity,
@@ -237,6 +235,13 @@ export default async function PropertyDetailContent({
   const isFeatured = isActiveFeaturedPromotion(property);
   const isBoosted = !isFeatured && isActiveBoostedPromotion(property);
   const primaryAddress = addressLine || [area, city].filter(Boolean).join(", ");
+  const categoryHref = buildListingPath(
+    {
+      category,
+      purpose: "rent",
+    },
+    { preferSeo: true, rootForProperty: true },
+  );
   const detailDescription = getDetailDescription(category, property);
   const { latitude, longitude } = getPropertyCoordinates(property);
   const displayRules = getHouseRules(property);
@@ -406,7 +411,7 @@ export default async function PropertyDetailContent({
             <span>/</span>
 
             <Link
-              href={`/${getCanonicalCategorySegment(category)}`}
+              href={categoryHref}
               className="text-[var(--admin-primary)] transition hover:text-[var(--admin-text)]"
             >
               {categoryPlural}
@@ -883,7 +888,7 @@ export default async function PropertyDetailContent({
                 </div>
 
                 <Link
-                  href={`/${getCanonicalCategorySegment(category)}`}
+                  href={categoryHref}
                   className="inline-flex items-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-3 text-sm font-black text-white shadow-[0_18px_34px_-24px_var(--admin-primary)] transition hover:-translate-y-0.5 hover:opacity-95"
                 >
                   View All

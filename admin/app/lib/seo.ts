@@ -7,7 +7,6 @@ import type {
 import {
   BRAND_NAME,
   buildListingPath,
-  getCanonicalCategorySegment,
   getCategoryLabel,
 } from "@/app/lib/property-utils";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
@@ -79,7 +78,13 @@ export const buildListingBreadcrumbs = (
   if (filters.category !== "property") {
     items.push({
       name: getCategoryLabel(filters.category, true),
-      href: `/${getCanonicalCategorySegment(filters.category)}`,
+      href: buildListingPath(
+        {
+          category: filters.category,
+          purpose: filters.purpose || "rent",
+        },
+        { preferSeo: true, rootForProperty: true },
+      ),
     });
   }
 
@@ -137,7 +142,13 @@ export const buildPropertyBreadcrumbs = (
   if (category !== "property") {
     items.push({
       name: getCategoryLabel(category, true),
-      href: `/${getCanonicalCategorySegment(category)}`,
+      href: buildListingPath(
+        {
+          category,
+          purpose: "rent",
+        },
+        { preferSeo: true, rootForProperty: true },
+      ),
     });
   }
 

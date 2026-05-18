@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PUBLIC_CATEGORY_LINKS } from "@/app/lib/route-constants";
+
 export const metadata: Metadata = {
   title: "Page Not Found | AnganStay",
   description: "The requested public property page could not be found.",
@@ -40,12 +42,9 @@ export default function PublicNotFoundPage() {
         </div>
 
         <div className="mt-10 grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Houses", "/houses"],
-            ["Apartments", "/apartments"],
-            ["Hostels", "/hostels"],
-            ["Shops", "/shops"],
-          ].map(([label, href]) => (
+          {PUBLIC_CATEGORY_LINKS.filter((item) =>
+            ["home", "apartment", "hostel", "shop"].includes(item.category),
+          ).map(({ label, href }) => (
             <Link
               key={href}
               href={href}

@@ -32,7 +32,6 @@ import {
   parsePropertySearchParams,
 } from "@/app/lib/property-utils";
 import {
-  getLegacyCategoryAliasPath,
   parseSeoListingSlug,
 } from "@/app/lib/property-seo";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
@@ -78,7 +77,6 @@ const getCategoryRouteContext = async (
 ) => {
   const params = await paramsPromise;
   const searchParams = await searchParamsPromise;
-  const legacyAliasPath = getLegacyCategoryAliasPath(params.category);
   const seoRoute = parseSeoListingSlug(params.category);
   const category =
     seoRoute?.category || normalizeCategorySegment(params.category);
@@ -108,7 +106,6 @@ const getCategoryRouteContext = async (
     params,
     category,
     canonicalCategory,
-    legacyAliasPath,
     canonicalPath,
     canonicalQuery,
     filters,
@@ -172,22 +169,8 @@ export default async function CategoryPage({
     category,
     canonicalPath,
     canonicalQuery,
-    legacyAliasPath,
     filters,
   } = await getCategoryRouteContext(Promise.resolve(initialParams), searchParams);
-
-  if (
-    legacyAliasPath &&
-    resolvedParams.category !== legacyAliasPath.replace(/^\//, "")
-  ) {
-    const aliasQuery = buildPropertyBrowserQuery(filters, {
-      omitCity: false,
-      omitPurpose: false,
-    });
-    permanentRedirect(
-      `${legacyAliasPath}${aliasQuery ? `?${aliasQuery}` : ""}`,
-    );
-  }
 
   const canonicalSegment = canonicalPath.replace(/^\//, "");
   const redirectTarget = `${canonicalPath}${canonicalQuery ? `?${canonicalQuery}` : ""}`;

@@ -7,12 +7,57 @@ import {
 
 export const PUBLIC_CATEGORY_ROUTE_MAP = PUBLIC_PROPERTY_ROUTE_MAP;
 
+const getPublicCategoryHref = (
+  category: string,
+  fallbackHref: string,
+): string => buildLegacyListingRedirectPath({ category }) || fallbackHref;
+
 export const PUBLIC_CATEGORY_LINKS = [
-  { href: PUBLIC_CATEGORY_ROUTE_MAP.hostel.legacyHref, label: PUBLIC_CATEGORY_ROUTE_MAP.hostel.label, category: PUBLIC_CATEGORY_ROUTE_MAP.hostel.category },
-  { href: PUBLIC_CATEGORY_ROUTE_MAP.apartment.legacyHref, label: PUBLIC_CATEGORY_ROUTE_MAP.apartment.label, category: PUBLIC_CATEGORY_ROUTE_MAP.apartment.category },
-  { href: PUBLIC_CATEGORY_ROUTE_MAP.house.legacyHref, label: PUBLIC_CATEGORY_ROUTE_MAP.house.label, category: PUBLIC_CATEGORY_ROUTE_MAP.house.category },
-  { href: PUBLIC_CATEGORY_ROUTE_MAP.shop.legacyHref, label: PUBLIC_CATEGORY_ROUTE_MAP.shop.label, category: PUBLIC_CATEGORY_ROUTE_MAP.shop.category },
-  { href: PUBLIC_CATEGORY_ROUTE_MAP.office.legacyHref, label: PUBLIC_CATEGORY_ROUTE_MAP.office.label, category: PUBLIC_CATEGORY_ROUTE_MAP.office.category },
+  {
+    href: getPublicCategoryHref(
+      PUBLIC_CATEGORY_ROUTE_MAP.hostel.category,
+      PUBLIC_CATEGORY_ROUTE_MAP.hostel.legacyHref,
+    ),
+    legacyHref: PUBLIC_CATEGORY_ROUTE_MAP.hostel.legacyHref,
+    label: PUBLIC_CATEGORY_ROUTE_MAP.hostel.label,
+    category: PUBLIC_CATEGORY_ROUTE_MAP.hostel.category,
+  },
+  {
+    href: getPublicCategoryHref(
+      PUBLIC_CATEGORY_ROUTE_MAP.apartment.category,
+      PUBLIC_CATEGORY_ROUTE_MAP.apartment.legacyHref,
+    ),
+    legacyHref: PUBLIC_CATEGORY_ROUTE_MAP.apartment.legacyHref,
+    label: PUBLIC_CATEGORY_ROUTE_MAP.apartment.label,
+    category: PUBLIC_CATEGORY_ROUTE_MAP.apartment.category,
+  },
+  {
+    href: getPublicCategoryHref(
+      PUBLIC_CATEGORY_ROUTE_MAP.house.category,
+      PUBLIC_CATEGORY_ROUTE_MAP.house.legacyHref,
+    ),
+    legacyHref: PUBLIC_CATEGORY_ROUTE_MAP.house.legacyHref,
+    label: PUBLIC_CATEGORY_ROUTE_MAP.house.label,
+    category: PUBLIC_CATEGORY_ROUTE_MAP.house.category,
+  },
+  {
+    href: getPublicCategoryHref(
+      PUBLIC_CATEGORY_ROUTE_MAP.shop.category,
+      PUBLIC_CATEGORY_ROUTE_MAP.shop.legacyHref,
+    ),
+    legacyHref: PUBLIC_CATEGORY_ROUTE_MAP.shop.legacyHref,
+    label: PUBLIC_CATEGORY_ROUTE_MAP.shop.label,
+    category: PUBLIC_CATEGORY_ROUTE_MAP.shop.category,
+  },
+  {
+    href: getPublicCategoryHref(
+      PUBLIC_CATEGORY_ROUTE_MAP.office.category,
+      PUBLIC_CATEGORY_ROUTE_MAP.office.legacyHref,
+    ),
+    legacyHref: PUBLIC_CATEGORY_ROUTE_MAP.office.legacyHref,
+    label: PUBLIC_CATEGORY_ROUTE_MAP.office.label,
+    category: PUBLIC_CATEGORY_ROUTE_MAP.office.category,
+  },
 ] as const;
 
 export const PUBLIC_CATEGORY_SEGMENTS = [

@@ -1,10 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
-  Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -22,10 +21,7 @@ import type {
   PropertySort,
   SizeUnit,
 } from "@/app/lib/property-types";
-import {
-  DEFAULT_PROPERTY_IMAGE,
-  getCategoryLabel,
-} from "@/app/lib/property-utils";
+import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
 
 interface PublicSearchHeroProps {
   category: PropertyCategory;
@@ -44,12 +40,6 @@ const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
   { label: "Shops", value: "shop" },
   { label: "Offices", value: "office" },
 ];
-
-const CITY_OPTIONS = [
-  // { label: "All cities", value: "" },
-  { label: "Islamabad", value: "Islamabad" },
-  // { label: "Rawalpindi", value: "Rawalpindi" },
-] as const;
 
 const AMENITY_FILTERS = [
   { label: "WiFi", value: "wifi" },
@@ -152,7 +142,6 @@ export default function PublicSearchHero({
   const { updateFilters } = useProperties(category);
   const { isHeaderHidden } = usePublicScrollHeader();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [filtersStuck, setFiltersStuck] = useState(false);
   const [optimisticFilters, setOptimisticFilters] =
     useState<PropertySearchFilters>(filters);
@@ -198,16 +187,7 @@ export default function PublicSearchHero({
     ? "mt-2 grid grid-cols-2 gap-2 xl:hidden"
     : "mt-2 grid grid-cols-2 gap-2 md:hidden";
 
-  const heroLocation = useMemo(() => {
-    // if (displayFilters.location && displayFilters.city)
-    //   return `${displayFilters.location}, ${displayFilters.city}`;
-
-    // if (displayFilters.location) return displayFilters.location;
-
-    // if (displayFilters.city) return displayFilters.city;
-
-    return "Islamabad ";
-  }, [displayFilters.city, displayFilters.location]);
+  const heroLocation = "Islamabad ";
 
   const selectedAmenities = displayFilters.amenities || [];
 
@@ -266,7 +246,6 @@ export default function PublicSearchHero({
   };
 
   const handleResetFilters = () => {
-    setIsResetting(true);
     setFiltersOpen(false);
 
     const clearedFilterPatch: Partial<PropertySearchFilters> = {
@@ -301,9 +280,6 @@ export default function PublicSearchHero({
 
     updateFilters(clearedFilterPatch);
 
-    window.setTimeout(() => {
-      setIsResetting(false);
-    }, 450);
   };
 
   const applyPrimarySearch = () => {
@@ -323,6 +299,8 @@ export default function PublicSearchHero({
     if (rentRangeHasError || sizeRangeHasError) return;
 
     const nextFilters: Partial<PropertySearchFilters> = {
+      location: locationInput.trim(),
+      city: displayFilters.city,
       minRent: parseNumericFilter(minRentInput),
       maxRent: parseNumericFilter(maxRentInput),
       minSize: parseNumericFilter(minSizeInput),
@@ -337,14 +315,6 @@ export default function PublicSearchHero({
     commitFilters({
       category: nextCategory,
       hostelType: nextCategory === "hostel" ? displayFilters.hostelType : "",
-    });
-  };
-
-  const handleCityChange = (nextCity: string) => {
-    setLocationInput("");
-    commitFilters({
-      city: nextCity,
-      location: "",
     });
   };
 
@@ -816,7 +786,7 @@ export default function PublicSearchHero({
               event.preventDefault();
               applyPrimarySearch();
             }}
-            className="min-w-0 rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm"
+            className="hidden min-w-0 rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm md:block"
           >
             <div className={`relative ${stickyFilterRowClass}`}>
               <label
@@ -971,8 +941,22 @@ export default function PublicSearchHero({
             </div>
           </form>
 
+          <button
+            type="button"
+            onClick={() => setFiltersOpen(true)}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm font-semibold text-[var(--admin-text)] shadow-sm transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] md:hidden"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--admin-primary)] px-1.5 text-xs font-semibold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+
           {activeChips.length > 0 && (
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out">
+            <div className="mt-3 hidden items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out md:flex">
               {activeChips.map((chip) => (
                 <button
                   key={chip.key}
@@ -1038,6 +1022,45 @@ export default function PublicSearchHero({
             </div>
 
             <div className="max-h-[calc(88vh-142px)] overflow-y-auto px-5 py-5">
+              <div className="mb-5 space-y-5 md:hidden">
+                <FilterGroup title="Location">
+                  <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface,#fff)] px-3 transition focus-within:border-[var(--admin-primary)] focus-within:ring-4 focus-within:ring-[var(--admin-primary)]/10">
+                    <MapPin className="h-4 w-4 shrink-0 text-[var(--admin-primary)]" />
+                    <input
+                      value={locationInput}
+                      onChange={(event) =>
+                        setLocationInput(event.target.value)
+                      }
+                      placeholder="Sector, area, or landmark"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
+                    />
+                  </label>
+                </FilterGroup>
+
+                <FilterGroup title="Property type">
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORY_TABS.map((tab) => {
+                      const active = displayFilters.category === tab.value;
+
+                      return (
+                        <button
+                          key={tab.value}
+                          type="button"
+                          onClick={() => handleCategoryChange(tab.value)}
+                          className={`rounded-full border px-4 py-2 text-xs font-medium transition ${
+                            active
+                              ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white shadow-sm"
+                              : "border-[var(--admin-border)] bg-white text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FilterGroup>
+              </div>
+
               {advancedPanel}
             </div>
 
