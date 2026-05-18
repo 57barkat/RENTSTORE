@@ -24,7 +24,10 @@ import type {
   PropertySort,
   SizeUnit,
 } from "@/app/lib/property-types";
-import { DEFAULT_PROPERTY_IMAGE } from "@/app/lib/property-utils";
+import {
+  DEFAULT_PROPERTY_IMAGE,
+  formatReadableLabel,
+} from "@/app/lib/property-utils";
 
 interface PublicSearchHeroProps {
   category: PropertyCategory;
@@ -128,20 +131,6 @@ const EMPTY_FILTER_OPTIONS: PublicPropertyFilterOptions = {
   familyFriendlyAvailable: false,
 };
 
-const formatOptionLabel = (value: string) =>
-  value
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .split(" ")
-    .filter(Boolean)
-    .map((word) =>
-      word.length <= 3
-        ? word.toUpperCase()
-        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-    )
-    .join(" ");
-
 const mergeTextOptions = (
   options: PublicFilterOption[],
   selectedValues: Array<string | undefined | null>,
@@ -167,7 +156,7 @@ const mergeTextOptions = (
     seen.add(key);
     merged.push({
       value,
-      label: option.label || formatOptionLabel(value),
+      label: formatReadableLabel(option.label || value),
       count: option.count,
     });
   });
@@ -190,7 +179,7 @@ const mergeNumberOptions = (
 
 const getOptionLabel = (options: PublicFilterOption[], value: string) =>
   options.find((option) => option.value === value)?.label ||
-  formatOptionLabel(value);
+  formatReadableLabel(value);
 
 export default function PublicSearchHero({
   category,
@@ -540,7 +529,10 @@ export default function PublicSearchHero({
     displayFilters.furnishing
       ? {
           key: "furnishing",
-          label: makeChipLabel("Furnishing", displayFilters.furnishing),
+          label: makeChipLabel(
+            "Furnishing",
+            getOptionLabel(furnishingOptions, displayFilters.furnishing),
+          ),
           onRemove: () => commitFilters({ furnishing: "" }),
         }
       : null,

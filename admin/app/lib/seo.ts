@@ -70,7 +70,7 @@ export const buildListingBreadcrumbs = (
 ): BreadcrumbItem[] => {
   const items: BreadcrumbItem[] = [
     {
-      name: "Home",
+      name: "All Properties",
       href: "/",
     },
   ];
@@ -134,7 +134,7 @@ export const buildPropertyBreadcrumbs = (
 ): BreadcrumbItem[] => {
   const items: BreadcrumbItem[] = [
     {
-      name: "Home",
+      name: "All Properties",
       href: "/",
     },
   ];

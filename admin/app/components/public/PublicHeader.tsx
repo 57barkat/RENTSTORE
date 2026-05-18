@@ -35,8 +35,10 @@ import { usePublicScrollHeader } from "@/app/components/public/PublicScrollHeade
 import {
   PUBLIC_CATEGORY_LINKS,
   getPublicCategoryFromPath,
+  isPublicPropertyDetailPath,
   isPublicAccountRoute,
 } from "@/app/lib/route-constants";
+import type { PropertyCategory } from "@/app/lib/property-types";
 
 function matchesRoute(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -161,6 +163,31 @@ const STICKY_FILTER_SENTINEL_SELECTOR = "[data-public-sticky-filter-sentinel]";
 const STICKY_FILTER_OFFSET_VISIBLE = "var(--public-header-height, 74px)";
 const HEADER_HIDE_DELTA = 4;
 const HEADER_REVEAL_DELTA = 1;
+const LAST_PUBLIC_CATEGORY_KEY = "anganstay:last-public-category";
+const PUBLIC_HEADER_CATEGORY_VALUES = new Set<PropertyCategory>([
+  "property",
+  "home",
+  "apartment",
+  "hostel",
+  "shop",
+  "office",
+]);
+
+const readStoredPublicCategory = (): PropertyCategory | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const value = window.sessionStorage.getItem(LAST_PUBLIC_CATEGORY_KEY);
+
+    return PUBLIC_HEADER_CATEGORY_VALUES.has(value as PropertyCategory)
+      ? (value as PropertyCategory)
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 export default function PublicHeader() {
   const pathname = usePathname();
@@ -183,7 +210,18 @@ export default function PublicHeader() {
   const lastScrollYRef = useRef(0);
   const headerHiddenRef = useRef(false);
 
-  const activeCategory = getPublicCategoryFromPath(pathname);
+  const routeCategory = getPublicCategoryFromPath(
+    pathname,
+  ) as PropertyCategory | null;
+  const isDetailPath = isPublicPropertyDetailPath(pathname);
+  const storedListingCategory =
+    mounted && isDetailPath ? readStoredPublicCategory() : null;
+  const activeCategory =
+    isDetailPath && storedListingCategory
+      ? storedListingCategory
+      : routeCategory;
+  const browseAllActive =
+    pathname === "/" || (isDetailPath && activeCategory === "property");
   const isAccountArea = isPublicAccountRoute(pathname);
   const mobileMenuVisibilityClass = isAccountArea ? "lg:hidden" : "xl:hidden";
   const { isAuthenticated, isLoading, logout, user } = usePublicAuth();
@@ -204,6 +242,24 @@ export default function PublicHeader() {
     user?.name?.trim()?.split(/\s+/)?.[0] ||
     user?.email?.split("@")?.[0] ||
     "Account";
+
+  useEffect(() => {
+    if (!mounted || isDetailPath) return;
+
+    const currentListingCategory: PropertyCategory | null =
+      pathname === "/" ? "property" : routeCategory;
+
+    if (currentListingCategory) {
+      try {
+        window.sessionStorage.setItem(
+          LAST_PUBLIC_CATEGORY_KEY,
+          currentListingCategory,
+        );
+      } catch {
+        // Ignore storage failures; route-derived active state still works.
+      }
+    }
+  }, [isDetailPath, mounted, pathname, routeCategory]);
 
   useLayoutEffect(() => {
     const header = headerRef.current;
@@ -525,7 +581,7 @@ export default function PublicHeader() {
             <MobileDrawerSection title="Primary actions">
               <MobileDrawerLink
                 href="/"
-                active={pathname === "/"}
+                active={browseAllActive}
                 icon={Search}
                 onNavigate={closeMobileMenu}
               >

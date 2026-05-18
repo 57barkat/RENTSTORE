@@ -654,6 +654,25 @@ export const getPublicCategoryFromPath = (pathname) => {
   }
 
   const normalizedPathname = String(pathname || "");
+  const pathSegments = normalizedPathname
+    .replace(/^\//, "")
+    .split("?")[0]
+    .split("/")
+    .filter(Boolean);
+  const possibleDetailSlug =
+    pathSegments[0] === "property" ? pathSegments[1] : pathSegments[0];
+  const detailCategory = getCategoryForSeoPropertyType(
+    parsePropertyDetailSlug(possibleDetailSlug)?.propertyType,
+  );
+
+  if (
+    detailCategory &&
+    detailCategory !== "property" &&
+    ["home", "apartment", "hostel", "shop", "office"].includes(detailCategory)
+  ) {
+    return detailCategory;
+  }
+
   const matchedRoute = Object.values(PUBLIC_PROPERTY_ROUTE_MAP).find(
     (item) =>
       normalizedPathname === item.legacyHref ||

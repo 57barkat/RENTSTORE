@@ -58,6 +58,18 @@ export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.svg";
 
 export const BRAND_NAME = "AnganStay";
 
+const READABLE_LABEL_OVERRIDES: Record<string, string> = {
+  ac: "AC",
+  bbq: "BBQ",
+  cctv: "CCTV",
+  cng: "CNG",
+  id: "ID",
+  tv: "TV",
+  wifi: "WiFi",
+  wi_fi: "WiFi",
+  "wi-fi": "WiFi",
+};
+
 const toText = (value: unknown): string => {
   if (value === null || value === undefined) {
     return "";
@@ -88,6 +100,55 @@ const toText = (value: unknown): string => {
   }
 
   return String(value).trim();
+};
+
+export const formatReadableLabel = (value: unknown): string => {
+  const raw = toText(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  return raw
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      const normalized = word.toLowerCase();
+      const override = READABLE_LABEL_OVERRIDES[normalized];
+
+      if (override) {
+        return override;
+      }
+
+      if (/^\d/.test(word)) {
+        return word;
+      }
+
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+};
+
+export const getPropertyPhotoUrls = (
+  property: Pick<PublicProperty, "photos">,
+): string[] =>
+  (property.photos || [])
+    .map((photo) => (typeof photo === "string" ? photo.trim() : ""))
+    .filter(Boolean);
+
+export const getPropertyPrimaryPhoto = (
+  property: Pick<PublicProperty, "photos">,
+): string => getPropertyPhotoUrls(property)[0] || "";
+
+export const getPropertyImageUrls = (
+  property: Pick<PublicProperty, "photos">,
+): string[] => {
+  const photos = getPropertyPhotoUrls(property);
+
+  return photos.length > 0 ? photos : [DEFAULT_PROPERTY_IMAGE];
 };
 
 const toSingleValue = (

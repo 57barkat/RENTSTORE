@@ -2,6 +2,7 @@ import {
   buildLegacyListingRedirectPath,
   getPublicCategoryFromPath as getSharedPublicCategoryFromPath,
   PUBLIC_PROPERTY_ROUTE_MAP,
+  parsePropertyDetailSlug,
   parseSeoListingSlug,
 } from "@/app/lib/property-seo";
 
@@ -106,6 +107,18 @@ export const getPublicCategoryFromPath = (
   pathname: string,
 ): (typeof PUBLIC_CATEGORY_LINKS)[number]["category"] | null => {
   return getSharedPublicCategoryFromPath(pathname);
+};
+
+export const isPublicPropertyDetailPath = (pathname: string): boolean => {
+  const segments = pathname
+    .replace(/^\//, "")
+    .split("?")[0]
+    .split("/")
+    .filter(Boolean);
+  const possibleDetailSlug = segments[0] === "property" ? segments[1] : segments[0];
+
+  return Boolean(parsePropertyDetailSlug(possibleDetailSlug)) ||
+    pathname.startsWith("/property/");
 };
 
 export const getLegacyListingRedirectPath = (

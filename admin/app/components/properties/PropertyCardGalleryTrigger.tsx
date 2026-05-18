@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Images, X, ZoomIn } from "lucide-react";
 
+import PropertyImagePlaceholder from "@/app/components/properties/PropertyImagePlaceholder";
+
 interface PropertyCardGalleryTriggerProps {
   images: string[];
   imageAltBase: string;
@@ -25,6 +27,7 @@ export default function PropertyCardGalleryTrigger({
   const galleryImages = useMemo(() => images.filter(Boolean), [images]);
   const [isOpen, setIsOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const hasImages = galleryImages.length > 0;
   const hasMultipleImages = galleryImages.length > 1;
 
   useEffect(() => {
@@ -69,9 +72,19 @@ export default function PropertyCardGalleryTrigger({
   };
 
   const openGallery = () => {
+    if (!hasImages) return;
+
     setIndex(0);
     setIsOpen(true);
   };
+
+  if (!hasImages) {
+    return (
+      <div className="absolute inset-0">
+        <PropertyImagePlaceholder compact />
+      </div>
+    );
+  }
 
   const lightbox =
     isOpen && typeof document !== "undefined"

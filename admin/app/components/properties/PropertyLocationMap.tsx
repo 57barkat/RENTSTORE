@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import mapboxgl from "mapbox-gl";
-import { Building2, GraduationCap, Landmark, MapPin, Store } from "lucide-react";
+import {
+  Building2,
+  GraduationCap,
+  Landmark,
+  MapPin,
+  Store,
+} from "lucide-react";
 
 import type { NearbyPlace } from "@/app/lib/property-types";
 
@@ -52,7 +58,7 @@ const nearbySearches: Array<{
   category: NearbyPlace["category"];
   query: string;
 }> = [
-  { label: "Masjid / mosque", category: "mosque", query: "masjid mosque" },
+  { label: "Masjid / Mosque", category: "mosque", query: "masjid mosque" },
   { label: "Hospitals", category: "hospital", query: "hospital clinic" },
   { label: "Schools", category: "school", query: "school" },
   { label: "Markets", category: "market", query: "market grocery store" },
@@ -163,8 +169,8 @@ export default function PropertyLocationMap({
               </h3>
               <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
                 Exact saved coordinates are not available, so this map uses the
-                listed address. Open nearby searches to verify masjid, hospitals,
-                schools, and markets around this area.
+                listed address. Open nearby searches to verify masjid,
+                hospitals, schools, and markets around this area.
               </p>
             </div>
 

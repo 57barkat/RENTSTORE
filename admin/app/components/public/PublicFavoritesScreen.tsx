@@ -6,10 +6,12 @@ import { Heart, Loader2, Trash2 } from "lucide-react";
 import PublicAccountShell from "@/app/components/public/PublicAccountShell";
 import { PublicEmptyState } from "@/app/components/public/PublicAccountPieces";
 import { usePublicFavorites } from "@/app/components/public/PublicFavoritesProvider";
+import PropertyImagePlaceholder from "@/app/components/properties/PropertyImagePlaceholder";
 import type { PublicProperty } from "@/app/lib/property-types";
 import {
   buildPropertyHref,
   getPropertyLocationLabel,
+  getPropertyPrimaryPhoto,
   getPropertyPriceDisplay,
   getPropertyTitle,
 } from "@/app/lib/property-utils";
@@ -44,47 +46,59 @@ export default function PublicFavoritesScreen() {
         />
       ) : (
         <div className="grid gap-5 lg:grid-cols-2">
-          {favorites.map((property) => (
-            <article
-              key={property._id}
-              className="overflow-hidden rounded-[1.75rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_36px_-30px_var(--admin-shadow)]"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={property.photos?.[0] || "https://placehold.co/800x600/e5e7eb/64748b?text=Property"}
-                alt={getPropertyTitle(property)}
-                className="aspect-[16/10] w-full object-cover"
-              />
-              <div className="p-5">
-                <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
-                  {getPropertyTitle(property)}
-                </h2>
-                <p className="mt-2 text-sm text-[var(--admin-muted)]">
-                  {getPropertyLocationLabel(property) || "Location unavailable"}
-                </p>
-                <p className="mt-3 text-lg font-bold text-[var(--admin-primary)]">
-                  {getPropertyPriceDisplay(property)}
-                </p>
+          {favorites.map((property) => {
+            const primaryPhoto = getPropertyPrimaryPhoto(property);
 
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <Link
-                    href={buildPropertyHref(property)}
-                    className="inline-flex items-center justify-center rounded-2xl border border-[var(--admin-border)] px-4 py-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                  >
-                    View details
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void handleRemove(property)}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] px-4 py-3 text-sm font-semibold text-[var(--admin-danger)] transition hover:border-[var(--admin-danger)]"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Remove
-                  </button>
+            return (
+              <article
+                key={property._id}
+                className="overflow-hidden rounded-[1.75rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_36px_-30px_var(--admin-shadow)]"
+              >
+                {primaryPhoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={primaryPhoto}
+                    alt={getPropertyTitle(property)}
+                    className="aspect-[16/10] w-full object-cover"
+                  />
+                ) : (
+                  <div className="aspect-[16/10] w-full">
+                    <PropertyImagePlaceholder />
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <h2 className="text-xl font-black tracking-tight text-[var(--admin-text)]">
+                    {getPropertyTitle(property)}
+                  </h2>
+                  <p className="mt-2 text-sm text-[var(--admin-muted)]">
+                    {getPropertyLocationLabel(property) ||
+                      "Location unavailable"}
+                  </p>
+                  <p className="mt-3 text-lg font-bold text-[var(--admin-primary)]">
+                    {getPropertyPriceDisplay(property)}
+                  </p>
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    <Link
+                      href={buildPropertyHref(property)}
+                      className="inline-flex items-center justify-center rounded-2xl border border-[var(--admin-border)] px-4 py-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                    >
+                      View details
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void handleRemove(property)}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] px-4 py-3 text-sm font-semibold text-[var(--admin-danger)] transition hover:border-[var(--admin-danger)]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
     </PublicAccountShell>

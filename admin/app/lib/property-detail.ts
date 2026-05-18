@@ -9,6 +9,7 @@ import {
   buildPropertyMetadataTitle,
   extractPropertyId,
   getPropertyCategory,
+  getPropertyPrimaryPhoto,
 } from "@/app/lib/property-utils";
 import { parsePropertyDetailSlug } from "@/app/lib/property-seo";
 import { toAbsoluteUrl } from "@/app/lib/site-config";
@@ -69,7 +70,7 @@ export const buildPropertyDetailMetadata = async (routeValue: string) => {
   const { category, property, canonicalHref } = await resolvePropertyDetail(routeValue);
   const title = buildPropertyMetadataTitle(category, property);
   const description = buildPropertyMetadataDescription(category, property);
-  const image = property.photos?.[0] || DEFAULT_PROPERTY_IMAGE;
+  const image = getPropertyPrimaryPhoto(property) || DEFAULT_PROPERTY_IMAGE;
   const canonicalUrl = toAbsoluteUrl(canonicalHref);
   const imageUrl = toAbsoluteUrl(image);
 

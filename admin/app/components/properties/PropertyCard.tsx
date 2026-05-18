@@ -22,13 +22,14 @@ import {
   isActiveFeaturedPromotion,
 } from "@/app/lib/promotion";
 import {
-  DEFAULT_PROPERTY_IMAGE,
   buildPropertyImageAlt,
   buildPropertyHref,
+  formatReadableLabel,
   getCategoryLabel,
   getPropertyCategory,
   getPropertyCity,
   getPropertyLocationLabel,
+  getPropertyPhotoUrls,
   getPropertyPriceDisplay,
   getPropertyTitle,
 } from "@/app/lib/property-utils";
@@ -71,7 +72,7 @@ const buildStatItems = (property: PublicProperty) => {
   if (property.furnishing) {
     items.push({
       key: "furnishing",
-      value: property.furnishing,
+      value: formatReadableLabel(property.furnishing),
       label: "",
     });
   }
@@ -83,10 +84,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const { isPropertyHidden } = useReportedProperties();
 
   const detailHref = buildPropertyHref(property);
-  const galleryImages =
-    property.photos && property.photos.length > 0
-      ? property.photos
-      : [DEFAULT_PROPERTY_IMAGE];
+  const galleryImages = getPropertyPhotoUrls(property);
 
   const title = getPropertyTitle(property);
   const isFeatured = isActiveFeaturedPromotion(property);

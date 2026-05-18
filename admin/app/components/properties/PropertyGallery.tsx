@@ -7,10 +7,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ZoomIn,
-  CheckCircle2,
   Images,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+import PropertyImagePlaceholder from "@/app/components/properties/PropertyImagePlaceholder";
 
 interface GalleryProps {
   galleryImages: string[];
@@ -27,10 +28,6 @@ const getImageAlt = (imageAltBase: string, index: number) =>
 export default function PropertyGallery({
   galleryImages,
   imageAltBase,
-  isFeatured = false,
-  isBoosted = false,
-  isVerified = false,
-  categoryLabel = "House",
 }: GalleryProps) {
   const images = useMemo(() => galleryImages.filter(Boolean), [galleryImages]);
 
@@ -104,11 +101,7 @@ export default function PropertyGallery({
   if (!hasImages) {
     return (
       <div className="overflow-hidden rounded-[1.8rem] border border-[var(--admin-border)] bg-white shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
-        <div className="flex aspect-[16/7] items-center justify-center bg-[var(--admin-card)] p-8 text-center">
-          <p className="text-sm font-semibold text-[var(--admin-muted)]">
-            No property photos available
-          </p>
-        </div>
+        <PropertyImagePlaceholder className="aspect-[16/7]" />
       </div>
     );
   }

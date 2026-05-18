@@ -47,12 +47,15 @@ import {
   buildListingPath,
   buildPropertyMetadataDescription,
   formatCurrency,
+  formatReadableLabel,
   getCategoryLabel,
   getPropertyAddresses,
   getPropertyCity,
   getPropertyContactPhone,
   getPropertyHighlights,
+  getPropertyImageUrls,
   getPropertyLocation,
+  getPropertyPhotoUrls,
   getPropertyPriceDisplay,
   getPropertyPriceInfo,
   getPropertyPricingOptions,
@@ -142,22 +145,6 @@ const formatFloorLevel = (floorLevel: unknown) => {
 const getAmenityItems = (property: PublicProperty) =>
   (property.amenities || []).filter(Boolean);
 
-const toReadableLabel = (value: unknown) => {
-  const stringValue = stringifyDisplayValue(value);
-
-  return stringValue
-    .replace(/[_-]+/g, " / ")
-    .replace(/\s+/g, " ")
-    .split(" ")
-    .map((part) =>
-      part === "/"
-        ? part
-        : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase(),
-    )
-    .join(" ")
-    .replace(/\s\/\s/g, " / ");
-};
-
 const getHostInitials = (name?: string) =>
   (name || "PM")
     .split(" ")
@@ -186,7 +173,7 @@ const getHouseRules = (property: PublicProperty) => {
     ...(extendedProperty.houseRules || []),
     ...(extendedProperty.rules || []),
   ]
-    .map(toReadableLabel)
+    .map(formatReadableLabel)
     .filter(Boolean);
 };
 
@@ -195,10 +182,7 @@ export default async function PropertyDetailContent({
   property,
   canonicalHref,
 }: PropertyDetailContentProps) {
-  const galleryImages =
-    property.photos && property.photos.length > 0
-      ? property.photos
-      : [DEFAULT_PROPERTY_IMAGE];
+  const galleryImages = getPropertyPhotoUrls(property);
 
   let relatedProperties: PublicProperty[] = [];
   let nearbyPlaces: NearbyPlace[] = [];
@@ -295,8 +279,12 @@ export default async function PropertyDetailContent({
         )
       : "";
 
-  const displayAmenities = amenityItems.map(toReadableLabel).filter(Boolean);
-  const displayHighlights = highlights.map(toReadableLabel).filter(Boolean);
+  const displayAmenities = amenityItems
+    .map(formatReadableLabel)
+    .filter(Boolean);
+  const displayHighlights = highlights
+    .map(formatReadableLabel)
+    .filter(Boolean);
   const trustSignals = [
     property.isApproved ? "Verified listing" : "",
     property.moderationStatus?.toLowerCase() === "active" ? "Active" : "",
@@ -357,7 +345,7 @@ export default async function PropertyDetailContent({
     name: title,
     description: buildPropertyMetadataDescription(category, property),
     url: toAbsoluteUrl(canonicalHref),
-    image: galleryImages.map((image) => toAbsoluteUrl(image)),
+    image: getPropertyImageUrls(property).map((image) => toAbsoluteUrl(image)),
     datePosted: property.createdAt,
     ...(schemaOffers.length > 0 ? { offers: schemaOffers } : {}),
     itemOffered: {
@@ -453,13 +441,13 @@ export default async function PropertyDetailContent({
           <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-5xl space-y-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--admin-primary)] shadow-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-primary)] bg-[var(--admin-primary)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow-sm">
                   <Home size={13} />
                   {categoryLabel}
                 </span>
 
                 {area && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--admin-primary)] shadow-sm">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-secondary)] bg-[var(--admin-secondary)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow-sm">
                     <MapPin size={13} />
                     {[city, area].filter(Boolean).join(" · ")}
                   </span>

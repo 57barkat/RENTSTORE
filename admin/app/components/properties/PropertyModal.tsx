@@ -10,12 +10,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import type { PublicProperty } from "@/app/lib/property-types";
 
+import PropertyImagePlaceholder from "@/app/components/properties/PropertyImagePlaceholder";
 import {
-  DEFAULT_PROPERTY_IMAGE,
   buildPropertyImageAlt,
   buildPropertyHref,
+  formatReadableLabel,
   getPropertyDescriptionText,
   getPropertyLocation,
+  getPropertyPhotoUrls,
   getPropertyPriceDisplay,
   getPropertyPriceInfo,
   getPropertyTitle,
@@ -80,6 +82,11 @@ const PropertyModalComponent = ({
   }
 
   const priceInfo = getPropertyPriceInfo(selectedProperty);
+  const modalImage = getPropertyPhotoUrls(selectedProperty)[0] || "";
+  const displayAmenities = (selectedProperty.amenities || [])
+    .map(formatReadableLabel)
+    .filter(Boolean)
+    .slice(0, 8);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(15,23,42,0.72)] p-0 backdrop-blur-sm sm:items-center sm:p-4">
@@ -110,14 +117,18 @@ const PropertyModalComponent = ({
           {/* Image Section */}
           <div className="flex min-h-[260px] items-center justify-center bg-[#f3f4f6] sm:min-h-[340px] lg:min-h-[580px]">
             <div className="relative h-[260px] w-full sm:h-[340px] lg:h-full">
-              <Image
-                src={selectedProperty.photos?.[0] || DEFAULT_PROPERTY_IMAGE}
-                alt={buildPropertyImageAlt(selectedProperty)}
-                fill
-                priority
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 672px, 55vw"
-                className="object-contain p-3 sm:p-4"
-              />
+              {modalImage ? (
+                <Image
+                  src={modalImage}
+                  alt={buildPropertyImageAlt(selectedProperty)}
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 672px, 55vw"
+                  className="object-contain p-3 sm:p-4"
+                />
+              ) : (
+                <PropertyImagePlaceholder />
+              )}
             </div>
           </div>
 
@@ -153,18 +164,16 @@ const PropertyModalComponent = ({
             </div>
 
             {/* Amenities */}
-            {(selectedProperty.amenities || []).length > 0 && (
+            {displayAmenities.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-2">
-                {(selectedProperty.amenities || [])
-                  .slice(0, 8)
-                  .map((amenity) => (
-                    <span
-                      key={amenity}
-                      className="rounded-full bg-[var(--admin-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--admin-muted)] sm:text-sm"
-                    >
-                      {amenity}
-                    </span>
-                  ))}
+                {displayAmenities.map((amenity, index) => (
+                  <span
+                    key={`${amenity}-${index}`}
+                    className="rounded-full bg-[var(--admin-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--admin-muted)] sm:text-sm"
+                  >
+                    {amenity}
+                  </span>
+                ))}
               </div>
             )}
 
