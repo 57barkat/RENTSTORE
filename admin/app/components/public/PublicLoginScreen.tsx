@@ -95,7 +95,9 @@ export default function PublicLoginScreen() {
         body: JSON.stringify(form),
       });
 
-      const payload = (await response.json().catch(() => null)) as AuthPayload | null;
+      const payload = (await response
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!response.ok) {
         const message = getPayloadMessage(payload);
         if (message === "VERIFY_EMAIL_REQUIRED") {
@@ -120,7 +122,9 @@ export default function PublicLoginScreen() {
       await completeLogin(payload);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Login failed. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -147,9 +151,9 @@ export default function PublicLoginScreen() {
         }),
       });
 
-      const verifyPayload = (await verifyResponse.json().catch(
-        () => null,
-      )) as AuthPayload | null;
+      const verifyPayload = (await verifyResponse
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!verifyResponse.ok) {
         throw new Error(
           getPayloadMessage(verifyPayload) || "Email verification failed.",
@@ -165,9 +169,9 @@ export default function PublicLoginScreen() {
         body: JSON.stringify(form),
       });
 
-      const loginPayload = (await loginResponse.json().catch(
-        () => null,
-      )) as AuthPayload | null;
+      const loginPayload = (await loginResponse
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!loginResponse.ok) {
         throw new Error(getPayloadMessage(loginPayload) || "Login failed.");
       }
@@ -190,24 +194,27 @@ export default function PublicLoginScreen() {
     <>
       <PublicAuthCard
         title="Login to your account"
-        description="Manage your uploads, favorites, and profile using the same verified account system as the mobile app."
+        description="Manage your listings, saved properties, and profile from one secure account."
         aside={
           <div className="space-y-4">
             {[
               {
                 icon: UploadCloud,
                 title: "Manage listings",
-                description: "Upload, edit, and monitor your approved or pending rental properties.",
+                description:
+                  "Upload, edit, and monitor your approved or pending rental properties.",
               },
               {
                 icon: UserRound,
                 title: "Access your profile",
-                description: "Keep your contact details and public profile information in one place.",
+                description:
+                  "Keep your contact details and public profile information in one place.",
               },
               {
                 icon: ShieldCheck,
-                title: "Separate from admin",
-                description: "Public user and agent accounts stay isolated from the secure admin panel.",
+                title: "Your data stays secure",
+                description:
+                  "We use secure verification to keep your account and property listings protected.",
               },
             ].map((item) => {
               const Icon = item.icon;

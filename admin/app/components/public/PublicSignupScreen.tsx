@@ -98,7 +98,9 @@ export default function PublicSignupScreen() {
         }),
       });
 
-      const payload = (await response.json().catch(() => null)) as AuthPayload | null;
+      const payload = (await response
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!response.ok) {
         throw new Error(getPayloadMessage(payload) || "Signup failed.");
       }
@@ -109,7 +111,9 @@ export default function PublicSignupScreen() {
       toast.success("Verification code sent to your email.");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Signup failed. Please try again.",
+        error instanceof Error
+          ? error.message
+          : "Signup failed. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -132,9 +136,9 @@ export default function PublicSignupScreen() {
         }),
       });
 
-      const verifyPayload = (await verifyResponse.json().catch(
-        () => null,
-      )) as AuthPayload | null;
+      const verifyPayload = (await verifyResponse
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!verifyResponse.ok) {
         throw new Error(
           getPayloadMessage(verifyPayload) || "Email verification failed.",
@@ -153,9 +157,9 @@ export default function PublicSignupScreen() {
         }),
       });
 
-      const loginPayload = (await loginResponse.json().catch(
-        () => null,
-      )) as AuthPayload | null;
+      const loginPayload = (await loginResponse
+        .json()
+        .catch(() => null)) as AuthPayload | null;
       if (!loginResponse.ok) {
         throw new Error(getPayloadMessage(loginPayload) || "Login failed.");
       }
@@ -190,27 +194,31 @@ export default function PublicSignupScreen() {
     <>
       <PublicAuthCard
         title="Create your account"
-        description="Join the public marketplace as a renter or an agent. Public signup stays limited to user and agent roles only."
+        description="Create your account to explore properties, save favorites, and manage your listings with ease."
         aside={
           <div className="space-y-4">
             {[
               {
                 icon: UserRound,
-                title: "Choose your account type",
-                description: "Start as a normal user or an agent. Agency and admin creation remain unavailable here.",
+                title: "Choose how you want to use AnganStay",
+                description:
+                  "Sign up as a renter or property agent and start managing your property journey.",
               },
               {
                 icon: Sparkles,
                 title: "Publish from the web",
-                description: "List homes, hostels, apartments, offices, and shops through a responsive web dashboard.",
+                description:
+                  "List homes, hostels, apartments, offices, and shops through a fast and responsive dashboard.",
               },
               {
                 icon: BadgeCheck,
-                title: "Real backend validation",
-                description: "Your signup goes through the same backend DTO checks and auth flow as the mobile app.",
+                title: "Secure account verification",
+                description:
+                  "Your account is protected with secure verification for a safer experience.",
               },
             ].map((item) => {
               const Icon = item.icon;
+
               return (
                 <div
                   key={item.title}
@@ -219,9 +227,11 @@ export default function PublicSignupScreen() {
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-primary)]/10 text-[var(--admin-primary)]">
                     <Icon className="h-5 w-5" />
                   </span>
+
                   <h2 className="mt-4 text-base font-bold text-[var(--admin-text)]">
                     {item.title}
                   </h2>
+
                   <p className="mt-2 text-sm leading-6 text-[var(--admin-muted)]">
                     {item.description}
                   </p>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
+  AlertTriangle,
   ChevronDown,
   MapPin,
   Search,
@@ -249,6 +250,13 @@ export default function PublicSearchHero({
   const compactPriceRowClass = showStickyCategorySelector
     ? "mt-2 grid grid-cols-2 gap-2 xl:hidden"
     : "mt-2 grid grid-cols-2 gap-2 md:hidden";
+  const priceRangeErrorMessage = "Enter a valid price range";
+  const priceRangeContainerClass = rentRangeHasError
+    ? "border-red-500 bg-red-50/40 focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10"
+    : "focus-within:border-[var(--admin-primary)] focus-within:ring-4 focus-within:ring-[var(--admin-primary)]/10";
+  const priceRangeInputClass = rentRangeHasError
+    ? "text-red-700 placeholder:text-red-400"
+    : "text-[var(--admin-text)] placeholder:text-[var(--admin-muted)]";
 
   const heroLocation = "Islamabad ";
 
@@ -587,7 +595,11 @@ export default function PublicSearchHero({
             inputMode="numeric"
             placeholder="Min price"
             aria-invalid={rentRangeHasError}
-            className="admin-input h-11 rounded-xl px-3 text-sm"
+            className={`admin-input h-11 rounded-xl px-3 text-sm ${
+              rentRangeHasError
+                ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
+                : ""
+            }`}
           />
           <input
             value={maxRentInput}
@@ -597,13 +609,18 @@ export default function PublicSearchHero({
             inputMode="numeric"
             placeholder="Max price"
             aria-invalid={rentRangeHasError}
-            className="admin-input h-11 rounded-xl px-3 text-sm"
+            className={`admin-input h-11 rounded-xl px-3 text-sm ${
+              rentRangeHasError
+                ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
+                : ""
+            }`}
           />
         </div>
         {rentRangeHasError && (
-          <p className="mt-2 text-xs text-red-600">
-            Min price cannot be higher than max price.
-          </p>
+          <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span>{priceRangeErrorMessage}</span>
+          </div>
         )}
       </FilterGroup>
 
@@ -886,7 +903,7 @@ export default function PublicSearchHero({
               event.preventDefault();
               applyPrimarySearch();
             }}
-            className="hidden min-w-0 rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm md:block"
+            className="hidden min-w-0 overflow-visible rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm md:block"
           >
             <div className={`relative ${stickyFilterRowClass}`}>
               <label
@@ -937,28 +954,56 @@ export default function PublicSearchHero({
                 />
               </label>
 
-              <div className={priceFieldClass}>
-                <input
-                  value={minRentInput}
-                  onChange={(event) => setMinRentInput(event.target.value)}
-                  inputMode="numeric"
-                  type="number"
-                  min={0}
-                  placeholder="Min price"
-                  aria-invalid={rentRangeHasError}
-                  className="min-w-0 bg-transparent px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
-                />
+              <div className="relative min-w-0">
+                <div
+                  className={`${priceFieldClass} ${priceRangeContainerClass}`}
+                >
+                  <input
+                    value={minRentInput}
+                    onChange={(event) => setMinRentInput(event.target.value)}
+                    inputMode="numeric"
+                    type="number"
+                    min={0}
+                    placeholder="Min price"
+                    aria-invalid={rentRangeHasError}
+                    aria-describedby={
+                      rentRangeHasError
+                        ? "desktop-price-range-error"
+                        : undefined
+                    }
+                    className={`min-w-0 bg-transparent px-4 text-sm outline-none ${priceRangeInputClass}`}
+                  />
 
-                <input
-                  value={maxRentInput}
-                  onChange={(event) => setMaxRentInput(event.target.value)}
-                  inputMode="numeric"
-                  type="number"
-                  min={0}
-                  placeholder="Max price"
-                  aria-invalid={rentRangeHasError}
-                  className="min-w-0 border-l border-[var(--admin-border)] bg-transparent px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
-                />
+                  <input
+                    value={maxRentInput}
+                    onChange={(event) => setMaxRentInput(event.target.value)}
+                    inputMode="numeric"
+                    type="number"
+                    min={0}
+                    placeholder="Max price"
+                    aria-invalid={rentRangeHasError}
+                    aria-describedby={
+                      rentRangeHasError
+                        ? "desktop-price-range-error"
+                        : undefined
+                    }
+                    className={`min-w-0 border-l bg-transparent px-4 text-sm outline-none ${
+                      rentRangeHasError
+                        ? "border-red-300 text-red-700 placeholder:text-red-400"
+                        : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)]"
+                    }`}
+                  />
+                </div>
+
+                {rentRangeHasError && (
+                  <div
+                    id="desktop-price-range-error"
+                    className="pointer-events-none absolute left-3 top-[calc(100%+6px)] z-50 inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 shadow-[0_12px_28px_-18px_rgba(220,38,38,0.75)]"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    <span>{priceRangeErrorMessage}</span>
+                  </div>
+                )}
               </div>
 
               <button
@@ -985,7 +1030,7 @@ export default function PublicSearchHero({
               </button>
             </div>
 
-            <div className={compactPriceRowClass}>
+            <div className={`relative ${compactPriceRowClass}`}>
               <input
                 value={minRentInput}
                 onChange={(event) => setMinRentInput(event.target.value)}
@@ -994,7 +1039,14 @@ export default function PublicSearchHero({
                 min={0}
                 placeholder="Min price"
                 aria-invalid={rentRangeHasError}
-                className="min-h-11 min-w-0 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                aria-describedby={
+                  rentRangeHasError ? "compact-price-range-error" : undefined
+                }
+                className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
+                  rentRangeHasError
+                    ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                    : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                }`}
               />
 
               <input
@@ -1005,14 +1057,25 @@ export default function PublicSearchHero({
                 min={0}
                 placeholder="Max price"
                 aria-invalid={rentRangeHasError}
-                className="min-h-11 min-w-0 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                aria-describedby={
+                  rentRangeHasError ? "compact-price-range-error" : undefined
+                }
+                className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
+                  rentRangeHasError
+                    ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                    : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                }`}
               />
             </div>
 
             {rentRangeHasError && (
-              <p className="mt-2 px-2 text-xs font-medium text-red-600">
-                Min price cannot be higher than max price.
-              </p>
+              <div
+                id="compact-price-range-error"
+                className="pointer-events-none absolute left-3 top-[calc(100%+6px)] z-50 inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 shadow-[0_12px_28px_-18px_rgba(220,38,38,0.75)] xl:hidden"
+              >
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                <span>{priceRangeErrorMessage}</span>
+              </div>
             )}
 
             <div
