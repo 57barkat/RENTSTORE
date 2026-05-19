@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Loader2, ArrowRight } from "lucide-react";
 
 import { broadcastAuthSessionEvent } from "@/app/lib/session-sync";
+import ThemeToggle from "@/app/components/theme-toggle";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -59,6 +60,10 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-6">
+      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
+
       <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-[var(--admin-primary-soft)] blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-[var(--admin-primary-soft)] blur-[120px]" />
 

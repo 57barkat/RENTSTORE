@@ -282,9 +282,7 @@ export default async function PropertyDetailContent({
   const displayAmenities = amenityItems
     .map(formatReadableLabel)
     .filter(Boolean);
-  const displayHighlights = highlights
-    .map(formatReadableLabel)
-    .filter(Boolean);
+  const displayHighlights = highlights.map(formatReadableLabel).filter(Boolean);
   const trustSignals = [
     property.isApproved ? "Verified listing" : "",
     property.moderationStatus?.toLowerCase() === "active" ? "Active" : "",
@@ -323,7 +321,7 @@ export default async function PropertyDetailContent({
         : "Not specified",
       icon: SquareDashedBottom,
     },
-  ];
+  ].filter((item) => item.value !== "Not specified");
 
   const schemaOffers = pricingOptions.map((option) => ({
     "@type": "Offer",
@@ -370,7 +368,7 @@ export default async function PropertyDetailContent({
 
   return (
     <ReportedPropertyGate propertyId={property._id}>
-      <main className="min-h-screen bg-[linear-gradient(180deg,#F8FAFC_0%,#FFFFFF_42%,#F8FAFC_100%)]">
+      <main className="min-h-screen bg-[linear-gradient(180deg,var(--admin-card)_0%,var(--admin-background)_42%,var(--admin-card)_100%)]">
         <Script
           id={`property-jsonld-${property._id}`}
           type="application/ld+json"
@@ -510,34 +508,46 @@ export default async function PropertyDetailContent({
             isVerified={Boolean(property.isApproved)}
           />
 
-          <section className="mt-5 rounded-[1.75rem] border border-[var(--admin-border)] bg-white p-4 shadow-[0_24px_70px_-55px_rgba(15,23,42,0.24)]">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {stats.map((item) => {
-                const Icon = item.icon;
+          {stats.length > 0 && (
+            <section className="mt-5 rounded-[1.75rem] border border-[var(--admin-border)] bg-white p-4 shadow-[0_24px_70px_-55px_rgba(15,23,42,0.24)]">
+              <div
+                className={`grid gap-3 ${
+                  stats.length === 1
+                    ? "grid-cols-1"
+                    : stats.length === 2
+                      ? "grid-cols-2"
+                      : stats.length === 3
+                        ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                        : "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+                }`}
+              >
+                {stats.map((item) => {
+                  const Icon = item.icon;
 
-                return (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-3 rounded-2xl bg-[#F8FAFC] px-4 py-4"
-                  >
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
-                      <Icon size={19} />
-                    </span>
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center gap-3 rounded-2xl bg-[#F8FAFC] px-4 py-4"
+                    >
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
+                        <Icon size={19} />
+                      </span>
 
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
-                        {item.label}
-                      </p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--admin-muted)]">
+                          {item.label}
+                        </p>
 
-                      <p className="mt-1 truncate text-base font-black text-[var(--admin-text)]">
-                        {item.value}
-                      </p>
+                        <p className="mt-1 truncate text-base font-black text-[var(--admin-text)]">
+                          {item.value}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <div className="mt-7 grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
             <div className="space-y-5">
@@ -823,9 +833,9 @@ export default async function PropertyDetailContent({
               )}
 
               {trustSignals.length > 0 && (
-                <section className="rounded-[1.75rem] border border-[#BBF7D0] bg-[#F0FDF4] p-5 shadow-sm">
+                <section className="rounded-[1.75rem] border border-[color:color-mix(in_srgb,var(--admin-secondary)_28%,var(--admin-border))] bg-[var(--admin-secondary-soft)] p-5 shadow-sm">
                   <div className="flex items-start gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-secondary)]">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-card)] text-[var(--admin-secondary)]">
                       <ShieldCheck size={19} />
                     </span>
 
@@ -846,7 +856,7 @@ export default async function PropertyDetailContent({
                     {trustSignals.map((item) => (
                       <span
                         key={item}
-                        className="rounded-full border border-[#BBF7D0] bg-white px-3 py-1.5 text-xs font-black text-[var(--admin-secondary)]"
+                        className="rounded-full border border-[color:color-mix(in_srgb,var(--admin-secondary)_28%,var(--admin-border))] bg-[var(--admin-card)] px-3 py-1.5 text-xs font-black text-[var(--admin-secondary)]"
                       >
                         {item}
                       </span>

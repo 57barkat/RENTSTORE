@@ -32,6 +32,7 @@ import { createPortal } from "react-dom";
 import { PublicAccountNavItems } from "@/app/components/public/PublicAccountNavigation";
 import { usePublicAuth } from "@/app/components/public/PublicAuthProvider";
 import { usePublicScrollHeader } from "@/app/components/public/PublicScrollHeaderContext";
+import ThemeToggle from "@/app/components/theme-toggle";
 import {
   PUBLIC_CATEGORY_LINKS,
   getPublicCategoryFromPath,
@@ -46,14 +47,14 @@ function matchesRoute(pathname: string, href: string) {
 
 function drawerLinkClass(active: boolean, primary = false) {
   if (primary) {
-    return "bg-[#000080] text-white shadow-[0_16px_32px_-26px_rgba(0,0,128,0.65)] hover:opacity-95";
+    return "bg-[var(--admin-primary)] text-white shadow-[0_16px_32px_-26px_var(--admin-primary-strong)] hover:opacity-95";
   }
 
   if (active) {
-    return "bg-[#000080] text-white shadow-[0_16px_32px_-26px_rgba(0,0,128,0.65)]";
+    return "bg-[var(--admin-primary)] text-white shadow-[0_16px_32px_-26px_var(--admin-primary-strong)]";
   }
 
-  return "bg-[var(--admin-card)] text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[#000080]";
+  return "bg-[var(--admin-card)] text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]";
 }
 
 function MobileDrawerLink({
@@ -135,7 +136,7 @@ function ProfileMenuLink({
         className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
           active
             ? "bg-white/15 text-white"
-            : "bg-[var(--admin-background)] text-[var(--admin-primary)] group-hover:bg-white"
+            : "bg-[var(--admin-background)] text-[var(--admin-primary)] group-hover:bg-[var(--admin-card)]"
         }`}
       >
         <Icon className="h-4 w-4" />
@@ -227,13 +228,16 @@ export default function PublicHeader() {
   const { isAuthenticated, isLoading, logout, user } = usePublicAuth();
   const { setIsHeaderHidden } = usePublicScrollHeader();
 
-  const setHeaderHiddenState = useCallback((nextHidden: boolean) => {
-    if (headerHiddenRef.current === nextHidden) return;
+  const setHeaderHiddenState = useCallback(
+    (nextHidden: boolean) => {
+      if (headerHiddenRef.current === nextHidden) return;
 
-    headerHiddenRef.current = nextHidden;
-    setHeaderHidden(nextHidden);
-    setIsHeaderHidden(nextHidden);
-  }, [setIsHeaderHidden]);
+      headerHiddenRef.current = nextHidden;
+      setHeaderHidden(nextHidden);
+      setIsHeaderHidden(nextHidden);
+    },
+    [setIsHeaderHidden],
+  );
 
   const closeMobileMenu = () => setMobileOpen(false);
   const closeProfileMenu = () => setProfileOpen(false);
@@ -535,10 +539,10 @@ export default function PublicHeader() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="public-mobile-drawer-title"
-        className={`relative z-10 flex h-dvh w-[82vw] max-w-[320px] flex-col overflow-hidden border-r border-[var(--admin-border)] bg-white shadow-[24px_0_60px_-36px_rgba(15,23,42,0.55)] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`relative z-10 ml-auto flex h-dvh w-full flex-col overflow-hidden border-l border-[var(--admin-border)] bg-[var(--admin-background)] shadow-[-24px_0_60px_-36px_rgba(15,23,42,0.55)] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           mobileOpen
             ? "translate-x-0 opacity-100"
-            : "-translate-x-full opacity-0"
+            : "translate-x-full opacity-0"
         }`}
       >
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--admin-border)] px-4 py-3.5">
@@ -547,7 +551,7 @@ export default function PublicHeader() {
             onClick={closeMobileMenu}
             className="public-logo-link inline-flex min-w-0 items-center gap-3 text-[var(--admin-text)]"
           >
-            <span className="public-logo-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#000080] text-white">
+            <span className="public-logo-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white">
               <Building2 className="public-logo-icon" size={19} />
             </span>
 
@@ -570,7 +574,7 @@ export default function PublicHeader() {
             ref={drawerCloseButtonRef}
             aria-label="Close navigation"
             onClick={closeMobileMenu}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-muted)] transition hover:border-[#000080] hover:text-[#000080]"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -601,6 +605,10 @@ export default function PublicHeader() {
               ) : null}
             </MobileDrawerSection>
 
+            <MobileDrawerSection title="Display">
+              <ThemeToggle className="w-full justify-start rounded-2xl px-4 py-2.5" />
+            </MobileDrawerSection>
+
             {!isLoading && (
               <MobileDrawerSection title="Account">
                 {isAuthenticated ? (
@@ -617,7 +625,7 @@ export default function PublicHeader() {
                         closeMobileMenu();
                         void logout();
                       }}
-                      className="inline-flex min-h-11 items-center gap-3 rounded-2xl bg-[var(--admin-card)] px-4 py-2.5 text-sm font-semibold text-[var(--admin-muted)] transition hover:bg-[var(--admin-surface)] hover:text-[#000080]"
+                      className="inline-flex min-h-11 items-center gap-3 rounded-2xl bg-[var(--admin-card)] px-4 py-2.5 text-sm font-semibold text-[var(--admin-muted)] transition hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]"
                     >
                       <LogOut className="h-4 w-4 shrink-0" />
                       <span>Logout</span>
@@ -673,7 +681,7 @@ export default function PublicHeader() {
     <>
       <header
         ref={headerRef}
-        className={`sticky top-0 z-50 transform-gpu border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-white/95 backdrop-blur-xl transition-transform duration-300 ease-out will-change-transform ${
+        className={`sticky top-0 z-50 transform-gpu border-b border-[color:color-mix(in_srgb,var(--admin-border)_86%,transparent)] bg-[color:color-mix(in_srgb,var(--admin-background)_94%,transparent)] backdrop-blur-xl transition-transform duration-300 ease-out will-change-transform ${
           hasStickyFilters && headerHidden
             ? "pointer-events-none -translate-y-full"
             : "translate-y-0"
@@ -718,6 +726,8 @@ export default function PublicHeader() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle compact className="hidden lg:inline-flex" />
+
             {/* <Link
               href="/"
               className="hidden items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
@@ -746,7 +756,7 @@ export default function PublicHeader() {
                       setHeaderHiddenState(false);
                       setProfileOpen((current) => !current);
                     }}
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white py-1.5 pl-1.5 pr-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/10"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] py-1.5 pl-1.5 pr-3 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/10"
                   >
                     <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
                       {user?.profileImage ? (
@@ -776,7 +786,7 @@ export default function PublicHeader() {
                       ref={profileMenuRef}
                       role="menu"
                       aria-label="Account menu"
-                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] origin-top-right overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)] transition-[opacity,transform] duration-200 ease-out ${profileOpen ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0"}`}
+                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] origin-top-right overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)] transition-[opacity,transform] duration-200 ease-out ${profileOpen ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0"}`}
                     >
                       <div className="border-b border-[var(--admin-border)] px-3 py-3">
                         <p className="truncate text-sm font-black text-[var(--admin-text)]">
@@ -845,9 +855,9 @@ export default function PublicHeader() {
                             closeProfileMenu();
                             void logout();
                           }}
-                          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-bold text-rose-700 transition hover:bg-rose-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-100"
+                          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-bold text-[var(--admin-error)] transition hover:bg-[var(--admin-error-soft)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-error-soft)]"
                         >
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-700">
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--admin-error-soft)] text-[var(--admin-error)]">
                             <LogOut className="h-4 w-4" />
                           </span>
                           Logout
@@ -881,7 +891,7 @@ export default function PublicHeader() {
                 setHeaderHiddenState(false);
                 setMobileOpen(true);
               }}
-              className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] bg-white text-[var(--admin-icon)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] ${mobileMenuVisibilityClass} ${
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-icon)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] ${mobileMenuVisibilityClass} ${
                 mobileOpen
                   ? "pointer-events-none opacity-0"
                   : "pointer-events-auto opacity-100"

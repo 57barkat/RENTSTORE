@@ -335,7 +335,7 @@ export default function PublicSignupScreen() {
                   acceptedTerms: event.target.checked,
                 }))
               }
-              className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
+              className="mt-1 h-4 w-4 rounded border-[var(--admin-border)] accent-[var(--admin-primary)]"
               required
               aria-label="I have read and agree to the Terms & Conditions and Privacy Policy."
             />

@@ -610,7 +610,7 @@ export default function PublicSearchHero({
         </div>
         {rentRangeHasError && (
           <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
-            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            {/* <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> */}
             <span>{priceRangeErrorMessage}</span>
           </div>
         )}
@@ -992,7 +992,7 @@ export default function PublicSearchHero({
                     id="desktop-price-range-error"
                     className="pointer-events-none absolute left-3 top-[calc(100%+6px)] z-50 inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 shadow-[0_12px_28px_-18px_rgba(220,38,38,0.75)]"
                   >
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    {/* <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> */}
                     <span>{priceRangeErrorMessage}</span>
                   </div>
                 )}
@@ -1065,7 +1065,7 @@ export default function PublicSearchHero({
                 id="compact-price-range-error"
                 className="pointer-events-none absolute left-3 top-[calc(100%+6px)] z-50 inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-medium text-red-600 shadow-[0_12px_28px_-18px_rgba(220,38,38,0.75)] xl:hidden"
               >
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                {/* <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> */}
                 <span>{priceRangeErrorMessage}</span>
               </div>
             )}

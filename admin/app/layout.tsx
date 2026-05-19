@@ -28,7 +28,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="admin-theme" suppressHydrationWarning>
         <StoreProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             {children}
           </ThemeProvider>
         </StoreProvider>

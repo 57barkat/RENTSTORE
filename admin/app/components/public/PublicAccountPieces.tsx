@@ -99,7 +99,7 @@ export function PublicQuickActionCard({
   return (
     <Link
       href={href}
-      className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 transition hover:border-[var(--admin-primary)]/35 hover:bg-white hover:shadow-[0_18px_36px_-30px_var(--admin-shadow)]"
+      className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 transition hover:border-[var(--admin-primary)]/35 hover:bg-[var(--admin-card)] hover:shadow-[0_18px_36px_-30px_var(--admin-shadow)]"
     >
       <div className="flex items-start gap-4">
         <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] transition group-hover:bg-[var(--admin-primary)] group-hover:text-white">

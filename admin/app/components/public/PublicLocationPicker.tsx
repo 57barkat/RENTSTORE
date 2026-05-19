@@ -1712,7 +1712,7 @@ export default function PublicLocationPicker({
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-[2rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-50px_var(--admin-shadow)]">
-        <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(23,183,122,0.06))] px-4 py-4 sm:px-5">
+        <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-background),var(--admin-secondary-soft))] px-4 py-4 sm:px-5">
           <div className="flex items-start gap-3">
             <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)] shadow-sm">
               <MapPin className="h-5 w-5" />

@@ -6,7 +6,7 @@ export default function PublicListingSkeleton({
   description?: string;
 }) {
   return (
-    <div className="flex flex-1 items-center justify-center bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] px-4 py-16 sm:px-6 lg:px-8">
+    <div className="flex flex-1 items-center justify-center bg-[linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] px-4 py-16 sm:px-6 lg:px-8">
       <div className="flex flex-col items-center gap-5 rounded-[2rem] border border-[var(--admin-border)] bg-white px-10 py-9 text-center shadow-[0_18px_40px_-30px_var(--admin-shadow)]">
         {/* Loader */}
         <div className="relative h-16 w-16">

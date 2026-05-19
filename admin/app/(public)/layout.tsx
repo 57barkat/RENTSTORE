@@ -50,7 +50,7 @@ export default function PublicLayout({
 
   return (
     <div
-      className="flex min-h-screen flex-col bg-[linear-gradient(180deg,_#ffffff_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] text-[var(--admin-text)]"
+      className="flex min-h-screen flex-col bg-[linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-background)_18%,_var(--admin-background)_100%)] text-[var(--admin-text)]"
       style={
         {
           "--public-header-height": "74px",

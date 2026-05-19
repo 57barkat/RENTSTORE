@@ -162,6 +162,8 @@
         var(--admin-background) 0%,
         var(--admin-card) 100%
       );
+    -webkit-user-select: none;
+    user-select: none;
     color: var(--admin-text);
     @apply antialiased;
   }
@@ -182,6 +184,8 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--admin-placeholder);
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* Scrollbar */
@@ -383,6 +387,129 @@
     border: 1px solid rgba(217, 119, 6, 0.18);
     color: var(--admin-warning);
   }
+}
+
+html.dark body.admin-theme [class~="bg-white"] {
+  background-color: var(--admin-card);
+}
+
+html.dark body.admin-theme [class~="bg-white/95"] {
+  background-color: color-mix(in srgb, var(--admin-card) 95%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-white/92"] {
+  background-color: color-mix(in srgb, var(--admin-card) 92%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-white/90"] {
+  background-color: color-mix(in srgb, var(--admin-card) 90%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-white/88"] {
+  background-color: color-mix(in srgb, var(--admin-card) 88%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-white/85"] {
+  background-color: color-mix(in srgb, var(--admin-card) 85%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-white/82"] {
+  background-color: color-mix(in srgb, var(--admin-card) 82%, transparent);
+}
+
+html.dark body.admin-theme [class~="bg-[#F8FAFC]"],
+html.dark body.admin-theme [class~="bg-[#f3f4f6]"],
+html.dark body.admin-theme [class~="bg-slate-100"],
+html.dark body.admin-theme [class~="bg-slate-200"] {
+  background-color: var(--admin-surface);
+}
+
+html.dark body.admin-theme [class~="hover:bg-white"]:hover,
+html.dark body.admin-theme [class~="focus:bg-white"]:focus,
+html.dark body.admin-theme .group:hover [class~="group-hover:bg-white"] {
+  background-color: var(--admin-card);
+}
+
+html.dark body.admin-theme [class~="border-slate-200"],
+html.dark body.admin-theme [class~="border-white"],
+html.dark body.admin-theme [class~="border-white/60"],
+html.dark body.admin-theme [class~="border-white/70"] {
+  border-color: var(--admin-border);
+}
+
+html.dark body.admin-theme [class~="text-slate-900"],
+html.dark body.admin-theme [class~="text-slate-700"],
+html.dark body.admin-theme [class~="text-slate-600"] {
+  color: var(--admin-text);
+}
+
+html.dark body.admin-theme [class~="text-slate-500"],
+html.dark body.admin-theme [class~="text-slate-400"] {
+  color: var(--admin-muted);
+}
+
+html.dark body.admin-theme [class~="bg-rose-50"],
+html.dark body.admin-theme [class~="bg-rose-100"] {
+  background-color: var(--admin-error-soft);
+}
+
+html.dark body.admin-theme [class~="border-rose-200"],
+html.dark body.admin-theme [class~="border-rose-300"] {
+  border-color: color-mix(in srgb, var(--admin-error) 28%, var(--admin-border));
+}
+
+html.dark body.admin-theme [class~="text-rose-700"],
+html.dark body.admin-theme [class~="text-rose-800"] {
+  color: var(--admin-error);
+}
+
+html.dark body.admin-theme [class~="bg-orange-50"],
+html.dark body.admin-theme [class~="bg-amber-50"],
+html.dark body.admin-theme [class~="bg-amber-100"] {
+  background-color: var(--admin-warning-soft);
+}
+
+html.dark body.admin-theme [class~="border-orange-200"],
+html.dark body.admin-theme [class~="border-amber-200"],
+html.dark body.admin-theme [class~="border-amber-300"] {
+  border-color: color-mix(
+    in srgb,
+    var(--admin-warning) 28%,
+    var(--admin-border)
+  );
+}
+
+html.dark body.admin-theme [class~="text-orange-700"],
+html.dark body.admin-theme [class~="text-amber-600"],
+html.dark body.admin-theme [class~="text-amber-700"],
+html.dark body.admin-theme [class~="text-amber-800"],
+html.dark body.admin-theme [class~="text-amber-950"] {
+  color: var(--admin-warning);
+}
+
+html.dark body.admin-theme [class~="bg-emerald-50"],
+html.dark body.admin-theme [class~="bg-emerald-100"] {
+  background-color: var(--admin-success-soft);
+}
+
+html.dark body.admin-theme [class~="border-emerald-200"],
+html.dark body.admin-theme [class~="border-emerald-300"] {
+  border-color: color-mix(
+    in srgb,
+    var(--admin-success) 28%,
+    var(--admin-border)
+  );
+}
+
+html.dark body.admin-theme [class~="text-emerald-600"],
+html.dark body.admin-theme [class~="text-emerald-700"],
+html.dark body.admin-theme [class~="text-emerald-800"] {
+  color: var(--admin-success);
+}
+
+html.dark body.admin-theme .public-sticky-filter-bar::before {
+  background: color-mix(in srgb, var(--admin-background) 94%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--admin-border) 86%, transparent);
 }
 
 @keyframes public-logo-float {

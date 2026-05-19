@@ -763,7 +763,7 @@ function PropertyManagementCard({
             <MiniMetric label="CTR" value={`${ctr.toFixed(1)}%`} />
           </div>
 
-          <div className="mt-6 rounded-[1.5rem] border border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.06),rgba(255,255,255,1))] px-4 py-4">
+          <div className="mt-6 rounded-[1.5rem] border border-[var(--admin-border)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-card))] px-4 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-black text-[var(--admin-text)]">

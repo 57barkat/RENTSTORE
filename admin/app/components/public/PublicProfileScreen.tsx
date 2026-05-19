@@ -172,7 +172,7 @@ export default function PublicProfileScreen() {
             onChange={handleProfileImageUpload}
           />
 
-          <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(16,185,129,0.06))] px-5 py-6 sm:px-7 sm:py-7">
+          <div className="border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-background),var(--admin-secondary-soft))] px-5 py-6 sm:px-7 sm:py-7">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
               <button
                 type="button"

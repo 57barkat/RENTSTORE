@@ -84,7 +84,7 @@ export default async function PopularLocationsPage() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_var(--admin-primary-soft),_transparent_35%),linear-gradient(180deg,_var(--admin-card)_0%,_var(--admin-surface)_52%,_var(--admin-background)_100%)]">
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
         <div className="overflow-hidden rounded-[2.25rem] border border-[var(--admin-border)] bg-white/82 shadow-[0_30px_90px_-60px_var(--admin-shadow)] backdrop-blur">
-          <div className="relative border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(16,185,129,0.07))] px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
+          <div className="relative border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-background),var(--admin-secondary-soft))] px-5 py-8 sm:px-8 sm:py-10 lg:px-10">
             <div className="absolute right-8 top-8 hidden h-28 w-28 rounded-full bg-[var(--admin-primary)]/10 blur-2xl sm:block" />
             <div className="absolute bottom-4 right-28 hidden h-20 w-20 rounded-full bg-emerald-300/20 blur-2xl lg:block" />
 
@@ -208,7 +208,7 @@ export default async function PopularLocationsPage() {
                               <Link
                                 key={`${category}-${group.city}-${item.slug}`}
                                 href={`/${item.slug}`}
-                                className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary)] hover:bg-white hover:shadow-[0_20px_50px_-42px_var(--admin-shadow)]"
+                                className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-background px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary)] hover:bg-card hover:shadow-[0_20px_50px_-42px_var(--admin-shadow)]"
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0">

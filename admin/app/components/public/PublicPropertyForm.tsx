@@ -162,7 +162,7 @@ function ChipGroup({
             className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition ${
               active
                 ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white shadow-[0_12px_24px_-18px_var(--admin-primary-strong)]"
-                : "border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)]/40 hover:bg-white hover:text-[var(--admin-text)]"
+                : "border-[var(--admin-border)] bg-[var(--admin-background)] text-[var(--admin-muted)] hover:border-[var(--admin-primary)]/40 hover:bg-[var(--admin-card)] hover:text-[var(--admin-text)]"
             }`}
           >
             {option.label}
@@ -799,7 +799,7 @@ export default function PublicPropertyForm({
   return (
     <div className="space-y-6">
       <div className="rounded-[32px] border border-[var(--admin-border)] bg-white shadow-[0_30px_90px_-55px_var(--admin-shadow)]">
-        <div className="rounded-t-[32px] border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,rgba(56,86,255,0.08),rgba(255,255,255,1),rgba(23,183,122,0.06))] p-6 sm:p-8">
+        <div className="rounded-t-[32px] border-b border-[var(--admin-border)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-background),var(--admin-secondary-soft))] p-6 sm:p-8">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-4xl">
               <Link
@@ -1366,7 +1366,7 @@ export default function PublicPropertyForm({
                 error={errors.photos}
                 hint={`Supported: JPG, PNG, WEBP, HEIC, HEIF. Max ${MAX_IMAGE_COUNT} images, 5 MB each.`}
               >
-                <label className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[28px] border border-dashed border-[var(--admin-border)] bg-[linear-gradient(180deg,rgba(56,86,255,0.04),rgba(255,255,255,1))] px-5 py-8 text-center transition hover:border-[var(--admin-primary)]">
+                <label className="flex min-h-[220px] cursor-pointer flex-col items-center justify-center gap-4 rounded-[28px] border border-dashed border-[var(--admin-border)] bg-[linear-gradient(180deg,var(--admin-primary-soft),var(--admin-card))] px-5 py-8 text-center transition hover:border-[var(--admin-primary)]">
                   <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--admin-primary-soft)] text-[var(--admin-primary)]">
                     <UploadCloud className="h-6 w-6" />
                   </span>
@@ -1556,7 +1556,7 @@ export default function PublicPropertyForm({
                     onChange={(event) =>
                       setAccuracyConfirmed(event.target.checked)
                     }
-                    className="mt-1 h-4 w-4 rounded border-[var(--admin-border)]"
+                    className="mt-1 h-4 w-4 rounded border-[var(--admin-border)] accent-[var(--admin-primary)]"
                   />
                   <span>
                     I confirm that I am authorized to publish this property and

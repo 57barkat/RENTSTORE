@@ -49,10 +49,10 @@ export function PublicAccountNavItems({
             href={item.href}
             aria-current={active ? "page" : undefined}
             onClick={onNavigate}
-            className={`inline-flex min-h-12 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(0,0,128,0.22)] ${
+            className={`inline-flex min-h-12 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/20 ${
               active
-                ? "bg-[#000080] text-white shadow-[0_18px_36px_-28px_rgba(0,0,128,0.65)]"
-                : `${surface ? "bg-[var(--admin-card)]" : ""} text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[#000080]`
+                ? "bg-[var(--admin-primary)] text-white shadow-[0_18px_36px_-28px_var(--admin-primary-strong)]"
+                : `${surface ? "bg-[var(--admin-card)]" : ""} text-[var(--admin-muted)] hover:bg-[var(--admin-surface)] hover:text-[var(--admin-primary)]`
             }`}
           >
             <Icon className="h-4 w-4 shrink-0" />

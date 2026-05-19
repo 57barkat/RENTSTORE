@@ -16,10 +16,10 @@ export default function PublicListingTrustBanner({
     : "/account/login?redirect=%2Fupload-property";
 
   return (
-    <section className="rounded-[1.5rem] border border-[#cbd7ff] bg-[linear-gradient(90deg,#f5f7ff,#ffffff,#eefdf9)] px-5 py-4 shadow-[0_18px_45px_-38px_rgba(0,31,143,0.45)]">
+    <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[linear-gradient(90deg,var(--admin-primary-soft),var(--admin-card),var(--admin-secondary-soft))] px-5 py-4 shadow-[0_18px_45px_-38px_var(--admin-shadow)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-4">
-          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[var(--admin-primary)] shadow-sm">
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-sm">
             <ShieldCheck className="h-6 w-6" />
           </span>
           <div>
@@ -37,7 +37,7 @@ export default function PublicListingTrustBanner({
 
         <Link
           href={href}
-          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-white px-5 text-sm font-black text-[var(--admin-primary)] shadow-sm transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary)] hover:text-white"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--admin-border)] bg-[var(--admin-background)] px-5 text-sm font-black text-[var(--admin-primary)] shadow-sm transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary)] hover:text-white"
         >
           {isLoading
             ? "List Your Property"
