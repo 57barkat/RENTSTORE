@@ -1,4 +1,3 @@
-import { SafetyDetailsData } from "@/app/upload/SafetyDetailsScreen";
 import { BillType } from "@/app/upload/WeekendPricingScreen";
 import { Address } from "@/types/FinalAddressDetailsScreen.types";
 import { Description } from "@/types/ListingDescriptionHighlightsScreen.types";
@@ -182,7 +181,6 @@ export interface FormData {
   defaultRentType?: "daily" | "weekly" | "monthly";
   securityDeposit?: number;
   ALL_BILLS?: BillType[];
-  safetyDetailsData?: SafetyDetailsData;
   status?: boolean;
   SecuritybasePrice?: number;
   size?: {

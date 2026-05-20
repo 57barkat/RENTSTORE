@@ -66,14 +66,7 @@ export const stepsData: StepItemProps[] = [
   },
   {
     stepNumber: 10,
-    title: "10. Share Safety Details",
-    description:
-      "Provide safety measures, rules, and any additional info to keep renters secure.",
-    iconName: "shield-check",
-  },
-  {
-    stepNumber: 11,
-    title: "11. Review & Submit",
+    title: "10. Review & Submit",
     description:
       "Double-check all information, preview your listing, and publish it to make it live.",
     iconName: "check-decagram",

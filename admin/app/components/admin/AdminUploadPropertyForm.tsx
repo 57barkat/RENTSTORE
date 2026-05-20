@@ -20,7 +20,6 @@ import {
   PROPERTY_HOST_OPTIONS,
   PROPERTY_SIZE_UNITS,
   RULE_OPTIONS,
-  SAFETY_DETAILS,
   type AdminPropertyFieldErrors,
   type AdminPropertyUploadForm,
   type AdminUserOption,
@@ -274,39 +273,17 @@ export default function AdminUploadPropertyForm() {
     });
   };
 
-  const toggleNestedArrayValue = (
-    key: "highlighted" | "safetyDetails",
-    value: string,
-  ) => {
+  const toggleHighlightValue = (value: string) => {
     setForm((current) => {
-      if (key === "highlighted") {
-        const values = current.description.highlighted.includes(value)
-          ? current.description.highlighted.filter((entry) => entry !== value)
-          : [...current.description.highlighted, value];
-
-        return {
-          ...current,
-          description: {
-            highlighted: values,
-          },
-        };
-      }
-
-      const values = current.safetyDetailsData.safetyDetails.includes(value)
-        ? current.safetyDetailsData.safetyDetails.filter(
-            (entry) => entry !== value,
-          )
-        : [...current.safetyDetailsData.safetyDetails, value];
+      const values = current.description.highlighted.includes(value)
+        ? current.description.highlighted.filter((entry) => entry !== value)
+        : [...current.description.highlighted, value];
 
       return {
         ...current,
-        safetyDetailsData: {
-          ...current.safetyDetailsData,
-          safetyDetails: values,
-          cameraDescription:
-            value === "exterior_camera" || values.includes("exterior_camera")
-              ? current.safetyDetailsData.cameraDescription
-              : "",
+        description: {
+          ...current.description,
+          highlighted: values,
         },
       };
     });
@@ -1007,8 +984,8 @@ export default function AdminUploadPropertyForm() {
         </Section>
 
         <Section
-          title="Amenities And Highlights"
-          description="These map directly to the amenity keys and highlighted-description array the app already uses."
+          title="Amenities, Description, And Highlights"
+          description="The written description is shown on detail pages, while highlights remain separate scan-friendly tags."
         >
           <Field label="Amenities" error={errors.amenities}>
             <ChipGroup
@@ -1018,11 +995,29 @@ export default function AdminUploadPropertyForm() {
             />
           </Field>
 
+          <Field label="Property description">
+            <textarea
+              value={form.description.value}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  description: {
+                    ...current.description,
+                    value: event.target.value,
+                  },
+                }))
+              }
+              rows={5}
+              placeholder="Describe the property layout, location benefits, amenities, and anything renters should know before contacting you."
+              className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
+            />
+          </Field>
+
           <Field label="Listing highlights" error={errors.highlights}>
             <ChipGroup
               options={HIGHLIGHT_OPTIONS}
               values={form.description.highlighted}
-              onToggle={(value) => toggleNestedArrayValue("highlighted", value)}
+              onToggle={toggleHighlightValue}
             />
           </Field>
 
@@ -1044,44 +1039,6 @@ export default function AdminUploadPropertyForm() {
                 />
               </Field>
             </>
-          ) : null}
-        </Section>
-
-        <Section
-          title="Safety"
-          description="This section matches the mobile safety checklist and still requires disclosure text for exterior cameras."
-        >
-          <Field label="Safety details" error={errors.safetyDetails}>
-            <ChipGroup
-              options={SAFETY_DETAILS}
-              values={form.safetyDetailsData.safetyDetails}
-              onToggle={(value) =>
-                toggleNestedArrayValue("safetyDetails", value)
-              }
-            />
-          </Field>
-
-          {form.safetyDetailsData.safetyDetails.includes("exterior_camera") ? (
-            <Field
-              label="Exterior camera disclosure"
-              error={errors.cameraDescription}
-            >
-              <textarea
-                value={form.safetyDetailsData.cameraDescription}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    safetyDetailsData: {
-                      ...current.safetyDetailsData,
-                      cameraDescription: event.target.value,
-                    },
-                  }))
-                }
-                rows={4}
-                placeholder="Describe where the exterior camera is located and what it covers."
-                className="admin-input w-full rounded-2xl px-4 py-3 text-sm"
-              />
-            </Field>
           ) : null}
         </Section>
 

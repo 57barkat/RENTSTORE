@@ -52,6 +52,7 @@ import {
   getPropertyAddresses,
   getPropertyCity,
   getPropertyContactPhone,
+  getPropertyDescriptionText,
   getPropertyHighlights,
   getPropertyImageUrls,
   getPropertyLocation,
@@ -155,14 +156,12 @@ const getHostInitials = (name?: string) =>
     .toUpperCase() || "PM";
 
 const getDetailDescription = (
-  category: PropertyCategory,
+  _category: PropertyCategory,
   property: PublicProperty,
 ) => {
-  const extendedProperty = property as PropertyDetailExtras;
-  const directDescription = stringifyDisplayValue(extendedProperty.description);
-
   return (
-    directDescription || buildPropertyMetadataDescription(category, property)
+    getPropertyDescriptionText(property, 600) ||
+    buildPropertyMetadataDescription(_category, property)
   );
 };
 

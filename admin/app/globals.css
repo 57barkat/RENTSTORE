@@ -291,29 +291,13 @@
 
   .public-logo-link .public-logo-mark {
     position: relative;
-    overflow: hidden;
     transform: translateZ(0);
-    animation: public-logo-float 4.8s ease-in-out infinite;
-    transition:
-      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 220ms ease,
-      background-color 220ms ease;
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
     will-change: transform;
   }
 
   .public-logo-link .public-logo-mark::after {
-    content: "";
-    position: absolute;
-    inset: -35%;
-    background: linear-gradient(
-      120deg,
-      transparent 34%,
-      rgba(255, 255, 255, 0.45) 48%,
-      transparent 62%
-    );
-    opacity: 0;
-    pointer-events: none;
-    transform: translateX(-120%) rotate(8deg);
+    content: none;
   }
 
   .public-logo-link .public-logo-icon {
@@ -322,16 +306,22 @@
     transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
+  .public-logo-image-light {
+    display: block;
+  }
+
+  .public-logo-image-dark {
+    display: none;
+  }
+
   .public-logo-link:hover .public-logo-mark,
   .public-logo-link:focus-visible .public-logo-mark {
-    animation: none;
-    box-shadow: 0 18px 34px -18px var(--admin-primary-strong);
-    transform: translate3d(0, -2px, 0) scale(1.05) rotate(2deg);
+    transform: translate3d(0, -1px, 0) scale(1.02);
   }
 
   .public-logo-link:hover .public-logo-mark::after,
   .public-logo-link:focus-visible .public-logo-mark::after {
-    animation: public-logo-shine 680ms ease-out;
+    animation: none;
   }
 
   .public-logo-link:hover .public-logo-icon,
@@ -352,8 +342,6 @@
     opacity: 0;
     pointer-events: none;
     transform: translateZ(0);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
   }
 
   .public-sticky-filter-bar[data-stuck="true"]::before {
@@ -415,6 +403,14 @@ html.dark body.admin-theme [class~="bg-white/85"] {
 
 html.dark body.admin-theme [class~="bg-white/82"] {
   background-color: color-mix(in srgb, var(--admin-card) 82%, transparent);
+}
+
+html.dark body.admin-theme .public-logo-image-light {
+  display: none;
+}
+
+html.dark body.admin-theme .public-logo-image-dark {
+  display: block;
 }
 
 html.dark body.admin-theme [class~="bg-[#F8FAFC]"],

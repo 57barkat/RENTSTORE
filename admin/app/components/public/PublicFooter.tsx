@@ -1,10 +1,10 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   Building2,
   ChevronDown,
   Facebook,
-  Heart,
   HelpCircle,
   Home,
   Info,
@@ -87,6 +87,53 @@ const bottomLinks = [
   { href: "/report-problem", label: "Report a Problem" },
 ] as const;
 
+function FooterLogoMark({ mobile = false }: { mobile?: boolean }) {
+  const iconSizeClass = mobile ? "h-16 w-16" : "h-20 w-20";
+  const brandTextClass = mobile ? "text-2xl" : "text-[22px]";
+  const taglineClass = mobile ? "text-[10px]" : "text-[10px]";
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <span
+        className={`${iconSizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden`}
+        aria-hidden="true"
+      >
+        <Image
+          src="/light.png"
+          alt=""
+          fill
+          quality={100}
+          sizes={mobile ? "64px" : "56px"}
+          className="public-logo-image-dark object-contain scale-125"
+        />
+
+        <Image
+          src="/dark.png"
+          alt=""
+          fill
+          quality={100}
+          sizes={mobile ? "64px" : "56px"}
+          className="public-logo-image-light object-contain scale-125"
+        />
+      </span>
+
+      <span className="-ml-1 flex flex-col justify-center leading-none">
+        <span
+          className={`${brandTextClass} font-black tracking-[-0.05em] text-[var(--admin-text)]`}
+        >
+          Angan<span className="text-[var(--admin-primary)]">Stay</span>
+        </span>
+
+        <span
+          className={`${taglineClass} mt-[4px] font-semibold uppercase tracking-[0.22em] text-[var(--admin-muted)]`}
+        >
+          Find Your Angan
+        </span>
+      </span>
+    </span>
+  );
+}
+
 export default function PublicFooter() {
   return (
     <footer className="bg-white">
@@ -94,19 +141,12 @@ export default function PublicFooter() {
         <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-[1.25fr_0.75fr_0.75fr_0.75fr_1.15fr]">
             <div>
-              <Link href="/" className="inline-flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--admin-primary)] text-white shadow-[0_16px_30px_-20px_var(--admin-primary)]">
-                  <Building2 size={22} />
-                </span>
-
-                <span>
-                  <span className="block text-xl font-black leading-none text-[var(--admin-text)]">
-                    AnganStay
-                  </span>
-                  <span className="mt-1 block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--admin-muted)]">
-                    Verified Rentals
-                  </span>
-                </span>
+              <Link
+                href="/"
+                aria-label="AnganStay home"
+                className="public-logo-link inline-flex items-center"
+              >
+                <FooterLogoMark />
               </Link>
 
               <p className="mt-5 max-w-sm text-sm leading-7 text-[var(--admin-muted)]">
@@ -235,11 +275,11 @@ export default function PublicFooter() {
               ))}
             </div>
 
-            <p className="flex items-center gap-1 md:justify-end">
+            {/* <p className="flex items-center gap-1 md:justify-end">
               Made with{" "}
               <Heart size={13} className="fill-red-500 text-red-500" /> in
               Pakistan
-            </p>
+            </p> */}
           </div>
         </div>
       </div>
@@ -247,19 +287,12 @@ export default function PublicFooter() {
       <div className="px-4 py-6 md:hidden">
         <div className="mx-auto w-full max-w-[440px] overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-55px_rgba(15,23,42,0.35)]">
           <div className="p-6">
-            <Link href="/" className="inline-flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white shadow-[0_16px_30px_-20px_var(--admin-primary)]">
-                <Building2 size={27} />
-              </span>
-
-              <span>
-                <span className="block text-2xl font-black leading-none text-[var(--admin-text)]">
-                  AnganStay
-                </span>
-                <span className="mt-2 block text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--admin-muted)]">
-                  Verified Rentals
-                </span>
-              </span>
+            <Link
+              href="/"
+              aria-label="AnganStay home"
+              className="public-logo-link inline-flex items-center"
+            >
+              <FooterLogoMark mobile />
             </Link>
 
             <p className="mt-6 text-base font-medium leading-8 text-[var(--admin-muted)]">
@@ -420,11 +453,11 @@ export default function PublicFooter() {
               ))}
             </div>
 
-            <p className="mt-4 flex items-center justify-center gap-1 text-sm font-medium text-[var(--admin-muted)]">
+            {/* <p className="mt-4 flex items-center justify-center gap-1 text-sm font-medium text-[var(--admin-muted)]">
               Made with{" "}
               <Heart size={14} className="fill-red-500 text-red-500" /> in
               Pakistan
-            </p>
+            </p> */}
           </div>
         </div>
       </div>

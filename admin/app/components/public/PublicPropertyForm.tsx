@@ -36,7 +36,6 @@ import {
   PROPERTY_HOST_OPTIONS,
   PROPERTY_SIZE_UNITS,
   RULE_OPTIONS,
-  SAFETY_DETAILS,
   uploadImagesToCloudinary,
   validateAdminPropertyForm,
   type AdminPropertyFieldErrors,
@@ -268,6 +267,14 @@ export const buildFormFromProperty = (
     Array.isArray(property.description.highlighted)
       ? property.description.highlighted
       : [];
+  const descriptionValue =
+    typeof property.description === "string"
+      ? property.description
+      : property.description?.value ||
+        property.description?.text ||
+        property.description?.body ||
+        property.description?.summary ||
+        "";
 
   const normalizedHostOption = PROPERTY_HOST_OPTIONS.includes(
     (property.hostOption ||
@@ -313,13 +320,8 @@ export const buildFormFromProperty = (
     defaultRentType: property.defaultRentType || form.defaultRentType,
     SecuritybasePrice: toText(property.SecuritybasePrice),
     ALL_BILLS: Array.isArray(property.ALL_BILLS) ? property.ALL_BILLS : [],
-    safetyDetailsData: {
-      safetyDetails: Array.isArray(property.safetyDetailsData?.safetyDetails)
-        ? property.safetyDetailsData.safetyDetails
-        : [],
-      cameraDescription: property.safetyDetailsData?.cameraDescription || "",
-    },
     description: {
+      value: descriptionValue,
       highlighted,
     },
     size: {
@@ -508,8 +510,7 @@ export default function PublicPropertyForm({
       | "ALL_BILLS"
       | "mealPlan"
       | "rules"
-      | "description.highlighted"
-      | "safetyDetailsData.safetyDetails",
+      | "description.highlighted",
     value: string,
   ) => {
     const updateValues = (values: string[]) =>
@@ -524,18 +525,6 @@ export default function PublicPropertyForm({
           description: {
             ...current.description,
             highlighted: updateValues(current.description.highlighted),
-          },
-        };
-      }
-
-      if (key === "safetyDetailsData.safetyDetails") {
-        return {
-          ...current,
-          safetyDetailsData: {
-            ...current.safetyDetailsData,
-            safetyDetails: updateValues(
-              current.safetyDetailsData.safetyDetails,
-            ),
           },
         };
       }
@@ -718,8 +707,8 @@ export default function PublicPropertyForm({
       amenities: Boolean(form.amenities.length || form.ALL_BILLS.length),
       photos: existingPhotoCount > 0,
       rules: Boolean(
+        form.description.value.trim() ||
         form.description.highlighted.length ||
-        form.safetyDetailsData.safetyDetails.length ||
         form.mealPlan.length ||
         form.rules.length,
       ),
@@ -734,6 +723,7 @@ export default function PublicPropertyForm({
       form.capacityState.bathrooms,
       form.capacityState.bedrooms,
       form.capacityState.beds,
+      form.description.value,
       form.description.highlighted.length,
       form.hostOption,
       form.lat,
@@ -743,7 +733,6 @@ export default function PublicPropertyForm({
       form.monthlyRent,
       form.dailyRent,
       form.rules.length,
-      form.safetyDetailsData.safetyDetails.length,
       form.size.value,
       form.title,
       form.weeklyRent,
@@ -1461,10 +1450,24 @@ export default function PublicPropertyForm({
 
             <SectionCard
               id="rules"
-              eyebrow="07 / Safety"
-              title="Highlights, safety details, and rules"
-              description="Capture what makes the property stand out and include the supported safety disclosures, hostel rules, and meal plan options."
+              eyebrow="07 / Listing story"
+              title="Description, highlights, and rules"
+              description="Write the listing description owners want renters to read, then add highlights, hostel rules, and meal plan options where relevant."
             >
+              <Field label="Property description">
+                <textarea
+                  value={form.description.value}
+                  onChange={(event) =>
+                    setField("description", {
+                      ...form.description,
+                      value: event.target.value,
+                    })
+                  }
+                  className={textareaClass}
+                  placeholder="Describe the property layout, location benefits, amenities, and anything renters should know before contacting you."
+                />
+              </Field>
+
               <Field label="Key highlights" error={errors.highlights}>
                 <ChipGroup
                   options={HIGHLIGHT_OPTIONS}
@@ -1474,40 +1477,6 @@ export default function PublicPropertyForm({
                   }
                 />
               </Field>
-
-              <Field
-                label="Safety details"
-                error={errors["safetyDetailsData.safetyDetails"]}
-              >
-                <ChipGroup
-                  options={SAFETY_DETAILS}
-                  values={form.safetyDetailsData.safetyDetails}
-                  onToggle={(value) =>
-                    toggleArrayValue("safetyDetailsData.safetyDetails", value)
-                  }
-                />
-              </Field>
-
-              {form.safetyDetailsData.safetyDetails.includes(
-                "exterior_camera",
-              ) ? (
-                <Field
-                  label="Exterior camera disclosure"
-                  error={errors.cameraDescription}
-                >
-                  <textarea
-                    value={form.safetyDetailsData.cameraDescription}
-                    onChange={(event) =>
-                      setField("safetyDetailsData", {
-                        ...form.safetyDetailsData,
-                        cameraDescription: event.target.value,
-                      })
-                    }
-                    className={textareaClass}
-                    placeholder="Describe where the exterior camera is installed and what it covers."
-                  />
-                </Field>
-              ) : null}
 
               {isHostel ? (
                 <>

@@ -112,7 +112,7 @@ const WeekendPricingScreen: FC = () => {
     updateForm("defaultRentType", defaultRentType);
     updateForm("ALL_BILLS", includedBills);
 
-    router.push("/upload/SafetyDetailsScreen");
+    router.push("/upload/FinalAddressDetailsScreen");
   };
 
   const isNextDisabled =

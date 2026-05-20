@@ -73,12 +73,15 @@ export interface PublicProperty {
   photos?: string[];
   capacityState?: PropertyCapacityState;
   description?:
-    | { highlighted?: string[]; value?: string; name?: string }
+    | {
+        highlighted?: string[];
+        value?: string;
+        text?: string;
+        body?: string;
+        summary?: string;
+        name?: string;
+      }
     | string;
-  safetyDetailsData?: {
-    safetyDetails?: string[];
-    cameraDescription?: string;
-  };
   mealPlan?: string[];
   rules?: string[];
   owner?: PropertyOwner;

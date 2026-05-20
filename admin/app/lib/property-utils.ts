@@ -54,7 +54,7 @@ const HOSTEL_VALUES: HostelType[] = ["male", "female", "mixed"];
 
 const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
 
-export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.svg";
+export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.jpg";
 
 export const BRAND_NAME = "AnganStay";
 
@@ -103,10 +103,7 @@ const toText = (value: unknown): string => {
 };
 
 export const formatReadableLabel = (value: unknown): string => {
-  const raw = toText(value)
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const raw = toText(value).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
 
   if (!raw) {
     return "";
@@ -557,21 +554,71 @@ export const getPropertyHighlights = (property: PublicProperty): string[] => {
     .filter(Boolean);
 };
 
+const getDirectPropertyDescription = (property: PublicProperty): string => {
+  if (typeof property.description === "string") {
+    return toText(property.description);
+  }
+
+  return (
+    toText(property.description?.value) ||
+    toText(property.description?.text) ||
+    toText(property.description?.body) ||
+    toText(property.description?.summary)
+  );
+};
+
+export const buildPropertyDescriptionFallback = (
+  property: PublicProperty,
+): string => {
+  const title = getPropertyTitle(property);
+  const categoryLabel = getCategoryLabel(
+    getPropertyCategory(property),
+  ).toLowerCase();
+  const locationLabel = getPropertyLocationLabel(property);
+  const capacity = property.capacityState || {};
+  const rooms =
+    capacity.bedrooms && capacity.bathrooms
+      ? `${capacity.bedrooms} room${capacity.bedrooms === 1 ? "" : "s"} and ${capacity.bathrooms} bath${capacity.bathrooms === 1 ? "" : "s"}`
+      : capacity.bedrooms
+        ? `${capacity.bedrooms} room${capacity.bedrooms === 1 ? "" : "s"}`
+        : capacity.Persons
+          ? `space for ${capacity.Persons} guest${capacity.Persons === 1 ? "" : "s"}`
+          : "";
+  const amenities = (property.amenities || [])
+    .map(formatReadableLabel)
+    .filter(Boolean)
+    .slice(0, 3);
+  const highlights = getPropertyHighlights(property)
+    .map(formatReadableLabel)
+    .filter(Boolean)
+    .slice(0, 2);
+  const featureParts = [...amenities, ...highlights];
+  const lead = locationLabel
+    ? `${title} is a verified ${categoryLabel} available in ${locationLabel}.`
+    : `${title} is a verified ${categoryLabel} available on AnganStay.`;
+  const details = [
+    rooms ? `It includes ${rooms}` : "",
+    featureParts.length
+      ? `with ${featureParts.join(", ").toLowerCase()} among its key features`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return details
+    ? `${lead} ${details}. Contact the host to confirm availability, visit timing, and rental terms.`
+    : `${lead} Contact the host to confirm availability, visit timing, and rental terms.`;
+};
+
 export const getPropertyDescriptionText = (
   property: PublicProperty,
   maxLength = 180,
 ): string => {
   const raw =
-    typeof property.description === "string"
-      ? property.description
-      : toText(property.description?.value) ||
-        getPropertyHighlights(property).join(" ");
+    getDirectPropertyDescription(property) ||
+    buildPropertyDescriptionFallback(property);
 
-  const normalized = (
-    raw || "Explore verified rental listings with pricing and amenity details."
-  )
-    .replace(/\s+/g, " ")
-    .trim();
+  const normalized = raw.replace(/\s+/g, " ").trim();
 
   if (normalized.length <= maxLength) {
     return normalized;

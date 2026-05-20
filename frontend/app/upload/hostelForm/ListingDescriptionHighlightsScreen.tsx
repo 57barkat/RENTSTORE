@@ -186,8 +186,8 @@ const MealPlanAndRulesScreen: FC = () => {
         </View>
 
         <Text style={[styles.subtitle, { color: currentTheme.text, marginTop: 24 }]}>
-          Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get
-          your description started.
+          Choose up to {MAX_SELECTIONS} highlights. These stay separate from the
+          written description and help renters scan the listing quickly.
         </Text>
         <View style={styles.chipsContainer}>
           {HIGHLIGHTS_DATA.map((highlight) => (

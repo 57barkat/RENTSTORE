@@ -276,7 +276,7 @@ export default async function PublicListingPage({
         backgroundImage={DEFAULT_PROPERTY_IMAGE}
       />
 
-      <section className="mx-auto w-full min-w-0 max-w-[1500px] px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+      <section className="mx-auto w-full min-w-0 max-w-[1500px] px-4 pb-7 pt-7 sm:px-6 sm:pb-9 sm:pt-8 lg:px-8">
         {showBreadcrumbs && (
           <nav
             aria-label="Breadcrumb"

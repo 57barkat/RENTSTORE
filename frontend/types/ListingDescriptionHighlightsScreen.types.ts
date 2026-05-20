@@ -13,6 +13,6 @@ export interface ChipProps {
 }
 
 export interface Description {
-  description?: string;
+  value?: string;
   highlighted: string[];
 }

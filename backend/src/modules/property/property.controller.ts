@@ -123,19 +123,50 @@ export class PropertyController {
         return val;
       }
     };
+    const normalizeDescription = (value: any) => {
+      const parsed = parseJson(value);
+
+      if (typeof parsed === "string") {
+        return { value: parsed.trim(), highlighted: [] };
+      }
+
+      if (parsed && typeof parsed === "object") {
+        const highlighted = Array.isArray(parsed.highlighted)
+          ? parsed.highlighted
+              .map((item: unknown) =>
+                typeof item === "string" ? item.trim() : "",
+              )
+              .filter(Boolean)
+          : [];
+        const directValue =
+          typeof parsed.value === "string"
+            ? parsed.value
+            : typeof parsed.description === "string"
+              ? parsed.description
+              : typeof parsed.text === "string"
+                ? parsed.text
+                : "";
+
+        return {
+          ...parsed,
+          value: directValue.trim(),
+          highlighted,
+        };
+      }
+
+      return { value: "", highlighted: [] };
+    };
 
     const parsedDto: Partial<CreatePropertyDto> = {
       ...dto,
       capacityState: parseJson(dto.capacityState),
-      description: parseJson(dto.description) ?? { highlighted: [] },
-      safetyDetailsData: parseJson(dto.safetyDetailsData) ?? {
-        safetyDetails: [],
-      },
+      description: normalizeDescription(dto.description),
       amenities: parseJson(dto.amenities),
       ALL_BILLS: parseJson(dto.ALL_BILLS),
       lat: dto.lat ? Number(dto.lat) : undefined,
       lng: dto.lng ? Number(dto.lng) : undefined,
     };
+    delete (parsedDto as Record<string, unknown>).safetyDetailsData;
 
     let parsedAddress: any[] = [];
     if (dto.address) {
@@ -213,7 +244,6 @@ export class PropertyController {
       "lat",
       "lng",
       "address",
-      "safetyDetailsData",
     ];
     const rawStatus = dto.status as boolean | string | undefined;
     const publishRequested = rawStatus === true || rawStatus === "true";

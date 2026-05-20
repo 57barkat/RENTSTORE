@@ -111,7 +111,7 @@ const ApartmentRentScreen: FC = () => {
     updateForm("defaultRentType", defaultRentType);
     updateForm("ALL_BILLS", includedBills);
 
-    router.push("/upload/apartmentForm/SafetyDetailsScreen");
+    router.push("/upload/FinalAddressDetailsScreen");
   };
 
   const isNextDisabled =

@@ -42,13 +42,8 @@ class CapacityStateDto {
   @IsOptional() @IsNumber() floorLevel?: number;
 }
 
-class SafetyDetailsDataDto {
-  @IsOptional() @IsArray() @IsString({ each: true }) safetyDetails: string[] =
-    [];
-  @IsOptional() @IsString() cameraDescription?: string;
-}
-
 class DescriptionDto {
+  @IsOptional() @IsString() value?: string;
   @IsOptional() @IsArray() @IsString({ each: true }) highlighted: string[] = [];
 }
 class PropertySizeDto {
@@ -128,11 +123,6 @@ export class CreatePropertyDto {
   @ValidateNested()
   @Type(() => DescriptionDto)
   description: DescriptionDto = new DescriptionDto();
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => SafetyDetailsDataDto)
-  safetyDetailsData: SafetyDetailsDataDto = new SafetyDetailsDataDto();
 
   @IsOptional()
   @IsEnum(APARTMENT_TYPES)

@@ -174,6 +174,55 @@ const PUBLIC_HEADER_CATEGORY_VALUES = new Set<PropertyCategory>([
   "office",
 ]);
 
+function BrandLogoMark({ size = "default" }: { size?: "default" | "mobile" }) {
+  const iconSizeClass = size === "mobile" ? "h-9 w-9" : "h-20 w-20";
+  const brandTextClass = size === "mobile" ? "text-lg" : "text-[20px]";
+  const taglineClass = size === "mobile" ? "text-[8px]" : "text-[9px]";
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1.5">
+      <span
+        className={`${iconSizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden`}
+        aria-hidden="true"
+      >
+        <Image
+          src="/light.png"
+          alt=""
+          fill
+          quality={100}
+          sizes={size === "mobile" ? "36px" : "80px"}
+          className="public-logo-image-dark object-contain scale-125"
+          priority
+        />
+
+        <Image
+          src="/dark.png"
+          alt=""
+          fill
+          quality={100}
+          sizes={size === "mobile" ? "36px" : "80px"}
+          className="public-logo-image-light object-contain scale-125"
+          priority
+        />
+      </span>
+
+      <span className="-ml-1 flex flex-col justify-center leading-none">
+        <span
+          className={`${brandTextClass} font-black tracking-[-0.05em] text-[var(--admin-text)]`}
+        >
+          Angan<span className="text-[var(--admin-primary)]">Stay</span>
+        </span>
+
+        <span
+          className={`${taglineClass} mt-[3px] font-semibold uppercase tracking-[0.22em] text-[var(--admin-muted)]`}
+        >
+          Find Your Angan
+        </span>
+      </span>
+    </span>
+  );
+}
+
 const readStoredPublicCategory = (): PropertyCategory | null => {
   if (typeof window === "undefined") {
     return null;
@@ -538,7 +587,7 @@ export default function PublicHeader() {
         id="public-mobile-drawer"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="public-mobile-drawer-title"
+        aria-label="Navigation menu"
         className={`relative z-10 ml-auto flex h-dvh w-full flex-col overflow-hidden border-l border-[var(--admin-border)] bg-[var(--admin-background)] shadow-[-24px_0_60px_-36px_rgba(15,23,42,0.55)] transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           mobileOpen
             ? "translate-x-0 opacity-100"
@@ -549,24 +598,10 @@ export default function PublicHeader() {
           <Link
             href="/"
             onClick={closeMobileMenu}
-            className="public-logo-link inline-flex min-w-0 items-center gap-3 text-[var(--admin-text)]"
+            aria-label="AnganStay home"
+            className="public-logo-link inline-flex min-w-0 items-center text-[var(--admin-text)] transition hover:opacity-90"
           >
-            <span className="public-logo-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white">
-              <Building2 className="public-logo-icon" size={19} />
-            </span>
-
-            <span className="min-w-0">
-              <span
-                id="public-mobile-drawer-title"
-                className="block truncate text-base font-black tracking-tight"
-              >
-                AnganStay
-              </span>
-
-              <span className="mt-1 block truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--admin-muted)]">
-                Verified Rentals
-              </span>
-            </span>
+            <BrandLogoMark size="mobile" />
           </Link>
 
           <button
@@ -687,25 +722,14 @@ export default function PublicHeader() {
             : "translate-y-0"
         }`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-6">
             <Link
               href="/"
-              className="public-logo-link inline-flex items-center gap-3 text-[var(--admin-text)] transition hover:text-[var(--admin-primary)]"
+              aria-label="AnganStay home"
+              className="public-logo-link inline-flex min-w-0 items-center text-[var(--admin-text)] transition hover:opacity-90"
             >
-              <span className="public-logo-mark flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--admin-primary)] text-white shadow-[0_18px_30px_-18px_var(--admin-primary)]">
-                <Building2 className="public-logo-icon" size={20} />
-              </span>
-
-              <span className="flex flex-col leading-none">
-                <span className="text-lg font-semibold tracking-tight">
-                  AnganStay
-                </span>
-
-                <span className="mt-1 text-[11px] font-medium uppercase tracking-[0.2em] text-[var(--admin-muted)]">
-                  Verified Rentals
-                </span>
-              </span>
+              <BrandLogoMark />
             </Link>
 
             <nav className="hidden items-center gap-1 xl:flex">
@@ -725,16 +749,8 @@ export default function PublicHeader() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <ThemeToggle compact className="hidden lg:inline-flex" />
-
-            {/* <Link
-              href="/"
-              className="hidden items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
-            >
-              <Search size={16} />
-              All Properties
-            </Link> */}
 
             {!isLoading && isAuthenticated ? (
               <>
@@ -786,7 +802,11 @@ export default function PublicHeader() {
                       ref={profileMenuRef}
                       role="menu"
                       aria-label="Account menu"
-                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] origin-top-right overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)] transition-[opacity,transform] duration-200 ease-out ${profileOpen ? "translate-y-0 scale-100 opacity-100" : "-translate-y-2 scale-95 opacity-0"}`}
+                      className={`absolute right-0 top-[calc(100%+0.75rem)] z-[80] w-[310px] origin-top-right overflow-hidden rounded-[1.5rem] border border-[var(--admin-border)] bg-[var(--admin-card)] p-2 shadow-[0_24px_70px_-38px_var(--admin-shadow)] transition-[opacity,transform] duration-200 ease-out ${
+                        profileOpen
+                          ? "translate-y-0 scale-100 opacity-100"
+                          : "-translate-y-2 scale-95 opacity-0"
+                      }`}
                     >
                       <div className="border-b border-[var(--admin-border)] px-3 py-3">
                         <p className="truncate text-sm font-black text-[var(--admin-text)]">
@@ -871,7 +891,7 @@ export default function PublicHeader() {
               <>
                 <Link
                   href="/account/login"
-                  className="hidden rounded-full border border-[var(--admin-border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
+                  className="hidden rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
                 >
                   Login
                 </Link>

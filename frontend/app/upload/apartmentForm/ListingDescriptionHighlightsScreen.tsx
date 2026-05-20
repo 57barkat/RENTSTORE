@@ -64,7 +64,7 @@ const ApartmentDescriptionHighlightsScreen: FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-          Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get your description started.
+          Choose up to {MAX_SELECTIONS} highlights. These stay separate from the written description and help renters scan the listing quickly.
         </Text>
         {isNextDisabled ? (
           <Text

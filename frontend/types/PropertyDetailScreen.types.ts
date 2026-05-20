@@ -32,6 +32,14 @@ export interface PropertySize {
   unit?: string;
 }
 
+export interface PropertyDescription {
+  value?: string;
+  text?: string;
+  body?: string;
+  summary?: string;
+  highlighted?: string[];
+}
+
 export interface PropertyDetailData {
   _id?: string;
   ownerId?: string;
@@ -50,6 +58,7 @@ export interface PropertyDetailData {
   SecuritybasePrice?: number;
   size?: PropertySize;
   capacityState?: PropertyCapacityState;
+  description?: string | PropertyDescription;
   amenities?: string[];
   ALL_BILLS?: string[];
   photos?: string[];

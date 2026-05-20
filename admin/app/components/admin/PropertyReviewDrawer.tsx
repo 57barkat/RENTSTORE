@@ -7,8 +7,6 @@ import {
   CheckCircle,
   Trash2,
   Phone,
-  Info,
-  ShieldCheck,
   Home,
   Calendar,
   ExternalLink,
@@ -101,12 +99,12 @@ interface PropertyReviewData {
   }>;
   owner?: PropertyReviewOwner;
   uploaderSummary?: PropertyUploaderSummary;
-  safetyDetailsData?: {
-    safetyDetails?: string[];
-    cameraDescription?: string;
-  };
-  description?: {
+  description?: string | {
     highlighted?: string[];
+    value?: string;
+    text?: string;
+    body?: string;
+    summary?: string;
   };
 }
 
@@ -133,9 +131,8 @@ interface EditablePropertyForm {
   stateTerritory: string;
   country: string;
   zipCode: string;
+  description: string;
   highlighted: string;
-  safetyDetails: string;
-  cameraDescription: string;
   status: boolean;
   featured: boolean;
   isBoosted: boolean;
@@ -216,9 +213,18 @@ const buildInitialForm = (property: PropertyReviewData): EditablePropertyForm =>
     stateTerritory: address.stateTerritory || "",
     country: address.country || "",
     zipCode: address.zipCode || "",
-    highlighted: serializeList(property.description?.highlighted),
-    safetyDetails: serializeList(property.safetyDetailsData?.safetyDetails),
-    cameraDescription: property.safetyDetailsData?.cameraDescription || "",
+    description:
+      typeof property.description === "string"
+        ? property.description
+        : property.description?.value ||
+          property.description?.text ||
+          property.description?.body ||
+          property.description?.summary ||
+          "",
+    highlighted:
+      typeof property.description === "object"
+        ? serializeList(property.description?.highlighted)
+        : "",
     status: Boolean(property.status),
     featured: Boolean(property.featured),
     isBoosted: Boolean(property.isBoosted),
@@ -268,7 +274,6 @@ export default function PropertyReviewDrawer({
   const uploaderStats = property?.uploaderSummary?.stats;
   const uploaderPlan =
     property?.uploaderSummary?.uploader?.planLabel || "Free Member";
-  const safetyDetails = property?.safetyDetailsData?.safetyDetails ?? [];
   const uploaderStatCards = [
     { label: "Total", value: uploaderStats?.totalProperties ?? 0 },
     { label: "Houses", value: uploaderStats?.homes ?? 0 },
@@ -348,7 +353,6 @@ export default function PropertyReviewDrawer({
   };
 
   const handleSave = async () => {
-    const nextSafetyDetails = parseList(form.safetyDetails);
     const payload: Record<string, unknown> = {
       title: form.title.trim(),
       location: form.location.trim(),
@@ -382,13 +386,8 @@ export default function PropertyReviewDrawer({
         },
       ],
       description: {
+        value: form.description.trim(),
         highlighted: parseList(form.highlighted),
-      },
-      safetyDetailsData: {
-        safetyDetails: nextSafetyDetails,
-        cameraDescription: nextSafetyDetails.includes("exterior_camera")
-          ? form.cameraDescription.trim()
-          : "",
       },
       featured: form.featured,
       isBoosted: form.isBoosted,
@@ -918,6 +917,20 @@ export default function PropertyReviewDrawer({
                 Safety And Highlights
               </h4>
               <Field
+                label="Description"
+                hint="This is the main public description shown on the listing detail page."
+              >
+                <textarea
+                  className={textareaClassName}
+                  rows={4}
+                  value={form.description}
+                  onChange={(event) =>
+                    setField("description", event.target.value)
+                  }
+                  disabled={!isEditing}
+                />
+              </Field>
+              <Field
                 label="Highlights"
                 hint="Use commas between values, for example peaceful, spacious, family_friendly."
               >
@@ -931,82 +944,26 @@ export default function PropertyReviewDrawer({
                   disabled={!isEditing}
                 />
               </Field>
-              <Field
-                label="Safety Details"
-                hint="Use property keys like exterior_camera, noise_monitor, weapons."
-              >
-                <textarea
-                  className={textareaClassName}
-                  rows={3}
-                  value={form.safetyDetails}
-                  onChange={(event) =>
-                    setField("safetyDetails", event.target.value)
-                  }
-                  disabled={!isEditing}
-                />
-              </Field>
-              <Field label="Camera Notes">
-                <textarea
-                  className={textareaClassName}
-                  rows={4}
-                  value={form.cameraDescription}
-                  onChange={(event) =>
-                    setField("cameraDescription", event.target.value)
-                  }
-                  disabled={!isEditing}
-                />
-              </Field>
             </div>
           </div>
 
           {!isEditing && (
             <>
-              <div className="space-y-3">
-                <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  Safety Check
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {safetyDetails.length > 0 ? (
-                    safetyDetails.map((detail: string) => (
-                      <span
-                        key={detail}
-                        className="flex items-center gap-1 rounded-md border border-green-500/20 bg-green-500/10 px-2 py-1 text-[10px] font-bold capitalize text-green-600"
-                      >
-                        <ShieldCheck className="h-3 w-3" />
-                        {detail.replace(/_/g, " ")}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-xs italic text-muted-foreground">
-                      No safety features listed
-                    </p>
-                  )}
-                </div>
-                {property.safetyDetailsData?.cameraDescription && (
-                  <div className="mt-2 rounded-lg border border-amber-500/10 bg-amber-500/5 p-2.5">
-                    <p className="mb-1 flex items-center gap-1 text-[10px] font-bold uppercase text-amber-600">
-                      <Info className="h-3 w-3" /> Camera Notes
-                    </p>
-                    <p className="text-[11px] italic leading-relaxed text-foreground/80">
-                      {property.safetyDetailsData.cameraDescription}
-                    </p>
-                  </div>
-                )}
-              </div>
-
               <div className="space-y-2">
                 <h4 className="text-xs font-black uppercase text-muted-foreground">
                   Highlights
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {property.description?.highlighted?.map((highlight: string) => (
-                    <span
-                      key={highlight}
-                      className="rounded-lg border border-border bg-accent px-3 py-1 text-[11px] font-bold capitalize"
-                    >
-                      {highlight.replace("_", " ")}
-                    </span>
-                  ))}
+                  {typeof property.description === "object"
+                    ? property.description?.highlighted?.map((highlight: string) => (
+                        <span
+                          key={highlight}
+                          className="rounded-lg border border-border bg-accent px-3 py-1 text-[11px] font-bold capitalize"
+                        >
+                          {highlight.replace("_", " ")}
+                        </span>
+                      ))
+                    : null}
                 </div>
               </div>
             </>

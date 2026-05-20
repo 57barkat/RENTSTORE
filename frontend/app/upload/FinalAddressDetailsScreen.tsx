@@ -125,7 +125,7 @@ const FinalAddressDetailsScreen: FC = () => {
             : firstError || "Complete the address fields before publishing."
         }
         progress={100}
-        stepNumber={11}
+        stepNumber={10}
         totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
       >
         <KeyboardAvoidingView

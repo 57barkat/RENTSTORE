@@ -53,7 +53,10 @@ const ListingDescriptionHighlightsScreen: FC = () => {
 
   const handleNext = () => {
     const highlightsArray = Array.from(selectedHighlights);
-    updateForm("description", { highlighted: highlightsArray });
+    updateForm("description", {
+      ...(data.description ?? {}),
+      highlighted: highlightsArray,
+    });
     router.push("/upload/PricingScreen");
   };
 
@@ -74,8 +77,8 @@ const ListingDescriptionHighlightsScreen: FC = () => {
       totalSteps={PROPERTY_UPLOAD_TOTAL_STEPS}
     >
       <Text style={[styles.subtitle, { color: currentTheme.text }]}>
-        Choose up to {MAX_SELECTIONS} highlights. We&apos;ll use these to get
-        your description started.
+        Choose up to {MAX_SELECTIONS} highlights. These stay separate from the
+        written description and help renters scan the listing quickly.
       </Text>
       {isNextDisabled ? (
         <Text

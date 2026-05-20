@@ -14,6 +14,7 @@ import {
 
 const MAX_TITLE_LENGTH = 150;
 const MIN_TITLE_LENGTH = 5;
+const MAX_DESCRIPTION_LENGTH = 1200;
 
 const ApartmentTitleScreen: FC = () => {
   const context = useContext(FormContext);
@@ -24,12 +25,19 @@ const ApartmentTitleScreen: FC = () => {
   const { data, updateForm } = context;
   const router = useRouter();
   const [title, setTitle] = useState<string>(data.title ?? "");
+  const [description, setDescription] = useState<string>(
+    data.description?.value ?? "",
+  );
 
   const { theme } = useTheme();
   const currentTheme = Colors[theme ?? "light"];
 
   const handleNext = () => {
     updateForm("title", title);
+    updateForm("description", {
+      ...(data.description ?? { highlighted: [] }),
+      value: description,
+    });
     router.push("/upload/apartmentForm/ListingDescriptionHighlightsScreen");
   };
 
@@ -76,6 +84,41 @@ const ApartmentTitleScreen: FC = () => {
         />
         <Text style={[styles.charCount, { color: currentTheme.muted }]}>
           {title.length}/{MAX_TITLE_LENGTH}
+        </Text>
+      </View>
+
+      <View style={[styles.inputContainer, { marginTop: 18 }]}>
+        <Text
+          style={{
+            color: currentTheme.text,
+            fontSize: 15,
+            fontWeight: "700",
+            marginBottom: 8,
+          }}
+        >
+          Property description
+        </Text>
+        <TextInput
+          multiline
+          maxLength={MAX_DESCRIPTION_LENGTH}
+          value={description}
+          onChangeText={setDescription}
+          onBlur={Keyboard.dismiss}
+          style={[
+            styles.textInput,
+            {
+              minHeight: 150,
+              color: currentTheme.text,
+              backgroundColor: currentTheme.card,
+              borderColor: currentTheme.border,
+              textAlignVertical: "top",
+            },
+          ]}
+          placeholder="Describe the rooms, floor, amenities, location benefits, and anything renters should know."
+          placeholderTextColor={currentTheme.muted}
+        />
+        <Text style={[styles.charCount, { color: currentTheme.muted }]}>
+          {description.length}/{MAX_DESCRIPTION_LENGTH}
         </Text>
       </View>
 

@@ -42,11 +42,8 @@ export interface AdminPropertyUploadForm {
   defaultRentType: "daily" | "weekly" | "monthly";
   SecuritybasePrice: string;
   ALL_BILLS: string[];
-  safetyDetailsData: {
-    safetyDetails: string[];
-    cameraDescription: string;
-  };
   description: {
+    value: string;
     highlighted: string[];
   };
   size: {
@@ -103,12 +100,6 @@ export const HOSTEL_TYPES = ["male", "female", "mixed"];
 export const PROPERTY_SIZE_UNITS = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
 
 export const BILL_OPTIONS = ["electricity", "water", "gas"];
-
-export const SAFETY_DETAILS = [
-  { key: "exterior_camera", label: "Exterior security camera present" },
-  { key: "noise_monitor", label: "Noise decibel monitor present" },
-  { key: "weapons", label: "Weapon(s) on the property" },
-];
 
 export const HIGHLIGHT_OPTIONS = [
   { key: "peaceful", label: "Peaceful" },
@@ -194,11 +185,8 @@ export const createEmptyPropertyUploadForm = (): AdminPropertyUploadForm => ({
   defaultRentType: "monthly",
   SecuritybasePrice: "",
   ALL_BILLS: [],
-  safetyDetailsData: {
-    safetyDetails: [],
-    cameraDescription: "",
-  },
   description: {
+    value: "",
     highlighted: [],
   },
   size: {
@@ -341,13 +329,6 @@ export const validateAdminPropertyForm = (
     errors.defaultRentType = `Add a valid ${form.defaultRentType} rent before setting it as the default display rent.`;
   }
 
-  if (
-    form.safetyDetailsData.safetyDetails.includes("exterior_camera") &&
-    !form.safetyDetailsData.cameraDescription.trim()
-  ) {
-    errors.cameraDescription = "Describe the exterior camera coverage.";
-  }
-
   if (form.hostOption === "hostel") {
     if (!form.hostelType) {
       errors.hostelType = "Hostel type is required.";
@@ -449,11 +430,8 @@ export const buildAdminPropertyPayload = (form: AdminPropertyUploadForm) => {
     defaultRentType: form.defaultRentType,
     SecuritybasePrice: toNumber(form.SecuritybasePrice),
     ALL_BILLS: dedupeStrings(form.ALL_BILLS),
-    safetyDetailsData: {
-      safetyDetails: dedupeStrings(form.safetyDetailsData.safetyDetails),
-      cameraDescription: form.safetyDetailsData.cameraDescription.trim() || null,
-    },
     description: {
+      value: form.description.value.trim(),
       highlighted: dedupeStrings(form.description.highlighted),
     },
     status: true,

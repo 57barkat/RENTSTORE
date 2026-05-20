@@ -3,10 +3,11 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertTriangle,
+  Building2,
   ChevronDown,
   MapPin,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   X,
@@ -46,6 +47,29 @@ const CATEGORY_TABS: Array<{ label: string; value: PropertyCategory }> = [
   { label: "Hostels", value: "hostel" },
   { label: "Shops", value: "shop" },
   { label: "Offices", value: "office" },
+];
+
+const HERO_TRUST_ITEMS = [
+  {
+    title: "Verified Listings",
+    description: "Platform-reviewed rental listings",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Islamabad Focused",
+    description: "All listings are from Islamabad only",
+    icon: MapPin,
+  },
+  {
+    title: "Smart Filters",
+    description: "Search by sector, budget, and amenities",
+    icon: SlidersHorizontal,
+  },
+  {
+    title: "Managed Marketplace",
+    description: "A cleaner way to browse local rentals",
+    icon: Building2,
+  },
 ];
 
 const parseNumericFilter = (value: string): NumericFilterValue => {
@@ -185,7 +209,6 @@ export default function PublicSearchHero({
   category,
   filters,
   filterOptions,
-  total,
   backgroundImage,
 }: PublicSearchHeroProps) {
   const { updateFilters } = useProperties(category);
@@ -247,7 +270,7 @@ export default function PublicSearchHero({
     ? "text-red-700 placeholder:text-red-400"
     : "text-[var(--admin-text)] placeholder:text-[var(--admin-muted)]";
 
-  const heroLocation = "Islamabad ";
+  const heroLocation = "Islamabad";
 
   const selectedAmenities = displayFilters.amenities || [];
   const resolvedFilterOptions = {
@@ -344,7 +367,25 @@ export default function PublicSearchHero({
 
     updateFilters(nextFilters);
   };
+  useEffect(() => {
+    if (!filtersOpen) return;
 
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = "hidden";
+
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+    };
+  }, [filtersOpen]);
   const handleResetFilters = () => {
     setFiltersOpen(false);
 
@@ -843,33 +884,53 @@ export default function PublicSearchHero({
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-35"
+            className="object-cover opacity-28 [object-position:center_43%]"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(115deg,#001a9b_0%,rgba(0,45,178,0.88)_42%,rgba(0,167,145,0.86)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(0,23,168,0.60)_0%,rgba(0,49,180,0.45)_44%,rgba(0,151,139,0.40)_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#00226f]/45 to-transparent" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[360px] max-w-[1500px] flex-col items-center px-4 pb-24 pt-10 text-center sm:px-6 lg:px-8 lg:pt-14">
+        <div className="relative mx-auto flex min-h-[480px] max-w-[1500px] flex-col items-center px-4 pb-10 pt-10 text-center sm:px-6 md:min-h-[540px] lg:min-h-[560px] lg:px-8 lg:pb-12 lg:pt-14">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] uppercase text-white shadow-sm backdrop-blur">
             <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
-            Verified property discovery
+            Find Your Angan
           </span>
 
-          <h1 className="mt-5 max-w-4xl text-[2.2rem] font-black leading-[1.08] tracking-[-0.03em] text-white sm:text-5xl lg:text-6xl">
-            Find your perfect{" "}
-            <span className="italic text-[#22C55E]">Angan</span> in{" "}
-            {heroLocation}
+          <h1 className="mt-5 max-w-4xl text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.045em] text-white sm:text-[3.25rem] lg:text-[4.25rem]">
+            Find your <span className="text-[#34D399]">Angan</span>
+            <span className="block">in {heroLocation}</span>
           </h1>
 
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-white/90 sm:text-base">
-            {typeof total === "number"
-              ? `Browse ${total.toLocaleString("en-PK")} verified listings`
-              : "Browse verified listings"}{" "}
-            with live pricing, photos, and location-aware filters.
-            <span className="mt-2 block text-sm text-white/85">
-              AnganStay is currently focused on Islamabad. More cities are
-              coming soon.
-            </span>
+          <p className="mt-5 max-w-2xl text-sm font-normal leading-6 text-white/82 sm:text-[18px]">
+            Browse trusted rental listings by area, budget, property type, and
+            lifestyle needs.
           </p>
+          <div className="mt-7 hidden w-full max-w-5xl items-center justify-center gap-7 text-left md:flex">
+            {HERO_TRUST_ITEMS.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="flex min-w-0 items-center gap-2.5 text-white"
+                >
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-emerald-300 backdrop-blur-sm">
+                    <Icon className="h-4 w-4" />
+                  </span>
+
+                  <span className="min-w-0">
+                    <span className="block whitespace-nowrap text-[14px] font-semibold leading-4 text-white">
+                      {item.title}
+                    </span>
+
+                    <span className="mt-0.5 block max-w-[120px] text-[10px] font-normal leading-3 text-white/70">
+                      {item.description}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -877,12 +938,16 @@ export default function PublicSearchHero({
         ref={stickyFilterSentinelRef}
         data-public-sticky-filter-sentinel="true"
         aria-hidden="true"
-        className="h-px"
+        className="-mt-32 h-px"
       />
 
       <section
         data-stuck={filtersStuck ? "true" : "false"}
-        className="public-sticky-filter-bar has-sticky-filters sticky top-0 z-40 transform-gpu border-b border-[var(--admin-border)] bg-white/95 px-4 py-3 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)] backdrop-blur-xl transition-[transform,box-shadow,background-color] duration-300 ease-out will-change-transform sm:px-6 lg:px-8"
+        className={`public-sticky-filter-bar has-sticky-filters sticky top-0 z-40 transform-gpu px-4 transition-[transform,box-shadow,background-color] duration-300 ease-out will-change-transform sm:px-6 lg:px-8 ${
+          filtersStuck
+            ? "border-b border-[var(--admin-border)] bg-white/95 py-3 shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)]"
+            : "border-b border-transparent bg-transparent pb-0 pt-0 shadow-none"
+        }`}
         style={{
           transform: filtersStuck
             ? "translate3d(0, var(--public-sticky-filter-offset, var(--public-header-height, 74px)), 0)"
@@ -895,7 +960,11 @@ export default function PublicSearchHero({
               event.preventDefault();
               applyPrimarySearch();
             }}
-            className="hidden min-w-0 overflow-visible rounded-[1.5rem] border border-[var(--admin-border)] bg-white p-2 shadow-sm md:block"
+            className={`hidden min-w-0 overflow-visible rounded-[1.35rem] border bg-white p-2.5 md:block ${
+              filtersStuck
+                ? "border-[var(--admin-border)] shadow-sm"
+                : "mx-auto max-w-[1040px] border-white/80 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.55)]"
+            }`}
           >
             <div className={`relative ${stickyFilterRowClass}`}>
               <label
@@ -1111,7 +1180,11 @@ export default function PublicSearchHero({
           </button>
 
           {activeChips.length > 0 && (
-            <div className="mt-3 hidden items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out md:flex">
+            <div
+              className={`mt-3 flex items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out md:flex-wrap md:overflow-visible ${
+                filtersStuck ? "" : "mx-auto max-w-[1040px]"
+              }`}
+            >
               {activeChips.map((chip) => (
                 <button
                   key={chip.key}
@@ -1127,7 +1200,7 @@ export default function PublicSearchHero({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="shrink-0 rounded-full px-3 py-2 text-xs font-semibold text-[var(--admin-primary)] transition hover:bg-[var(--admin-primary-soft)]"
+                className="shrink-0 rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--admin-primary)] transition hover:border-[var(--admin-primary)]"
               >
                 Reset filters
               </button>
@@ -1136,47 +1209,59 @@ export default function PublicSearchHero({
         </div>
       </section>
 
+      {!filtersStuck && (
+        <div
+          aria-hidden="true"
+          className={activeChips.length > 0 ? "h-8" : "h-12"}
+        />
+      )}
+
       {filtersOpen && (
         <div
-          className={`fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/45 px-0 backdrop-blur-sm transition-opacity duration-300 ease-out sm:items-center sm:px-4 ${
+          className={`fixed inset-0 z-[1000] flex min-h-dvh items-stretch justify-center overflow-hidden bg-slate-950/80 px-0 transition-opacity duration-300 ease-out sm:px-4 ${
             filtersOpen
               ? "pointer-events-auto opacity-100"
               : "pointer-events-none opacity-0"
           }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="More filters"
         >
           <button
             type="button"
             aria-label="Close filters"
             onClick={() => setFiltersOpen(false)}
-            className="absolute inset-0"
+            className="absolute inset-0 h-full w-full cursor-default"
           />
 
           <div
-            className={`relative max-h-[88vh] w-full overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.7)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:max-w-3xl sm:rounded-[1.75rem] ${
+            className={`relative z-10 flex h-dvh w-full flex-col overflow-hidden bg-white shadow-[0_30px_90px_-45px_rgba(15,23,42,0.8)] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:my-6 sm:h-[calc(100dvh-3rem)] sm:max-w-3xl sm:rounded-[1.75rem] ${
               filtersOpen
                 ? "translate-y-0 scale-100 opacity-100"
-                : "translate-y-6 scale-95 opacity-0 sm:translate-y-2"
+                : "translate-y-6 scale-95 opacity-0"
             }`}
           >
-            <div className="flex items-center justify-between gap-4 border-b border-[var(--admin-border)] px-5 py-4">
-              <div>
-                <h2 className="text-lg text-[var(--admin-text)]">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--admin-border)] bg-white px-5 py-4">
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-[var(--admin-text)]">
                   More filters
                 </h2>
                 <p className="mt-1 text-sm text-[var(--admin-muted)]">
                   Refine listings without leaving the search page.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setFiltersOpen(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--admin-background)] text-[var(--admin-muted)] transition hover:text-[var(--admin-text)]"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--admin-background)] text-[var(--admin-muted)] transition hover:text-[var(--admin-text)]"
+                aria-label="Close filters"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="max-h-[calc(88vh-142px)] overflow-y-auto px-5 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
               <div className="mb-5 space-y-5 md:hidden">
                 <FilterGroup title="Location">
                   <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--admin-border)] bg-[var(--admin-surface,#fff)] px-3 transition focus-within:border-[var(--admin-primary)] focus-within:ring-4 focus-within:ring-[var(--admin-primary)]/10">
@@ -1189,47 +1274,25 @@ export default function PublicSearchHero({
                     />
                   </label>
                 </FilterGroup>
-
-                <FilterGroup title="Property type">
-                  <div className="flex flex-wrap gap-2">
-                    {CATEGORY_TABS.map((tab) => {
-                      const active = displayFilters.category === tab.value;
-
-                      return (
-                        <button
-                          key={tab.value}
-                          type="button"
-                          onClick={() => handleCategoryChange(tab.value)}
-                          className={`rounded-full border px-4 py-2 text-xs font-medium transition ${
-                            active
-                              ? "border-[var(--admin-primary)] bg-[var(--admin-primary)] text-white shadow-sm"
-                              : "border-[var(--admin-border)] bg-white text-[var(--admin-text)] hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </FilterGroup>
               </div>
 
               {advancedPanel}
             </div>
 
-            <div className="sticky bottom-0 grid gap-3 border-t border-[var(--admin-border)] bg-white px-5 py-4 sm:grid-cols-[1fr_1fr]">
+            <div className="grid shrink-0 gap-3 border-t border-[var(--admin-border)] bg-white px-5 py-4 sm:grid-cols-[1fr_1fr]">
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="min-h-12 rounded-2xl border border-[var(--admin-border)] bg-white px-5 text-sm text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
+                className="min-h-12 rounded-2xl border border-[var(--admin-border)] bg-white px-5 text-sm font-medium text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)]"
               >
                 Reset Filters
               </button>
+
               <button
                 type="button"
                 onClick={applyAdvancedFilters}
                 disabled={rentRangeHasError || sizeRangeHasError}
-                className="min-h-12 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-12 rounded-2xl bg-[var(--admin-primary)] px-5 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Apply Filters
               </button>

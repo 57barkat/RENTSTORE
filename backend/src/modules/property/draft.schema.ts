@@ -38,11 +38,8 @@ export const PropertyDraftSchema = new Schema(
       bathrooms: Number,
     },
     description: {
+      value: String,
       highlighted: [String],
-    },
-    safetyDetailsData: {
-      safetyDetails: [String],
-      cameraDescription: String,
     },
     photos: [String],
     ownerId: { type: Types.ObjectId, ref: "User" },

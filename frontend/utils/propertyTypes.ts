@@ -32,7 +32,7 @@ export const PROPERTY_HOST_OPTIONS_CONFIG: Array<{
   { title: "Office", value: "office", icon: "briefcase-outline" },
 ];
 
-export const PROPERTY_UPLOAD_TOTAL_STEPS = 11;
+export const PROPERTY_UPLOAD_TOTAL_STEPS = 10;
 
 export const getPropertyTypeLabel = (value?: string | null) => {
   if (!value) {

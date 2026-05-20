@@ -149,25 +149,6 @@ export const validatePropertyPayload = (
     );
   }
 
-  if (!hasArrayValues(dto.safetyDetailsData?.safetyDetails)) {
-    addError(
-      errors,
-      "safetyDetailsData.safetyDetails",
-      "Select at least one safety detail.",
-    );
-  }
-
-  if (
-    dto.safetyDetailsData?.safetyDetails?.includes("exterior_camera") &&
-    !hasText(dto.safetyDetailsData.cameraDescription || "")
-  ) {
-    addError(
-      errors,
-      "safetyDetailsData.cameraDescription",
-      "Exterior camera details must be disclosed.",
-    );
-  }
-
   if (hostOption === "hostel") {
     if (!dto.hostelType) {
       addError(errors, "hostelType", "Hostel type is required.");

@@ -26,15 +26,6 @@ const HIGHLIGHTS = [
   "newly_renovated",
   "pet_friendly",
 ];
-const SAFETY_DETAILS = [
-  "smoke_alarm",
-  "first_aid_kit",
-  "exterior_camera",
-  "fire_extinguisher",
-  "weapons",
-  "noise_monitor",
-];
-
 const CLOUDINARY_PHOTOS = Array.from(
   { length: 50 },
   (_, i) => `https://picsum.photos/800/600?random=${i + 1}`,
@@ -163,10 +154,9 @@ function generateProperties(count = 500) {
         unit: randomChoice(["Marla", "Kanal", "Sq. Ft."]),
       },
 
-      description: { highlighted: randomSubarray(HIGHLIGHTS, 2, 4) },
-      safetyDetailsData: {
-        safetyDetails: randomSubarray(SAFETY_DETAILS, 2, 5),
-        cameraDescription: "Active CCTV monitoring in entry/exit points.",
+      description: {
+        value: `${title} offers a practical rental option in ${area}, ${city} with clear pricing, useful amenities, and verified listing details for renters to review before contacting the host.`,
+        highlighted: randomSubarray(HIGHLIGHTS, 2, 4),
       },
 
       apartmentType:

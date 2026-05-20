@@ -99,20 +99,14 @@ export class Property extends Document {
   capacityState?: Record<string, any>;
 
   @Prop({
-    type: { highlighted: { type: [String], default: [] }, _id: false },
-    default: {},
-  })
-  description?: Record<string, any>;
-
-  @Prop({
     type: {
-      safetyDetails: { type: [String], default: [] },
-      cameraDescription: String,
+      value: { type: String, default: "" },
+      highlighted: { type: [String], default: [] },
       _id: false,
     },
     default: {},
   })
-  safetyDetailsData?: Record<string, any>;
+  description?: Record<string, any>;
 
   @Prop({
     type: String,

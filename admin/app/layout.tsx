@@ -8,12 +8,21 @@ import { SITE_ORIGIN } from "./lib/site-config";
 export const metadata: Metadata = {
   metadataBase: SITE_ORIGIN,
   applicationName: "AnganStay",
+
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
+
   title: {
     default: "AnganStay",
     template: "%s",
   },
+
   description:
     "AnganStay helps people discover verified rental properties and gives administrators a secure workflow for managing listings, users, and reports.",
+
   openGraph: {
     siteName: "AnganStay",
   },

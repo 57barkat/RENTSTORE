@@ -111,7 +111,7 @@ const HostelRentScreen: FC = () => {
     updateForm("defaultRentType", defaultRentType);
     updateForm("ALL_BILLS", includedBills);
 
-    router.push("/upload/hostelForm/SafetyDetailsScreen");
+    router.push("/upload/FinalAddressDetailsScreen");
   };
 
   const isNextDisabled =

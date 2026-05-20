@@ -12,6 +12,7 @@ import AmenityChip from "@/components/PropertyDetail/AmenityChip";
 import DetailStatCard from "@/components/PropertyDetail/DetailStatCard";
 import PromotionBadge from "@/components/PropertyDetail/PromotionBadge";
 import type { PropertyDetailData } from "@/types/PropertyDetailScreen.types";
+import { getPropertyDescriptionText } from "@/utils/properties/description";
 import { formatPrice } from "@/utils/properties/formatPrice";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
@@ -75,6 +76,7 @@ export default function PropertyInfoSection({
   const primaryRent = getPrimaryRentInfo(property);
   const title = getDisplayTitle(property);
   const locationText = getLocationText(property);
+  const descriptionText = getPropertyDescriptionText(property);
   const hasCoordinates =
     typeof property.lat === "number" && typeof property.lng === "number";
   const categoryLabel = property.hostOption
@@ -232,6 +234,22 @@ export default function PropertyInfoSection({
         </View>
       ) : null}
 
+      {descriptionText ? (
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: theme.card, borderColor: theme.border },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: theme.primary }]}>
+            Description
+          </Text>
+          <Text style={[styles.descriptionText, { color: theme.muted }]}>
+            {descriptionText}
+          </Text>
+        </View>
+      ) : null}
+
       {shouldShowAmenities ? (
         <View
           style={[
@@ -375,6 +393,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "900",
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: "500",
   },
   subsectionTitle: {
     fontSize: 13,

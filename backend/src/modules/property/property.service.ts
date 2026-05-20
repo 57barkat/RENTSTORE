@@ -380,6 +380,23 @@ export class PropertyService {
     return property;
   }
 
+  private stripDeprecatedPropertyFields<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map((item) =>
+        this.stripDeprecatedPropertyFields(item),
+      ) as T;
+    }
+
+    if (value && typeof value === "object") {
+      const record = { ...(value as Record<string, any>) };
+      delete record.safetyDetailsData;
+
+      return record as T;
+    }
+
+    return value;
+  }
+
   async resetExpiredPromotions(now: Date = new Date()) {
     await this.propertyModel.updateMany(
       { featured: true, featuredUntil: { $ne: null, $lt: now } },
@@ -1000,7 +1017,7 @@ export class PropertyService {
 
     // 10. Return formatted response
     return {
-      data: populatedMainData,
+      data: this.stripDeprecatedPropertyFields(populatedMainData),
       total,
       page: currentPage,
       limit: adjustedLimit,
@@ -1585,7 +1602,7 @@ export class PropertyService {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      data: result,
+      data: this.stripDeprecatedPropertyFields(result),
     };
   }
 
@@ -1694,7 +1711,7 @@ export class PropertyService {
 
     void this.propertyViewTracker.queueView(propertyId);
     console.log(property, "property");
-    return property;
+    return this.stripDeprecatedPropertyFields(property);
   }
 
   async getPropertyUploaderSummary(propertyId: string) {
@@ -2026,7 +2043,7 @@ export class PropertyService {
 
     return {
       totals: result.totals,
-      data: result.properties,
+      data: this.stripDeprecatedPropertyFields(result.properties),
       meta: {
         totalItems,
         itemCount: result.properties.length,
@@ -2052,6 +2069,37 @@ export class PropertyService {
 
     // Prevent _id override
     if (dto._id) delete dto._id;
+    if ((dto as Record<string, unknown>).safetyDetailsData !== undefined) {
+      delete (dto as Record<string, unknown>).safetyDetailsData;
+    }
+    if (dto.description !== undefined) {
+      const description = dto.description as unknown;
+
+      if (typeof description === "string") {
+        dto.description = { value: description.trim(), highlighted: [] } as any;
+      } else if (description && typeof description === "object") {
+        const record = description as Record<string, unknown>;
+        const highlighted = Array.isArray(record.highlighted)
+          ? record.highlighted
+              .map((item) => (typeof item === "string" ? item.trim() : ""))
+              .filter(Boolean)
+          : [];
+        const value =
+          typeof record.value === "string"
+            ? record.value
+            : typeof record.description === "string"
+              ? record.description
+              : typeof record.text === "string"
+                ? record.text
+                : "";
+
+        dto.description = {
+          ...record,
+          value: value.trim(),
+          highlighted,
+        } as any;
+      }
+    }
     if (dto.defaultRentType !== undefined) {
       dto.defaultRentType = normalizeDefaultRentType(dto);
     }
@@ -2290,7 +2338,7 @@ export class PropertyService {
     const properties = result.data || [];
 
     return {
-      data: properties,
+      data: this.stripDeprecatedPropertyFields(properties),
       total,
       page,
       limit,
