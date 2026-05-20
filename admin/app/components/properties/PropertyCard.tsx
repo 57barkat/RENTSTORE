@@ -6,6 +6,7 @@ import {
   ArrowUpRight,
   Bath,
   BedDouble,
+  Building2,
   CheckCircle2,
   Eye,
   MapPin,
@@ -41,6 +42,56 @@ interface PropertyCardProps {
 
 const buildStatItems = (property: PublicProperty) => {
   const items: Array<{ key: string; value: string; label: string }> = [];
+  const category = getPropertyCategory(property);
+  const floorLabel = formatFloorLevel(property.capacityState?.floorLevel);
+  const sizeLabel =
+    property.size?.value && property.size?.unit
+      ? `${property.size.value} ${property.size.unit}`
+      : "";
+  const locationLabel = getPropertyLocationLabel(property);
+
+  if (category === "shop") {
+    if (sizeLabel) {
+      items.push({ key: "size", value: sizeLabel, label: "" });
+    }
+
+    if (floorLabel) {
+      items.push({ key: "floor", value: floorLabel, label: "" });
+    }
+
+    if (locationLabel) {
+      items.push({ key: "location", value: locationLabel, label: "" });
+    }
+
+    return items.slice(0, 3);
+  }
+
+  if (category === "office") {
+    const roomsOrCabins =
+      property.capacityState?.bedrooms || property.capacityState?.beds;
+
+    if (sizeLabel) {
+      items.push({ key: "size", value: sizeLabel, label: "" });
+    }
+
+    if (floorLabel) {
+      items.push({ key: "floor", value: floorLabel, label: "" });
+    }
+
+    if (roomsOrCabins) {
+      items.push({
+        key: "rooms",
+        value: String(roomsOrCabins),
+        label: Number(roomsOrCabins) === 1 ? "Room/Cabin" : "Rooms/Cabins",
+      });
+    }
+
+    if (property.parking) {
+      items.push({ key: "parking", value: "Parking", label: "" });
+    }
+
+    return items.slice(0, 4);
+  }
 
   if (property.capacityState?.bedrooms || property.capacityState?.beds) {
     const value =
@@ -61,10 +112,10 @@ const buildStatItems = (property: PublicProperty) => {
     });
   }
 
-  if (property.size?.value && property.size?.unit) {
+  if (sizeLabel) {
     items.push({
       key: "size",
-      value: `${property.size.value} ${property.size.unit}`,
+      value: sizeLabel,
       label: "",
     });
   }
@@ -78,6 +129,20 @@ const buildStatItems = (property: PublicProperty) => {
   }
 
   return items.slice(0, 4);
+};
+
+const formatFloorLevel = (floorLevel: unknown) => {
+  if (floorLevel === undefined || floorLevel === null || floorLevel === "") {
+    return "";
+  }
+
+  const numericFloor = Number(floorLevel);
+
+  if (Number.isFinite(numericFloor)) {
+    return numericFloor === 0 ? "Ground floor" : `Floor ${numericFloor}`;
+  }
+
+  return String(floorLevel);
 };
 
 const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
@@ -208,10 +273,39 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
                   />
                 )}
 
+                {item.key === "floor" && (
+                  <Building2
+                    size={11}
+                    className="text-[var(--admin-primary)]"
+                  />
+                )}
+
+                {item.key === "rooms" && (
+                  <Building2
+                    size={11}
+                    className="text-[var(--admin-primary)]"
+                  />
+                )}
+
+                {item.key === "parking" && (
+                  <CheckCircle2
+                    size={11}
+                    className="text-[var(--admin-primary)]"
+                  />
+                )}
+
+                {item.key === "location" && (
+                  <MapPin size={11} className="text-[var(--admin-primary)]" />
+                )}
+
                 <span className="truncate">
                   {item.key === "beds" && `${item.value} ${item.label}`}
                   {item.key === "baths" && `${item.value} ${item.label}`}
                   {item.key === "size" && item.value}
+                  {item.key === "floor" && item.value}
+                  {item.key === "rooms" && `${item.value} ${item.label}`}
+                  {item.key === "parking" && item.value}
+                  {item.key === "location" && item.value}
                   {item.key === "furnishing" && item.value}
                 </span>
               </div>

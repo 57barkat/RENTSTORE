@@ -78,39 +78,6 @@ type PropertyDetailExtras = PublicProperty & {
   houseRules?: unknown[];
 };
 
-const stringifyDisplayValue = (value: unknown): string => {
-  if (value === undefined || value === null) {
-    return "";
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(stringifyDisplayValue).filter(Boolean).join(", ");
-  }
-
-  if (typeof value === "object") {
-    const record = value as Record<string, unknown>;
-
-    return (
-      stringifyDisplayValue(record.highlighted) ||
-      stringifyDisplayValue(record.label) ||
-      stringifyDisplayValue(record.name) ||
-      stringifyDisplayValue(record.title) ||
-      stringifyDisplayValue(record.value) ||
-      ""
-    );
-  }
-
-  return "";
-};
-
 const renderAddress = (property: PublicProperty) => {
   const address = getPropertyAddresses(property)[0];
 
@@ -294,33 +261,88 @@ export default async function PropertyDetailContent({
       ? property.boostedUntil
       : "";
 
-  const stats = [
-    {
-      label: "Bedrooms",
-      value:
-        property.capacityState?.bedrooms ||
-        property.capacityState?.beds ||
-        "Not specified",
-      icon: BedDouble,
-    },
-    {
-      label: "Bathrooms",
-      value: property.capacityState?.bathrooms || "Not specified",
-      icon: Bath,
-    },
-    {
-      label: "Floor",
-      value: formatFloorLevel(property.capacityState?.floorLevel),
-      icon: Building2,
-    },
-    {
-      label: property.size?.unit || "Area",
-      value: property.size?.value
-        ? String(property.size.value)
-        : "Not specified",
-      icon: SquareDashedBottom,
-    },
-  ].filter((item) => item.value !== "Not specified");
+  const areaSizeValue =
+    property.size?.value && property.size?.unit
+      ? `${property.size.value} ${property.size.unit}`
+      : "Not specified";
+  const floorValue = formatFloorLevel(property.capacityState?.floorLevel);
+  const locationValue =
+    [area, city].filter(Boolean).join(", ") || primaryAddress || "Not specified";
+  const roomsOrCabins =
+    property.capacityState?.bedrooms || property.capacityState?.beds;
+
+  const stats = (() => {
+    if (category === "shop") {
+      return [
+        {
+          label: "Area size",
+          value: areaSizeValue,
+          icon: SquareDashedBottom,
+        },
+        {
+          label: "Floor",
+          value: floorValue,
+          icon: Building2,
+        },
+        {
+          label: "Location",
+          value: locationValue,
+          icon: MapPin,
+        },
+      ];
+    }
+
+    if (category === "office") {
+      return [
+        {
+          label: "Area size",
+          value: areaSizeValue,
+          icon: SquareDashedBottom,
+        },
+        {
+          label: "Floor",
+          value: floorValue,
+          icon: Building2,
+        },
+        {
+          label: "Rooms/Cabins",
+          value: roomsOrCabins || "Not specified",
+          icon: Building2,
+        },
+        {
+          label: "Parking",
+          value: property.parking ? "Available" : "Not specified",
+          icon: CheckCircle2,
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Bedrooms",
+        value:
+          property.capacityState?.bedrooms ||
+          property.capacityState?.beds ||
+          "Not specified",
+        icon: BedDouble,
+      },
+      {
+        label: "Bathrooms",
+        value: property.capacityState?.bathrooms || "Not specified",
+        icon: Bath,
+      },
+      {
+        label: "Floor",
+        value: floorValue,
+        icon: Building2,
+      },
+      {
+        label: "Area size",
+        value: areaSizeValue,
+        icon: SquareDashedBottom,
+      },
+    ];
+  })().filter((item) => item.value !== "Not specified");
 
   const schemaOffers = pricingOptions.map((option) => ({
     "@type": "Offer",

@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  BarChart3,
   ChevronRight,
+  Clock3,
+  Eye,
   Heart,
-  Home,
+  ListChecks,
   Loader2,
-  Plus,
   UploadCloud,
   UserCircle2,
   type LucideIcon,
@@ -136,9 +136,7 @@ function MobileCapacityCard({
   uploadStatus?: UploadStatus;
   role?: string;
 }) {
-  console.log("Upload status:", uploadStatus);
   const remainingFree = uploadStatus?.remainingFree ?? 0;
-  const paidCredits = uploadStatus?.paidCredits ?? 0;
   const limit = uploadStatus?.limit ?? 0;
   const used = uploadStatus?.used ?? 0;
   const canUpload = uploadStatus?.canUpload !== false;
@@ -262,7 +260,7 @@ export default function PublicDashboardScreen() {
         label: "Total uploads",
         value: user?.totalProperties ?? 0,
         hint: "Listings created",
-        icon: Home,
+        icon: ListChecks,
       },
       {
         label: "Favorites",
@@ -274,13 +272,13 @@ export default function PublicDashboardScreen() {
         label: "Active listings",
         value: stats.dashboard?.totals?.activeListings ?? 0,
         hint: "Publicly visible",
-        icon: BarChart3,
+        icon: Eye,
       },
       {
         label: "Pending review",
         value: stats.pendingTotal ?? 0,
         hint: "Awaiting approval",
-        icon: UploadCloud,
+        icon: Clock3,
       },
     ],
     [
@@ -319,7 +317,7 @@ export default function PublicDashboardScreen() {
               label="Total uploads"
               value={user?.totalProperties ?? 0}
               hint="Listings created under this account"
-              icon={Home}
+              icon={ListChecks}
             />
 
             <PublicAccountStatCard
@@ -333,14 +331,14 @@ export default function PublicDashboardScreen() {
               label="Active listings"
               value={stats.dashboard?.totals?.activeListings ?? 0}
               hint="Approved and publicly visible"
-              icon={BarChart3}
+              icon={Eye}
             />
 
             <PublicAccountStatCard
               label="Pending review"
               value={stats.pendingTotal ?? 0}
               hint="Waiting for moderation"
-              icon={UploadCloud}
+              icon={Clock3}
             />
           </div>
 
@@ -368,7 +366,7 @@ export default function PublicDashboardScreen() {
 
                   <MobileActionRow
                     href="/account/properties"
-                    icon={Home}
+                    icon={ListChecks}
                     title="Manage uploads"
                     description="Edit, promote, activate, or delete listings"
                   />
@@ -411,7 +409,7 @@ export default function PublicDashboardScreen() {
               <div className="mt-5 grid gap-3 md:grid-cols-3">
                 <PublicQuickActionCard
                   href="/account/properties"
-                  icon={Home}
+                  icon={ListChecks}
                   title="Manage uploads"
                   description="Edit, promote, activate, or clean up existing listings and drafts."
                 />

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Grid2X2, Map } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { useProperties } from "@/app/hooks/usePublicProperties";
 import type { PropertyCategory, PropertySort } from "@/app/lib/property-types";
@@ -13,7 +13,7 @@ interface ListingToolbarProps {
 }
 
 const SORT_OPTIONS: Array<{ label: string; value: PropertySort }> = [
-  { label: "Newest First", value: "newest" },
+  { label: "Newest Listings", value: "newest" },
   { label: "Most Popular", value: "popular" },
   { label: "Price: Low to High", value: "price_asc" },
   { label: "Price: High to Low", value: "price_desc" },

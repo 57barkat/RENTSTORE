@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import {
-  Building2,
-  Headphones,
   Heart,
   LayoutDashboard,
+  LifeBuoy,
+  ListChecks,
   UserCircle2,
   type LucideIcon,
 } from "lucide-react";
@@ -18,10 +18,10 @@ type PublicAccountNavItem = {
 
 export const PUBLIC_ACCOUNT_NAV_ITEMS: PublicAccountNavItem[] = [
   { href: "/account/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/account/properties", label: "My Properties", icon: Building2 },
+  { href: "/account/properties", label: "My Properties", icon: ListChecks },
   { href: "/account/favorites", label: "Favorites", icon: Heart },
   { href: "/account/profile", label: "Profile", icon: UserCircle2 },
-  { href: "/account/support", label: "Support", icon: Headphones },
+  { href: "/account/support", label: "Support", icon: LifeBuoy },
 ];
 
 export function isAccountNavItemActive(pathname: string, href: string) {

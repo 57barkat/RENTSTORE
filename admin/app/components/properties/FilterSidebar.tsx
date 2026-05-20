@@ -247,10 +247,10 @@ const FilterSidebarComponent = ({
               }
               className="admin-input h-11 w-full appearance-none rounded-xl px-3 pr-9 text-sm"
             >
-              <option value="newest">Latest listings</option>
-              <option value="popular">Most popular</option>
-              <option value="price_asc">Price: low to high</option>
-              <option value="price_desc">Price: high to low</option>
+              <option value="newest">Newest Listings</option>
+              <option value="popular">Most Popular</option>
+              <option value="price_asc">Price: Low to High</option>
+              <option value="price_desc">Price: High to Low</option>
             </select>
 
             <ChevronDown

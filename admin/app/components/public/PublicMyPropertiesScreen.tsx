@@ -1097,7 +1097,7 @@ export default function PublicMyPropertiesScreen() {
       ) : emptyState ? (
         <PublicEmptyState
           title="No uploads yet"
-          description="You haven't published or saved any property listings yet."
+          description="You haven't published any property listings yet."
           ctaHref="/upload-property"
           ctaLabel="Upload your first property"
           icon={Plus}

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import {
-  Headphones,
   HelpCircle,
+  LifeBuoy,
   LockKeyhole,
   Megaphone,
   MessageCircle,
@@ -60,7 +60,7 @@ export default function PublicSupportScreen() {
               href="mailto:support@anganstay.com"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--admin-primary)] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_var(--admin-primary)] transition hover:opacity-95"
             >
-              <Headphones className="h-4 w-4" />
+              <LifeBuoy className="h-4 w-4" />
               Contact support
             </Link>
           }

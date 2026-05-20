@@ -378,6 +378,7 @@ export default async function PublicListingPage({
                     filters,
                     Math.max(1, currentPage - 1),
                   )}
+                  scroll={false}
                   aria-disabled={currentPage === 1}
                   className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-black transition ${
                     currentPage === 1
@@ -392,6 +393,7 @@ export default async function PublicListingPage({
                   <Link
                     key={page}
                     href={buildPaginationHref(pathname, filters, page)}
+                    scroll={false}
                     className={`inline-flex h-10 min-w-10 items-center justify-center rounded-xl px-3 text-center text-sm font-black transition ${
                       page === currentPage
                         ? "bg-[var(--admin-primary)] text-white shadow-[0_14px_28px_-18px_var(--admin-primary)]"
@@ -408,6 +410,7 @@ export default async function PublicListingPage({
                     filters,
                     Math.min(totalPages, currentPage + 1),
                   )}
+                  scroll={false}
                   aria-disabled={currentPage === totalPages}
                   className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-black transition ${
                     currentPage === totalPages

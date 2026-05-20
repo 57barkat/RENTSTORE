@@ -83,8 +83,6 @@ const socialLinks = [
 const bottomLinks = [
   { href: "/terms", label: "Terms" },
   { href: "/privacy", label: "Privacy" },
-  { href: "/contact", label: "Contact" },
-  { href: "/report-problem", label: "Report a Problem" },
 ] as const;
 
 function FooterLogoMark({ mobile = false }: { mobile?: boolean }) {
@@ -151,7 +149,7 @@ export default function PublicFooter() {
 
               <p className="mt-5 max-w-sm text-sm leading-7 text-[var(--admin-muted)]">
                 Islamabad&apos;s trusted platform for verified rental
-                properties. Find your perfect angan with confidence.
+                properties. Find your perfect Angan with confidence.
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
@@ -297,7 +295,7 @@ export default function PublicFooter() {
 
             <p className="mt-6 text-base font-medium leading-8 text-[var(--admin-muted)]">
               Islamabad&apos;s trusted platform for verified rental properties.
-              Find your next home with confidence.
+              Find your perfect Angan with confidence.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">

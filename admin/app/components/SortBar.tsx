@@ -19,7 +19,7 @@ export function SortBar() {
         onChange={(e) => updateSort(e.target.value)}
         className="admin-input cursor-pointer appearance-none rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold"
       >
-        <option value="newest">Latest Listings</option>
+        <option value="newest">Newest Listings</option>
         <option value="price_asc">Price: Low to High</option>
         <option value="price_desc">Price: High to Low</option>
         <option value="popular">Most Popular</option>

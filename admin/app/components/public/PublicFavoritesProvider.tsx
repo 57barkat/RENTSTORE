@@ -130,6 +130,7 @@ export default function PublicFavoritesProvider({
           await publicApiClient.delete(`/favorites/${propertyId}`);
         } else {
           await publicApiClient.post(`/favorites/${propertyId}`);
+          toast.success("Property added to Favorites successfully.");
         }
 
         return true;

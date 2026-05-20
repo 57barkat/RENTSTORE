@@ -148,9 +148,19 @@ export function PublicEmptyState({
 }) {
   return (
     <PublicAccountPanel className="border-dashed px-6 py-12 text-center">
-      <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--admin-surface)] text-[var(--admin-primary)]">
-        <Icon className="h-7 w-7" />
-      </span>
+      {ctaHref ? (
+        <Link
+          href={ctaHref}
+          aria-label={ctaLabel || title}
+          className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--admin-surface)] text-[var(--admin-primary)] transition hover:-translate-y-0.5 hover:bg-[var(--admin-primary)] hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/20"
+        >
+          <Icon className="h-7 w-7" />
+        </Link>
+      ) : (
+        <span className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-full bg-[var(--admin-surface)] text-[var(--admin-primary)]">
+          <Icon className="h-7 w-7" />
+        </span>
+      )}
       <h2 className="mt-5 text-xl font-bold text-[var(--admin-text)]">{title}</h2>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-[var(--admin-muted)]">
         {description}
