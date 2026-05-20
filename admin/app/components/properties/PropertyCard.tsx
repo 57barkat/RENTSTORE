@@ -166,8 +166,8 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   }
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[1.1rem] border border-[var(--admin-border)] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_36%,var(--admin-border))] hover:shadow-[0_22px_55px_-34px_rgba(0,31,143,0.42)]">
-      <div className="relative aspect-[1.42] overflow-hidden bg-[var(--admin-card)]">
+    <article className="group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_srgb,var(--admin-border)_82%,white)] bg-white shadow-[0_12px_32px_-28px_rgba(15,23,42,0.35)] transition duration-300 hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_30%,var(--admin-border))] hover:shadow-[0_26px_70px_-42px_rgba(0,31,143,0.46)]">
+      <div className="relative m-2 mb-0 aspect-[1.42] overflow-hidden rounded-[1rem] bg-[var(--admin-card)]">
         <PropertyCardGalleryTrigger
           images={galleryImages}
           imageAltBase={imageAlt}
@@ -179,13 +179,13 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
 
         <div className="pointer-events-none absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
           {isFeatured && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--admin-accent)] px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-white shadow-sm">
               Featured
             </span>
           )}
 
           {isBoosted && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm">
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-600 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-white shadow-sm">
               <Zap className="h-3 w-3 fill-current" />
               Boosted
             </span>
@@ -194,7 +194,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
           {isVerified && (
             <span
               title="Verification means limited platform checks only. It does not guarantee ownership, legal title, condition, availability, or transaction safety."
-              className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-white shadow-sm"
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/95 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-emerald-700 shadow-sm"
             >
               <CheckCircle2 className="h-3 w-3" />
               Verified
@@ -223,7 +223,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
       <Link
         href={detailHref}
         aria-label={`View details for ${title}`}
-        className="flex flex-1 flex-col px-3.5 py-3.5 outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/15"
+        className="flex flex-1 flex-col px-4 pb-4 pt-3.5 outline-none focus-visible:ring-4 focus-visible:ring-[var(--admin-primary)]/15"
       >
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[10px] font-black uppercase text-[var(--admin-secondary)]">

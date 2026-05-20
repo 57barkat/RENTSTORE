@@ -26,17 +26,18 @@ export default function ListingToolbar({
   totalPages,
 }: ListingToolbarProps) {
   const { filters, updateFilters } = useProperties(category);
-  const locationLabel =
-    [filters.location, filters.city].filter(Boolean).join(", ") || "Islamabad ";
+  const pageLabel = `Page ${currentPage} of ${Math.max(totalPages, 1)}`;
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h2 className="text-3xl font-black text-[var(--admin-text)]">
-          {total.toLocaleString("en-PK")} Properties
+        <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
+          {total.toLocaleString("en-PK")} verified rentals in Islamabad
         </h2>
-        <p className="mt-1 text-sm font-semibold text-[var(--admin-muted)]">
-          in {locationLabel} - Page {currentPage} of {Math.max(totalPages, 1)}
+        <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--admin-muted)]">
+          Explore trusted places across hostels, apartments, houses, shops, and
+          offices.
+          <span className="sr-only"> {pageLabel}</span>
         </p>
       </div>
 

@@ -54,7 +54,7 @@ export default function PopularLocationsSection({
           <Link
             key={item.slug}
             href={`/${item.slug}`}
-            className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-background px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--admin-primary)] hover:bg-card hover:shadow-[0_20px_50px_-42px_var(--admin-shadow)]"
+            className="group rounded-[1.5rem] border border-[var(--admin-border)] bg-background px-4 py-4 transition duration-200 ease-out hover:-translate-y-0.5 hover:border-[color:color-mix(in_srgb,var(--admin-primary)_34%,var(--admin-border))] hover:bg-card hover:shadow-[0_24px_58px_-42px_rgba(15,23,42,0.32)]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -72,7 +72,7 @@ export default function PopularLocationsSection({
               </span>
             </div>
 
-            <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[var(--admin-primary)] opacity-80 transition group-hover:gap-2 group-hover:opacity-100">
+            <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[var(--admin-primary-soft)] px-3 py-1.5 text-xs font-black text-[var(--admin-primary)] transition group-hover:gap-2 group-hover:bg-[var(--admin-primary)] group-hover:text-white">
               View {browseLabel}
               <ArrowRight className="h-3.5 w-3.5" />
             </span>

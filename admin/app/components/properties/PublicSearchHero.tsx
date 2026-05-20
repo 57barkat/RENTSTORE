@@ -57,17 +57,17 @@ const HERO_TRUST_ITEMS = [
   },
   {
     title: "Islamabad Focused",
-    description: "All listings are from Islamabad only",
+    description: "Areas, sectors, and landmarks built around Islamabad",
     icon: MapPin,
   },
   {
     title: "Smart Filters",
-    description: "Search by sector, budget, and amenities",
+    description: "Search by budget, property type, and amenities",
     icon: SlidersHorizontal,
   },
   {
     title: "Managed Marketplace",
-    description: "A cleaner way to browse local rentals",
+    description: "Cleaner browsing with fewer low-quality listings",
     icon: Building2,
   },
 ];
@@ -260,8 +260,8 @@ export default function PublicSearchHero({
     ? "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white xl:col-span-1 xl:grid xl:w-full xl:grid-cols-2"
     : "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white md:col-span-2 md:grid md:w-full md:grid-cols-2 xl:col-span-1";
   const compactPriceRowClass = showStickyCategorySelector
-    ? "mt-2 grid grid-cols-2 gap-2 xl:hidden"
-    : "mt-2 grid grid-cols-2 gap-2 md:hidden";
+    ? "col-span-2 grid grid-cols-2 gap-2 xl:hidden"
+    : "col-span-2 grid grid-cols-2 gap-2 md:hidden";
   const priceRangeErrorMessage = "Enter a valid price range";
   const priceRangeContainerClass = rentRangeHasError
     ? "border-red-500 bg-red-50/40 focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10"
@@ -596,12 +596,12 @@ export default function PublicSearchHero({
           key: "sortBy",
           label:
             displayFilters.sortBy === "popular"
-              ? "Most popular"
+              ? "Most Popular"
               : displayFilters.sortBy === "price_asc"
-                ? "Price low to high"
+                ? "Price: Low to High"
                 : displayFilters.sortBy === "price_desc"
-                  ? "Price high to low"
-                  : "Latest listings",
+                  ? "Price: High to Low"
+                  : "Newest Listings",
           onRemove: () => commitFilters({ sortBy: "newest" }),
         }
       : null,
@@ -618,45 +618,46 @@ export default function PublicSearchHero({
 
   const advancedPanel = (
     <div className="space-y-5">
-      <FilterGroup title="Budget">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <input
-            value={minRentInput}
-            onChange={(event) => setMinRentInput(event.target.value)}
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="Min price"
-            aria-invalid={rentRangeHasError}
-            className={`admin-input h-11 rounded-xl px-3 text-sm ${
-              rentRangeHasError
-                ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
-                : ""
-            }`}
-          />
-          <input
-            value={maxRentInput}
-            onChange={(event) => setMaxRentInput(event.target.value)}
-            type="number"
-            min={0}
-            inputMode="numeric"
-            placeholder="Max price"
-            aria-invalid={rentRangeHasError}
-            className={`admin-input h-11 rounded-xl px-3 text-sm ${
-              rentRangeHasError
-                ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
-                : ""
-            }`}
-          />
-        </div>
-        {rentRangeHasError && (
-          <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
-            {/* <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> */}
-            <span>{priceRangeErrorMessage}</span>
+      <div className="lg:hidden">
+        <FilterGroup title="Budget">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              value={minRentInput}
+              onChange={(event) => setMinRentInput(event.target.value)}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="Min price"
+              aria-invalid={rentRangeHasError}
+              className={`admin-input h-11 rounded-xl px-3 text-sm ${
+                rentRangeHasError
+                  ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
+                  : ""
+              }`}
+            />
+            <input
+              value={maxRentInput}
+              onChange={(event) => setMaxRentInput(event.target.value)}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              placeholder="Max price"
+              aria-invalid={rentRangeHasError}
+              className={`admin-input h-11 rounded-xl px-3 text-sm ${
+                rentRangeHasError
+                  ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-red-500/10"
+                  : ""
+              }`}
+            />
           </div>
-        )}
-      </FilterGroup>
-
+          {rentRangeHasError && (
+            <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
+              {/* <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> */}
+              <span>{priceRangeErrorMessage}</span>
+            </div>
+          )}
+        </FilterGroup>
+      </div>
       {(showBedroomFilters || showBathroomFilters) && (
         <div className="grid gap-4 sm:grid-cols-2">
           {showBedroomFilters && (
@@ -864,10 +865,10 @@ export default function PublicSearchHero({
             })
           }
           options={[
-            ["newest", "Latest listings"],
-            ["popular", "Most popular"],
-            ["price_asc", "Price: low to high"],
-            ["price_desc", "Price: high to low"],
+            ["newest", "Newest Listings"],
+            ["popular", "Most Popular"],
+            ["price_asc", "Price: Low to High"],
+            ["price_desc", "Price: High to Low"],
           ]}
         />
       </FilterGroup>
@@ -876,7 +877,7 @@ export default function PublicSearchHero({
 
   return (
     <>
-      <section className="relative isolate overflow-hidden bg-[#001f8f]">
+      <section className="relative isolate overflow-hidden bg-[#07143f]">
         <div className="absolute inset-0">
           <Image
             src={backgroundImage || DEFAULT_PROPERTY_IMAGE}
@@ -884,15 +885,17 @@ export default function PublicSearchHero({
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-28 [object-position:center_43%]"
+            className="object-cover opacity-42 [object-position:center_43%]"
           />
-          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(0,23,168,0.60)_0%,rgba(0,49,180,0.45)_44%,rgba(0,151,139,0.40)_100%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#00226f]/45 to-transparent" />
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(3,7,34,0.88)_0%,rgba(18,24,86,0.76)_42%,rgba(0,119,128,0.58)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_62%_18%,rgba(52,211,153,0.18),transparent_34%),radial-gradient(circle_at_20%_82%,rgba(245,158,11,0.10),transparent_30%)]" />
+          <div className="absolute inset-0 bg-black/12" />
+          <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#07143f]/70 to-transparent" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[480px] max-w-[1500px] flex-col items-center px-4 pb-10 pt-10 text-center sm:px-6 md:min-h-[540px] lg:min-h-[560px] lg:px-8 lg:pb-12 lg:pt-14">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] uppercase text-white shadow-sm backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
+        <div className="relative mx-auto flex min-h-[520px] max-w-[1500px] flex-col items-center px-4 pb-28 pt-8 text-center sm:min-h-[540px] sm:px-6 sm:pb-32 md:min-h-[560px] md:pb-12 lg:min-h-[580px] lg:px-8 lg:pb-14 lg:pt-14">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/24 bg-white/12 px-3.5 py-1.5 text-[10px] uppercase tracking-[0.14em] text-white shadow-sm backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5 text-[#34D399]" />
             Find Your Angan
           </span>
 
@@ -901,29 +904,29 @@ export default function PublicSearchHero({
             <span className="block">in {heroLocation}</span>
           </h1>
 
-          <p className="mt-5 max-w-2xl text-sm font-normal leading-6 text-white/82 sm:text-[18px]">
-            Browse trusted rental listings by area, budget, property type, and
-            lifestyle needs.
+          <p className="mt-5 max-w-3xl text-sm font-normal leading-6 text-white/86 sm:text-[18px] sm:leading-7">
+            Verified rentals across Islamabad — from student hostels to family
+            homes, shops, and offices.
           </p>
-          <div className="mt-7 hidden w-full max-w-5xl items-center justify-center gap-7 text-left md:flex">
+          <div className="mt-8 hidden w-full max-w-6xl items-stretch justify-center gap-4 text-left md:grid md:grid-cols-4">
             {HERO_TRUST_ITEMS.map((item) => {
               const Icon = item.icon;
 
               return (
                 <div
                   key={item.title}
-                  className="flex min-w-0 items-center gap-2.5 text-white"
+                  className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/16 bg-white/[0.075] px-4 py-3.5 text-white shadow-[0_18px_48px_-34px_rgba(0,0,0,0.55)] backdrop-blur-sm"
                 >
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-emerald-300 backdrop-blur-sm">
-                    <Icon className="h-4 w-4" />
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/12 text-[#34D399]">
+                    <Icon className="h-5 w-5" />
                   </span>
 
                   <span className="min-w-0">
-                    <span className="block whitespace-nowrap text-[14px] font-semibold leading-4 text-white">
+                    <span className="block text-[13px] font-bold leading-4 text-white">
                       {item.title}
                     </span>
 
-                    <span className="mt-0.5 block max-w-[120px] text-[10px] font-normal leading-3 text-white/70">
+                    <span className="mt-1 block text-[11px] font-normal leading-4 text-white/72">
                       {item.description}
                     </span>
                   </span>
@@ -938,7 +941,7 @@ export default function PublicSearchHero({
         ref={stickyFilterSentinelRef}
         data-public-sticky-filter-sentinel="true"
         aria-hidden="true"
-        className="-mt-32 h-px"
+        className="-mt-52 h-px md:-mt-36"
       />
 
       <section
@@ -960,10 +963,10 @@ export default function PublicSearchHero({
               event.preventDefault();
               applyPrimarySearch();
             }}
-            className={`hidden min-w-0 overflow-visible rounded-[1.35rem] border bg-white p-2.5 md:block ${
+            className={`block min-w-0 overflow-visible rounded-[1.5rem] border bg-white p-2.5 ${
               filtersStuck
-                ? "border-[var(--admin-border)] shadow-sm"
-                : "mx-auto max-w-[1040px] border-white/80 shadow-[0_24px_70px_-38px_rgba(15,23,42,0.55)]"
+                ? "border-[var(--admin-border)] shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)]"
+                : "mx-auto max-w-[1120px] border-white/90 shadow-[0_30px_90px_-42px_rgba(2,6,23,0.72)]"
             }`}
           >
             <div className={`relative ${stickyFilterRowClass}`}>
@@ -1010,7 +1013,7 @@ export default function PublicSearchHero({
                 <input
                   value={locationInput}
                   onChange={(event) => setLocationInput(event.target.value)}
-                  placeholder="Sector, area, or landmark"
+                  placeholder="Search sector, university, or landmark"
                   className="min-w-0 flex-1 bg-transparent text-sm text-[var(--admin-text)] outline-none placeholder:text-[var(--admin-muted)]"
                 />
               </label>
@@ -1067,10 +1070,48 @@ export default function PublicSearchHero({
                 )}
               </div>
 
+              <div className={`relative ${compactPriceRowClass}`}>
+                <input
+                  value={minRentInput}
+                  onChange={(event) => setMinRentInput(event.target.value)}
+                  inputMode="numeric"
+                  type="number"
+                  min={0}
+                  placeholder="Min price"
+                  aria-invalid={rentRangeHasError}
+                  aria-describedby={
+                    rentRangeHasError ? "compact-price-range-error" : undefined
+                  }
+                  className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
+                    rentRangeHasError
+                      ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                      : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                  }`}
+                />
+
+                <input
+                  value={maxRentInput}
+                  onChange={(event) => setMaxRentInput(event.target.value)}
+                  inputMode="numeric"
+                  type="number"
+                  min={0}
+                  placeholder="Max price"
+                  aria-invalid={rentRangeHasError}
+                  aria-describedby={
+                    rentRangeHasError ? "compact-price-range-error" : undefined
+                  }
+                  className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
+                    rentRangeHasError
+                      ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                      : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
+                  }`}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() => setFiltersOpen(true)}
-                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-3 text-sm font-medium text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] sm:px-4"
+                className="inline-flex min-h-12 min-w-20 items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-3 text-sm font-medium text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] sm:px-4"
               >
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
@@ -1084,49 +1125,11 @@ export default function PublicSearchHero({
               <button
                 type="submit"
                 disabled={rentRangeHasError}
-                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 text-sm font-semibold text-white shadow-[0_18px_34px_-24px_var(--admin-primary)] transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50 sm:px-6"
+                className="inline-flex min-h-12 min-w-0 items-center justify-center gap-2 rounded-2xl bg-[var(--admin-primary)] px-4 text-sm font-bold text-white shadow-[0_20px_38px_-22px_rgba(0,0,128,0.9)] transition hover:-translate-y-0.5 hover:bg-[#00006c] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-50 sm:px-7"
               >
                 <Search className="h-4 w-4" />
                 <span>Search</span>
               </button>
-            </div>
-
-            <div className={`relative ${compactPriceRowClass}`}>
-              <input
-                value={minRentInput}
-                onChange={(event) => setMinRentInput(event.target.value)}
-                inputMode="numeric"
-                type="number"
-                min={0}
-                placeholder="Min price"
-                aria-invalid={rentRangeHasError}
-                aria-describedby={
-                  rentRangeHasError ? "compact-price-range-error" : undefined
-                }
-                className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
-                  rentRangeHasError
-                    ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                    : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
-                }`}
-              />
-
-              <input
-                value={maxRentInput}
-                onChange={(event) => setMaxRentInput(event.target.value)}
-                inputMode="numeric"
-                type="number"
-                min={0}
-                placeholder="Max price"
-                aria-invalid={rentRangeHasError}
-                aria-describedby={
-                  rentRangeHasError ? "compact-price-range-error" : undefined
-                }
-                className={`min-h-11 min-w-0 rounded-2xl border bg-white px-4 text-sm outline-none ${
-                  rentRangeHasError
-                    ? "border-red-500 text-red-700 placeholder:text-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                    : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10"
-                }`}
-              />
             </div>
 
             {rentRangeHasError && (
@@ -1165,24 +1168,16 @@ export default function PublicSearchHero({
             </div>
           </form>
 
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--admin-border)] bg-white px-4 text-sm font-semibold text-[var(--admin-text)] shadow-sm transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)] hover:text-[var(--admin-primary)] md:hidden"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--admin-primary)] px-1.5 text-xs font-semibold text-white">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+          {!filtersStuck && (
+            <p className="mx-auto mt-3 max-w-[1120px] text-center text-xs font-medium text-white/78">
+              No broker spam. Platform-reviewed listings only.
+            </p>
+          )}
 
           {activeChips.length > 0 && (
             <div
               className={`mt-3 flex items-center gap-2 overflow-x-auto pb-1 transition-[opacity,transform] duration-200 ease-out md:flex-wrap md:overflow-visible ${
-                filtersStuck ? "" : "mx-auto max-w-[1040px]"
+                filtersStuck ? "" : "mx-auto max-w-[1120px]"
               }`}
             >
               {activeChips.map((chip) => (
@@ -1200,7 +1195,7 @@ export default function PublicSearchHero({
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="shrink-0 rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--admin-primary)] transition hover:border-[var(--admin-primary)]"
+                className="shrink-0 rounded-full border border-[var(--admin-border)] bg-white px-3 py-2 text-xs font-semibold text-[var(--admin-primary)] transition hover:border-[var(--admin-primary)] hover:bg-[var(--admin-primary-soft)]"
               >
                 Reset filters
               </button>
@@ -1212,7 +1207,7 @@ export default function PublicSearchHero({
       {!filtersStuck && (
         <div
           aria-hidden="true"
-          className={activeChips.length > 0 ? "h-8" : "h-12"}
+          className={activeChips.length > 0 ? "h-8 md:h-4" : "h-14 md:h-10"}
         />
       )}
 

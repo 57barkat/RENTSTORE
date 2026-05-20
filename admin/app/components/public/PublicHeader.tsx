@@ -3,12 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Building2,
   ChevronDown,
   Heart,
-  Headphones,
-  Home,
   LayoutDashboard,
+  LifeBuoy,
+  ListChecks,
   LogOut,
   Menu,
   Plus,
@@ -175,14 +174,15 @@ const PUBLIC_HEADER_CATEGORY_VALUES = new Set<PropertyCategory>([
 ]);
 
 function BrandLogoMark({ size = "default" }: { size?: "default" | "mobile" }) {
-  const iconSizeClass = size === "mobile" ? "h-9 w-9" : "h-20 w-20";
+  const iconSizeClass = size === "mobile" ? "h-11 w-11" : "h-16 w-16";
   const brandTextClass = size === "mobile" ? "text-lg" : "text-[20px]";
   const taglineClass = size === "mobile" ? "text-[8px]" : "text-[9px]";
+  const imageSize = size === "mobile" ? "44px" : "56px";
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5">
+    <span className="inline-flex min-w-0 items-center gap-2">
       <span
-        className={`${iconSizeClass} relative inline-flex shrink-0 items-center justify-center overflow-hidden`}
+        className={`${iconSizeClass} public-logo-mark relative inline-flex shrink-0 items-center justify-center overflow-hidden`}
         aria-hidden="true"
       >
         <Image
@@ -190,8 +190,8 @@ function BrandLogoMark({ size = "default" }: { size?: "default" | "mobile" }) {
           alt=""
           fill
           quality={100}
-          sizes={size === "mobile" ? "36px" : "80px"}
-          className="public-logo-image-dark object-contain scale-125"
+          sizes={imageSize}
+          className="public-logo-image-dark public-logo-icon scale-125 object-contain"
           priority
         />
 
@@ -200,15 +200,15 @@ function BrandLogoMark({ size = "default" }: { size?: "default" | "mobile" }) {
           alt=""
           fill
           quality={100}
-          sizes={size === "mobile" ? "36px" : "80px"}
-          className="public-logo-image-light object-contain scale-125"
+          sizes={imageSize}
+          className="public-logo-image-light public-logo-icon scale-125 object-contain"
           priority
         />
       </span>
 
-      <span className="-ml-1 flex flex-col justify-center leading-none">
+      <span className="flex min-w-0 flex-col justify-center leading-none">
         <span
-          className={`${brandTextClass} font-black tracking-[-0.05em] text-[var(--admin-text)]`}
+          className={`${brandTextClass} font-black text-[var(--admin-text)]`}
         >
           Angan<span className="text-[var(--admin-primary)]">Stay</span>
         </span>
@@ -635,9 +635,18 @@ export default function PublicHeader() {
                   onNavigate={closeMobileMenu}
                   primary
                 >
-                  Upload Property
+                  Post Property
                 </MobileDrawerLink>
-              ) : null}
+              ) : (
+                <MobileDrawerLink
+                  href="/upload-property"
+                  active={matchesRoute(pathname, "/upload-property")}
+                  icon={Plus}
+                  onNavigate={closeMobileMenu}
+                >
+                  Post Property
+                </MobileDrawerLink>
+              )}
             </MobileDrawerSection>
 
             <MobileDrawerSection title="Display">
@@ -756,10 +765,10 @@ export default function PublicHeader() {
               <>
                 <Link
                   href="/upload-property"
-                  className="hidden items-center gap-2 rounded-full bg-[var(--admin-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_var(--admin-primary)] transition hover:opacity-95 lg:inline-flex"
+                  className="hidden items-center gap-2 rounded-full border border-[var(--admin-primary)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--admin-primary)] shadow-sm transition hover:bg-[var(--admin-primary-soft)] lg:inline-flex"
                 >
                   <Plus size={16} />
-                  Upload Property
+                  Post Property
                 </Link>
 
                 <div className="relative hidden lg:block">
@@ -832,7 +841,7 @@ export default function PublicHeader() {
 
                         <ProfileMenuLink
                           href="/account/properties"
-                          icon={Home}
+                          icon={ListChecks}
                           label="My Properties"
                           description="Manage listings and drafts"
                           active={matchesRoute(pathname, "/account/properties")}
@@ -859,7 +868,7 @@ export default function PublicHeader() {
 
                         <ProfileMenuLink
                           href="/account/support"
-                          icon={Headphones}
+                          icon={LifeBuoy}
                           label="Support"
                           description="Get help from AnganStay support"
                           active={matchesRoute(pathname, "/account/support")}
@@ -889,6 +898,14 @@ export default function PublicHeader() {
               </>
             ) : !isLoading ? (
               <>
+                <Link
+                  href="/upload-property"
+                  className="hidden items-center gap-2 rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-2.5 text-sm font-semibold text-[var(--admin-text)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
+                >
+                  <Plus size={16} />
+                  Post Property
+                </Link>
+
                 <Link
                   href="/account/login"
                   className="hidden rounded-full border border-[var(--admin-border)] bg-[var(--admin-background)] px-4 py-2.5 text-sm font-medium text-[var(--admin-muted)] transition hover:border-[var(--admin-primary)] hover:text-[var(--admin-primary)] lg:inline-flex"
