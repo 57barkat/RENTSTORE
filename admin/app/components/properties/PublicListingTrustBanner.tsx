@@ -16,21 +16,21 @@ export default function PublicListingTrustBanner({
     : "/account/login?redirect=%2Fupload-property";
 
   return (
-    <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[linear-gradient(90deg,var(--admin-primary-soft),var(--admin-card),var(--admin-secondary-soft))] px-5 py-4 shadow-[0_18px_45px_-38px_var(--admin-shadow)]">
+    <section className="rounded-[1.5rem] border border-[var(--admin-border)] bg-[linear-gradient(90deg,var(--admin-primary-soft),var(--admin-card),var(--admin-secondary-soft))] px-5 py-5 shadow-[0_18px_45px_-38px_var(--admin-shadow)]">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-sm">
-            <ShieldCheck className="h-6 w-6" />
+        <div className="flex items-start gap-3.5">
+          <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--admin-background)] text-[var(--admin-primary)] shadow-sm">
+            <ShieldCheck className="h-5 w-5" />
           </span>
-          <div>
+          <div className="max-w-4xl">
             <h2 className="text-base font-black text-[var(--admin-text)]">
               Verified listing checks
             </h2>
-            <p className="mt-1 text-sm leading-6 text-[var(--admin-muted)]">
-              Every visible listing is approved before discovery. Verification
-              means limited platform checks only and does not guarantee
+            <p className="mt-1.5 text-[13px] leading-6 text-[color:color-mix(in_srgb,var(--admin-muted)_88%,var(--admin-text))] sm:text-sm sm:leading-7">
+              Visible listings are reviewed before discovery. Verification
+              means limited platform checks only; it does not guarantee
               ownership, condition, availability, or transaction safety. {total}{" "}
-              live results are connected to AnganStay inventory.
+              live results are currently connected to AnganStay inventory.
             </p>
           </div>
         </div>

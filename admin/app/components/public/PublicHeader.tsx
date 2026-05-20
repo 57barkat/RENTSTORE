@@ -599,7 +599,7 @@ export default function PublicHeader() {
             href="/"
             onClick={closeMobileMenu}
             aria-label="AnganStay home"
-            className="public-logo-link inline-flex min-w-0 items-center text-[var(--admin-text)] transition hover:opacity-90"
+            className="public-logo-link inline-flex min-w-0 items-center rounded-2xl text-[var(--admin-text)] transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/25 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--admin-background)]"
           >
             <BrandLogoMark size="mobile" />
           </Link>
@@ -736,7 +736,7 @@ export default function PublicHeader() {
             <Link
               href="/"
               aria-label="AnganStay home"
-              className="public-logo-link inline-flex min-w-0 items-center text-[var(--admin-text)] transition hover:opacity-90"
+              className="public-logo-link inline-flex min-w-0 items-center rounded-2xl text-[var(--admin-text)] transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-primary)]/25 focus-visible:ring-offset-4 focus-visible:ring-offset-[var(--admin-background)]"
             >
               <BrandLogoMark />
             </Link>

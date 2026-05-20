@@ -19,6 +19,11 @@ const SORT_OPTIONS: Array<{ label: string; value: PropertySort }> = [
   { label: "Price: High to Low", value: "price_desc" },
 ];
 
+const CURRENT_MARKET_LABEL = "Islamabad";
+const CURRENT_LISTING_LABEL = "verified rentals";
+const PROPERTY_TYPE_SUMMARY =
+  "hostels, apartments, houses, shops, and offices";
+
 export default function ListingToolbar({
   category,
   total,
@@ -32,11 +37,11 @@ export default function ListingToolbar({
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
-          {total.toLocaleString("en-PK")} verified rentals in Islamabad
+          {total.toLocaleString("en-PK")} {CURRENT_LISTING_LABEL} in{" "}
+          {CURRENT_MARKET_LABEL}
         </h2>
         <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--admin-muted)]">
-          Explore trusted places across hostels, apartments, houses, shops, and
-          offices.
+          Explore trusted places across {PROPERTY_TYPE_SUMMARY}.
           <span className="sr-only"> {pageLabel}</span>
         </p>
       </div>

@@ -160,6 +160,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
   const locationLabel = getPropertyLocationLabel(property);
   const imageAlt = buildPropertyImageAlt(property);
   const statItems = buildStatItems(property);
+  const priceLabel = "Rent";
 
   if (isPropertyHidden(property._id)) {
     return null;
@@ -177,46 +178,48 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/5" />
 
-        <div className="pointer-events-none absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
-          {isFeatured && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-white shadow-sm">
-              Featured
-            </span>
-          )}
+        <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 max-w-[calc(100%-5.75rem)] flex-wrap gap-1.5">
+            {isFeatured && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50/95 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-amber-800 shadow-sm">
+                Featured
+              </span>
+            )}
 
-          {isBoosted && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-600 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-white shadow-sm">
-              <Zap className="h-3 w-3 fill-current" />
-              Boosted
-            </span>
-          )}
+            {isBoosted && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50/95 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-sky-800 shadow-sm">
+                <Zap className="h-3 w-3 fill-current" />
+                Boosted
+              </span>
+            )}
 
-          {isVerified && (
-            <span
-              title="Verification means limited platform checks only. It does not guarantee ownership, legal title, condition, availability, or transaction safety."
-              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white/95 px-2.5 py-1.5 text-[10px] font-black uppercase leading-none text-emerald-700 shadow-sm"
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              Verified
-            </span>
-          )}
-        </div>
+            {isVerified && (
+              <span
+                title="Verification means limited platform checks only. It does not guarantee ownership, legal title, condition, availability, or transaction safety."
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-1.5 text-[9px] font-black uppercase leading-none text-emerald-800 shadow-sm"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Verified
+              </span>
+            )}
+          </div>
 
-        <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
-          <Suspense fallback={null}>
-            <PublicFavoriteButton property={property} />
-          </Suspense>
+          <div className="pointer-events-auto flex shrink-0 items-center gap-1.5">
+            <Suspense fallback={null}>
+              <PublicFavoriteButton property={property} />
+            </Suspense>
 
-          {previewHref && (
-            <Link
-              href={previewHref}
-              scroll={false}
-              aria-label="Quick view"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[var(--admin-muted)] shadow-sm backdrop-blur transition hover:bg-white hover:text-[var(--admin-primary)]"
-            >
-              <Eye size={14} />
-            </Link>
-          )}
+            {previewHref && (
+              <Link
+                href={previewHref}
+                scroll={false}
+                aria-label="Quick view"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-[var(--admin-muted)] shadow-sm backdrop-blur transition hover:bg-white hover:text-[var(--admin-primary)]"
+              >
+                <Eye size={14} />
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -316,7 +319,7 @@ const PropertyCard = ({ property, previewHref }: PropertyCardProps) => {
         <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div>
             <p className="text-[10px] font-black uppercase text-[var(--admin-muted)]">
-              Rent
+              {priceLabel}
             </p>
             <p className="mt-1 text-sm font-black text-[var(--admin-primary)]">
               {getPropertyPriceDisplay(property)}

@@ -270,7 +270,7 @@ export default function PublicSearchHero({
     ? "text-red-700 placeholder:text-red-400"
     : "text-[var(--admin-text)] placeholder:text-[var(--admin-muted)]";
 
-  const heroLocation = "Islamabad";
+  const marketLabel = "Islamabad";
 
   const selectedAmenities = displayFilters.amenities || [];
   const resolvedFilterOptions = {
@@ -893,32 +893,32 @@ export default function PublicSearchHero({
           <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#07143f]/70 to-transparent" />
         </div>
 
-        <div className="relative mx-auto flex min-h-[520px] max-w-[1500px] flex-col items-center px-4 pb-28 pt-8 text-center sm:min-h-[540px] sm:px-6 sm:pb-32 md:min-h-[560px] md:pb-12 lg:min-h-[580px] lg:px-8 lg:pb-14 lg:pt-14">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/24 bg-white/12 px-3.5 py-1.5 text-[10px] uppercase tracking-[0.14em] text-white shadow-sm backdrop-blur">
+        <div className="relative mx-auto flex min-h-[500px] max-w-[1500px] flex-col items-center px-4 pb-24 pt-8 text-center sm:min-h-[520px] sm:px-6 sm:pb-28 md:min-h-[520px] md:pb-10 lg:min-h-[520px] lg:px-8 lg:pb-10 lg:pt-12">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/22 bg-white/10 px-3.5 py-1.5 text-[10px] uppercase tracking-[0.14em] text-white shadow-sm backdrop-blur">
             <Sparkles className="h-3.5 w-3.5 text-[#34D399]" />
             Find Your Angan
           </span>
 
-          <h1 className="mt-5 max-w-4xl text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.045em] text-white sm:text-[3.25rem] lg:text-[4.25rem]">
+          <h1 className="mt-4 max-w-4xl text-[2.35rem] font-extrabold leading-[1.08] tracking-[-0.045em] text-white sm:text-[3.25rem] lg:text-[4.1rem]">
             Find your <span className="text-[#34D399]">Angan</span>
-            <span className="block">in {heroLocation}</span>
+            <span className="block">in {marketLabel}</span>
           </h1>
 
-          <p className="mt-5 max-w-3xl text-sm font-normal leading-6 text-white/86 sm:text-[18px] sm:leading-7">
-            Verified rentals across Islamabad — from student hostels to family
-            homes, shops, and offices.
+          <p className="mt-4 max-w-3xl text-sm font-normal leading-6 text-white/86 sm:text-[18px] sm:leading-7">
+            Verified rentals across {marketLabel} - from student hostels to
+            family homes, shops, and offices.
           </p>
-          <div className="mt-8 hidden w-full max-w-6xl items-stretch justify-center gap-4 text-left md:grid md:grid-cols-4">
+          <div className="mt-6 hidden w-full max-w-5xl items-start justify-center gap-6 text-left md:grid md:grid-cols-4">
             {HERO_TRUST_ITEMS.map((item) => {
               const Icon = item.icon;
 
               return (
                 <div
                   key={item.title}
-                  className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/16 bg-white/[0.075] px-4 py-3.5 text-white shadow-[0_18px_48px_-34px_rgba(0,0,0,0.55)] backdrop-blur-sm"
+                  className="flex min-w-0 items-start gap-2.5 text-white"
                 >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/18 bg-white/12 text-[#34D399]">
-                    <Icon className="h-5 w-5" />
+                  <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#34D399]">
+                    <Icon className="h-4 w-4" />
                   </span>
 
                   <span className="min-w-0">
@@ -926,7 +926,7 @@ export default function PublicSearchHero({
                       {item.title}
                     </span>
 
-                    <span className="mt-1 block text-[11px] font-normal leading-4 text-white/72">
+                    <span className="mt-1 block text-[11px] font-normal leading-4 text-white/70">
                       {item.description}
                     </span>
                   </span>
@@ -941,7 +941,7 @@ export default function PublicSearchHero({
         ref={stickyFilterSentinelRef}
         data-public-sticky-filter-sentinel="true"
         aria-hidden="true"
-        className="-mt-52 h-px md:-mt-36"
+        className="-mt-32 h-px md:-mt-24"
       />
 
       <section
@@ -966,7 +966,7 @@ export default function PublicSearchHero({
             className={`block min-w-0 overflow-visible rounded-[1.5rem] border bg-white p-2.5 ${
               filtersStuck
                 ? "border-[var(--admin-border)] shadow-[0_14px_36px_-28px_rgba(15,23,42,0.45)]"
-                : "mx-auto max-w-[1120px] border-white/90 shadow-[0_30px_90px_-42px_rgba(2,6,23,0.72)]"
+                : "mx-auto max-w-[1120px] border-white shadow-[0_36px_105px_-38px_rgba(2,6,23,0.86)] ring-1 ring-white/20"
             }`}
           >
             <div className={`relative ${stickyFilterRowClass}`}>
