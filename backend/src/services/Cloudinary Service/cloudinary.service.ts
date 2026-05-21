@@ -6,7 +6,7 @@ import * as streamifier from "streamifier";
 
 const CLOUDINARY_IMAGE_UPLOAD_MARKER = "/image/upload/";
 const DEFAULT_PROPERTY_WATERMARK_TRANSFORMATION =
-  "l_logo_z9nkpk/c_thumb,h_400,w_400/fl_layer_apply,x_20,y_20";
+  "l_logo_z9nkpk/o_50/c_thumb,h_200,w_200/fl_layer_apply,x_20,y_20";
 
 @Injectable()
 export class CloudinaryService {
@@ -90,9 +90,7 @@ export class CloudinaryService {
     }
 
     const [urlWithoutQuery, queryString] = trimmedUrl.split("?");
-    const markerIndex = urlWithoutQuery.indexOf(
-      CLOUDINARY_IMAGE_UPLOAD_MARKER,
-    );
+    const markerIndex = urlWithoutQuery.indexOf(CLOUDINARY_IMAGE_UPLOAD_MARKER);
 
     if (markerIndex === -1) {
       return trimmedUrl;

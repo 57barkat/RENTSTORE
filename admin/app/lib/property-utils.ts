@@ -46,7 +46,7 @@ const CATEGORY_SEGMENTS: Record<PropertyCategory, string> = {
 
 const CLOUDINARY_IMAGE_UPLOAD_MARKER = "/image/upload/";
 const PROPERTY_DISPLAY_WATERMARK_TRANSFORMATION =
-  "l_logo_z9nkpk/c_thumb,h_400,w_400/fl_layer_apply,x_20,y_20";
+  "l_logo_z9nkpk/o_50/c_thumb,h_200,w_200/fl_layer_apply,x_20,y_20";
 
 export const buildWatermarkedPropertyImageUrl = (cleanUrl?: string): string => {
   const trimmedUrl = typeof cleanUrl === "string" ? cleanUrl.trim() : "";
