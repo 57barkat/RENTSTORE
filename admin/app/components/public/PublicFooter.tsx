@@ -28,7 +28,7 @@ const footerGroups = [
     title: "Quick Links",
     icon: LinkIcon,
     links: [
-      { href: "/", label: "Rent" },
+      { href: "/properties-for-rent-in-islamabad", label: "Rent" },
       ...PUBLIC_CATEGORY_LINKS.map((item) => ({
         href: item.href,
         label: item.label,

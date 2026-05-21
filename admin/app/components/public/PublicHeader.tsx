@@ -35,6 +35,7 @@ import ThemeToggle from "@/app/components/theme-toggle";
 import {
   PUBLIC_CATEGORY_LINKS,
   getPublicCategoryFromPath,
+  isPublicAllPropertiesPath,
   isPublicPropertyDetailPath,
   isPublicAccountRoute,
 } from "@/app/lib/route-constants";
@@ -271,7 +272,8 @@ export default function PublicHeader() {
       ? storedListingCategory
       : routeCategory;
   const browseAllActive =
-    pathname === "/" || (isDetailPath && activeCategory === "property");
+    isPublicAllPropertiesPath(pathname) ||
+    (isDetailPath && activeCategory === "property");
   const isAccountArea = isPublicAccountRoute(pathname);
   const mobileMenuVisibilityClass = isAccountArea ? "lg:hidden" : "xl:hidden";
   const { isAuthenticated, isLoading, logout, user } = usePublicAuth();
@@ -295,12 +297,17 @@ export default function PublicHeader() {
     user?.name?.trim()?.split(/\s+/)?.[0] ||
     user?.email?.split("@")?.[0] ||
     "Account";
+  /**
+   * TODO: For the category links in the header, should we show all properties of that category or only the ones in the most popular cities?
+   * Showing all would be more consistent with the current design but showing only popular cities might be more user friendly.
+   * We could also do something in between and show all properties but have filters for popular cities at the top.
+   * */
 
   useEffect(() => {
     if (!mounted || isDetailPath) return;
 
     const currentListingCategory: PropertyCategory | null =
-      pathname === "/" ? "property" : routeCategory;
+      isPublicAllPropertiesPath(pathname) ? "property" : routeCategory;
 
     if (currentListingCategory) {
       try {
@@ -619,7 +626,7 @@ export default function PublicHeader() {
           <div className="grid gap-5">
             <MobileDrawerSection title="Primary actions">
               <MobileDrawerLink
-                href="/"
+                href="/properties-for-rent-in-islamabad"
                 active={browseAllActive}
                 icon={Search}
                 onNavigate={closeMobileMenu}

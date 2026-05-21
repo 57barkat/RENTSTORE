@@ -17,6 +17,10 @@ export const PROPERTY_SIZE_UNITS: SizeUnit[] = [
   "Sq. Yd.",
 ];
 export type PropertyPurpose = "rent" | "sale";
+export type SearchIntent =
+  | "near-university"
+  | "family-ready"
+  | "business-spaces";
 
 export interface PropertyAddress {
   aptSuiteUnit?: string;
@@ -122,6 +126,9 @@ export interface NearbyPlace {
 
 export interface PropertySearchFilters {
   category: PropertyCategory;
+  intent?: SearchIntent | "";
+  propertyTypes?: PropertyCategory[];
+  tags?: string[];
   purpose?: PropertyPurpose;
   title?: string;
   city?: string;

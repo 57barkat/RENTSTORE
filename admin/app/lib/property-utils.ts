@@ -6,6 +6,7 @@ import type {
   PropertySearchFilters,
   PropertySort,
   PublicProperty,
+  SearchIntent,
   SizeUnit,
 } from "@/app/lib/property-types";
 import {
@@ -53,6 +54,12 @@ const SORT_VALUES: PropertySort[] = [
 const HOSTEL_VALUES: HostelType[] = ["male", "female", "mixed"];
 
 const SIZE_UNIT_VALUES: SizeUnit[] = ["Marla", "Kanal", "Sq. Ft.", "Sq. Yd."];
+
+const SEARCH_INTENT_VALUES: SearchIntent[] = [
+  "near-university",
+  "family-ready",
+  "business-spaces",
+];
 
 export const DEFAULT_PROPERTY_IMAGE = "/placeholder-property.jpg";
 
@@ -216,9 +223,27 @@ export const parsePropertySearchParams = (
   const purposeValue = normalizePurpose(
     toSingleValue(searchParams.purpose) || "rent",
   );
+  const intentValue = toSingleValue(searchParams.intent) || "";
+  const propertyTypesValue =
+    toSingleValue(searchParams.types) ||
+    toSingleValue(searchParams.propertyTypes) ||
+    "";
+  const tagsValue =
+    toSingleValue(searchParams.tags) || toSingleValue(searchParams.tag) || "";
 
   return {
     category,
+    intent: SEARCH_INTENT_VALUES.includes(intentValue as SearchIntent)
+      ? (intentValue as SearchIntent)
+      : "",
+    propertyTypes: propertyTypesValue
+      .split(",")
+      .map((item) => normalizeCategorySegment(item.trim()))
+      .filter((item): item is PropertyCategory => Boolean(item)),
+    tags: tagsValue
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
     purpose: (purposeValue || "rent") as PropertyPurpose,
     title: toSingleValue(searchParams.title) || "",
     city: cityValue ? normalizeSeoCity(cityValue) : "",
@@ -362,6 +387,18 @@ export const buildPropertyBrowserQuery = (
 
   if (filters.purpose && filters.purpose !== "rent" && !options?.omitPurpose) {
     params.set("purpose", filters.purpose);
+  }
+
+  if (filters.intent) {
+    params.set("intent", filters.intent);
+  }
+
+  if (filters.propertyTypes?.length) {
+    params.set("types", filters.propertyTypes.join(","));
+  }
+
+  if (filters.tags?.length) {
+    params.set("tags", filters.tags.join(","));
   }
 
   if (filters.title) {

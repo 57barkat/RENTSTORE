@@ -252,16 +252,16 @@ export default function PublicSearchHero({
   const showStickyCategorySelector = filtersStuck && isHeaderHidden;
   const stickyFilterRowClass = showStickyCategorySelector
     ? "grid grid-cols-2 gap-2 md:grid-cols-[minmax(160px,220px)_minmax(0,1fr)_auto_auto] xl:grid-cols-[minmax(180px,220px)_minmax(280px,1fr)_minmax(260px,360px)_auto_auto]"
-    : "grid grid-cols-2 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(360px,1fr)_minmax(280px,420px)_auto_auto]";
+    : "grid gap-2 md:grid-cols-[minmax(170px,220px)_minmax(0,1fr)_minmax(240px,330px)_auto_auto]";
   const locationFieldClass = showStickyCategorySelector
     ? "col-span-1 min-w-0 xl:col-span-1"
-    : "col-span-2 min-w-0 xl:col-span-1";
+    : "min-w-0";
   const priceFieldClass = showStickyCategorySelector
     ? "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white xl:col-span-1 xl:grid xl:w-full xl:grid-cols-2"
-    : "hidden min-h-12 min-w-0 items-center rounded-2xl border border-[var(--admin-border)] bg-white md:col-span-2 md:grid md:w-full md:grid-cols-2 xl:col-span-1";
+    : "grid min-h-12 min-w-0 grid-cols-2 rounded-2xl border border-[var(--admin-border)] bg-white transition";
   const compactPriceRowClass = showStickyCategorySelector
     ? "col-span-2 grid grid-cols-2 gap-2 xl:hidden"
-    : "col-span-2 grid grid-cols-2 gap-2 md:hidden";
+    : "hidden";
   const priceRangeErrorMessage = "Enter a valid price range";
   const priceRangeContainerClass = rentRangeHasError
     ? "border-red-500 bg-red-50/40 focus-within:border-red-500 focus-within:ring-4 focus-within:ring-red-500/10"
@@ -971,12 +971,11 @@ export default function PublicSearchHero({
           >
             <div className={`relative ${stickyFilterRowClass}`}>
               <label
-                className={`min-h-12 shrink-0 transform-gpu transition-[opacity,transform] duration-300 ease-out ${
+                className={`min-h-12 shrink-0 ${
                   showStickyCategorySelector
-                    ? "relative col-span-1 min-w-0 translate-y-0 scale-100 opacity-100 xl:col-span-1"
-                    : "pointer-events-none absolute left-0 top-0 w-[190px] -translate-y-1 scale-95 opacity-0"
+                    ? "relative col-span-1 min-w-0 transform-gpu transition-[opacity,transform] duration-300 ease-out xl:col-span-1"
+                    : "relative min-w-0"
                 }`}
-                aria-hidden={!showStickyCategorySelector}
               >
                 <span className="sr-only">Property category</span>
 
@@ -985,8 +984,6 @@ export default function PublicSearchHero({
                   onChange={(event) =>
                     handleCategoryChange(event.target.value as PropertyCategory)
                   }
-                  disabled={!showStickyCategorySelector}
-                  tabIndex={showStickyCategorySelector ? undefined : -1}
                   className="h-12 w-full appearance-none rounded-2xl border border-[var(--admin-border)] bg-white px-3 pr-8 text-sm font-semibold text-[var(--admin-text)] shadow-sm outline-none transition hover:border-[var(--admin-primary)] focus:border-[var(--admin-primary)] focus:ring-4 focus:ring-[var(--admin-primary)]/10 sm:px-4 sm:pr-10"
                 >
                   {CATEGORY_TABS.map((tab) => (
@@ -1035,7 +1032,7 @@ export default function PublicSearchHero({
                         ? "desktop-price-range-error"
                         : undefined
                     }
-                    className={`min-w-0 bg-transparent px-4 text-sm outline-none ${priceRangeInputClass}`}
+                    className={`min-w-0 rounded-l-2xl bg-transparent px-4 text-sm outline-none ${priceRangeInputClass}`}
                   />
 
                   <input
@@ -1051,7 +1048,7 @@ export default function PublicSearchHero({
                         ? "desktop-price-range-error"
                         : undefined
                     }
-                    className={`min-w-0 border-l bg-transparent px-4 text-sm outline-none ${
+                    className={`min-w-0 rounded-r-2xl border-l bg-transparent px-4 text-sm outline-none ${
                       rentRangeHasError
                         ? "border-red-300 text-red-700 placeholder:text-red-400"
                         : "border-[var(--admin-border)] text-[var(--admin-text)] placeholder:text-[var(--admin-muted)]"

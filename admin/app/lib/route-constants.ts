@@ -103,6 +103,21 @@ export const isPublicCategoryPath = (pathname: string): boolean => {
   );
 };
 
+export const isPublicAllPropertiesPath = (pathname: string): boolean => {
+  const cleanPathname = pathname.split("?")[0] || "";
+  const seoRoute = parseSeoListingSlug(cleanPathname.replace(/^\//, ""));
+
+  if (seoRoute?.category === "property") {
+    return true;
+  }
+
+  return (
+    cleanPathname === "/property" ||
+    cleanPathname === "/properties" ||
+    cleanPathname.startsWith("/properties/")
+  );
+};
+
 export const getPublicCategoryFromPath = (
   pathname: string,
 ): (typeof PUBLIC_CATEGORY_LINKS)[number]["category"] | null => {

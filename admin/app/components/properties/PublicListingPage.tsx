@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import ListingToolbar from "@/app/components/properties/ListingToolbar";
 import PopularLocationsSection from "@/app/components/properties/PopularLocationsSection";
-import PublicListingTrustBanner from "@/app/components/properties/PublicListingTrustBanner";
 import PropertyCard from "@/app/components/properties/PropertyCard";
 import PropertyModal from "@/app/components/properties/PropertyModal";
 import PublicSearchHero from "@/app/components/properties/PublicSearchHero";
@@ -223,8 +222,8 @@ export default async function PublicListingPage({
 
   const popularLocationsTitle =
     category === "property"
-      ? "Most Popular Locations in Islamabad "
-      : `Most Popular Locations for ${getCategoryLabel(category, true)}`;
+      ? "Popular areas right now"
+      : `Popular areas for ${getCategoryLabel(category, true)}`;
 
   const popularLocationsPrefix =
     category === "property"
@@ -422,8 +421,6 @@ export default async function PublicListingPage({
                 </Link>
               </nav>
             )}
-
-            <PublicListingTrustBanner total={response.total} />
 
             {/* <BrowseByCategorySection counts={categoryCounts} /> */}
 
