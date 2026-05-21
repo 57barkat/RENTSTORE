@@ -16,6 +16,7 @@ import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { useGetPropertyUploaderProfileQuery } from "@/services/api";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 
 export const options = { headerShown: false };
 
@@ -194,6 +195,9 @@ export default function UploaderProfileScreen() {
         </Text>
         {listings.map((listing: any) => {
           const primaryRent = getPrimaryRentInfo(listing);
+          const displayImage =
+            buildWatermarkedPropertyImageUrl(listing.photos?.[0]) ||
+            "https://via.placeholder.com/200";
 
           return (
             <TouchableOpacity
@@ -209,7 +213,7 @@ export default function UploaderProfileScreen() {
             >
               <Image
                 source={{
-                  uri: listing.photos?.[0] || "https://via.placeholder.com/200",
+                  uri: displayImage,
                 }}
                 style={styles.listingImage}
               />

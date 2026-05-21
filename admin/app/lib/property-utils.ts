@@ -44,6 +44,38 @@ const CATEGORY_SEGMENTS: Record<PropertyCategory, string> = {
   office: "offices",
 };
 
+const CLOUDINARY_IMAGE_UPLOAD_MARKER = "/image/upload/";
+const PROPERTY_DISPLAY_WATERMARK_TRANSFORMATION =
+  "l_logo_z9nkpk/c_thumb,h_400,w_400/fl_layer_apply,x_20,y_20";
+
+export const buildWatermarkedPropertyImageUrl = (cleanUrl?: string): string => {
+  const trimmedUrl = typeof cleanUrl === "string" ? cleanUrl.trim() : "";
+
+  if (!trimmedUrl) {
+    return "";
+  }
+
+  const [urlWithoutQuery, queryString] = trimmedUrl.split("?");
+  const markerIndex = urlWithoutQuery.indexOf(CLOUDINARY_IMAGE_UPLOAD_MARKER);
+
+  if (
+    markerIndex === -1 ||
+    urlWithoutQuery.includes(PROPERTY_DISPLAY_WATERMARK_TRANSFORMATION)
+  ) {
+    return trimmedUrl;
+  }
+
+  const uploadStart = markerIndex + CLOUDINARY_IMAGE_UPLOAD_MARKER.length;
+  const displayUrl = `${urlWithoutQuery.slice(
+    0,
+    uploadStart,
+  )}${PROPERTY_DISPLAY_WATERMARK_TRANSFORMATION}/${urlWithoutQuery.slice(
+    uploadStart,
+  )}`;
+
+  return queryString ? `${displayUrl}?${queryString}` : displayUrl;
+};
+
 const SORT_VALUES: PropertySort[] = [
   "newest",
   "price_asc",
@@ -141,7 +173,10 @@ export const getPropertyPhotoUrls = (
 ): string[] =>
   (property.photos || [])
     .map((photo) => (typeof photo === "string" ? photo.trim() : ""))
-    .filter(Boolean);
+    .filter(Boolean)
+    // Public web views use clean stored Cloudinary URLs as input, then request
+    // watermarked display URLs without changing the saved asset.
+    .map(buildWatermarkedPropertyImageUrl);
 
 export const getPropertyPrimaryPhoto = (
   property: Pick<PublicProperty, "photos">,

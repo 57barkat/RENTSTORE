@@ -32,6 +32,7 @@ import ListedByCard from "@/components/ListedByCard";
 import { PropertyDetailsHeader } from "@/components/Properties/PropertyDetailsHeader";
 import StickyActionBar from "@/components/StickyActionBar";
 import ImageCarousel from "@/utils/properties/Carousel";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 import PropertyInfoSection from "@/components/PropertyInfoSection";
 import FinancialDetailsCard from "@/components/FinancialDetailsCard";
 import ReportModal from "@/components/ReportModal";
@@ -292,7 +293,7 @@ export default function PropertyDetails() {
           <ImageCarousel
             media={
               details.photos?.map((uri: string, index: number) => ({
-                uri,
+                uri: buildWatermarkedPropertyImageUrl(uri),
                 type: "image",
                 id: `img-${index}`,
               })) || []

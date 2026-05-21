@@ -18,6 +18,7 @@ import { useGetNearbyPropertiesQuery } from "@/services/api";
 import PropertyCard from "@/components/NearByLocations/PropertyCard";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 
 const mapboxToken =
   Constants.expoConfig?.extra?.MAPBOX_PUBLIC_TOKEN ||
@@ -163,7 +164,11 @@ const NearbyScreen = () => {
             >
               <View style={[styles.markerPin, { borderColor: colors.primary }]}>
                 <Image
-                  source={{ uri: item.photos?.[0] }}
+                  source={{
+                    uri:
+                      buildWatermarkedPropertyImageUrl(item.photos?.[0]) ||
+                      "https://via.placeholder.com/300",
+                  }}
                   style={styles.markerImage}
                 />
               </View>

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getPriceDisplay } from "@/utils/properties/formatProperties";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 import {
   isActiveBoostedPromotion,
   isActiveFeaturedPromotion,
@@ -25,6 +26,10 @@ export const PropertyCard = ({
   const isBoosted = !isFeatured && isActiveBoostedPromotion(item);
   const priceInfo = getPriceDisplay(item);
   const propertyId = item.id || item._id;
+  const displayImage =
+    buildWatermarkedPropertyImageUrl(item.image || item.photos?.[0]) ||
+    "https://via.placeholder.com/300";
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
@@ -46,10 +51,7 @@ export const PropertyCard = ({
       <View style={{ position: "relative" }}>
         <Image
           source={{
-            uri:
-              item.image ||
-              item.photos?.[0] ||
-              "https://via.placeholder.com/300",
+            uri: displayImage,
           }}
           style={styles.image}
           resizeMode="cover"

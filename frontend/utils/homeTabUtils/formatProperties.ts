@@ -1,4 +1,5 @@
 import { PropertyItem, PropertyCardProps } from "@/types/TabTypes/TabTypes";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
 
 export const formatProperties = (
@@ -34,7 +35,7 @@ export const formatProperties = (
     title: item.title,
     city: item.address?.[0]?.city,
     country: item.address?.[0]?.country ?? "Pakistan",
-    image: item.photos?.[0],
+    image: buildWatermarkedPropertyImageUrl(item.photos?.[0]),
     featured: item.featured,
     isFav: item.isFav,
     onFavPress,

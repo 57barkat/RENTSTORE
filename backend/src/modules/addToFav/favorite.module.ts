@@ -5,9 +5,11 @@ import { AddToFav, AddToFavSchema } from './favorite.entity';
 import { User, UserSchema } from '../user/user.entity';
 import { Property, PropertySchema } from '../property/property.schema';
 import { FavoritesController } from './favorites.controller';
+import { CloudinaryModule } from '../../services/Cloudinary Service/cloudinary.module';
 
 @Module({
   imports: [
+    CloudinaryModule,
     MongooseModule.forFeature([
       { name: AddToFav.name, schema: AddToFavSchema },
       { name: User.name, schema: UserSchema },
@@ -16,6 +18,6 @@ import { FavoritesController } from './favorites.controller';
   ],
   controllers: [FavoritesController],
   providers: [AddToFavService],
-  exports: [AddToFavService],  
+  exports: [AddToFavService],
 })
 export class AddToFavModule {}

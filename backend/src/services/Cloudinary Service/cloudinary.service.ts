@@ -3,14 +3,23 @@ import { ConfigService } from "@nestjs/config";
 import { v2 as cloudinary, UploadApiOptions } from "cloudinary";
 import { readFile } from "fs/promises";
 import * as streamifier from "streamifier";
-import sharp from "sharp";
+
+const CLOUDINARY_IMAGE_UPLOAD_MARKER = "/image/upload/";
+const DEFAULT_PROPERTY_WATERMARK_TRANSFORMATION =
+  "l_logo_z9nkpk/c_thumb,h_400,w_400/fl_layer_apply,x_20,y_20";
 
 @Injectable()
 export class CloudinaryService {
+  private readonly propertyWatermarkTransformation: string;
+
   constructor(private configService: ConfigService) {
     const cloudName = this.configService.get<string>("CLOUDINARY_CLOUD_NAME");
     const apiKey = this.configService.get<string>("CLOUDINARY_API_KEY");
     const apiSecret = this.configService.get<string>("CLOUDINARY_API_SECRET");
+    this.propertyWatermarkTransformation =
+      this.configService
+        .get<string>("CLOUDINARY_PROPERTY_WATERMARK_TRANSFORMATION")
+        ?.trim() || DEFAULT_PROPERTY_WATERMARK_TRANSFORMATION;
 
     if (!cloudName || !apiKey || !apiSecret) {
       throw new Error(
@@ -51,12 +60,10 @@ export class CloudinaryService {
           throw new Error("File must contain buffer or path");
         }
 
-        if (isImage) {
-          fileBuffer = await sharp(fileBuffer)
-            .resize(800)
-            .jpeg({ quality: 80 })
-            .toBuffer();
-        } else {
+        // Store clean original uploads in Cloudinary. Public watermarks are
+        // added later with delivery URLs, so admin/edit views can use this
+        // stored secure_url without any destructive upload-time changes.
+        if (!isImage) {
           uploadOptions.quality = "auto:good";
         }
 
@@ -73,6 +80,45 @@ export class CloudinaryService {
         reject(error);
       }
     });
+  }
+
+  buildWatermarkedDisplayUrl(cleanUrl?: string | null): string {
+    const trimmedUrl = typeof cleanUrl === "string" ? cleanUrl.trim() : "";
+
+    if (!trimmedUrl || !this.propertyWatermarkTransformation) {
+      return trimmedUrl;
+    }
+
+    const [urlWithoutQuery, queryString] = trimmedUrl.split("?");
+    const markerIndex = urlWithoutQuery.indexOf(
+      CLOUDINARY_IMAGE_UPLOAD_MARKER,
+    );
+
+    if (markerIndex === -1) {
+      return trimmedUrl;
+    }
+
+    const uploadStart = markerIndex + CLOUDINARY_IMAGE_UPLOAD_MARKER.length;
+    const beforeUpload = urlWithoutQuery.slice(0, uploadStart);
+    const afterUpload = urlWithoutQuery.slice(uploadStart);
+
+    if (afterUpload.includes(this.propertyWatermarkTransformation)) {
+      return trimmedUrl;
+    }
+
+    const displayUrl = `${beforeUpload}${this.propertyWatermarkTransformation}/${afterUpload}`;
+
+    return queryString ? `${displayUrl}?${queryString}` : displayUrl;
+  }
+
+  buildWatermarkedDisplayUrls(cleanUrls?: string[] | null): string[] {
+    if (!Array.isArray(cleanUrls)) {
+      return [];
+    }
+
+    return cleanUrls
+      .map((url) => this.buildWatermarkedDisplayUrl(url))
+      .filter(Boolean);
   }
 
   /** -----------------------------

@@ -7,6 +7,7 @@ import {
   useGetUserFavoritesQuery,
   useRemoveUserFavoriteMutation,
 } from "@/services/api";
+import { buildWatermarkedPropertyImageUrls } from "@/utils/properties/cloudinaryImages";
 
 type FavoritePropertyLike = {
   _id?: string;
@@ -44,16 +45,18 @@ const buildFavoriteEntry = (property?: FavoritePropertyLike): FavoriteEntry | nu
     return null;
   }
 
+  const photos =
+    property?.photos && property.photos.length > 0
+      ? property.photos
+      : property?.image
+        ? [property.image]
+        : [];
+
   return {
     property: {
       ...property,
       _id: propertyId,
-      photos:
-        property?.photos && property.photos.length > 0
-          ? property.photos
-          : property?.image
-            ? [property.image]
-            : [],
+      photos: buildWatermarkedPropertyImageUrls(photos),
       location: property?.location || property?.city,
       isFav: true,
     },

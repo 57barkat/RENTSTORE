@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/contextStore/ThemeContext";
 import { Colors } from "@/constants/Colors";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 
 interface Property {
   _id: string;
@@ -30,6 +31,9 @@ const PropertyCard = ({
   const { theme } = useTheme();
   const colors = Colors[theme];
   const primaryRent = getPrimaryRentInfo(property);
+  const displayImage =
+    buildWatermarkedPropertyImageUrl(property.photos?.[0]) ||
+    "https://via.placeholder.com/300";
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card }]}>
@@ -40,7 +44,7 @@ const PropertyCard = ({
       >
         <Image
           source={{
-            uri: property.photos?.[0] || "https://via.placeholder.com/300",
+            uri: displayImage,
           }}
           style={styles.image}
         />

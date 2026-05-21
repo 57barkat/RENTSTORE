@@ -24,6 +24,7 @@ import { FontSize } from "@/constants/Typography";
 import { useLength } from "@/contextStore/LengthContext";
 import { useOptimisticFavorites } from "@/hooks/useOptimisticFavorites";
 import { getPrimaryRentInfo } from "@/utils/properties/rent";
+import { buildWatermarkedPropertyImageUrl } from "@/utils/properties/cloudinaryImages";
 
 type Property = {
   _id: string;
@@ -142,6 +143,7 @@ const Favorites = () => {
 
   const renderFavoriteItem = ({ item }: { item: Property }) => {
     const primaryRent = getPrimaryRentInfo(item);
+    const displayImage = buildWatermarkedPropertyImageUrl(item.photos?.[0]);
 
     return (
       <View
@@ -160,9 +162,9 @@ const Favorites = () => {
             { backgroundColor: currentTheme.muted + "20" },
           ]}
         >
-          {item.photos?.[0] ? (
+          {displayImage ? (
             <Image
-              source={{ uri: item.photos[0] }}
+              source={{ uri: displayImage }}
               style={styles.propertyImage}
             />
           ) : (

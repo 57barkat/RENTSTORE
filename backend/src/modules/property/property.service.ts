@@ -397,6 +397,29 @@ export class PropertyService {
     return value;
   }
 
+  private withPublicDisplayPhotos<T>(property: T): T {
+    if (!property || typeof property !== "object") {
+      return property;
+    }
+
+    const record = { ...(property as Record<string, any>) };
+
+    if (!Array.isArray(record.photos)) {
+      return record as T;
+    }
+
+    // DB photos stay as clean Cloudinary secure_url values. Public responses
+    // swap them for delivery URLs where Cloudinary applies the watermark at
+    // request time; owner/admin/edit responses intentionally bypass this.
+    record.photos = this.cloudinary.buildWatermarkedDisplayUrls(record.photos);
+
+    return record as T;
+  }
+
+  private withPublicDisplayPhotosList<T>(properties: T[]): T[] {
+    return properties.map((property) => this.withPublicDisplayPhotos(property));
+  }
+
   async resetExpiredPromotions(now: Date = new Date()) {
     await this.propertyModel.updateMany(
       { featured: true, featuredUntil: { $ne: null, $lt: now } },
@@ -739,9 +762,10 @@ export class PropertyService {
       .limit(20)
       .populate("ownerId", "name email")
       .lean();
+    const publicData = this.withPublicDisplayPhotosList(data);
 
     return {
-      data,
+      data: this.stripDeprecatedPropertyFields(publicData),
       total: data.length,
       message: data.length
         ? `Found ${data.length} nearby properties within ${radiusKm} km`
@@ -1017,7 +1041,9 @@ export class PropertyService {
 
     // 10. Return formatted response
     return {
-      data: this.stripDeprecatedPropertyFields(populatedMainData),
+      data: this.stripDeprecatedPropertyFields(
+        this.withPublicDisplayPhotosList(populatedMainData),
+      ),
       total,
       page: currentPage,
       limit: adjustedLimit,
@@ -1704,6 +1730,11 @@ export class PropertyService {
     if (!property) throw new NotFoundException("Property not found");
 
     property.photos = Array.from(new Set(property.photos || []));
+    if (!isOwner && !isAdmin) {
+      property.photos = this.cloudinary.buildWatermarkedDisplayUrls(
+        property.photos,
+      );
+    }
 
     const isPropertyOwner =
       userId && property.owner?._id?.toString() === userId.toString();
@@ -1847,7 +1878,9 @@ export class PropertyService {
 
     const payload = {
       ...summary,
-      listings,
+      listings: this.stripDeprecatedPropertyFields(
+        this.withPublicDisplayPhotosList(listings),
+      ),
     };
 
     return payload;
@@ -1874,7 +1907,9 @@ export class PropertyService {
       data.forEach((p) => (p.isFav = favIds.includes(p._id.toString())));
     }
 
-    return data;
+    return this.stripDeprecatedPropertyFields(
+      this.withPublicDisplayPhotosList(data),
+    );
   }
   async getOwnerDashboard(ownerId: string, page = 1, limit = 10) {
     await this.resetExpiredPromotions();
