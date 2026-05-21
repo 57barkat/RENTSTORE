@@ -170,8 +170,7 @@ async function getActiveAreas(): Promise<ActiveAreaCardItem[]> {
       };
     })
     .sort((left, right) => {
-      const listingDelta =
-        right.activeListingCount - left.activeListingCount;
+      const listingDelta = right.activeListingCount - left.activeListingCount;
 
       if (listingDelta !== 0) {
         return listingDelta;

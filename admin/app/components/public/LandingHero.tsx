@@ -138,8 +138,8 @@ export default function LandingHero() {
         </h1>
 
         <p className="mt-4 max-w-3xl text-sm font-normal leading-6 text-white/86 sm:text-[18px] sm:leading-7">
-          Cleaner rental discovery for hostels, family homes, shops, and
-          offices across active Islamabad areas.
+          Cleaner rental discovery for hostels, family homes, shops, and offices
+          across active Islamabad areas.
         </p>
 
         <div className="mt-6 hidden w-full max-w-5xl items-start justify-center gap-6 text-left md:grid md:grid-cols-4">

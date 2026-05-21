@@ -17,10 +17,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type {
-  PropertyCategory,
-  SearchIntent,
-} from "@/app/lib/property-types";
+import type { PropertyCategory, SearchIntent } from "@/app/lib/property-types";
 
 export interface ActiveAreaCardItem {
   area: string;
@@ -192,11 +189,7 @@ export function IntentPathsSection() {
   );
 }
 
-export function ActiveAreasSection({
-  items,
-}: {
-  items: ActiveAreaCardItem[];
-}) {
+export function ActiveAreasSection({ items }: { items: ActiveAreaCardItem[] }) {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
       <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -208,8 +201,8 @@ export function ActiveAreasSection({
             Active areas people are checking
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--admin-muted)]">
-            Ranked from live listing activity today. More signals can plug in
-            as search and inquiry data becomes available.
+            Ranked from live listing activity today. More signals can plug in as
+            search and inquiry data becomes available.
           </p>
         </div>
 
@@ -299,34 +292,36 @@ export function OwnerCTA() {
     <section className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
       <div className="overflow-hidden rounded-lg border border-[var(--admin-border)] bg-white shadow-[0_24px_70px_-56px_var(--admin-shadow)]">
         <div className="grid gap-6 border-l-4 border-[var(--admin-primary)] bg-[linear-gradient(135deg,var(--admin-primary-soft),var(--admin-background),var(--admin-secondary-soft))] p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,auto)] lg:items-center">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--admin-primary)] shadow-sm">
-            <Sparkles className="h-3.5 w-3.5" />
-            For owners and managers
-          </span>
+          <div>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--admin-border)] bg-white px-3 py-1.5 text-xs font-bold text-[var(--admin-primary)] shadow-sm">
+              <Sparkles className="h-3.5 w-3.5" />
+              For owners and managers
+            </span>
 
-          <h2 className="mt-4 text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
-            Have a place to list?
-          </h2>
+            <h2 className="mt-4 text-2xl font-black tracking-tight text-[var(--admin-text)] sm:text-3xl">
+              Have a place to list?
+            </h2>
 
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--admin-muted)] sm:text-base">
-            Reach people already searching by area, budget, and property need.
-            List a hostel, room, apartment, house, shop, or office.
-          </p>
-        </div>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--admin-muted)] sm:text-base">
+              Reach people already searching by area, budget, and property need.
+              List a hostel, room, apartment, house, shop, or office.
+            </p>
+          </div>
 
           <div className="flex flex-col gap-3 lg:items-end">
             <div className="grid w-full gap-2 text-sm text-[var(--admin-muted)] sm:grid-cols-3 lg:w-[360px]">
-              {["Area-led demand", "Direct property need", "Managed discovery"].map(
-                (label) => (
-                  <span
-                    key={label}
-                    className="rounded-lg border border-[var(--admin-border)] bg-white px-3 py-2 text-center text-xs font-bold"
-                  >
-                    {label}
-                  </span>
-                ),
-              )}
+              {[
+                "Area-led demand",
+                "Direct property need",
+                "Managed discovery",
+              ].map((label) => (
+                <span
+                  key={label}
+                  className="rounded-lg border border-[var(--admin-border)] bg-white px-3 py-2 text-center text-xs font-bold"
+                >
+                  {label}
+                </span>
+              ))}
             </div>
 
             <Link
