@@ -35,6 +35,7 @@ import ThemeToggle from "@/app/components/theme-toggle";
 import {
   PUBLIC_CATEGORY_LINKS,
   getPublicCategoryFromPath,
+  isPublicAllPropertiesPath,
   isPublicPropertyDetailPath,
   isPublicAccountRoute,
 } from "@/app/lib/route-constants";
@@ -271,7 +272,8 @@ export default function PublicHeader() {
       ? storedListingCategory
       : routeCategory;
   const browseAllActive =
-    pathname === "/" || (isDetailPath && activeCategory === "property");
+    isPublicAllPropertiesPath(pathname) ||
+    (isDetailPath && activeCategory === "property");
   const isAccountArea = isPublicAccountRoute(pathname);
   const mobileMenuVisibilityClass = isAccountArea ? "lg:hidden" : "xl:hidden";
   const { isAuthenticated, isLoading, logout, user } = usePublicAuth();
@@ -300,7 +302,7 @@ export default function PublicHeader() {
     if (!mounted || isDetailPath) return;
 
     const currentListingCategory: PropertyCategory | null =
-      pathname === "/" ? "property" : routeCategory;
+      isPublicAllPropertiesPath(pathname) ? "property" : routeCategory;
 
     if (currentListingCategory) {
       try {
@@ -619,7 +621,7 @@ export default function PublicHeader() {
           <div className="grid gap-5">
             <MobileDrawerSection title="Primary actions">
               <MobileDrawerLink
-                href="/"
+                href="/properties-for-rent-in-islamabad"
                 active={browseAllActive}
                 icon={Search}
                 onNavigate={closeMobileMenu}

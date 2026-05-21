@@ -41,14 +41,23 @@ export const metadata: Metadata = {
 
 export default async function PopularLocationsPage() {
   const sections = await Promise.all(
-    CATEGORY_SECTIONS.map(async (category) => ({
-      category,
-      groups: await PropertyService.getPopularLocationsOverview({
-        propertyType: category,
-        purpose: "rent",
-        limit: 8,
-      }),
-    })),
+    CATEGORY_SECTIONS.map(async (category) => {
+      try {
+        return {
+          category,
+          groups: await PropertyService.getPopularLocationsOverview({
+            propertyType: category,
+            purpose: "rent",
+            limit: 8,
+          }),
+        };
+      } catch {
+        return {
+          category,
+          groups: [],
+        };
+      }
+    }),
   );
 
   const totalCities = new Set(
